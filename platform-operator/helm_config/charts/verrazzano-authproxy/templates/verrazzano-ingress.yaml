@@ -43,6 +43,7 @@ spec:
     - host: verrazzano.{{ .Values.config.envName }}.{{ .Values.config.dnsSuffix }}
       http:
         paths:
+          {{- if .Values.v2.enabled }}
           - backend:
               service:
                 name: {{ .Values.name }}
@@ -50,6 +51,7 @@ spec:
                   number: {{ .Values.v2.port }}
             path: /(clusters)(.*)
             pathType: Prefix
+          {{- end  }}
           - backend:
               service:
                 name: {{ .Values.name }}

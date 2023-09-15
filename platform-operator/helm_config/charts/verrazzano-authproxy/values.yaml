@@ -42,6 +42,7 @@ dns:
     domain:
 
 v2:
+  enabled: false
   image:
   port: 8777
 
