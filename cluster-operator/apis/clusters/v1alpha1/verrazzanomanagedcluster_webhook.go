@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -34,52 +35,53 @@ func (v *VerrazzanoManagedCluster) SetupWebhookWithManager(mgr ctrl.Manager) err
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoManagedCluster) ValidateCreate() error {
+func (v *VerrazzanoManagedCluster) ValidateCreate() (admission.Warnings, error) {
+	warnings := []string{}
 	log := zap.S().With("source", "webhook", "operation", "create", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Debug("Validate create")
 
 	if v.ObjectMeta.Namespace != constants.VerrazzanoMultiClusterNamespace {
-		return fmt.Errorf("Namespace for the resource must be %s", constants.VerrazzanoMultiClusterNamespace)
+		return warnings, fmt.Errorf("Namespace for the resource must be %s", constants.VerrazzanoMultiClusterNamespace)
 	}
 	client, err := getClientFunc()
 	if err != nil {
-		return err
+		return warnings, err
 	}
 	vz, err := v.validateVerrazzanoInstalled(client)
 	if err != nil {
-		return err
+		return warnings, err
 	}
 
 	// The secret and configmap are required fields _only_ if Rancher is disabled
 	if !vzcr.IsRancherEnabled(vz) {
 		err = v.validateSecret(client)
 		if err != nil {
-			return err
+			return warnings, err
 		}
 
 		err = v.validateConfigMap(client)
 		if err != nil {
-			return err
+			return warnings, err
 		}
 	}
-	return nil
+	return warnings, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoManagedCluster) ValidateUpdate(old runtime.Object) error {
+func (v *VerrazzanoManagedCluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	log := zap.S().With("source", "webhook", "operation", "update", "resource", fmt.Sprintf("%s:%s", v.Namespace, v.Name))
 	log.Debug("Validate update")
 
 	oldResource := old.(*VerrazzanoManagedCluster)
 	log.Debugf("oldResource: %v", oldResource)
 	log.Debugf("v: %v", v)
-	return nil
+	return []string{}, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (v *VerrazzanoManagedCluster) ValidateDelete() error {
+func (v *VerrazzanoManagedCluster) ValidateDelete() (admission.Warnings, error) {
 	// Webhook is not configured for deletes so function will not be called.
-	return nil
+	return []string{}, nil
 }
 
 // getClient returns a controller runtime client for the Verrazzano resource

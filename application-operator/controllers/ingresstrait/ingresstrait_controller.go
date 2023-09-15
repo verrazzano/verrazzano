@@ -42,6 +42,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -92,6 +93,7 @@ type Reconciler struct {
 	Controller controller.Controller
 	Log        *zap.SugaredLogger
 	Scheme     *runtime.Scheme
+	Cache      cache.Cache
 }
 
 // SetupWithManager creates a controller and adds it to the manager, and sets up any watches
@@ -941,11 +943,11 @@ func createAuthorizationPolicyRule(rule *vzapi.AuthorizationRule, path string, h
 func (r *Reconciler) setupWatches() error {
 	// Set up a watch on the Console/Authproxy ingress to watch for changes in the Domain name;
 	err := r.Controller.Watch(
-		&source.Kind{Type: &k8net.Ingress{}},
+		source.Kind(r.Cache, &k8net.Ingress{}),
 		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
 		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
 		// VS and GW records for the associated apps.
-		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+		handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 			return r.createIngressTraitReconcileRequests()
 		}),
 		predicate.Funcs{
@@ -959,11 +961,11 @@ func (r *Reconciler) setupWatches() error {
 	}
 	// Set up a watch on the istio-ingressgateway service to watch for changes in the address;
 	err = r.Controller.Watch(
-		&source.Kind{Type: &corev1.Service{}},
+		source.Kind(r.Cache, &corev1.Service{}),
 		// The handler for the Watch is a map function to map the detected change into requests to reconcile any
 		// existing ingress traits and invoke the IngressTrait Reconciler; this should cause us to update the
 		// VS and GW records for the associated apps.
-		handler.EnqueueRequestsFromMapFunc(func(a client.Object) []reconcile.Request {
+		handler.EnqueueRequestsFromMapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 			return r.createIngressTraitReconcileRequests()
 		}),
 		predicate.Funcs{

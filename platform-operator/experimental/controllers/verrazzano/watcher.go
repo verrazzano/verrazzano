@@ -9,7 +9,6 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
@@ -17,11 +16,11 @@ import (
 func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return []controllerspi.WatchDescriptor{
 		{
-			WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+			WatchedResourceKind: &corev1.Secret{},
 			FuncShouldReconcile: r.ShouldSecretTriggerReconcile,
 		},
 		{
-			WatchedResourceKind: source.Kind{Type: &corev1.ConfigMap{}},
+			WatchedResourceKind: &corev1.ConfigMap{},
 			FuncShouldReconcile: r.ShouldConfigMapTriggerReconcile,
 		},
 	}

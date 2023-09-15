@@ -10,6 +10,7 @@ import (
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // OCNEOCIQuickCreate should be both a validating and defaulting webhook
@@ -22,19 +23,20 @@ func (o *OKEQuickCreate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-func (o *OKEQuickCreate) ValidateCreate() error {
+func (o *OKEQuickCreate) ValidateCreate() (admission.Warnings, error) {
+	warnings := []string{}
 	ctx, err := NewValidationContext()
 	if err != nil {
-		return fmt.Errorf("failed to create validation context: %w", err)
+		return warnings, fmt.Errorf("failed to create validation context: %w", err)
 	}
 	nsn := o.Spec.IdentityRef.AsNamespacedName()
 	creds, err := ctx.CredentialsLoader.GetCredentialsIfAllowed(ctx.Ctx, ctx.Cli, nsn, o.Namespace)
 	if err != nil {
-		return fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
+		return warnings, fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
 	}
 	ociClient, err := ctx.OCIClientGetter(creds)
 	if err != nil {
-		return fmt.Errorf("failed to create OCI Client: %w", err)
+		return warnings, fmt.Errorf("failed to create OCI Client: %w", err)
 	}
 	// Validate the OCI Network
 	if o.Spec.OKE.Network != nil {
@@ -45,9 +47,9 @@ func (o *OKEQuickCreate) ValidateCreate() error {
 		addOCINodeErrors(ctx, np.OCINode, fmt.Sprintf("spec.oke.nodePools[%d]", i))
 	}
 	if ctx.Errors.HasError() {
-		return ctx.Errors
+		return warnings, ctx.Errors
 	}
-	return nil
+	return warnings, nil
 }
 
 func addCNITypeErrors(ctx *validationContext, cniType CNIType, field string) {
@@ -59,16 +61,17 @@ func addCNITypeErrors(ctx *validationContext, cniType CNIType, field string) {
 	}
 }
 
-func (o *OKEQuickCreate) ValidateUpdate(old runtime.Object) error {
+func (o *OKEQuickCreate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	warnings := []string{}
 	oldCluster, ok := old.(*OKEQuickCreate)
 	if !ok {
-		return errors.New("update resource must be of kind OKEQuickCreate")
+		return warnings, errors.New("update resource must be of kind OKEQuickCreate")
 	}
 	if !reflect.DeepEqual(o.Spec, oldCluster.Spec) {
-		return errors.New("spec updates are not permitted")
+		return warnings, errors.New("spec updates are not permitted")
 	}
-	return nil
+	return warnings, nil
 }
-func (o *OKEQuickCreate) ValidateDelete() error {
-	return nil
+func (o *OKEQuickCreate) ValidateDelete() (admission.Warnings, error) {
+	return []string{}, nil
 }

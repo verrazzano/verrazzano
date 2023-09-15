@@ -11,7 +11,6 @@ import (
 	vzapiv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // GetModuleInstalledWatches gets WatchDescriptors for the set of module where the code watches for the module transitioning to installed ready.
@@ -36,7 +35,7 @@ func GetModuleWatchesForReason(moduleNames []string, reason moduleapi.ModuleCond
 
 	// Just use a single watch that looks up the name in the set for a match
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &moduleapi.Module{}},
+		WatchedResourceKind: &moduleapi.Module{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			// Return false if this is not one of the modules that is being watched
 			var newModule = wev.NewWatchedObject.(*moduleapi.Module)
@@ -82,7 +81,7 @@ func GetVerrazzanoSpecWatch() []controllerspi.WatchDescriptor {
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &vzapiv1beta1.Verrazzano{}},
+		WatchedResourceKind: &vzapiv1beta1.Verrazzano{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Updated {
 				return false
@@ -98,7 +97,7 @@ func GetCreateSecretWatch(name, namespace string) []controllerspi.WatchDescripto
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		WatchedResourceKind: &corev1.Secret{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Created {
 				return false
@@ -117,7 +116,7 @@ func GetUpdateSecretWatch(name, namespace string) []controllerspi.WatchDescripto
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		WatchedResourceKind: &corev1.Secret{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Updated {
 				return false
@@ -136,7 +135,7 @@ func GetDeleteSecretWatch(name, namespace string) []controllerspi.WatchDescripto
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &corev1.Secret{}},
+		WatchedResourceKind: &corev1.Secret{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Deleted {
 				return false
@@ -152,7 +151,7 @@ func GetCreateNamespaceWatch(name string) []controllerspi.WatchDescriptor {
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &corev1.Namespace{}},
+		WatchedResourceKind: &corev1.Namespace{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Created {
 				return false
@@ -168,7 +167,7 @@ func GetUpdateNamespaceWatch(name string) []controllerspi.WatchDescriptor {
 	// Use a single watch that looks up the name in the set for a match
 	var watches []controllerspi.WatchDescriptor
 	watches = append(watches, controllerspi.WatchDescriptor{
-		WatchedResourceKind: source.Kind{Type: &corev1.Namespace{}},
+		WatchedResourceKind: &corev1.Namespace{},
 		FuncShouldReconcile: func(cli client.Client, wev controllerspi.WatchEvent) bool {
 			if wev.WatchEventType != controllerspi.Updated {
 				return false

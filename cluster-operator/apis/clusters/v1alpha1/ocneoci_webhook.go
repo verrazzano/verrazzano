@@ -10,6 +10,7 @@ import (
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var (
@@ -26,19 +27,20 @@ func (o *OCNEOCIQuickCreate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // ValidateCreate validates the OCNEOCIQuickCreate input.
 // We do not provide a deep validation of OCI cloud resources, because the provided
 // credentials may not have the necessary policies to do so.
-func (o *OCNEOCIQuickCreate) ValidateCreate() error {
+func (o *OCNEOCIQuickCreate) ValidateCreate() (admission.Warnings, error) {
+	warnings := []string{}
 	ctx, err := NewValidationContext()
 	if err != nil {
-		return fmt.Errorf("failed to create validation context: %w", err)
+		return warnings, fmt.Errorf("failed to create validation context: %w", err)
 	}
 	nsn := o.Spec.IdentityRef.AsNamespacedName()
 	creds, err := ctx.CredentialsLoader.GetCredentialsIfAllowed(ctx.Ctx, ctx.Cli, nsn, o.Namespace)
 	if err != nil {
-		return fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
+		return warnings, fmt.Errorf("cannot access OCI credentials %s/%s: %v", nsn.Namespace, nsn.Name, err)
 	}
 	ociClient, err := ctx.OCIClientGetter(creds)
 	if err != nil {
-		return fmt.Errorf("failed to create OCI Client: %w", err)
+		return warnings, fmt.Errorf("failed to create OCI Client: %w", err)
 	}
 	// Validate the OCI Network
 	addOCINetworkErrors(ctx, ociClient, o.Spec.OCI.Network, 4, "spec.oci.network")
@@ -51,23 +53,24 @@ func (o *OCNEOCIQuickCreate) ValidateCreate() error {
 	addProxyErrors(ctx, o.Spec.Proxy, "spec.proxy")
 	addPrivateRegistryErrors(ctx, o.Spec.PrivateRegistry, "spec.privateRegistry")
 	if ctx.Errors.HasError() {
-		return ctx.Errors
+		return warnings, ctx.Errors
 	}
-	return nil
+	return warnings, nil
 }
 
 // ValidateUpdate rejects any changes to the quick create spec.
-func (o *OCNEOCIQuickCreate) ValidateUpdate(old runtime.Object) error {
+func (o *OCNEOCIQuickCreate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+	warnings := []string{}
 	oldCluster, ok := old.(*OCNEOCIQuickCreate)
 	if !ok {
-		return errors.New("update resource must be of kind OCNEOCIQuickCreate")
+		return warnings, errors.New("update resource must be of kind OCNEOCIQuickCreate")
 	}
 	if !reflect.DeepEqual(o.Spec, oldCluster.Spec) {
-		return errors.New("spec updates are not permitted")
+		return warnings, errors.New("spec updates are not permitted")
 	}
-	return nil
+	return warnings, nil
 }
 
-func (o *OCNEOCIQuickCreate) ValidateDelete() error {
-	return nil
+func (o *OCNEOCIQuickCreate) ValidateDelete() (admission.Warnings, error) {
+	return []string{}, nil
 }

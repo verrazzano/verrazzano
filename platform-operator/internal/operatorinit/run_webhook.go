@@ -124,10 +124,9 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 		return fmt.Errorf("Failed to setup install.v1beta1.Verrazzano webhook with manager: %v", err)
 	}
 
-	mgr.GetWebhookServer().CertDir = config.CertDir
-
 	// register MySQL backup job mutating webhook
-	mgr.GetWebhookServer().Register(
+	mySQLWebhookServer := webhook.NewServer(webhook.Options{CertDir: config.CertDir})
+	mySQLWebhookServer.Register(
 		constants.MysqlBackupMutatingWebhookPath,
 		&webhook.Admission{
 			Handler: &webhooks.MySQLBackupJobWebhook{

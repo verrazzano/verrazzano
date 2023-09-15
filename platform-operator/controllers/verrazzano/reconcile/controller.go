@@ -10,6 +10,7 @@ import (
 	goerrors "errors"
 	"fmt"
 	"io"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"strings"
 	"sync"
 	"time"
@@ -70,6 +71,7 @@ type Reconciler struct {
 	WatchMutex        *sync.RWMutex
 	Bom               *bom.Bom
 	StatusUpdater     vzstatus.Updater
+	Cache             cache.Cache
 }
 
 // Name of finalizer
@@ -866,7 +868,7 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 	// Watch pods and trigger reconciles for Verrazzano resources when a pod is created
 	log.Debugf("Watching for pods to activate reconcile for Verrazzano CR %s/%s", namespace, name)
 	err := r.Controller.Watch(
-		&source.Kind{Type: &corev1.Pod{}},
+		source.Kind(r.Cache, &corev1.Pod{}),
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
 			// Cast object to pod
@@ -891,7 +893,7 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 
 	log.Debugf("Watching for backup jobs to activate reconcile for Verrazzano CR %s/%s", namespace, name)
 	err = r.Controller.Watch(
-		&source.Kind{Type: &batchv1.Job{}},
+		source.Kind(r.Cache, &batchv1.Job{}),
 		createReconcileEventHandler(namespace, name),
 		createPredicate(func(e event.CreateEvent) bool {
 			return r.isMysqlOperatorJob(e, log)
@@ -916,7 +918,7 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 
 func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, name string) error {
 	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Secret{}},
+		source.Kind(r.Cache, &corev1.Secret{}),
 		createReconcileEventHandler(namespace, name),
 		// Reconcile if there is an event related to the registration secret
 		predicate.Funcs{
@@ -935,7 +937,7 @@ func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, nam
 
 func (r *Reconciler) watchThanosInternalUserSecret(namespace string, name string) error {
 	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Secret{}},
+		source.Kind(r.Cache, &corev1.Secret{}),
 		createReconcileEventHandler(namespace, name),
 		// Reconcile if there is an event related to the registration secret
 		predicate.Funcs{
@@ -951,7 +953,7 @@ func (r *Reconciler) watchThanosInternalUserSecret(namespace string, name string
 
 func (r *Reconciler) watchRancherGlobalDataNamespace(namespace string, name string) error {
 	return r.Controller.Watch(
-		&source.Kind{Type: &corev1.Namespace{}},
+		source.Kind(r.Cache, &corev1.Namespace{}),
 		createReconcileEventHandler(namespace, name),
 		// Reconcile if there is an event related to the registration secret
 		predicate.Funcs{
@@ -1032,7 +1034,7 @@ func isResourceCreatedByMysqlOperator(labels map[string]string, log vzlog.Verraz
 
 func createReconcileEventHandler(namespace, name string) handler.EventHandler {
 	return handler.EnqueueRequestsFromMapFunc(
-		func(a client.Object) []reconcile.Request {
+		func(ctx context.Context, a client.Object) []reconcile.Request {
 			return []reconcile.Request{
 				{NamespacedName: types.NamespacedName{
 					Namespace: namespace,

@@ -29,7 +29,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.3
-	github.com/verrazzano/verrazzano-modules v0.0.0-20230831133904-1e65b93429f7
+	github.com/verrazzano/verrazzano-modules v0.0.0-20230914221756-d31d8f81f248
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
 	go.uber.org/zap v1.24.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
@@ -202,7 +202,7 @@ require (
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/google/go-github/v48 v48.2.0 // indirect
 	github.com/russross/blackfriday v1.5.2 // indirect
-	golang.org/x/mod v0.9.0 // indirect
+	golang.org/x/mod v0.10.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20230530153820-e85fd2cbaebc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
 )
