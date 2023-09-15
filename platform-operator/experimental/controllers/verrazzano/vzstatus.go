@@ -310,8 +310,6 @@ func (r Reconciler) areModulesDoneReconciling(log vzlog.VerrazzanoLogger, actual
 				if !comp.IsEnabled(compCtx.EffectiveCR()) {
 					continue
 				}
-				log.Info("areModulesDoneReconciling: Modules %s not found")
-
 				// component enabled but not found, return false since it must exist
 				return false
 			}
