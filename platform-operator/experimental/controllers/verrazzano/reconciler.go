@@ -198,7 +198,7 @@ func (r Reconciler) postInstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 // postUpgrade does all the global post-work for upgrade
 func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
-	log.Once("Starting global post-install")
+	log.Once("Starting global post-upgrade")
 	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
