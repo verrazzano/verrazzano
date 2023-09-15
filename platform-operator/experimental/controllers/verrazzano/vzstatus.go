@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"time"
 )
 
@@ -83,7 +84,10 @@ func (r Reconciler) initializeComponentStatus(log vzlog.VerrazzanoLogger, actual
 	return result.NewResult()
 }
 
-func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
+func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, opResult controllerutil.OperationResult) result.Result {
+	if opResult == controllerutil.OperationResultNone {
+		return result.NewResult()
+	}
 	if !r.isUpgrading(actualCR) {
 		if err := r.updateStatusInstalling(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
