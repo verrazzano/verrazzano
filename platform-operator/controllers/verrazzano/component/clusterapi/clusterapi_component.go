@@ -301,11 +301,11 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
 		// get all the resource that will be deleted and recreated
-		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
-		if err != nil {
-			ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
-			return err
-		}
+		//components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
+		//if err != nil {
+		//	ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
+		//	return err
+		//}
 
 		// delete the RBAC resources that Rancher puts finalizers on and keep requeuing until they're gone
 		//if err = deleteRBACComponents(ctx, components); err != nil {
