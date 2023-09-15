@@ -823,7 +823,7 @@ func isRancherWebhookImageUpToDate(ctx spi.ComponentContext) bool {
 		return false
 	}
 
-	var deployment *appsv1.Deployment
+	deployment := &appsv1.Deployment{}
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: rancherWebhookDeployment}, deployment)
 	if err != nil {
 		ctx.Log().ErrorfThrottled("Failed to get the rancher-webhook deployment: %v", err)
