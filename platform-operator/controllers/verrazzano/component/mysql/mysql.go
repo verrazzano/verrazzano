@@ -19,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysqloperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -563,6 +564,12 @@ func preUpgrade(ctx spi.ComponentContext) error {
 		ctx.Log().Debug("MySQL pre upgrade dry run")
 		return nil
 	}
+
+	// Make sure the mysql netpol is fixed
+	if err := networkpolicies.FixKeycloakMySQLNetPolicy(ctx); err != nil {
+		return err
+	}
+
 	// vz > 1.3 uses statefulsets, not deployments
 	// no migration is needed if vz >= 1.4
 	if isLegacyDatabaseUpgrade(ctx) {

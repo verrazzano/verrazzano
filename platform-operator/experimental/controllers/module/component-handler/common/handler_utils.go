@@ -16,6 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	modulecatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,6 +109,22 @@ func isDependencyReady(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, modu
 		return result.NewResultShortRequeueDelay()
 	}
 	if module.Status.LastSuccessfulVersion != module.Spec.Version {
+		return result.NewResultShortRequeueDelay()
+	}
+
+	// Make sure the module version matches the catalog version. This ensures that
+	// dependent modules finish upgrade before module that depend on them start upgrade.
+	catalog, err := modulecatalog.NewCatalog(config.GetCatalogPath())
+	if err != nil {
+		ctx.Log.ErrorfThrottled("Error loading module catalog: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	version := catalog.GetVersion(comp.Name())
+	if version == nil {
+		err = ctx.Log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if version.ToString() != module.Status.LastSuccessfulVersion {
 		return result.NewResultShortRequeueDelay()
 	}
 
