@@ -6,13 +6,14 @@ package grafana
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/thanos"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
@@ -25,13 +26,13 @@ type valuesConfig struct {
 	Replicas *int32              `json:"replicas,omitempty"`
 	SMTP     *vmov1.SMTPInfo     `json:"smtp,omitempty"`
 
-	Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
-	DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
-	EnvironmentName string                       `json:"environmentName,omitempty"`
+	//Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
+	//DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
+	//EnvironmentName string                       `json:"environmentName,omitempty"`
 
-	ThanosEnabled             bool `json:"thanosEnabled"`
-	PrometheusEnabled         bool `json:"prometheusEnabled"`
-	PrometheusOperatorEnabled bool `json:"prometheusOperatorEnabled"`
+	//ThanosEnabled     bool `json:"thanosEnabled"`
+	//PrometheusEnabled bool `json:"prometheusEnabled"`
+	//PrometheusOperatorEnabled bool `json:"prometheusOperatorEnabled"`
 
 	DefaultVolumeSource      *corev1.VolumeSource            `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 	VolumeClaimSpecTemplates []vzapi.VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
@@ -55,29 +56,29 @@ func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 		configSnippet.Replicas = grafana.Replicas
 	}
 
-	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil {
-		configSnippet.DNS = &vzapi.DNSComponent{
-			External:         dns.External,
-			InstallOverrides: vzapi.InstallOverrides{}, // always ignore the overrides here, those are handled separately
-			OCI:              dns.OCI,
-			Wildcard:         dns.Wildcard,
-		}
-	}
+	//dns := effectiveCR.Spec.Components.DNS
+	//if dns != nil {
+	//	configSnippet.DNS = &vzapi.DNSComponent{
+	//		External:         dns.External,
+	//		InstallOverrides: vzapi.InstallOverrides{}, // always ignore the overrides here, those are handled separately
+	//		OCI:              dns.OCI,
+	//		Wildcard:         dns.Wildcard,
+	//	}
+	//}
 
-	nginx := effectiveCR.Spec.Components.Ingress
-	if nginx != nil {
-		configSnippet.Ingress = nginx.DeepCopy()
-		configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
-	}
+	//nginx := effectiveCR.Spec.Components.Ingress
+	//if nginx != nil {
+	//	configSnippet.Ingress = nginx.DeepCopy()
+	//	configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
+	//}
+	//
+	//if len(effectiveCR.Spec.EnvironmentName) > 0 {
+	//	configSnippet.EnvironmentName = effectiveCR.Spec.EnvironmentName
+	//}
 
-	if len(effectiveCR.Spec.EnvironmentName) > 0 {
-		configSnippet.EnvironmentName = effectiveCR.Spec.EnvironmentName
-	}
-
-	configSnippet.PrometheusEnabled = vzcr.IsPrometheusEnabled(effectiveCR)
-	configSnippet.ThanosEnabled = vzcr.IsThanosEnabled(effectiveCR)
-	configSnippet.PrometheusOperatorEnabled = vzcr.IsPrometheusOperatorEnabled(effectiveCR)
+	//configSnippet.PrometheusEnabled = vzcr.IsPrometheusEnabled(effectiveCR)
+	//configSnippet.ThanosEnabled = vzcr.IsThanosEnabled(effectiveCR)
+	//configSnippet.PrometheusOperatorEnabled = vzcr.IsPrometheusOperatorEnabled(effectiveCR)
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
@@ -90,7 +91,7 @@ func (g grafanaComponent) ShouldUseModule() bool {
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentJSONName, thanos.ComponentName, prometheusOperator.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName, thanos.ComponentName, prometheusOperator.ComponentName}),
 	)
 }
