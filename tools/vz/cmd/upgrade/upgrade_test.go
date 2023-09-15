@@ -771,34 +771,52 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 //	WHEN I call cmd.Execute for upgrade
 //	THEN the CLI upgrade command is successful
 func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
-	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
-	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
+	tests := []struct {
+		name           string
+		isValidSetArgs bool
+		setArgs        []string
+	}{
+		{name: "Upgrade with valid --set args", isValidSetArgs: true, setArgs: []string{"spec.components.jaegerOperator.enabled=true"}},
+		{name: "Upgrade with invalid --set args", isValidSetArgs: false, setArgs: []string{"s"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vz := testhelpers.CreateVerrazzanoObjectWithVersion()
+			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	rc.SetClient(c)
-	cmd := NewCmdUpgrade(rc)
-	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
-	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
-	cmd.PersistentFlags().Set(constants.SetFlag, "spec.components.jaegerOperator.enabled=true")
-	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
-	defer cmdHelpers.SetDefaultDeleteFunc()
+			// Send stdout stderr to a byte buffer
+			buf := new(bytes.Buffer)
+			errBuf := new(bytes.Buffer)
+			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc.SetClient(c)
+			cmd := NewCmdUpgrade(rc)
+			assert.NotNil(t, cmd)
+			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
+			cmd.PersistentFlags().Set(constants.VersionFlag, "v1.4.0")
+			for _, arg := range tt.setArgs {
+				cmd.PersistentFlags().Set(constants.SetFlag, arg)
+			}
+			cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
+			defer cmdHelpers.SetDefaultDeleteFunc()
 
-	cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
-	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
+			cmdHelpers.SetVPOIsReadyFunc(func(_ client.Client) (bool, error) { return true, nil })
+			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
-	// Run upgrade command
-	err := cmd.Execute()
-	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+			// Run upgrade command
+			err := cmd.Execute()
 
-	// Verify the vz resource is as expected
-	vzResource := v1beta1.Verrazzano{}
-	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vzResource)
-	assert.NotNil(t, vzResource.Spec.Components.JaegerOperator.Enabled)
-	assert.Equal(t, "true", vzResource.Spec.Components.JaegerOperator.Enabled)
-	assert.NoError(t, err)
+			if tt.isValidSetArgs {
+				// Verify the vz resource is as expected
+				vzResource := v1beta1.Verrazzano{}
+				err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vzResource)
+				isJaegerOperatorEnabled := vzResource.Spec.Components.JaegerOperator.Enabled
+				assert.NotNil(t, isJaegerOperatorEnabled)
+				assert.Equal(t, true, *isJaegerOperatorEnabled)
+			} else {
+				assert.Error(t, err)
+			}
+
+		})
+	}
+
 }

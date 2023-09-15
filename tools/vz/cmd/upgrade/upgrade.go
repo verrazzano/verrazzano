@@ -4,6 +4,7 @@
 package upgrade
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
@@ -248,14 +249,12 @@ func upgradeVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta
 		if err == nil {
 			vz.Spec.Version = version
 
-			// If --set flags are used then the Verrazzano resource needs to be updated before calling UpdateVerrazzanoResource()
-			setFlags, _ := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
-			if len(setFlags) != 0 {
-				vzWithSetFlags, err := mergeSetFlagsIntoVerrazzanoResource(cmd, vzHelper, vz)
-				if err != nil {
-					return err
-				}
-				vz = vzWithSetFlags.(*v1beta1.Verrazzano)
+			vzWithSetFlags, err := mergeSetFlagsIntoVerrazzanoResource(cmd, vzHelper, vz)
+			if err != nil {
+				return err
+			}
+			if vzWithSetFlags != nil {
+				vz = vzWithSetFlags
 			}
 
 			err = helpers.UpdateVerrazzanoResource(client, vz)
@@ -296,22 +295,38 @@ func validateCmd(cmd *cobra.Command) error {
 }
 
 // mergeSetFlagsIntoVerrazzanoResource - determines is any --set flags are used and merges them into the existing Verrazzano resource to be applied at upgrade
-func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano) (clipkg.Object, error) {
-	// Get the set arguments - returning a list of properties and value
-	pvs, err := cmdhelpers.GetSetArguments(cmd, vzHelper)
-	if err != nil {
-		return nil, err
+func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano) (*v1beta1.Verrazzano, error) {
+	// Check that set flags are set. Otherwise, nothing is returned and the Verrazzano resource is left untouched
+	setFlags, _ := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
+	if len(setFlags) != 0 {
+		// Get the set arguments - returning a list of properties and value
+		pvs, err := cmdhelpers.GetSetArguments(cmd, vzHelper)
+		if err != nil {
+			return nil, err
+		}
+
+		// Generate yaml for the set flags passed on the command line
+		outYAML, err := cmdhelpers.GenerateYAMLForSetFlags(pvs)
+		if err != nil {
+			return nil, err
+		}
+
+		// Merge the set flags passed on the command line. The set flags take precedence over
+		// the yaml files passed on the command line.
+		mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
+
+		// Update requires a Verrazzano resource to apply changes, so here the client Object becomes a Verrazzano resource to be returned
+		vzMarshalled, err := json.Marshal(mergedVZ)
+		if err != nil {
+			return nil, err
+		}
+		newVZ := v1beta1.Verrazzano{}
+		err = json.Unmarshal(vzMarshalled, &newVZ)
+		if err != nil {
+			return nil, err
+		}
+
+		return &newVZ, err
 	}
-
-	// Generate yaml for the set flags passed on the command line
-	outYAML, err := cmdhelpers.GenerateYAMLForSetFlags(pvs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Merge the set flags passed on the command line. The set flags take precedence over
-	// the yaml files passed on the command line.
-	mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
-
-	return mergedVZ, err
+	return nil, nil
 }
