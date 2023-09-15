@@ -202,6 +202,16 @@ func TestCreateVerrazzanoMultiClusterNamespace(t *testing.T) {
 		CreateVerrazzanoMultiClusterNamespace)
 }
 
+// TestCreateDexNamespace tests the CreateDexNamespace function
+// GIVEN a call to CreateDexNamespace
+// WHEN no error occurs
+// THEN no error is returned, the namespace is created, and the proper labels have been added
+func TestCreateDexNamespace(t *testing.T) {
+	runNamespaceTestWithIstioFlag(t, constants.DexNamespace,
+		createVZAndIstioLabels(constants.DexNamespace),
+		CreateDexNamespace)
+}
+
 func runNamespaceTest(t *testing.T, namespace string, expectedLabels map[string]string, namespaceFunc func(client client.Client) error) {
 	asserts := assert.New(t)
 	mocker := gomock.NewController(t)
