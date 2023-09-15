@@ -468,9 +468,8 @@ func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *reg
 	// res[0][2] is the timestamp
 	// res[0][1] is the level
 	// res[0][4] is the message
-	level := res[0][1]
-	message := res[0][4]
-	if res != nil && isAcceptableMessageForSimpleLogFormat(level, message) {
+
+	if res != nil && isAcceptableMessageForSimpleLogFormat(res[0][1], res[0][4]) {
 		// Print each log message in the form "timestamp level message".
 		// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
 		fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
