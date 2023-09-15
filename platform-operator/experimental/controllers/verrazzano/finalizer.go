@@ -60,7 +60,7 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 	}
 	effectiveCR.Status = actualCR.Status
 
-	controllerCtx.Log.Oncef("Started uninstalling Verrazzano CR for generation %v", actualCR.Generation)
+	controllerCtx.Log.Oncef("Started uninstalling Verrazzano")
 
 	// Do global pre-work
 	if res := r.preUninstall(log, actualCR, effectiveCR); res.ShouldRequeue() {
@@ -90,7 +90,7 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
-	controllerCtx.Log.Oncef("Successfully uninstalled Verrazzano CR", actualCR.Generation)
+	controllerCtx.Log.Oncef("Successfully uninstalled Verrazzano")
 	return result.NewResult()
 }
 

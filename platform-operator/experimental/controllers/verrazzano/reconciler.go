@@ -79,7 +79,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	controllerCtx.Log.Oncef("Started reconciling Verrazzano CR for generation %v", actualCR.Generation)
+	controllerCtx.Log.Oncef("Started reconciling Verrazzano for generation %v", actualCR.Generation)
 
 	// Do global pre-work
 	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
@@ -100,7 +100,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano CR for generation %v", actualCR.Generation)
+	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
 	return result.NewResult()
 }
 
