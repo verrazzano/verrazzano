@@ -6,6 +6,7 @@ package netpol
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"strings"
 	"time"
 
@@ -15,7 +16,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
@@ -55,8 +55,7 @@ const (
 	controllerManager         = "controller-manager"
 	providerLabel             = "cluster.x-k8s.io/provider"
 	ingressControllerInstance = "ingress-controller"
-
-	dexAppLabel = "dex"
+	dexAppLabel               = "dex"
 )
 
 // accessCheckConfig is the configuration used for the NetworkPolicy access check
@@ -393,6 +392,15 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test Dex ingress rules")
 				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesInstanceLabel: ingressControllerInstance}}, constants.IngressNginxNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Dex ingress rules failed: reason = %s", err))
+
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, constants.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Dex ingress rules failed: reason = %s", err))
+
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.VerrazzanoAuthProxyServiceName}}, constants.VerrazzanoSystemNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 5556, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Dex ingress rules failed: reason = %s", err))
+
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "keycloak"}}, "keycloak", envoyStatsMetricsPort, false, true)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test Dex ingress rules failed: reason = %s", err))
 			},
 		)
 	})
@@ -529,7 +537,13 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Negative test Dex ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, false)
+				err := testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 8080, false, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test dex ingress rules failed: reason = %s", err))
+
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 5556, false, false)
+				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test dex ingress rules failed: reason = %s", err))
+
+				err = testAccessPodsOptional(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: dexAppLabel}}, constants.DexNamespace, 15090, false, false)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Negative test dex ingress rules failed: reason = %s", err))
 			},
 		}

@@ -912,8 +912,6 @@ spec:
         - protocol: TCP
           port: 8080
         - protocol: TCP
-          port: 5558
-        - protocol: TCP
           port: 5556
     - from:
         - namespaceSelector:
@@ -922,8 +920,6 @@ spec:
       ports:
         - protocol: TCP
           port: 8080
-        - protocol: TCP
-          port: 5558
         - protocol: TCP
           port: 5556
     - from:
