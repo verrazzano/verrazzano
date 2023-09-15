@@ -809,6 +809,7 @@ func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
 				// Verify the vz resource is as expected
 				vzResource := v1beta1.Verrazzano{}
 				err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vzResource)
+				assert.NoError(t, err)
 				isJaegerOperatorEnabled := vzResource.Spec.Components.JaegerOperator.Enabled
 				assert.NotNil(t, isJaegerOperatorEnabled)
 				assert.Equal(t, true, *isJaegerOperatorEnabled)

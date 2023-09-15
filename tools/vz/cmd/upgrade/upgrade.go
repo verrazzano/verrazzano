@@ -258,6 +258,9 @@ func upgradeVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta
 			}
 
 			err = helpers.UpdateVerrazzanoResource(client, vz)
+			if err != nil {
+				return err
+			}
 		}
 		if err != nil {
 			if retry == 5 {
@@ -314,6 +317,9 @@ func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZ
 		// Merge the set flags passed on the command line. The set flags take precedence over
 		// the yaml files passed on the command line.
 		mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
+		if err != nil {
+			return nil, err
+		}
 
 		// Update requires a Verrazzano resource to apply changes, so here the client Object becomes a Verrazzano resource to be returned
 		vzMarshalled, err := json.Marshal(mergedVZ)
