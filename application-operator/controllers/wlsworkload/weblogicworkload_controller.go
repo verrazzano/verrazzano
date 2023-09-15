@@ -204,7 +204,10 @@ var specServerPodVolumeMountsFields = append(specServerPodFields, "volumeMounts"
 var specServerServiceLabelsFields = append(specServerServiceFields, "labels")
 var specConfigurationIstioEnabledFields = []string{specField, "configuration", "istio", "enabled"}
 var specConfigurationRuntimeEncryptionSecret = []string{specField, "configuration", "model", "runtimeEncryptionSecret"}
+var specDomainSourceType = []string{specField, "domainHomeSourceType"}
 var specConfigurationWDTConfigMap = []string{specField, "configuration", "model", "configMap"}
+var specConfigurationDomainOnPVConfigMap = []string{specField, "configuration", "initializeDomainOnPV", "domain", "domainCreationConfigMap"}
+var specConfigurationInitializeDomainOnPV = []string{specField, "configuration", "initializeDomainOnPV"}
 var specMonitoringExporterFields = []string{specField, "monitoringExporter"}
 var specRestartVersionFields = []string{specField, "restartVersion"}
 var specServerStartPolicyFields = []string{specField, "serverStartPolicy"}
@@ -807,12 +810,40 @@ func (r *Reconciler) updateStatusReconcileDone(ctx context.Context, wl *vzapi.Ve
 	return nil
 }
 
+// GetConfigMapLocation gets the location of the configmap in the model.
+func (r *Reconciler) GetConfigMapLocation(u *unstructured.Unstructured) ([]string, error) {
+	//Find domainHomeSourceType
+	domainHomeSourceType, exists, err := unstructured.NestedString(u.Object, specDomainSourceType...)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		if domainHomeSourceType == "PersistentVolume" {
+			_, fnd, err := unstructured.NestedMap(u.Object, specConfigurationInitializeDomainOnPV...)
+			if err != nil {
+				return nil, err
+
+			}
+			if fnd {
+				return specConfigurationDomainOnPVConfigMap, err
+			}
+		}
+	}
+	return specConfigurationWDTConfigMap, err
+}
+
 // CreateOrUpdateWDTConfigMap creates a default WDT config map with WeblogicPluginEnabled setting if the
 // WDT config map is not specified in the WebLogic spec. Otherwise, it updates the specified WDT config map
 // with WeblogicPluginEnabled setting if not already done.
 func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.VerrazzanoLogger, namespaceName string, u *unstructured.Unstructured, workloadLabels map[string]string) error {
 	// Get the specified WDT config map name in the WebLogic spec
-	configMapName, found, err := unstructured.NestedString(u.Object, specConfigurationWDTConfigMap...)
+	var location, err = r.GetConfigMapLocation(u)
+	if err != nil {
+		log.Errorf("Failed to get location of WDT configMap from WebLogic spec: %v", err)
+		return err
+	}
+
+	configMapName, found, err := unstructured.NestedString(u.Object, location...)
 	if err != nil {
 		log.Errorf("Failed to extract WDT configMap from WebLogic spec: %v", err)
 		return err
@@ -833,7 +864,7 @@ func (r *Reconciler) CreateOrUpdateWDTConfigMap(ctx context.Context, log vzlog.V
 			return err
 		}
 		// Set WDT config map field in WebLogic spec
-		err = unstructured.SetNestedField(u.Object, getWDTConfigMapName(domainUID), specConfigurationWDTConfigMap...)
+		err = unstructured.SetNestedField(u.Object, getWDTConfigMapName(domainUID), location...)
 		if err != nil {
 			log.Errorf("Failed to set WDT config map in WebLogic spec: %v", err)
 			return err
