@@ -308,9 +308,9 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		}
 
 		// delete the RBAC resources that Rancher puts finalizers on and keep requeuing until they're gone
-		if err = deleteRBACComponents(ctx, components); err != nil {
-			return err
-		}
+		//if err = deleteRBACComponents(ctx, components); err != nil {
+		//	return err
+		//}
 
 		// then apply the upgrade
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
