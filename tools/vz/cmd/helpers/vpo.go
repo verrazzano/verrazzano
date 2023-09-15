@@ -481,7 +481,8 @@ func isAcceptableMessageForSimpleLogFormat(level string, message string) bool {
 	if (level != "error" && level != "info") || strings.Contains(message, "Starting EventSource") {
 		return false
 	}
-	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate")) {
+	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate") || strings.Contains(message, "Associating NetworkPolicy") || strings.Contains(message, "Updating the Labels and Annotations") || strings.Contains(message, "Resetting initial MySQL pod readiness check") || strings.Contains(message, "waiting for readiness gates")) {
+
 		return false
 	}
 	return true
