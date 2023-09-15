@@ -106,12 +106,6 @@ func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Modu
 	//
 	// For now we will use DeepEqual to compare parts of the Module objects we care about directly unless we can
 	// determine why we're getting diffs from the full ObjectCompare
-	/*
-		For debugging DeepEqual
-		if !equality.Semantic.DeepEqual(moduleExisting, module) {
-			log.Debugf("Full object diff for %s failed", client.ObjectKeyFromObject(&module))
-		}
-	*/
 	return equality.Semantic.DeepEqual(mod1.Spec, mod2.Spec) &&
 		equality.Semantic.DeepEqual(mod1.ObjectMeta, mod2.ObjectMeta) &&
 		equality.Semantic.DeepEqual(mod1.Status, mod2.Status)
