@@ -479,7 +479,7 @@ func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *reg
 
 // isNotAcceptableMessageForSimpleLogFormat returns true if a message should be filtered out from the console
 func isAcceptableMessageForSimpleLogFormat(level string, message string) bool {
-	if level != "error" || level != "info" || strings.Contains(message, "Starting EventSource") {
+	if (level != "error" && level != "info") || strings.Contains(message, "Starting EventSource") {
 		return false
 	}
 	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate")) {
