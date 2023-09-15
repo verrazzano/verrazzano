@@ -60,6 +60,8 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 	}
 	effectiveCR.Status = actualCR.Status
 
+	controllerCtx.Log.Oncef("Started uninstalling Verrazzano CR for generation %v", actualCR.Generation)
+
 	// Do global pre-work
 	if res := r.preUninstall(log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
@@ -88,7 +90,7 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
 
-	// Always requeue, the legacy verrazzano controller will delete the finalizer and the VZ CR will go away.
+	controllerCtx.Log.Oncef("Successfully uninstalled Verrazzano CR", actualCR.Generation)
 	return result.NewResult()
 }
 
@@ -132,7 +134,7 @@ func (r Reconciler) postUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alph
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if res := r.postUninstallCleanup(componentCtx); res.ShouldRequeue() {
+	if res := r.postUninstallCleanup(log, componentCtx); res.ShouldRequeue() {
 		return res
 	}
 	return result.NewResult()
@@ -152,16 +154,18 @@ func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 }
 
 // uninstallCleanup Perform the final cleanup of shared resources, etc not tracked by individual component uninstalls
-func (r Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentContext) result.Result {
+func (r Reconciler) postUninstallCleanup(log vzlog.VerrazzanoLogger, componentCtx componentspi.ComponentContext) result.Result {
 	rancherProvisioned, err := rancher.IsClusterProvisionedByRancher()
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-uninstall: deleting Istio CA Root Cert")
 	if err := custom.DeleteIstioCARootCert(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-uninstall: node exporter cleanup")
 	if err := custom.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -170,9 +174,11 @@ func (r Reconciler) postUninstallCleanup(componentCtx componentspi.ComponentCont
 	// the uninstall was interrupted during uninstall, or if the cluster is a managed cluster where Rancher is not
 	// installed explicitly.
 	if !rancherProvisioned {
+		log.Once("Global post-uninstall: running Rancher cleanup")
 		if err := custom.RunRancherPostUninstall(componentCtx); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+	log.Once("Global post-uninstall: deleting namespaces")
 	return custom.DeleteNamespaces(componentCtx, rancherProvisioned)
 }

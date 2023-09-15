@@ -196,12 +196,12 @@ func (r Reconciler) updateStatusUpgrading(log vzlog.VerrazzanoLogger, actualCR *
 	return nil
 }
 
-func (r Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) {
+func (r Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Verrazzano) error {
 	// Set complete status
 	if r.isUpgrading(actualCR) {
-		r.updateStatusUpgradeComplete(actualCR)
+		return r.updateStatusUpgradeComplete(actualCR)
 	} else {
-		r.updateStatusInstallComplete(actualCR)
+		return r.updateStatusInstallComplete(actualCR)
 	}
 }
 

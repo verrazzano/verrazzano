@@ -11,7 +11,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
@@ -132,7 +131,7 @@ func isDependencyReady(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, modu
 }
 
 func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, compName string, operation string) (spi.ComponentContext, spi.Component, error) {
-	compCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
+	compCtx, err := spi.NewContext(ctx.Log, ctx.Client, vz, nil, false)
 	if err != nil {
 		compCtx.Log().Errorf("Failed to create component context: %v", err)
 		return nil, nil, err
