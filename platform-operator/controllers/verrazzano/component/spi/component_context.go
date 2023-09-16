@@ -183,7 +183,7 @@ func (c componentContext) Init(compName string) ComponentContext {
 func (c componentContext) Operation(op string) ComponentContext {
 	// Get zap logger, add "with" field for this component name
 	zapLogger := c.log.GetRootZapLogger().With("component", c.component).With("operation", op)
-	
+
 	// Ensure that there is a logger for this component, inject the new zap logger
 	log := c.log.GetContext().EnsureLogger(c.component, zapLogger, zapLogger)
 

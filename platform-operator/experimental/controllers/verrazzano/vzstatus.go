@@ -200,9 +200,8 @@ func (r Reconciler) updateStatusInstallUpgradeComplete(actualCR *vzv1alpha1.Verr
 	// Set complete status
 	if r.isUpgrading(actualCR) {
 		return r.updateStatusUpgradeComplete(actualCR)
-	} else {
-		return r.updateStatusInstallComplete(actualCR)
 	}
+	return r.updateStatusInstallComplete(actualCR)
 }
 
 // updateStatusInstallComplete updates the status condition and state for install complete
