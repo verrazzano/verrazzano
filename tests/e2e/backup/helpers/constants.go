@@ -58,7 +58,7 @@ metadata:
   namespace: {{ .VeleroNamespaceName }}
 spec:
   includedNamespaces:
-    - verrazzano-system
+    - verrazzano-logging
   labelSelector:
     matchLabels:
       verrazzano-component: opensearch
@@ -69,14 +69,14 @@ spec:
       - 
         name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
-          - verrazzano-system
+          - verrazzano-logging
         labelSelector:
           matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         post:
           - 
             exec:
-              container: es-master
+              container: opensearch
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
                 - -operation
@@ -97,7 +97,7 @@ metadata:
 spec:
   backupName: {{ .VeleroBackupName }}
   includedNamespaces:
-    - verrazzano-system
+    - verrazzano-logging
   labelSelector:
     matchLabels:
       verrazzano-component: opensearch
@@ -106,13 +106,13 @@ spec:
     resources:
       - name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
-          - verrazzano-system
+          - verrazzano-logging
         labelSelector:
           matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         postHooks:
           - exec:
-              container: es-master
+              container: opensearch
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
                 - -operation

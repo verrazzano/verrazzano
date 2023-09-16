@@ -156,7 +156,7 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 
 	// Test images
 	// TODO:- Get from BOM once BFS images are done
-	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:experimental"
+	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
 	args["osdImage"] = "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
 
 	return args, nil

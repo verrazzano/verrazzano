@@ -353,13 +353,13 @@ var _ = t.Describe("OpenSearch Backup and Restore,", Label("f:platform-verrazzan
 
 		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
 			Eventually(func() bool {
-				return checkPodsNotRunning(constants.VerrazzanoSystemNamespace, esPods)
+				return checkPodsNotRunning(constants.VerrazzanoLoggingNamespace, esPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are down")
 		})
 
 		WhenVeleroInstalledIt("After pods are down check if pvcs are deleted before starting a restore", func() {
 			Eventually(func() error {
-				return common.CheckPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
+				return common.CheckPvcsTerminated("opster.io/opensearch-cluster=opensearch", constants.VerrazzanoLoggingNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if pvcs are removed")
 		})
 
