@@ -522,7 +522,7 @@ def deleteBucket(bucketName) {
 
 def waitForPodsToBeUp(namespace) {
     sh """
-         kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
+         kubectl wait --selector='!job-name' -n ${namespace} --for=condition=ready pod --all --timeout 10m
     """
 }
 
