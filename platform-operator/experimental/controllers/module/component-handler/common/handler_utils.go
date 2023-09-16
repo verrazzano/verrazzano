@@ -143,7 +143,7 @@ func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verra
 		return nil, nil, err
 	}
 
-	return compCtx.Operation(operation), comp, nil
+	return compCtx.Init(compName).Operation(operation), comp, nil
 }
 
 // CheckDependencies checks if the dependencies are ready
