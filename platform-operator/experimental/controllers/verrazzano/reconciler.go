@@ -79,6 +79,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+	controllerCtx.Log.Oncef("Started reconciling Verrazzano for generation %v", actualCR.Generation)
 
 	// Do global pre-work
 	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
@@ -96,7 +97,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
-	r.updateStatusInstallUpgradeComplete(actualCR)
+	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
 	return result.NewResult()
 }
 
@@ -172,19 +176,18 @@ func (r Reconciler) postWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ve
 
 // postInstallUpdate does all the global post-work for install and update
 func (r Reconciler) postInstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
-	log.Once("Starting global post-install")
 	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Once("Configuring auth providers, if needed")
+	log.Once("Global post-install: configuring auth providers, if needed")
 	if err := rancher.ConfigureAuthProviders(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Once("Configuring ArgoCD OIDC, if needed")
+	log.Once("Global post-install: configuring ArgoCD OIDC, if needed")
 	if err := argocd.ConfigureKeycloakOIDC(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -195,19 +198,18 @@ func (r Reconciler) postInstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 // postUpgrade does all the global post-work for upgrade
 func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) result.Result {
-	log.Once("Starting global post-install")
 	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Once("Configuring auth providers, if needed")
+	log.Once("Global post-upgrade: configuring auth providers, if needed")
 	if err := rancher.ConfigureAuthProviders(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Once("Configuring ArgoCD OIDC, if needed")
+	log.Once("Global post-upgrade: configuring ArgoCD OIDC, if needed")
 	if err := argocd.ConfigureKeycloakOIDC(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -216,25 +218,25 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 	// Make sure namespaces get updated with Istio Enabled
 	common.CreateAndLabelNamespaces(componentCtx)
 
-	log.Once("Restarting all components that have an old Istio proxy sidecar")
+	log.Once("Global post-upgrade: restarting all components that have an old Istio proxy sidecar")
 	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), componentCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	log.Once("Doing MySQL post-upgrade cleanup")
+	log.Once("Global post-upgrade: doing MySQL post-upgrade cleanup")
 	if err := mysql.PostUpgradeCleanup(log, componentCtx.Client()); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade MySQL cleanup: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	if !r.areModulesDoneReconciling(log, actualCR) {
-		log.Progress("Waiting for modules to be done in Verrazzano post-upgrade processing")
+		log.Progress("Global post-upgrade: waiting for modules to be done")
 		return result.NewResultShortRequeueDelay()
 	}
 
 	if vzcr.IsApplicationOperatorEnabled(componentCtx.EffectiveCR()) && vzcr.IsIstioEnabled(componentCtx.EffectiveCR()) {
-		log.Once("Restarting all applications that have an old Istio proxy sidecar")
+		log.Once("Global post-upgrade: restarting all applications that have an old Istio proxy sidecar")
 		err := restart.RestartApps(log, r.Client, actualCR.Generation)
 		if err != nil {
 			log.ErrorfThrottled("Failed Verrazzano post-upgrade application restarts: %v", err)
