@@ -4,6 +4,21 @@ metadata:
   creationTimestamp: null
   name: {{ include "opensearch-operator.fullname" . }}-{{ .Release.Namespace }}-manager-role
 rules:
+# Pod exec and velero rules are required for Velero Backup and Restore
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - velero.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:

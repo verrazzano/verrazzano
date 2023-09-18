@@ -53,6 +53,7 @@ spec:
     httpPort: 9200
     image: {{ .opensearchImage }}
     serviceName: opensearch
+    serviceAccount: opensearch-operator-controller-manager
     setVMMaxMapCount: true
     vendor: opensearch
     version: 2.3.0
