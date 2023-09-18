@@ -520,8 +520,8 @@
           "name": "kiali-server",
           "images": [
             {
-              "image": "kiali",
-              "tag": "v1.66.1-20230808154952-c7e9a3fe",
+              "image": "kiali-jenkins",
+              "tag": "v1.73.0-20230918102543-b6268c9d",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
