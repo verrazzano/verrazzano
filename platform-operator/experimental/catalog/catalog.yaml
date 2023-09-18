@@ -10,6 +10,8 @@ modules:
     version: 0.1.0
   - name: cluster-issuer
     version: 2.0.0
+  - name: dex
+    version: 2.37.0
   - name: external-dns
     version: 0.12.2
   - name: istio
