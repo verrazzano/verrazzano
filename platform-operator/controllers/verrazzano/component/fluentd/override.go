@@ -17,7 +17,6 @@ import (
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -69,29 +68,6 @@ type Monitoring struct {
 // appendOverrides appends the overrides for the component
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	effectiveCR := ctx.EffectiveCR()
-
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, err
-	}
-	images, err := bomFile.BuildImageOverrides("verrazzano")
-	if err != nil {
-		return kvs, err
-	}
-
-	fluentdFullImageKey := "logging.fluentdImage"
-	var fluentdFullImageValue string
-	for _, image := range images {
-		if image.Key == fluentdFullImageKey {
-			fluentdFullImageValue = image.Value
-			break
-		}
-	}
-	if fluentdFullImageValue == "" {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to construct fluentd image from BOM")
-	}
-
-	kvs = append(kvs, bom.KeyValue{Key: fluentdFullImageKey, Value: fluentdFullImageValue})
 
 	// Overrides object to store any user overrides
 	overrides := fluentdComponentValues{}
