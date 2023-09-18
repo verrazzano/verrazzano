@@ -24,7 +24,7 @@ process_file() {
   done < "$IMAGE_FILE"
 
   for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
-    SERIALIZED_DATA+="${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
+    echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
   done
 }
 
