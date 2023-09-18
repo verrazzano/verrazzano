@@ -313,10 +313,6 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	})
 })
 
-//func isStatusReconciling() bool {
-//	return isStatusMet(v1beta1.VzStateReconciling)
-//}
-
 func isStatusReady() bool {
 	return isStatusMet(v1beta1.VzStateReady)
 }
@@ -332,7 +328,7 @@ func isGenerationMet() (bool, error) {
 	if !found {
 		return false, fmt.Errorf("did not find status for component %s", capiComponentName)
 	}
-	t.Logs.Infof("VZ generation: %v, %s generation: %v", vz.Generation, capiComponentName, componentStatus.LastReconciledGeneration)
+	t.Logs.Debugf("VZ generation: %v, %s generation: %v", vz.Generation, capiComponentName, componentStatus.LastReconciledGeneration)
 	return componentStatus.LastReconciledGeneration == vz.Generation, nil
 }
 
@@ -354,7 +350,6 @@ func updateClusterAPIOverrides(overrides string) error {
 		return err
 	}
 
-	trueValue := true
 	// Get the client
 	client, err := pkg.GetVerrazzanoClientset()
 	if err != nil {
@@ -364,13 +359,9 @@ func updateClusterAPIOverrides(overrides string) error {
 	// Update the VZ with the overrides
 	if len(overrides) == 0 {
 		// Restore the VZ to default values
-		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{
-			Enabled: &trueValue,
-		}
+		vz.Spec.Components.ClusterAPI = nil
 	} else {
-		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{
-			Enabled: &trueValue,
-		}
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
 		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
 			ValueOverrides: []v1beta1.Overrides{
 				{
