@@ -26,7 +26,7 @@ import (
 const (
 	reldir          = "../../../manifests/profiles"
 	cattleSystem    = "cattle-system"
-	testBomFilePath = "../../testdata/test_bom.json"
+	testBomFilePath = "../testdata/test_bom.json"
 )
 
 var period = time.Duration(10) * time.Second
@@ -194,6 +194,10 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 // THEN the method retrieves the System project ID from the rancher
 // And updates the namespace annotation and label with the Project ID.
 func TestMoveSystemNamespaces(t *testing.T) {
+	oldBomPath := config.GetDefaultBOMFilePath()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath(oldBomPath)
+
 	namespace1 := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "verrazzano-system",
