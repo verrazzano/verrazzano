@@ -20,6 +20,9 @@ envVars:
   - name: PASSWORD_DB_USERNAME_PROMPT
     value: "Username"
 
+podAnnotations:
+  traffic.sidecar.istio.io/excludeOutboundPorts: "443"
+
 ingress:
   enabled: true
   annotations:

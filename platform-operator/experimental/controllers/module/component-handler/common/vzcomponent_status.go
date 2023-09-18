@@ -89,11 +89,6 @@ func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusDat
 	}
 	addOrReplaceCondition(compStatus, cond)
 
-	// Change state to reconciling if needed
-	if (vzcr.Status.State == "" || vzcr.Status.State == vzapi.VzStateReady) && sd.CondType == vzapi.CondInstallStarted {
-		vzcr.Status.State = vzapi.VzStateReconciling
-	}
-
 	if err := ctx.Client.Status().Update(context.TODO(), vzcr); err != nil {
 		if !errors.IsConflict(err) {
 			ctx.Log.Progress("Failed to update Verrazzano component status, retrying: %v", err)

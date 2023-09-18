@@ -234,7 +234,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		// Combine the two CA bundles
 		tlsCABundle := optSecret.Data[constants.RancherTLSCAKey]
 		if len(tlsCABundle) > 0 {
-			r.log.Infof("Adding tls-ca bundle to Admin CA bundle")
+			r.log.Debugf("Adding tls-ca bundle to Admin CA bundle")
 			caBundle = tlsCABundle
 		}
 	}
@@ -250,7 +250,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 			r.log.Infof("Adding ingress CA cert bundle to Admin CA bundle")
 			caBundle = append(caBundle, tlsIngressCA...)
 		} else {
-			r.log.Infof("ingress CA bundle already present in bundle data, skipping")
+			r.log.Debugf("ingress CA bundle already present in bundle data, skipping")
 		}
 	}
 
