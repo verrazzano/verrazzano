@@ -85,6 +85,11 @@ func CreateArgoCDNamespace(client client.Client, istioInjectionEnabled bool) err
 	return CreateAndLabelNamespace(client, constants.ArgoCDNamespace, true, istioInjectionEnabled)
 }
 
+// CreateDexNamespace - Create/Update and label the Dex namespace
+func CreateDexNamespace(client client.Client, istioInjectionEnabled bool) error {
+	return CreateAndLabelNamespace(client, constants.DexNamespace, true, istioInjectionEnabled)
+}
+
 // MergeMaps Merge one map into another, creating new one if necessary; returns the updated map and true if it was modified
 func MergeMaps(to map[string]string, from map[string]string) (map[string]string, bool) {
 	mergedMap := to

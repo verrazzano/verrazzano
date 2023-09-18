@@ -115,7 +115,7 @@ func (c networkPoliciesComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	cleanTempFiles(ctx)
 
 	// remove the old podSelector label matcher from the keycloak-mysql network policy
-	if err := fixKeycloakMySQLNetPolicy(ctx); err != nil {
+	if err := FixKeycloakMySQLNetPolicy(ctx); err != nil {
 		return err
 	}
 

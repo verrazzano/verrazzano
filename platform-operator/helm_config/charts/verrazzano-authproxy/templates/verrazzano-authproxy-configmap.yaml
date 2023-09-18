@@ -87,7 +87,13 @@ data:
     end
 
     if (backend == 'console' or backend == 'verrazzano') then
-        auth.initOidcProvider(oidcProviderForConsole)
+        local oidcProviderFromMCSecret = auth.read_file("/api-config/oidc-provider")
+        if oidcProviderFromMCSecret and oidcProviderFromMCSecret ~= "" then
+            auth.debug("oidc-provider specified in multi-cluster secret, will use " .. oidcProviderFromMCSecret .. " as OIDC Provider.")
+            auth.initOidcProvider(oidcProviderFromMCSecret)
+        else
+            auth.initOidcProvider(oidcProviderForConsole)
+        end
     else
         auth.initOidcProvider("keycloak")
     end
@@ -252,7 +258,7 @@ data:
 
         local oidcProviderURL = me.read_file("/api-config/" .. me.oidcProvider .. "-url")
         if oidcProviderURL and oidcProviderURL ~= "" then
-            me.debug(oidcProviderURL .. "-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
+            me.debug(me.oidcProvider .. "-url specified in multi-cluster secret, will not use in-cluster oidc provider host.")
 
             me.oidcProviderUri = oidcProviderURL
             me.oidcProviderInClusterUri = nil

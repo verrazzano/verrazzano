@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -69,7 +70,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      vpocons.VerrazzanoVersion1_4_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "mysql-operator-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   getOverrides,
 			InstallBeforeUpgrade:      true,
 			AvailabilityObjects: &ready.AvailabilityObjects{

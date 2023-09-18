@@ -2017,6 +2017,22 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 			return nil
 		})
 
+	// Expect a call to get the dex ingress and return the ingress.
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "verrazzano-auth", Name: "dex"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
+			ingress.TypeMeta = metav1.TypeMeta{
+				APIVersion: "networking.k8s.io/v1",
+				Kind:       "ingress"}
+			ingress.ObjectMeta = metav1.ObjectMeta{
+				Namespace: name.Namespace,
+				Name:      name.Name}
+			ingress.Spec.Rules = []networkingv1.IngressRule{{
+				Host: "auth",
+			}}
+			return nil
+		})
+
 	// Expect a call to create the registration secret
 	mock.EXPECT().
 		Create(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -2235,6 +2251,14 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 		Update(gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, secret *corev1.Secret, opts ...client.UpdateOption) error {
 			return additionalScrapeConfigsAssertFunc(secret)
+		})
+
+	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
+			return nil
 		})
 
 	// Expect a call to get the managed cluster TLS certs secret - return NotFound error
@@ -2688,6 +2712,14 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			asserts.Len(scrapeConfigs.Children(), 1, "Expected only one scrape config")
 			scrapeJobName := scrapeConfigs.Children()[0].Search(constants.PrometheusJobNameKey).Data()
 			asserts.Equal("test2", scrapeJobName)
+			return nil
+		})
+
+	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
 			return nil
 		})
 

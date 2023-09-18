@@ -173,10 +173,6 @@ func forkInstall(compContext spi.ComponentContext, monitor monitor.BackgroundPro
 	overridesFilesCopy := make([]string, len(files))
 	copy(overridesFilesCopy, files)
 
-	// clone zap logger
-	clone := log.GetZapLogger().With()
-	log.SetZapLogger(clone)
-
 	monitor.Run(
 		func() error {
 			return istioctlInstall(
