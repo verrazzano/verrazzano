@@ -246,7 +246,7 @@ func TestMoveSystemNamespaces(t *testing.T) {
 		newPod(rancher.FleetSystemNamespace, "fleet-controller"),
 		newPod(rancher.FleetLocalSystemNamespace, "fleet-agent"),
 		newReadyDeployment(rancher.ComponentNamespace, "rancher"),
-		newReadyDeployment(rancher.ComponentNamespace, "rancher-webhook"),
+		newReadyDeploymentWithImage(rancher.ComponentNamespace, "rancher-webhook", "rancher-webhook:v0.2.6-20221005161115-fee4a23"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "gitjob"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "fleet-controller"),
 		newReadyDeployment(rancher.FleetLocalSystemNamespace, "fleet-agent"), namespace1).Build()
