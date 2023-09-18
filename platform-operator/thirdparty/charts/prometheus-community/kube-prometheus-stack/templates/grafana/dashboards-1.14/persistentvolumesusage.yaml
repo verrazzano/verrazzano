@@ -484,7 +484,7 @@ data:
                     "options": [
 
                     ],
-                    "query": "label_values(kubelet_volume_stats_capacity_bytes{job=\"kubelet\"}, cluster)",
+                    "query": "label_values(kubelet_volume_stats_capacity_bytes{job=\"kubelet\"}, verrazzano_cluster)",
                     "refresh": 2,
                     "regex": "",
                     "sort": 1,
