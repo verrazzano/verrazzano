@@ -19,8 +19,6 @@ import (
 	"text/template"
 )
 
-const rbacGroup = "rbac.authorization.k8s.io"
-
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
 images:
