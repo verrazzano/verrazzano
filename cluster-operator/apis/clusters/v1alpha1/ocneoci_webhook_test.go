@@ -57,7 +57,7 @@ func TestValidateCreateOCNEOCI(t *testing.T) {
 			o := &OCNEOCIQuickCreate{}
 			err := yaml.Unmarshal(tt.crBytes, o)
 			assert.NoError(t, err)
-			err = o.ValidateCreate()
+			_, err = o.ValidateCreate()
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {
@@ -95,7 +95,7 @@ func TestValidateUpdateOCNEOCI(t *testing.T) {
 			o1 := o.DeepCopy()
 			o2 := o.DeepCopy()
 			tt.modifier(o2)
-			err := o1.ValidateUpdate(o2)
+			_, err := o1.ValidateUpdate(o2)
 			if tt.hasError {
 				assert.Error(t, err)
 			} else {

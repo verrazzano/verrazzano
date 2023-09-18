@@ -1837,10 +1837,11 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 	}
 	logger := vzlog.DefaultLogger()
 	mocker := gomock.NewController(t)
-	podKind := &source.Kind{Type: &corev1.Pod{}}
-	jobKind := &source.Kind{Type: &batchv1.Job{}}
-	secretKind := &source.Kind{Type: &corev1.Secret{}}
-	namespaceKind := &source.Kind{Type: &corev1.Namespace{}}
+	reconciler := newVerrazzanoReconciler(nil)
+	podKind := source.Kind(reconciler.Cache, &corev1.Pod{})
+	jobKind := source.Kind(reconciler.Cache, &batchv1.Job{})
+	secretKind := source.Kind(reconciler.Cache, &corev1.Secret{})
+	namespaceKind := source.Kind(reconciler.Cache, &corev1.Namespace{})
 	getNoErrorMock := func() client.Client {
 		mockClient := mocks.NewMockClient(mocker)
 		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil).AnyTimes()
@@ -1903,7 +1904,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).DoAndReturn(
-			func(kind *source.Kind, handler handler.EventHandler, funcs predicate.Funcs) error {
+			func(source source.Func, handler handler.EventHandler, funcs predicate.Funcs) error {
 				return fmt.Errorf(unExpectedError)
 			})
 		reconciler.Controller = controller

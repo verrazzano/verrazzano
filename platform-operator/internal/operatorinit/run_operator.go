@@ -120,6 +120,7 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			WatchedComponents: map[string]bool{},
 			WatchMutex:        &sync.RWMutex{},
 			StatusUpdater:     statusUpdater,
+			Cache:             mgr.GetCache(),
 		}
 		if err = reconciler.SetupWithManager(mgr); err != nil {
 			return errors.Wrap(err, "Failed to setup controller")

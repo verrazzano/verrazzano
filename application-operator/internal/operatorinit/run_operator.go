@@ -75,6 +75,7 @@ func setupAppReconcilers(mgr manager.Manager, defaultMetricsScraper string, log 
 		Client: mgr.GetClient(),
 		Log:    log,
 		Scheme: mgr.GetScheme(),
+		Cache:  mgr.GetCache(),
 	}).SetupWithManager(mgr); err != nil {
 		log.Errorf("Failed to create IngressTrait controller: %v", err)
 		return err

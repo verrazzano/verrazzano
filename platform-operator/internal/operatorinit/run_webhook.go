@@ -61,6 +61,7 @@ func StartWebhookServers(config internalconfig.OperatorConfig, log *zap.SugaredL
 		Scheme:                  scheme,
 		MetricsBindAddress:      config.MetricsAddr,
 		Port:                    9443,
+		CertDir:                 config.CertDir,
 		LeaderElection:          config.LeaderElectionEnabled,
 		LeaderElectionNamespace: constants.VerrazzanoInstallNamespace,
 		LeaderElectionID:        "3ec4d295.verrazzano.io",
@@ -125,8 +126,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	}
 
 	// register MySQL backup job mutating webhook
-	mySQLWebhookServer := webhook.NewServer(webhook.Options{CertDir: config.CertDir})
-	mySQLWebhookServer.Register(
+	mgr.GetWebhookServer().Register(
 		constants.MysqlBackupMutatingWebhookPath,
 		&webhook.Admission{
 			Handler: &webhooks.MySQLBackupJobWebhook{

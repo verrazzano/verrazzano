@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package v1alpha1
@@ -122,7 +122,7 @@ func TestCreateWithSecretAndConfigMap(t *testing.T) {
 					CASecret: secretName,
 				},
 			}
-			err := vz.ValidateCreate()
+			_, err := vz.ValidateCreate()
 			assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource")
 		})
 	}
@@ -170,7 +170,7 @@ func TestCreateNoConfigMap(t *testing.T) {
 					CASecret: secretName,
 				},
 			}
-			err := vz.ValidateCreate()
+			_, err := vz.ValidateCreate()
 			if test.errorExpected {
 				assert.EqualError(t, err, test.errMsgExpected, "Expected correct error message")
 			} else {
@@ -228,7 +228,7 @@ func TestCreateWithSecretConfigMapMissingServer(t *testing.T) {
 					CASecret: secretName,
 				},
 			}
-			err := vz.ValidateCreate()
+			_, err := vz.ValidateCreate()
 			if test.errorExpected {
 				assert.EqualError(t, err, test.errMsgExpected,
 					"Expected correct error message")
@@ -264,7 +264,7 @@ func TestCreateMissingSecretName(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 	}
-	err := vz.ValidateCreate()
+	_, err := vz.ValidateCreate()
 	assert.NoError(t, err, "Error validating VerrazzanoMultiCluster resource with well-known CA")
 }
 
@@ -301,7 +301,7 @@ func TestCreateMissingSecret(t *testing.T) {
 					CASecret: secretName,
 				},
 			}
-			err := vz.ValidateCreate()
+			_, err := vz.ValidateCreate()
 			if test.errorExpected {
 				assert.EqualError(t, err, test.errMsgExpected,
 					"Expected correct error message for missing secret")
@@ -354,7 +354,7 @@ func TestCreateVerrazzanoNotInstalled(t *testing.T) {
 			CASecret: secretName,
 		},
 	}
-	err := vz.ValidateCreate()
+	_, err := vz.ValidateCreate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "the Verrazzano install must successfully complete")
 }

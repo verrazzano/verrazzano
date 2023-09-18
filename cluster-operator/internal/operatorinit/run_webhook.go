@@ -46,6 +46,7 @@ func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 		Scheme:                 props.Scheme,
 		MetricsBindAddress:     props.MetricsAddress,
 		Port:                   9443,
+		CertDir:                props.CertificateDir,
 		HealthProbeBindAddress: props.ProbeAddress,
 		LeaderElection:         props.EnableLeaderElection,
 		LeaderElectionID:       "42d5ea87.verrazzano.io",
@@ -99,8 +100,6 @@ func StartWebhookServer(log *zap.SugaredLogger, props Properties) error {
 		log.Error(err, "unable to set up ready check")
 		os.Exit(1)
 	}
-
-	mgr.GetWebhookServer().CertDir = props.CertificateDir
 
 	log.Info("Starting manager")
 	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
