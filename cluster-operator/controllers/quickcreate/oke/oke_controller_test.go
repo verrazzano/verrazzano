@@ -74,10 +74,10 @@ func TestReconcile(t *testing.T) {
 	assert.NoError(t, err)
 
 	notFoundReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).Build())
-	existingVCNReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingVCNCR).Build())
+	existingVCNReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(existingVCNCR).WithObjects(existingVCNCR).Build())
 	completedReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(completedCR).Build())
-	newVCNReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(newVCNCR).Build())
-	provisioningReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(provisioningCR).Build())
+	newVCNReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(newVCNCR).WithObjects(newVCNCR).Build())
+	provisioningReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(provisioningCR).WithObjects(provisioningCR).Build())
 
 	var tests = []struct {
 		name        string

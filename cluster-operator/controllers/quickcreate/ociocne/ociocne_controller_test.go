@@ -144,11 +144,11 @@ func TestReconcile(t *testing.T) {
 	privateRegistryCR, err := testCreateCR(testNewVCNPrivateRegistryPatch)
 	assert.NoError(t, err)
 	notFoundReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).Build())
-	quickCreateReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(existingVCNCR, testOCNEConfigMap()).Build())
+	quickCreateReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(existingVCNCR, testOCNEConfigMap()).WithObjects(existingVCNCR, testOCNEConfigMap()).Build())
 	completedReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(completedCR, testOCNEConfigMap()).Build())
 	noFinalizerReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(noFinalizerCR, testOCNEConfigMap()).Build())
-	provisioningReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(provisioningCR, testOCNEConfigMap()).Build())
-	privateRegistryReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithObjects(privateRegistrySecret, privateRegistryCR, testOCNEConfigMap()).Build())
+	provisioningReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(provisioningCR, testOCNEConfigMap()).WithObjects(provisioningCR, testOCNEConfigMap()).Build())
+	privateRegistryReconciler := testReconciler(fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(privateRegistrySecret, privateRegistryCR, testOCNEConfigMap()).WithObjects(privateRegistrySecret, privateRegistryCR, testOCNEConfigMap()).Build())
 	var tests = []struct {
 		name        string
 		reconciler  *ClusterReconciler

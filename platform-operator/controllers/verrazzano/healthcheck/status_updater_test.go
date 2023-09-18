@@ -42,7 +42,7 @@ func init() {
 
 func TestFakeStatusUpdater(t *testing.T) {
 	vz := testvz.DeepCopy()
-	c := fake.NewClientBuilder().WithObjects(vz).WithScheme(testScheme).Build()
+	c := fake.NewClientBuilder().WithStatusSubresource(vz).WithObjects(vz).WithScheme(testScheme).Build()
 	f := FakeVerrazzanoStatusUpdater{Client: c}
 	vz.Status.State = vzapi.VzStateReady
 	f.Update(&UpdateEvent{Verrazzano: vz})

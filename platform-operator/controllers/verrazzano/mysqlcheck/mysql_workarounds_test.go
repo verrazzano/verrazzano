@@ -142,6 +142,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 	innoDBCluster = newInnoDBCluster(innoDBClusterStatusOnline)
 	startTime := metav1.Now()
 	innoDBCluster.SetDeletionTimestamp(&startTime)
+	innoDBCluster.SetFinalizers([]string{"testFinalizer"})
 	cli = fake.NewClientBuilder().WithScheme(testScheme).WithObjects(mySQLOperatorPod, innoDBCluster).Build()
 	fakeCtx = spi.NewFakeContext(cli, nil, nil, false)
 
