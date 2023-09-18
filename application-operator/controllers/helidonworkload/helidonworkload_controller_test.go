@@ -69,9 +69,11 @@ func TestReconcilerSetupWithManager(t *testing.T) {
 	_ = vzapi.AddToScheme(scheme)
 	reconciler = Reconciler{Client: cli, Scheme: scheme}
 	mgr.EXPECT().GetControllerOptions().AnyTimes()
-	mgr.EXPECT().GetScheme().Return(scheme)
+	mgr.EXPECT().GetScheme().Return(scheme).AnyTimes()
 	mgr.EXPECT().GetLogger().Return(logr.Discard())
 	mgr.EXPECT().Add(gomock.Any()).Return(nil).AnyTimes()
+	mgr.EXPECT().GetCache().AnyTimes()
+	mgr.EXPECT().GetRESTMapper().AnyTimes()
 	err = reconciler.SetupWithManager(mgr)
 	mocker.Finish()
 	assert.NoError(err)
