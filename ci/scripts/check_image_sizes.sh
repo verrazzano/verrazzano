@@ -22,9 +22,9 @@ process_file() {
     IMAGESIZE_ARRAY+=("$IMAGESIZE_INT")
   done < "$IMAGE_FILE"
 
-  #for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
-   # echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
-  #done
+  for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
+    echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
+  done
 }
 
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
