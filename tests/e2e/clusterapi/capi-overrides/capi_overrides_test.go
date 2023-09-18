@@ -38,6 +38,8 @@ const (
 
 	managerContainerName = "manager"
 
+	capiComponentName = "cluster-api"
+
 	// globalRegistryOverride - format string to override the registry to use for all providers
 	globalRegistryOverride = `
 {
@@ -174,16 +176,24 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		})
 	})
 
+	var updatedGeneration int64
+	var err error
+
 	t.Context("override global registry", func() {
 		// GIVEN a CAPI environment
 		// WHEN we override the global registry
 		// THEN the overrides get successfully applied
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for deployments to use it", func() {
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(globalRegistryOverride, bomDoc.Registry)) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+			t.Logs.Info("Update overrides")
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(globalRegistryOverride, bomDoc.Registry))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
 
@@ -195,11 +205,15 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			ociImageTag := ociComp.SubComponents[0].Images[0].ImageTag
 			ocneImageTag := ocneComp.SubComponents[0].Images[0].ImageTag
 			coreImageTag := coreComp.SubComponents[0].Images[0].ImageTag
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(tagOverrides, ociImageTag, ocneImageTag, ocneImageTag, coreImageTag)) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(tagOverrides, ociImageTag, ocneImageTag, ocneImageTag, coreImageTag))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
 
@@ -212,12 +226,16 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			ocneRepo := ocneComp.SubComponents[0].Repository
 			coreRepo := ocneComp.SubComponents[0].Repository
 			registry := bomDoc.Registry
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(repoOverrides, registry, ociRepo, registry, ocneRepo, registry,
-					ocneRepo, registry, coreRepo)) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(repoOverrides, registry, ociRepo, registry, ocneRepo, registry,
+					ocneRepo, registry, coreRepo))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
 
@@ -228,11 +246,15 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version)) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, longWaitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, ociComp.Version, ocneComp.Version, ocneComp.Version, coreComp.Version))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -252,11 +274,15 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, "v0.11.0", "v1.6.1", "v1.6.1", "v1.4.2")) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, longWaitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(versionOverrides, "v0.11.0", "v1.6.1", "v1.6.1", "v1.4.2"))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, "v1.6.1")
 			Expect(err).ShouldNot(HaveOccurred())
@@ -276,15 +302,19 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
 			// Using the current actual versions from the BOM, these are expected to work but download
 			// from the internet instead of from the container image.
-			Eventually(func() bool {
-				return updateClusterAPIOverrides(fmt.Sprintf(urlOverrides,
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides(fmt.Sprintf(urlOverrides,
 					fmt.Sprintf(ociInfraURLFmt, ociComp.Version),
 					fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
 					fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version),
-					fmt.Sprintf(coreURLFmt, coreComp.Version))) == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+					fmt.Sprintf(coreURLFmt, coreComp.Version)))
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
 
@@ -293,11 +323,15 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 		// WHEN we remove the overrides
 		// THEN the default values will get restored
 		capipkg.WhenClusterAPIInstalledIt(t, "and wait for reconcile to complete", func() {
-			Eventually(func() bool {
-				return updateClusterAPIOverrides("") == nil
-			}, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReconciling, waitTimeout, pollingInterval).Should(BeTrue())
-			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue())
+			Eventually(func() error {
+				updatedGeneration, err = updateClusterAPIOverrides("")
+				return err
+			}, waitTimeout, pollingInterval).Should(BeNil())
+			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
+			Eventually(func() (bool, error) {
+				return isGenerationMet(updatedGeneration)
+			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -311,12 +345,26 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 	})
 })
 
-func isStatusReconciling() bool {
-	return isStatusMet(v1beta1.VzStateReconciling)
-}
+//func isStatusReconciling() bool {
+//	return isStatusMet(v1beta1.VzStateReconciling)
+//}
 
 func isStatusReady() bool {
 	return isStatusMet(v1beta1.VzStateReady)
+}
+
+// isGenerationMet - Return boolean indicating if expected status is met
+func isGenerationMet(expectedGeneration int64) (bool, error) {
+	// Get the VZ resource
+	vz, err := pkg.GetVerrazzanoV1beta1()
+	if err != nil {
+		return false, err
+	}
+	componentStatus, found := vz.Status.Components[capiComponentName]
+	if !found {
+		return false, fmt.Errorf("did not find status for component %s", capiComponentName)
+	}
+	return componentStatus.LastReconciledGeneration == expectedGeneration, nil
 }
 
 // isStatusMet - Return boolean indicating if expected status is met
@@ -330,25 +378,32 @@ func isStatusMet(state v1beta1.VzStateType) bool {
 }
 
 // updateClusterAPIOverrides - Update the VZ with the set of overrides pass for clusterAPI component
-func updateClusterAPIOverrides(overrides string) error {
+func updateClusterAPIOverrides(testFramework *framework.TestFramework, overrides string) error {
 	// Get the VZ resource
+	t.Logs.Info("1")
 	vz, err := pkg.GetVerrazzanoV1beta1()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
+	t.Logs.Info("2")
+	trueValue := true
 	// Get the client
 	client, err := pkg.GetVerrazzanoClientset()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Update the VZ with the overrides
 	if len(overrides) == 0 {
 		// Restore the VZ to default values
-		vz.Spec.Components.ClusterAPI = nil
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{
+			Enabled: &trueValue,
+		}
 	} else {
-		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{}
+		vz.Spec.Components.ClusterAPI = &v1beta1.ClusterAPIComponent{
+			Enabled: &trueValue,
+		}
 		vz.Spec.Components.ClusterAPI.InstallOverrides = v1beta1.InstallOverrides{
 			ValueOverrides: []v1beta1.Overrides{
 				{
@@ -360,8 +415,10 @@ func updateClusterAPIOverrides(overrides string) error {
 		}
 	}
 
-	_, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
-	return err
+	t.Logs.Info("3")
+	vz, err = client.VerrazzanoV1beta1().Verrazzanos(vz.Namespace).Update(context.TODO(), vz, metav1.UpdateOptions{})
+	t.Logs.Infof("4, err: %s", err)
+	return vz.ObjectMeta.Generation, err
 }
 
 // getComponentsFromBom - return some components from the BOM file
