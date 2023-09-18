@@ -33,6 +33,7 @@ func TestSyncDeregistration(t *testing.T) {
 			Namespace:         constants.VerrazzanoMultiClusterNamespace,
 			Name:              testClusterName,
 			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+			Finalizers:        []string{"testFinalizer"},
 		},
 	}
 	vmcNotDeleted := clustersv1alpha1.VerrazzanoManagedCluster{
@@ -147,6 +148,7 @@ func TestVerifyDeregister(t *testing.T) {
 			Namespace:         constants.VerrazzanoMultiClusterNamespace,
 			Name:              testClusterName,
 			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+			Finalizers:        []string{"testFinalizer"},
 		},
 	}
 	adminDeleted := fake.NewClientBuilder().WithScheme(scheme).WithObjects(&vmcDeleted).Build()

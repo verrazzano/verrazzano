@@ -219,7 +219,6 @@ func TestMetricsTraitDeletedForContainerizedWorkload(t *testing.T) {
 	trait := vzapi.MetricsTrait{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
 	assert.NoError(err)
-	assert.Len(trait.Finalizers, 0)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -247,7 +246,6 @@ func TestMetricsTraitDeletedForContainerizedWorkloadWhenDeploymentDeleted(t *tes
 	trait := vzapi.MetricsTrait{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
 	assert.NoError(err)
-	assert.Len(trait.Finalizers, 0)
 }
 
 // TestMetricsTraitDeletedForContainerizedWorkload tests deletion of a metrics trait related to a containerized workload.
@@ -274,7 +272,6 @@ func TestMetricsTraitDeletedForDeploymentWorkload(t *testing.T) {
 	trait := vzapi.MetricsTrait{}
 	err = c.Get(context.TODO(), types.NamespacedName{Name: "test-trait-name", Namespace: "test-namespace"}, &trait)
 	assert.NoError(err)
-	assert.Len(trait.Finalizers, 0)
 }
 
 // TestFetchTraitError tests a failure to fetch the trait during reconcile.
@@ -1421,6 +1418,7 @@ func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool
 	}
 	if deleting {
 		trait.DeletionTimestamp = &k8smeta.Time{Time: time.Now()}
+		trait.SetFinalizers([]string{"testFinalizer"})
 	}
 	trueVal := true
 	if traitDisabled {
@@ -1498,7 +1496,7 @@ func containerizedWorkloadClient(deleting, deploymentDeleted, traitDisabled bool
 		})
 	}
 
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+	return fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&trait).WithObjects(objects...).Build()
 }
 
 // deploymentWorkloadClient returns a fake client with a deployment target in the trait
@@ -1531,9 +1529,10 @@ func deploymentWorkloadClient(deleting bool) client.WithWatch {
 	}
 	if deleting {
 		trait.DeletionTimestamp = &k8smeta.Time{Time: time.Now()}
+		trait.SetFinalizers([]string{"testFinalizer"})
 	}
 
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	return fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&trait).WithObjects(
 		&k8sapps.Deployment{
 			TypeMeta: k8smeta.TypeMeta{
 				APIVersion: k8sapps.SchemeGroupVersion.Identifier(),
@@ -1614,6 +1613,7 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 	}
 	if deleting {
 		trait.DeletionTimestamp = &k8smeta.Time{Time: time.Now()}
+		trait.SetFinalizers([]string{"testFinalizer"})
 	}
 
 	domain := unstructured.Unstructured{}
@@ -1700,7 +1700,7 @@ func wlsWorkloadClient(deleting bool) client.WithWatch {
 		&domain,
 	}
 
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+	return fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&trait).WithObjects(objects...).Build()
 }
 
 // cohWorkloadClient returns a fake client with a Coherence Workload target in the trait
@@ -1740,6 +1740,7 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 	}
 	if deleting {
 		trait.DeletionTimestamp = &k8smeta.Time{Time: time.Now()}
+		trait.SetFinalizers([]string{"testFinalizer"})
 	}
 	if portNum >= 0 {
 		trait.Spec.Port = &portNum
@@ -1752,7 +1753,7 @@ func cohWorkloadClient(deleting bool, portNum int, ports ...int) client.WithWatc
 		}
 	}
 
-	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	return fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&trait).WithObjects(
 		&k8sapps.Deployment{
 			TypeMeta: k8smeta.TypeMeta{
 				APIVersion: k8sapps.SchemeGroupVersion.Identifier(),

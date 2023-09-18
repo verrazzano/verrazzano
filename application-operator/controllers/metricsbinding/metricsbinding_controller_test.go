@@ -127,6 +127,7 @@ func TestReconcile(t *testing.T) {
 	legacyBinding.Spec.PrometheusConfigMap.Name = vzconst.VmiPromConfigName
 	deleteBinding := metricsBinding.DeepCopy()
 	deleteBinding.DeletionTimestamp = &k8smeta.Time{Time: time.Now()}
+	deleteBinding.SetFinalizers([]string{"testFinalizer"})
 
 	tests := []struct {
 		name           string
