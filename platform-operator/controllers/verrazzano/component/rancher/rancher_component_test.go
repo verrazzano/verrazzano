@@ -1021,11 +1021,15 @@ func TestCreateOrUpdateClusterRoleTemplateBindings(t *testing.T) {
 //	WHEN IsReady is called
 //	THEN IsReady should return true
 func TestIsReady(t *testing.T) {
+	oldBomPath := config.GetDefaultBOMFilePath()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath(oldBomPath)
+
 	readyClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
 		newReadyDeployment(ComponentNamespace, ComponentName),
 		newPod(ComponentNamespace, ComponentName),
 		newReplicaSet(ComponentNamespace, ComponentName),
-		newReadyDeployment(ComponentNamespace, rancherWebhookDeployment),
+		newReadyDeploymentWithImage(ComponentNamespace, rancherWebhookDeployment, "rancher-webhook:v0.2.6-20221005161115-fee4a23"),
 		newPod(ComponentNamespace, rancherWebhookDeployment),
 		newReplicaSet(ComponentNamespace, rancherWebhookDeployment),
 		newReadyDeployment(FleetLocalSystemNamespace, fleetAgentDeployment),
@@ -1090,6 +1094,23 @@ func TestIsReady(t *testing.T) {
 			},
 		},
 	).Build()
+	unreadyOldWebhookImageClient := fake.NewClientBuilder().WithScheme(getScheme()).WithObjects(
+		newReadyDeployment(ComponentNamespace, ComponentName),
+		newPod(ComponentNamespace, ComponentName),
+		newReplicaSet(ComponentNamespace, ComponentName),
+		newReadyDeploymentWithImage(ComponentNamespace, rancherWebhookDeployment, "rancher-webhook:v0.2.6-1234567890-123456"),
+		newPod(ComponentNamespace, rancherWebhookDeployment),
+		newReplicaSet(ComponentNamespace, rancherWebhookDeployment),
+		newReadyDeployment(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newPod(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newReplicaSet(FleetLocalSystemNamespace, fleetAgentDeployment),
+		newReadyDeployment(FleetSystemNamespace, fleetControllerDeployment),
+		newPod(FleetSystemNamespace, fleetControllerDeployment),
+		newReplicaSet(FleetSystemNamespace, fleetControllerDeployment),
+		newReadyDeployment(FleetSystemNamespace, gitjobDeployment),
+		newPod(FleetSystemNamespace, gitjobDeployment),
+		newReplicaSet(FleetSystemNamespace, gitjobDeployment),
+	).Build()
 
 	var tests = []struct {
 		testName string
@@ -1104,6 +1125,11 @@ func TestIsReady(t *testing.T) {
 		{
 			"should not be ready due to deployment",
 			spi.NewFakeContext(unreadyDeployClient, &vzDefaultCA, nil, true),
+			false,
+		},
+		{
+			"should not be ready due to old webhook image",
+			spi.NewFakeContext(unreadyOldWebhookImageClient, &vzDefaultCA, nil, true),
 			false,
 		},
 	}
@@ -1369,6 +1395,31 @@ func newReadyDeployment(namespace string, name string) *appsv1.Deployment {
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": name},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+}
+
+func newReadyDeploymentWithImage(namespace string, name string, image string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Labels:    map[string]string{"app": name},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{Image: image}},
+				},
 			},
 		},
 		Status: appsv1.DeploymentStatus{

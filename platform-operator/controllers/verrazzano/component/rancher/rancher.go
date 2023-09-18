@@ -9,6 +9,8 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 	"strings"
 	"time"
@@ -305,7 +307,8 @@ func (r rancherComponent) isRancherReady(ctx spi.ComponentContext) bool {
 	log := ctx.Log()
 	c := ctx.Client()
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix)
+	return ready.DeploymentsAreReady(log, c, r.AvailabilityObjects.DeploymentNames, 1, prefix) &&
+		isRancherWebhookImageUpToDate(ctx)
 }
 
 // chartsNotUpdatedWorkaround - workaround for VZ-7053, where some of the Helm charts are not
@@ -794,4 +797,39 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 	})
 
 	return logoContent, err
+}
+
+// isRancherWebhookImageUpToDate checks to make sure the rancher webhook deployment has the correct image tag
+func isRancherWebhookImageUpToDate(ctx spi.ComponentContext) bool {
+	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
+	if err != nil {
+		ctx.Log().Errorf("Failed to get the bom file for the Rancher webhook image: %v", err)
+		return false
+	}
+
+	subcomponent, err := bomFile.GetSubcomponent(rancherImageSubcomponent)
+	if err != nil {
+		ctx.Log().Errorf("Failed to get the subcomponent %s from the bom: %v", rancherImageSubcomponent, err)
+		return false
+	}
+
+	var webhookImageTag string
+	for _, image := range subcomponent.Images {
+		if strings.Contains(image.ImageName, "rancher-webhook") {
+			webhookImageTag = image.ImageTag
+		}
+	}
+	if webhookImageTag == "" {
+		ctx.Log().Errorf("Failed to find rancher webhook image tag in the bom")
+		return false
+	}
+
+	deployment := &appsv1.Deployment{}
+	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: rancherWebhookDeployment}, deployment)
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to get the rancher-webhook deployment: %v", err)
+		return false
+	}
+
+	return strings.Contains(deployment.Spec.Template.Spec.Containers[0].Image, webhookImageTag)
 }
