@@ -459,9 +459,7 @@ pipeline {
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                         # need to sleep since the old operator needs to transition to terminating state
-                        sleep 45
-                        # wait for a paused state
-                        kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
+                        sleep 45   
                         # apply the CR
                         echo "Following is the verrazzano CR file with the updated version:"
                         cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
@@ -493,8 +491,6 @@ pipeline {
                             kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                             # need to sleep since the old operator needs to transition to terminating state
                             sleep 45
-                            # wait for a paused state
-                            kubectl wait --timeout=10m --for=condition=UpgradePaused verrazzano/my-verrazzano
                             # apply the CR
                             echo "Following is the verrazzano CR file with the updated version:"
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
