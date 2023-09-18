@@ -160,6 +160,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret)
 	}
 
 	// Update the status of our VMC on the admin cluster to record the last time we connected
+	// and update other fields of in the VMC status
 	err = s.updateVMCStatus()
 	if err != nil {
 		// we couldn't update status of the VMC - but we should keep going with the rest of the work

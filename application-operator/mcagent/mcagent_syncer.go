@@ -15,15 +15,18 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v13 "k8s.io/api/networking/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Syncer contains context for synchronize operations
@@ -177,8 +180,51 @@ func (s *Syncer) updateVMCStatus() error {
 	// If Thanos is disabled, we want to empty the host so Prometheus federation returns
 	vmc.Status.ThanosQueryStore = thanosAPIHost
 
+	// Update the Kubernetes version on the VMC
+	k8sVersion, err := s.getWorkloadK8sVersion()
+	if err != nil {
+		return fmt.Errorf("Failed to get Kubernetes information to update VMC %s: %v", vmcName, err)
+	}
+	vmc.Status.Kubernetes.Version = k8sVersion
+
+	// Update the Verrazzano version on the VMC
+	vzVersion, err := s.getWorkloadVZVersion()
+	if err != nil {
+		return fmt.Errorf("Failed to get Verrazzano information to update VMC %s: %v", vmcName, err)
+	}
+	vmc.Status.Verrazzano.Version = vzVersion
+
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
+}
+
+// getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
+func (s *Syncer) getWorkloadK8sVersion() (string, error) {
+	localKubeconfig := config.GetConfigOrDie()
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(localKubeconfig)
+	if err != nil {
+		return "", fmt.Errorf("failed to get discovery client for this workload cluster")
+	}
+
+	k8sVersion, err := discoveryClient.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster")
+	}
+	return k8sVersion.String(), nil
+}
+
+// getWorkloadVZVersion retrieves the current VZ version on this managed cluster,
+// as reported by the VZ CR's status
+func (s *Syncer) getWorkloadVZVersion() (string, error) {
+	vzList := &v1beta1.VerrazzanoList{}
+	if err := s.LocalClient.List(s.Context, vzList, &client.ListOptions{}); err != nil {
+		return "", fmt.Errorf("error listing Verrazzanos")
+	}
+	if len(vzList.Items) != 1 {
+		return "", fmt.Errorf("number of Verrazzano installations should be 1, but was %d", len(vzList.Items))
+	}
+	vzState := string(vzList.Items[0].Status.State)
+	return vzState, nil
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects
