@@ -269,6 +269,10 @@ func (r *RancherClusterReconciler) DeleteVMC(cluster *unstructured.Unstructured)
 // newVMC returns a minimally populated VMC object
 func newVMC(name string) *clustersv1alpha1.VerrazzanoManagedCluster {
 	return &clustersv1alpha1.VerrazzanoManagedCluster{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "clusters.verrazzano.io/v1alpha1",
+			Kind:       clustersv1alpha1.VerrazzanoManagedClusterKind,
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: vzconst.VerrazzanoMultiClusterNamespace,
