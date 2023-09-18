@@ -122,7 +122,7 @@ function scan_release_binaries() {
     tail -25 ${SCAN_REPORT} > ${scan_summary}
 
   # Get the files not scanned count from the summary
-  local files_not_scanned=$(grep '\tNot Scanned:...................     ' $scan_summary | sed 's/\tNot Scanned:...................     //g')
+  local files_not_scanned=$(grep 'Not Scanned:...................     ' $scan_summary | sed 's/\tNot Scanned:...................     //g')
 
   echo "File count: $count_files"
   echo "Files not scanned: $files_not_scanned"
