@@ -192,7 +192,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
@@ -212,7 +212,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
@@ -234,7 +234,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
@@ -253,7 +253,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, longWaitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
@@ -281,7 +281,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, longWaitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, longWaitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, "v1.6.1")
@@ -313,7 +313,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 		})
 	})
@@ -330,7 +330,7 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			t.Logs.Infof("Waiting for generation of %s to match %v", capiComponentName, updatedGeneration)
 			Eventually(func() (bool, error) {
 				return isGenerationMet(updatedGeneration)
-			}).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
+			}, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
 
 			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, ocneComp.Version)
@@ -354,7 +354,7 @@ func isStatusReady() bool {
 }
 
 // isGenerationMet - Return boolean indicating if expected status is met
-func isGenerationMet(expectedGeneration int64) (bool, error) {
+func isGenerationMet(_ int64) (bool, error) {
 	// Get the VZ resource
 	vz, err := pkg.GetVerrazzanoV1beta1()
 	if err != nil {
@@ -364,7 +364,8 @@ func isGenerationMet(expectedGeneration int64) (bool, error) {
 	if !found {
 		return false, fmt.Errorf("did not find status for component %s", capiComponentName)
 	}
-	return componentStatus.LastReconciledGeneration == expectedGeneration, nil
+	t.Logs.Infof("VZ generation: %v, %s generation: %v", vz.Generation, capiComponentName, componentStatus.LastReconciledGeneration)
+	return componentStatus.LastReconciledGeneration == vz.Generation, nil
 }
 
 // isStatusMet - Return boolean indicating if expected status is met
