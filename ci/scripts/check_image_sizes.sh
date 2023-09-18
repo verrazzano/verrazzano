@@ -22,9 +22,9 @@ process_file() {
     IMAGESIZE_ARRAY+=("$IMAGESIZE_INT")
   done < "$IMAGE_FILE"
 
- # for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
-  #  echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
-  #done
+ for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
+  echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
+ done
 }
 
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
@@ -48,7 +48,7 @@ IMAGE_SIZE_DIFF_FOUND="false"
 
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do
-  echo "imagename print: $IMAGENAME"
+  #echo "imagename print: $IMAGENAME"
   IMAGENAME_SIZES_FILE_OS["$IMAGENAME"]=$IMAGESIZE
 done <<< "$IMAGENAME_SIZES_FILE_OS"
 
@@ -58,11 +58,11 @@ done <<< "$IMAGENAME_SIZES_FILE_GENERATED"
 
 
 # Check if imagenames in filenew are not in fileprev
-for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
-  if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
-    echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt."
-  fi
-done
+#for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
+#  if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
+#    echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt."
+#  fi
+#done
 
 # Compare sizes between the two files
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
