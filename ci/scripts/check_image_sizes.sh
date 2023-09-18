@@ -9,6 +9,7 @@ process_file() {
   local IMAGE_FILE="$1"
   local IMAGENAME_ARRAY=()
   local IMAGESIZE_ARRAY=()
+  local SERIALIZED_DATA=""
 
   while IFS= read -r line; do
     # Extract image name
@@ -23,7 +24,7 @@ process_file() {
   done < "$IMAGE_FILE"
 
   for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
-    echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
+    SERIALIZED_DATA+="${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
   done
 }
 
