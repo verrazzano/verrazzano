@@ -121,15 +121,23 @@ function scan_release_binaries() {
   fi
     tail -25 ${SCAN_REPORT} > ${scan_summary}
 
-  files_to_skip=0
+  # Get the files not scanned count from the summary
+  files_to_skip=$(grep '\tNot Scanned:...................     ' $scan_summary | sed 's/\tNot Scanned:...................     //g')
+
   clean_files="$(expr $count_files - $files_to_skip)"
   files_not_scanned="$(expr $count_files - $clean_files)"
 
+  # The scanner has had issues in the past where it fails to open a file (seen in ghcr.io_verrazzano_fluentd-kubernetes-daemonset image)
+  # We have a workaround that allows up to 1 file to not be scanned and still pass the checking here.
+  if [ $files_not_scanned -gt 1 ]; then
+    echo "There were $files_not_scanned files that were not scanned, that exceeds the threshold and the scan is being treated as failed"
+    return 1
+  fi
+
   # Workaround to address the issue where scanner fails to open a file from ghcr.io_verrazzano_fluentd-kubernetes-daemonset image
   if [ "$BUNDLE_TO_SCAN" == "Full" ];then
-    files_to_skip=1
+    files_to_skip=$files_not_scanned
     clean_files="$(expr $count_files - $files_to_skip)"
-    files_not_scanned="$(expr $count_files - $clean_files)"
   fi
 
   # The following set of lines from the summary in the scan report is used here for validation.
