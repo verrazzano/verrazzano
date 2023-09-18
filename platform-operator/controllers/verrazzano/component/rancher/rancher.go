@@ -799,6 +799,7 @@ func getRancherLogoContentWithRetry(log vzlog.VerrazzanoLogger, cli kubernetes.I
 	return logoContent, err
 }
 
+// isRancherWebhookImageUpToDate checks to make sure the rancher webhook deployment has the correct image tag
 func isRancherWebhookImageUpToDate(ctx spi.ComponentContext) bool {
 	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
 	if err != nil {
