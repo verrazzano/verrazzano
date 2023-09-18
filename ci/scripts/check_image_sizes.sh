@@ -9,7 +9,6 @@ process_file() {
   local IMAGE_FILE="$1"
   local IMAGENAME_ARRAY=()
   local IMAGESIZE_ARRAY=()
-  #local SERIALIZED_DATA=""
 
   while IFS= read -r line; do
     # Extract image name
@@ -23,9 +22,9 @@ process_file() {
     IMAGESIZE_ARRAY+=("$IMAGESIZE_INT")
   done < "$IMAGE_FILE"
 
-  for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
-    echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
-  done
+ # for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
+  #  echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
+  #done
 }
 
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
@@ -49,6 +48,7 @@ IMAGE_SIZE_DIFF_FOUND="false"
 
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do
+  echo "imagename print: $IMAGENAME"
   IMAGENAME_SIZES_FILE_OS["$IMAGENAME"]=$IMAGESIZE
 done <<< "$IMAGENAME_SIZES_FILE_OS"
 
