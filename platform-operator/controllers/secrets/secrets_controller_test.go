@@ -214,7 +214,7 @@ func TestSecretReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	secret := testSecret
 	secret.Finalizers = append(secret.Finalizers, constants.OverridesFinalizer)
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
+	cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ, &secret).WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -327,7 +327,7 @@ func TestSecretNotFound(t *testing.T) {
 
 	for i, tt := range tests {
 		asserts := assert.New(t)
-		cli := fake.NewClientBuilder().WithObjects(&testVZ).WithScheme(newScheme()).Build()
+		cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ).WithObjects(&testVZ).WithScheme(newScheme()).Build()
 		config.Set(config.OperatorConfig{CloudCredentialWatchEnabled: false})
 		config.TestProfilesDir = "../../manifests/profiles"
 		defer func() { config.TestProfilesDir = "" }()
@@ -424,7 +424,7 @@ func TestDeletion(t *testing.T) {
 	secret := testSecret
 	secret.Finalizers = append(secret.Finalizers, constants.OverridesFinalizer)
 	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
+	cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ, &secret).WithObjects(&testVZ, &secret).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()

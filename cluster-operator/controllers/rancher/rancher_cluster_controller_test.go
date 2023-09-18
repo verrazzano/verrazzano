@@ -34,7 +34,12 @@ const (
 func TestReconcileCreateVMC(t *testing.T) {
 	asserts := assert.New(t)
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCattleCluster(clusterName, displayName)).Build()
+	obj := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithStatusSubresource(obj).WithObjects(newCattleCluster(clusterName, displayName)).Build()
 	reconciler := newRancherClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
@@ -60,9 +65,14 @@ func TestReconcileWithClusterSelector(t *testing.T) {
 		labelValue = "test-label-value"
 	)
 
+	obj := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+	}
 	cluster := newCattleCluster(clusterName, displayName)
 	cluster.SetLabels(map[string]string{labelName: labelValue})
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithStatusSubresource(obj).WithObjects(cluster).Build()
 
 	reconciler := newRancherClusterReconciler(fakeClient)
 	reconciler.ClusterSelector = &metav1.LabelSelector{
@@ -153,7 +163,7 @@ func TestReconcileCreateVMCAlreadyExists(t *testing.T) {
 	asserts := assert.New(t)
 
 	vmc := newVMC(displayName)
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCattleCluster(clusterName, displayName), vmc).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithStatusSubresource(vmc).WithObjects(newCattleCluster(clusterName, displayName), vmc).Build()
 	reconciler := newRancherClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 

@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 	batchv1 "k8s.io/api/batch/v1"
 	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,11 +31,7 @@ const (
 func decoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
 	_ = core.AddToScheme(scheme)
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		zap.S().Errorf("Failed creating new decoder: %v", err)
-	}
-	return decoder
+	return admission.NewDecoder(scheme)
 }
 
 // TestHandleBadRequest tests handling an invalid admission.Request
@@ -88,7 +83,7 @@ func TestHandleIstioDisabledMysqlBackupJob(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledJob}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, job labeled with sidecar.istio.io/inject: false"), res.Result.Reason)
+	assert.Equal(t, "No action required, job labeled with sidecar.istio.io/inject: false", res.Result.Message)
 }
 
 // TestHandleSkipAnnotateMysqlBackupJob tests handling an admission.Request
@@ -125,7 +120,7 @@ func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledJob}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator"), res.Result.Reason)
+	assert.Equal(t, "No action required, job not labelled with app.kubernetes.io/created-by: mysql-operator", res.Result.Message)
 }
 
 // TestHandleAnnotateMysqlBackupJob tests handling an admission.Request

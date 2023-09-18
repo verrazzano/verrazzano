@@ -24,7 +24,7 @@ import (
 func newRequirementsValidatorV1alpha1(objects []client.Object) RequirementsValidatorV1alpha1 {
 	scheme := newV1alpha1Scheme()
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	v := RequirementsValidatorV1alpha1{client: client, decoder: decoder}
 	return v
 }
@@ -253,6 +253,6 @@ func TestPrerequisiteValidationDisabledForV1alpha1(t *testing.T) {
 	config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
-	asrt.Equal(metav1.StatusReason("Resource requirements validation not enabled"), res.Result.Reason)
+	asrt.Equal("Resource requirements validation not enabled", res.Result.Message)
 	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }

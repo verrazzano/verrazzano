@@ -45,7 +45,8 @@ func TestCreateCallbackSuccessWithVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NoError(t, currentSpec.ValidateCreate())
+	_, err := currentSpec.ValidateCreate()
+	assert.NoError(t, err)
 }
 
 // TestCreateCallbackSuccessWithoutVersion Tests the create callback with no spec version
@@ -71,7 +72,8 @@ func TestCreateCallbackSuccessWithoutVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.NoError(t, currentSpec.ValidateCreate())
+	_, err := currentSpec.ValidateCreate()
+	assert.NoError(t, err)
 }
 
 // TestCreateCallbackFailsWithInvalidVersion Tests the create callback with invalid spec version
@@ -110,7 +112,7 @@ func runCreateCallbackWithInvalidVersion(t *testing.T) error {
 			Profile: "dev",
 		},
 	}
-	err := currentSpec.ValidateCreate()
+	_, err := currentSpec.ValidateCreate()
 	return err
 }
 
@@ -146,7 +148,8 @@ func TestUpdateCallbackSuccessWithNewVersion(t *testing.T) {
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
-	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.NoError(t, err)
 }
 
 // TestUpdateCallbackSuccessWithNewVersion Tests the update callback with valid spec versions in both
@@ -182,7 +185,8 @@ func TestUpdateCallbackSuccessWithOldAndNewVersion(t *testing.T) {
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
-	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.NoError(t, err)
 }
 
 // TestRollbackRejected Tests the update callback with valid spec versions in both
@@ -214,7 +218,7 @@ func TestRollbackRejected(t *testing.T) {
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
 
-	err := newSpec.ValidateUpdate(oldSpec)
+	_, err := newSpec.ValidateUpdate(oldSpec)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "rollback is not supported")
 }
@@ -243,7 +247,8 @@ func TestUpdateCallbackFailsWithOldGreaterThanNewVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.Error(t, err)
 }
 
 // TestUpdateCallbackFailsWithInvalidNewVersion Tests the create callback with invalid new version
@@ -284,7 +289,8 @@ func runUpdateWithInvalidVersionTest(t *testing.T) error {
 			Profile: "dev",
 		},
 	}
-	return newSpec.ValidateUpdate(oldSpec)
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	return err
 }
 
 // TestUpdateCallbackFailsChangeProfile Tests the create callback with a changed profile
@@ -321,7 +327,7 @@ func runUpdateCallbackChangedProfileTest() error {
 			Profile: "prod",
 		},
 	}
-	err := newSpec.ValidateUpdate(oldSpec)
+	_, err := newSpec.ValidateUpdate(oldSpec)
 	return err
 }
 
@@ -349,7 +355,8 @@ func TestDefaultProfileWithProd(t *testing.T) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
-	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.NoError(t, err)
 }
 
 // TestProfileWithProd tests the update callback with the default profile of prod
@@ -376,7 +383,8 @@ func TestDefaultWithProd(t *testing.T) {
 		return fake.NewClientBuilder().WithScheme(newScheme()).Build(), nil
 	}
 	defer func() { getControllerRuntimeClient = validators.GetClient }()
-	assert.NoError(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.NoError(t, err)
 }
 
 // TestDeleteCallbackSuccess Tests the create callback with valid spec version
@@ -405,7 +413,8 @@ func runDeleteCallbackTest() error {
 			Profile: "dev",
 		},
 	}
-	return deletedSpec.ValidateDelete()
+	_, err := deletedSpec.ValidateDelete()
+	return err
 }
 
 // Test_combineErrors Tests combineErrors
@@ -456,7 +465,8 @@ func TestUpdateMissingOciLoggingApiSecret(t *testing.T) {
 		config.SetDefaultBomFilePath("")
 		getControllerRuntimeClient = validators.GetClient
 	}()
-	assert.Error(t, newSpec.ValidateUpdate(oldSpec))
+	_, err := newSpec.ValidateUpdate(oldSpec)
+	assert.Error(t, err)
 }
 
 // TestInvalidClusterK8SVersion Tests the create and update callbacks when the cluster's K8S version is unsupported
@@ -485,6 +495,8 @@ func TestInvalidClusterK8SVersion(t *testing.T) {
 			Profile: "dev",
 		},
 	}
-	assert.ErrorContains(t, currentSpec.ValidateCreate(), errMsg)
-	assert.ErrorContains(t, currentSpec.ValidateUpdate(currentSpec), errMsg)
+	_, err := currentSpec.ValidateCreate()
+	assert.ErrorContains(t, err, errMsg)
+	_, err = currentSpec.ValidateUpdate(currentSpec)
+	assert.ErrorContains(t, err, errMsg)
 }

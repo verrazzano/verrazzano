@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	admissionv1 "k8s.io/api/admission/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -20,7 +19,7 @@ import (
 func newRequirementsValidatorV1beta1(objects []client.Object) RequirementsValidatorV1beta1 {
 	scheme := newScheme()
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	v := RequirementsValidatorV1beta1{client: c, decoder: decoder}
 	return v
 }
@@ -82,6 +81,6 @@ func TestPrerequisiteValidationDisabledForV1beta1(t *testing.T) {
 	config.Set(config.OperatorConfig{ResourceRequirementsValidation: false})
 	res := m.Handle(context.TODO(), req)
 	asrt.True(res.Allowed, allowedFailureMessage)
-	asrt.Equal(v1.StatusReason("Resource requirements validation not enabled"), res.Result.Reason)
+	asrt.Equal("Resource requirements validation not enabled", res.Result.Message)
 	asrt.Len(res.Warnings, 0, noWarningsFailureMessage)
 }

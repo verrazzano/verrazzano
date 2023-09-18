@@ -47,14 +47,6 @@ func (f *FakeClusterAPIClient) Move(options client.MoveOptions) error {
 	return nil
 }
 
-func (f *FakeClusterAPIClient) Backup(options client.BackupOptions) error {
-	return nil
-}
-
-func (f *FakeClusterAPIClient) Restore(options client.RestoreOptions) error {
-	return nil
-}
-
 func (f *FakeClusterAPIClient) PlanUpgrade(options client.PlanUpgradeOptions) ([]client.UpgradePlan, error) {
 	return []client.UpgradePlan{}, nil
 }
@@ -75,19 +67,19 @@ func (f *FakeClusterAPIClient) DescribeCluster(options client.DescribeClusterOpt
 	return nil, nil
 }
 
-func (f *FakeClusterAPIClient) RolloutRestart(options client.RolloutOptions) error {
+func (f *FakeClusterAPIClient) RolloutRestart(options client.RolloutRestartOptions) error {
 	return nil
 }
 
-func (f *FakeClusterAPIClient) RolloutPause(options client.RolloutOptions) error {
+func (f *FakeClusterAPIClient) RolloutPause(options client.RolloutPauseOptions) error {
 	return nil
 }
 
-func (f *FakeClusterAPIClient) RolloutResume(options client.RolloutOptions) error {
+func (f *FakeClusterAPIClient) RolloutResume(options client.RolloutResumeOptions) error {
 	return nil
 }
 
-func (f *FakeClusterAPIClient) RolloutUndo(options client.RolloutOptions) error {
+func (f *FakeClusterAPIClient) RolloutUndo(options client.RolloutUndoOptions) error {
 	return nil
 }
 

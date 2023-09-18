@@ -37,7 +37,7 @@ func TestConfigMapReconciler(t *testing.T) {
 	asserts := assert.New(t)
 	cm := testConfigMap
 	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
+	cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ, &cm).WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
@@ -124,7 +124,7 @@ func TestConfigMapNotFound(t *testing.T) {
 
 	for i, tt := range tests {
 		asserts := assert.New(t)
-		cli := fake.NewClientBuilder().WithObjects(&testVZ).WithScheme(newScheme()).Build()
+		cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ).WithObjects(&testVZ).WithScheme(newScheme()).Build()
 
 		config.TestProfilesDir = "../../../manifests/profiles"
 		defer func() { config.TestProfilesDir = "" }()
@@ -157,7 +157,7 @@ func TestDeletion(t *testing.T) {
 	cm := testConfigMap
 	cm.Finalizers = append(cm.Finalizers, constants.OverridesFinalizer)
 	cm.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-	cli := fake.NewClientBuilder().WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
+	cli := fake.NewClientBuilder().WithStatusSubresource(&testVZ, &cm).WithObjects(&testVZ, &cm).WithScheme(newScheme()).Build()
 
 	config.TestProfilesDir = "../../../manifests/profiles"
 	defer func() { config.TestProfilesDir = "" }()
