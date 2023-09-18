@@ -92,11 +92,7 @@ pipeline {
         stage('Build Release Distributions') {
             steps {
                 script {
-                   def commitList = getCommitList()
-                   withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                        echo "Suspect list: ${SUSPECT_LIST}"
+
                     }
                     try {
                         sh """
@@ -114,7 +110,7 @@ pipeline {
                 }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
-                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
                 """
                 script {
                     try{
@@ -122,6 +118,11 @@ pipeline {
                     }
                     catch(error){
                         echo"Image Sizes have increased"
+                        def commitList = getCommitList()
+                           withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                            echo "Suspect list: ${SUSPECT_LIST}"
                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                     }
                 }

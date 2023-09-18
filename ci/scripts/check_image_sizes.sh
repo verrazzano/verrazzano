@@ -9,7 +9,7 @@ process_file() {
   local IMAGE_FILE="$1"
   local IMAGENAME_ARRAY=()
   local IMAGESIZE_ARRAY=()
-  local SERIALIZED_DATA=""
+  #local SERIALIZED_DATA=""
 
   while IFS= read -r line; do
     # Extract image name
@@ -30,7 +30,7 @@ process_file() {
 
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
 if [ $? -ne  0 ] ; then
-  echo "image-sizes.txt not found"
+  echo "${CLEAN_BRANCH_NAME}/image-list not found"
   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt
   if [ $? -eq 0 ] ; then
       exit
