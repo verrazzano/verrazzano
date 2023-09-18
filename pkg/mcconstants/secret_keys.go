@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package mcconstants - Constants in this file are keys in MultiCluster related secrets
@@ -69,3 +69,9 @@ const YamlKey = "yaml"
 
 // KeycloakURLKey is the key for Keycloak URL
 const KeycloakURLKey = "keycloak-url"
+
+// DexURLKey is the key for Dex URL
+const DexURLKey = "dex-url"
+
+// OidcProviderKey is the key for OIDC Provider
+const OidcProviderKey = "oidc-provider"
