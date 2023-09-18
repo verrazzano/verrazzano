@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
-	"sigs.k8s.io/controller-runtime/pkg/config/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"testing"
 	"time"
 
@@ -753,8 +753,8 @@ func (f fakeManager) Start(ctx context.Context) error {
 	return nil
 }
 
-func (f fakeManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
-	return v1alpha1.ControllerConfigurationSpec{}
+func (f fakeManager) GetControllerOptions() config.Controller {
+	return config.Controller{}
 }
 
 func (f fakeManager) Add(_ manager.Runnable) error {
@@ -813,12 +813,16 @@ func (f fakeManager) GetAPIReader() client.Reader {
 	return nil
 }
 
-func (f fakeManager) GetWebhookServer() *webhook.Server {
+func (f fakeManager) GetWebhookServer() webhook.Server {
 	return nil
 }
 
 func (f fakeManager) GetLogger() logr.Logger {
 	return log.Log
+}
+
+func (f fakeManager) GetHTTPClient() *http.Client {
+	return nil
 }
 
 var _ ctrl.Manager = fakeManager{}

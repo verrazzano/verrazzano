@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -28,7 +28,7 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 		Version: "v1",
 	}, &corev1.Namespace{}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})
 	_ = vzapp.AddToScheme(scheme)
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 	v := LabelerPodWebhook{
 		Client:        cli,

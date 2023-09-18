@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -30,10 +30,7 @@ import (
 func decoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
 	_ = core.AddToScheme(scheme)
-	decoder, err := admission.NewDecoder(scheme)
-	if err != nil {
-		zap.S().Errorf("Failed creating new decoder: %v", err)
-	}
+	decoder := admission.NewDecoder(scheme)
 	return decoder
 }
 

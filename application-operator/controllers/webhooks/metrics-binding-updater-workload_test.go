@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -37,7 +37,7 @@ func newGeneratorWorkloadWebhook() WorkloadWebhook {
 		Version: "v1",
 	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{}, &corev1.Namespace{})
 	_ = vzapp.AddToScheme(scheme)
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	cli := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 	v := WorkloadWebhook{
 		Client:     cli,
@@ -72,6 +72,9 @@ func TestHandlePod(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", nil, nil)
 	testPod := corev1.Pod{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Pod",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "test",
@@ -95,6 +98,9 @@ func TestHandleDeployment(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testDeploymentName,
 			Namespace: "test",
@@ -118,6 +124,9 @@ func TestHandleReplicaSet(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", nil, nil)
 	testReplicaSet := appsv1.ReplicaSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ReplicaSet",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testReplicaSet",
 			Namespace: "test",
@@ -141,6 +150,9 @@ func TestHandleStatefulSet(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", nil, nil)
 	testStatefulSet := appsv1.StatefulSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "StatefulSet",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testStatefulSet",
 			Namespace: "test",
@@ -164,6 +176,9 @@ func TestHandleOwnerRefs(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", nil, nil)
 	testDeployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testDeploymentName,
 			Namespace: "test",
@@ -196,6 +211,9 @@ func TestHandleMetricsNone(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, nil)
 	testDeployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testDeploymentName,
 			Namespace: "test",
@@ -226,6 +244,9 @@ func TestHandleMetricsNoneNamespace(t *testing.T) {
 	// Test data
 	v.createNamespace(t, "test", map[string]string{vzconst.VerrazzanoManagedLabelKey: "true"}, map[string]string{MetricsAnnotation: "none"})
 	testDeployment := appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Deployment",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testDeploymentName,
 			Namespace: "test",

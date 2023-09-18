@@ -23,7 +23,7 @@ func TestValidateCreateEmptyHostNoPaths(t *testing.T) {
 	defer func() { getAllIngressTraits = originalListIngressTraits }()
 
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{""}}}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -42,7 +42,7 @@ func TestValidateCreateEmptyHostNoPathsCollision(t *testing.T) {
 
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{""}}}}}
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -65,7 +65,7 @@ func TestValidateCreateEmptyHostNoCollisionWithExactHost(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{""}, Paths: paths}}}}
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -89,7 +89,7 @@ func TestValidateCreateEmptyHostNoCollisionWithWildcardHost(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{""}, Paths: paths}}}}
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -104,7 +104,7 @@ func TestValidateCreateStarHostNoPaths(t *testing.T) {
 
 	rule := IngressRule{Hosts: []string{"*"}, Paths: []IngressPath{}}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -123,7 +123,7 @@ func TestValidateCreateStarHostNoPathsCollision(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"*"}}}}})
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -146,7 +146,7 @@ func TestValidateCreateStarHostCollidesWithEmptyHost(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -166,7 +166,7 @@ func TestValidateCreateStarHostNoPathsNoCollision(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"*"}}}}})
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -180,7 +180,7 @@ func TestValidateCreateInvalidHost(t *testing.T) {
 
 	rule := IngressRule{Hosts: []string{"This.#is#.a.rea11y.bad/host!"}, Paths: []IngressPath{}}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -196,7 +196,7 @@ func TestValidateCreateHostAndPathNoExisting(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}}
 	rule := IngressRule{Hosts: []string{"foo.bar.com"}, Paths: paths}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -213,7 +213,7 @@ func TestValidateCreateMultipleHosts(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}, {Path: "/test/path2"}}
 	rule := IngressRule{Hosts: []string{"foo.bar.com", "foo2.bar.com"}, Paths: paths}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -236,7 +236,7 @@ func TestValidateCreateMultipleHostsCollision(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}, {Path: "/test/path2"}}
 	rule := IngressRule{Hosts: []string{"foo.bar.com", "foo2.bar.com"}, Paths: paths}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -260,7 +260,7 @@ func TestValidateCreateMatchingHostDifferentPath(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -284,7 +284,7 @@ func TestValidateCreateMatchingPathDifferentHost(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -308,7 +308,7 @@ func TestValidateCreateHostPathCollision(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -330,7 +330,7 @@ func TestValidateCreateHostNoPathCollision(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -346,7 +346,7 @@ func TestValidateCreateWildcardHostNoPaths(t *testing.T) {
 
 	rule := IngressRule{Hosts: []string{"*.bar.com"}, Paths: []IngressPath{}}
 	ingressTrait := IngressTrait{Spec: IngressTraitSpec{Rules: []IngressRule{rule}}}
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -370,7 +370,7 @@ func TestValidateCreateWildcardHostPath(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -394,7 +394,7 @@ func TestValidateCreateWildcardHostPathCollision(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.NotNil(t, err)
 }
 
@@ -419,7 +419,7 @@ func TestValidateCreateWildcardHostDoesntCollideWithExactHost(t *testing.T) {
 	existingTraits.Items = append(existingTraits.Items, existingIngressTrait)
 	defer func() { existingTraits.Items = existingTraits.Items[:0] }()
 
-	err := ingressTrait.ValidateCreate()
+	_, err := ingressTrait.ValidateCreate()
 	assert.Nil(t, err)
 }
 
@@ -445,7 +445,7 @@ func TestValidateUpdateAddPath(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}, {Path: "/test/path2"}}
 	ingressTrait := IngressTrait{ObjectMeta: v1.ObjectMeta{UID: "100"}, Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"foo.bar.com"}, Paths: paths}}}}
 
-	err := ingressTrait.ValidateUpdate(existingTrait)
+	_, err := ingressTrait.ValidateUpdate(existingTrait)
 	assert.Nil(t, err)
 }
 
@@ -473,7 +473,7 @@ func TestValidateUpdateAddHostCollision(t *testing.T) {
 	paths := []IngressPath{{Path: "/test/path"}, {Path: "/test/path2"}}
 	ingressTrait := IngressTrait{ObjectMeta: v1.ObjectMeta{UID: "100"}, Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"foo.bar.com", "foo2.bar.com"}, Paths: paths}}}}
 
-	err := ingressTrait.ValidateUpdate(existingTrait)
+	_, err := ingressTrait.ValidateUpdate(existingTrait)
 	assert.NotNil(t, err)
 }
 
@@ -500,7 +500,7 @@ func TestValidateUpdateChangeHost(t *testing.T) {
 	// change the host
 	ingressTrait := IngressTrait{ObjectMeta: v1.ObjectMeta{UID: "100"}, Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"foo3.bar.com"}, Paths: existingPath2}}}}
 
-	err := ingressTrait.ValidateUpdate(existingTrait)
+	_, err := ingressTrait.ValidateUpdate(existingTrait)
 	assert.Nil(t, err)
 }
 
@@ -526,7 +526,7 @@ func TestValidateUpdateChangeHostCollision(t *testing.T) {
 	// change the host
 	ingressTrait := IngressTrait{ObjectMeta: v1.ObjectMeta{UID: "100"}, Spec: IngressTraitSpec{Rules: []IngressRule{{Hosts: []string{"foo2.bar.com"}, Paths: existingPath}}}}
 
-	err := ingressTrait.ValidateUpdate(existingTrait)
+	_, err := ingressTrait.ValidateUpdate(existingTrait)
 	assert.NotNil(t, err)
 }
 

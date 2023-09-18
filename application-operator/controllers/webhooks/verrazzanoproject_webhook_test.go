@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -24,7 +24,7 @@ import (
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator
 func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
 	scheme := newScheme()
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := VerrazzanoProjectValidator{client: cli, decoder: decoder}
 	return v
@@ -72,13 +72,13 @@ func TestInvalidNamespace(t *testing.T) {
 	req := newAdmissionRequest(admissionv1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project create validation to fail.")
-	asrt.Containsf(res.Result.Reason, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
+	asrt.Containsf(res.Result.Message, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
 
 	// Test update
 	req = newAdmissionRequest(admissionv1.Update, testVP)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project update validation to fail.")
-	asrt.Containsf(res.Result.Reason, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
+	asrt.Containsf(res.Result.Message, fmt.Sprintf("resource must be %q", constants.VerrazzanoMultiClusterNamespace), "unexpected failure string")
 }
 
 // TestInvalidNamespaces tests the validation of VerrazzanoProject resource
@@ -100,13 +100,13 @@ func TestInvalidNamespaces(t *testing.T) {
 	req := newAdmissionRequest(admissionv1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
-	asrt.Containsf(res.Result.Reason, "One or more namespaces must be provided", "unexpected failure string")
+	asrt.Containsf(res.Result.Message, "One or more namespaces must be provided", "unexpected failure string")
 
 	// Test update
 	req = newAdmissionRequest(admissionv1.Update, testVP)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project create validation to fail for invalid namespace list")
-	asrt.Containsf(res.Result.Reason, "One or more namespaces must be provided", "unexpected failure string")
+	asrt.Containsf(res.Result.Message, "One or more namespaces must be provided", "unexpected failure string")
 }
 
 // TestNetworkPolicyNamespace tests the validation of VerrazzanoProject NetworkPolicyTemplate
@@ -153,13 +153,13 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	req := newAdmissionRequest(admissionv1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing network policy")
-	asrt.Containsf(res.Result.Reason, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	asrt.Containsf(res.Result.Message, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 
 	// Test update
 	req = newAdmissionRequest(admissionv1.Update, testVP)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing network policy")
-	asrt.Containsf(res.Result.Reason, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
+	asrt.Containsf(res.Result.Message, "namespace ns1 used in NetworkPolicy net1 does not exist in project", "Error validating VerrazzanProject with NetworkPolicyTemplate")
 }
 
 // TestNamespaceUniquenessForProjects tests that the namespace of a VerrazzanoProject N does not conflict with a preexisting project
@@ -376,12 +376,12 @@ func TestValidationFailureForProjectCreationWithoutTargetClusters(t *testing.T) 
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "target cluster")
+	asrt.Contains(res.Result.Message, "target cluster")
 
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "target cluster")
+	asrt.Contains(res.Result.Message, "target cluster")
 }
 
 // TestValidationFailureForProjectCreationTargetingMissingManagedCluster tests preventing the creation
@@ -417,12 +417,12 @@ func TestValidationFailureForProjectCreationTargetingMissingManagedCluster(t *te
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
+	asrt.Contains(res.Result.Message, "invalid-cluster-name")
 
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected project validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
+	asrt.Contains(res.Result.Message, "invalid-cluster-name")
 }
 
 // TestValidationSuccessForProjectCreationTargetingExistingManagedCluster tests allowing the creation

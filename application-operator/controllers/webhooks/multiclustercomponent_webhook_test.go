@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -23,7 +23,7 @@ import (
 // newMultiClusterComponentValidator creates a new MultiClusterComponentValidator
 func newMultiClusterComponentValidator() MultiClusterComponentValidator {
 	scheme := newScheme()
-	decoder, _ := admission.NewDecoder(scheme)
+	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterComponentValidator{client: cli, decoder: decoder}
 	return v
@@ -48,12 +48,12 @@ func TestValidationFailureForMultiClusterComponentCreationWithoutTargetClusters(
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "target cluster")
+	asrt.Contains(res.Result.Message, "target cluster")
 
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "target cluster")
+	asrt.Contains(res.Result.Message, "target cluster")
 }
 
 // TestValidationFailureForMultiClusterComponentCreationTargetingMissingManagedCluster tests preventing the creation
@@ -79,12 +79,12 @@ func TestValidationFailureForMultiClusterComponentCreationTargetingMissingManage
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
+	asrt.Contains(res.Result.Message, "invalid-cluster-name")
 
 	req = newAdmissionRequest(admissionv1.Update, p)
 	res = v.Handle(context.TODO(), req)
 	asrt.False(res.Allowed, "Expected multi-cluster component validation to fail due to missing placement information.")
-	asrt.Contains(res.Result.Reason, "invalid-cluster-name")
+	asrt.Contains(res.Result.Message, "invalid-cluster-name")
 }
 
 // TestValidationSuccessForMultiClusterComponentCreationTargetingExistingManagedCluster tests allowing the creation

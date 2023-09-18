@@ -599,7 +599,7 @@ func GetV1Beta1ControllerRuntimeClient(config *restclient.Config) (client.Client
 		Scheme: scheme,
 		// The default SuppressWarnings=false will override whatever WarningHandler was used by the config.
 		// Set this to true to use whatever WarningHandler was passed into this function.
-		Opts: client.WarningHandlerOptions{SuppressWarnings: true},
+		WarningHandler: client.WarningHandlerOptions{SuppressWarnings: true},
 	}
 	vzClient, err := client.New(config, options)
 	if err != nil {

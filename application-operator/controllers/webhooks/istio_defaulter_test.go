@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -76,7 +76,7 @@ func TestHandleIstioDisabled(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, pod labeled with sidecar.istio.io/inject: false"), res.Result.Reason)
+	assert.Equal(t, "No action required, pod labeled with sidecar.istio.io/inject: false", res.Result.Message)
 }
 
 // TestHandleNoOnwerReference tests handling an admission.Request
@@ -111,7 +111,7 @@ func TestHandleNoOnwerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
+	assert.Equal(t, "No action required, pod is not a child of an ApplicationConfiguration resource", res.Result.Message)
 }
 
 // TestHandleNoAppConfigOnwerReference tests handling an admission.Request
@@ -179,7 +179,7 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	req.Object = runtime.RawExtension{Raw: marshaledPod}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.True(t, res.Allowed)
-	assert.Equal(t, metav1.StatusReason("No action required, pod is not a child of an ApplicationConfiguration resource"), res.Result.Reason)
+	assert.Equal(t, "No action required, pod is not a child of an ApplicationConfiguration resource", res.Result.Message)
 }
 
 // TestHandleAppConfigOnwerReference1 tests handling an admission.Request
