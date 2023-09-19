@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeVerrazzanoWebLogicWorkloads struct {
 	ns   string
 }
 
-var verrazzanoweblogicworkloadsResource = schema.GroupVersionResource{Group: "oam.verrazzano.io", Version: "v1alpha1", Resource: "verrazzanoweblogicworkloads"}
+var verrazzanoweblogicworkloadsResource = v1alpha1.SchemeGroupVersion.WithResource("verrazzanoweblogicworkloads")
 
-var verrazzanoweblogicworkloadsKind = schema.GroupVersionKind{Group: "oam.verrazzano.io", Version: "v1alpha1", Kind: "VerrazzanoWebLogicWorkload"}
+var verrazzanoweblogicworkloadsKind = v1alpha1.SchemeGroupVersion.WithKind("VerrazzanoWebLogicWorkload")
 
 // Get takes name of the verrazzanoWebLogicWorkload, and returns the corresponding verrazzanoWebLogicWorkload object, and an error if there is any.
 func (c *FakeVerrazzanoWebLogicWorkloads) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.VerrazzanoWebLogicWorkload, err error) {

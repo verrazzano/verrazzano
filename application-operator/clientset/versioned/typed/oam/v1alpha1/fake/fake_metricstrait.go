@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeMetricsTraits struct {
 	ns   string
 }
 
-var metricstraitsResource = schema.GroupVersionResource{Group: "oam.verrazzano.io", Version: "v1alpha1", Resource: "metricstraits"}
+var metricstraitsResource = v1alpha1.SchemeGroupVersion.WithResource("metricstraits")
 
-var metricstraitsKind = schema.GroupVersionKind{Group: "oam.verrazzano.io", Version: "v1alpha1", Kind: "MetricsTrait"}
+var metricstraitsKind = v1alpha1.SchemeGroupVersion.WithKind("MetricsTrait")
 
 // Get takes name of the metricsTrait, and returns the corresponding metricsTrait object, and an error if there is any.
 func (c *FakeMetricsTraits) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.MetricsTrait, err error) {

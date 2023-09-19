@@ -24,8 +24,7 @@ type Interface interface {
 	OamV1alpha1() oamv1alpha1.OamV1alpha1Interface
 }
 
-// Clientset contains the clients for groups. Each group has exactly one
-// version included in a Clientset.
+// Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	appV1alpha1      *appv1alpha1.AppV1alpha1Client

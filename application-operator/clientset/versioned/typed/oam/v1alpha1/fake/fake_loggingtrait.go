@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeLoggingTraits struct {
 	ns   string
 }
 
-var loggingtraitsResource = schema.GroupVersionResource{Group: "oam.verrazzano.io", Version: "v1alpha1", Resource: "loggingtraits"}
+var loggingtraitsResource = v1alpha1.SchemeGroupVersion.WithResource("loggingtraits")
 
-var loggingtraitsKind = schema.GroupVersionKind{Group: "oam.verrazzano.io", Version: "v1alpha1", Kind: "LoggingTrait"}
+var loggingtraitsKind = v1alpha1.SchemeGroupVersion.WithKind("LoggingTrait")
 
 // Get takes name of the loggingTrait, and returns the corresponding loggingTrait object, and an error if there is any.
 func (c *FakeLoggingTraits) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.LoggingTrait, err error) {

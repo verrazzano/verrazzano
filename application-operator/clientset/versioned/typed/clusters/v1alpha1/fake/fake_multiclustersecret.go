@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeMultiClusterSecrets struct {
 	ns   string
 }
 
-var multiclustersecretsResource = schema.GroupVersionResource{Group: "clusters.verrazzano.io", Version: "v1alpha1", Resource: "multiclustersecrets"}
+var multiclustersecretsResource = v1alpha1.SchemeGroupVersion.WithResource("multiclustersecrets")
 
-var multiclustersecretsKind = schema.GroupVersionKind{Group: "clusters.verrazzano.io", Version: "v1alpha1", Kind: "MultiClusterSecret"}
+var multiclustersecretsKind = v1alpha1.SchemeGroupVersion.WithKind("MultiClusterSecret")
 
 // Get takes name of the multiClusterSecret, and returns the corresponding multiClusterSecret object, and an error if there is any.
 func (c *FakeMultiClusterSecrets) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.MultiClusterSecret, err error) {

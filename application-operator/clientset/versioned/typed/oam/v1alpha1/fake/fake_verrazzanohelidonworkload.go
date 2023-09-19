@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeVerrazzanoHelidonWorkloads struct {
 	ns   string
 }
 
-var verrazzanohelidonworkloadsResource = schema.GroupVersionResource{Group: "oam.verrazzano.io", Version: "v1alpha1", Resource: "verrazzanohelidonworkloads"}
+var verrazzanohelidonworkloadsResource = v1alpha1.SchemeGroupVersion.WithResource("verrazzanohelidonworkloads")
 
-var verrazzanohelidonworkloadsKind = schema.GroupVersionKind{Group: "oam.verrazzano.io", Version: "v1alpha1", Kind: "VerrazzanoHelidonWorkload"}
+var verrazzanohelidonworkloadsKind = v1alpha1.SchemeGroupVersion.WithKind("VerrazzanoHelidonWorkload")
 
 // Get takes name of the verrazzanoHelidonWorkload, and returns the corresponding verrazzanoHelidonWorkload object, and an error if there is any.
 func (c *FakeVerrazzanoHelidonWorkloads) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.VerrazzanoHelidonWorkload, err error) {

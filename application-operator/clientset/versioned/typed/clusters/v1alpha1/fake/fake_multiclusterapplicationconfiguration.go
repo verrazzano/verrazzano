@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeMultiClusterApplicationConfigurations struct {
 	ns   string
 }
 
-var multiclusterapplicationconfigurationsResource = schema.GroupVersionResource{Group: "clusters.verrazzano.io", Version: "v1alpha1", Resource: "multiclusterapplicationconfigurations"}
+var multiclusterapplicationconfigurationsResource = v1alpha1.SchemeGroupVersion.WithResource("multiclusterapplicationconfigurations")
 
-var multiclusterapplicationconfigurationsKind = schema.GroupVersionKind{Group: "clusters.verrazzano.io", Version: "v1alpha1", Kind: "MultiClusterApplicationConfiguration"}
+var multiclusterapplicationconfigurationsKind = v1alpha1.SchemeGroupVersion.WithKind("MultiClusterApplicationConfiguration")
 
 // Get takes name of the multiClusterApplicationConfiguration, and returns the corresponding multiClusterApplicationConfiguration object, and an error if there is any.
 func (c *FakeMultiClusterApplicationConfigurations) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.MultiClusterApplicationConfiguration, err error) {
