@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeOKEQuickCreates struct {
 	ns   string
 }
 
-var okequickcreatesResource = schema.GroupVersionResource{Group: "clusters.verrazzano.io", Version: "v1alpha1", Resource: "okequickcreates"}
+var okequickcreatesResource = v1alpha1.SchemeGroupVersion.WithResource("okequickcreates")
 
-var okequickcreatesKind = schema.GroupVersionKind{Group: "clusters.verrazzano.io", Version: "v1alpha1", Kind: "OKEQuickCreate"}
+var okequickcreatesKind = v1alpha1.SchemeGroupVersion.WithKind("OKEQuickCreate")
 
 // Get takes name of the oKEQuickCreate, and returns the corresponding oKEQuickCreate object, and an error if there is any.
 func (c *FakeOKEQuickCreates) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.OKEQuickCreate, err error) {

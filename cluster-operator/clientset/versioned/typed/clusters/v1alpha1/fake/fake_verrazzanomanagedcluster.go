@@ -11,7 +11,6 @@ import (
 	v1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeVerrazzanoManagedClusters struct {
 	ns   string
 }
 
-var verrazzanomanagedclustersResource = schema.GroupVersionResource{Group: "clusters.verrazzano.io", Version: "v1alpha1", Resource: "verrazzanomanagedclusters"}
+var verrazzanomanagedclustersResource = v1alpha1.SchemeGroupVersion.WithResource("verrazzanomanagedclusters")
 
-var verrazzanomanagedclustersKind = schema.GroupVersionKind{Group: "clusters.verrazzano.io", Version: "v1alpha1", Kind: "VerrazzanoManagedCluster"}
+var verrazzanomanagedclustersKind = v1alpha1.SchemeGroupVersion.WithKind("VerrazzanoManagedCluster")
 
 // Get takes name of the verrazzanoManagedCluster, and returns the corresponding verrazzanoManagedCluster object, and an error if there is any.
 func (c *FakeVerrazzanoManagedClusters) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.VerrazzanoManagedCluster, err error) {
