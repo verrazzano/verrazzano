@@ -64,6 +64,5 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
-        echo "has failed"
          exit 1
 fi
