@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	istioSubcomponent      = "istiod"
-	verrazzanoSubcomponent = "verrazzano"
-	proxyv2ImageName       = "proxyv2"
-	fluentdImageName       = "fluentd-kubernetes-daemonset"
-	wkoSubcomponent        = "weblogic-operator"
-	wkoExporterImageName   = "weblogic-monitoring-exporter"
+	istioSubcomponent    = "istiod"
+	fluentdSubcomponent  = "fluentd"
+	proxyv2ImageName     = "proxyv2"
+	fluentdImageName     = "fluentd-kubernetes-daemonset"
+	wkoSubcomponent      = "weblogic-operator"
+	wkoExporterImageName = "weblogic-monitoring-exporter"
 )
 
 type bomTool struct {

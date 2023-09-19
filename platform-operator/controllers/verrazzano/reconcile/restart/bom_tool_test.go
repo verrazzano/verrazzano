@@ -35,7 +35,7 @@ func TestBomTool(t *testing.T) {
 		},
 		{
 			"has fluentd image for verrazzano subcomponent",
-			verrazzanoSubcomponent,
+			fluentdSubcomponent,
 			fluentdImageName,
 			false,
 		},
