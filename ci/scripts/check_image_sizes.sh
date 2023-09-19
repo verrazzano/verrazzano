@@ -6,24 +6,24 @@
 
 # Function to process the data from a file
 process_file() {
-  local filename="$1"
-  local imagename_array=()
-  local imagesize_array=()
+  local IMAGE_FILE="$1"
+  local IMAGENAME_ARRAY=()
+  local IMAGESIZE_ARRAY=()
 
   while IFS= read -r line; do
     # Extract image name
-    imagename=$(echo "$line" | cut -d ':' -f 1)
+    IMAGENAME=$(echo "$line" | cut -d ':' -f 1)
     # Extract image size
-    imagesize=$(echo "$line" | cut -d ',' -f 2 | cut -d ',' -f 2)
-    # Convert imagesize to an integer & remove spaces
-    imagesize_int=$(echo "$imagesize" | tr -d ' ')
+    IMAGESIZE=$(echo "$line" | cut -d ',' -f 2 | cut -d ',' -f 2)
+    # Convert IMAGESIZE to an integer & remove spaces
+    IMAGESIZE_INT=$(echo "$IMAGESIZE" | tr -d ' ')
     # Store the image name and size in separate arrays
-    imagename_array+=("$imagename")
-    imagesize_array+=("$imagesize_int")
-  done < "$filename"
+    IMAGENAME_ARRAY+=("$IMAGENAME")
+    IMAGESIZE_ARRAY+=("$IMAGESIZE_INT")
+  done < "$IMAGE_FILE"
 
-  for ((i = 0; i < ${#imagename_array[@]}; i++)); do
-    echo "${imagename_array[$i]}:${imagesize_array[$i]}"
+  for ((i = 0; i < ${#IMAGENAME_ARRAY[@]}; i++)); do
+    echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
   done
 }
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
@@ -37,30 +37,30 @@ if [ $? -ne  0 ] ; then
  exit
 fi
 
-declare -A imagename_sizes_fileprev
-declare -A imagename_sizes_filenew
+declare -A IMAGENAME_SIZES_FILE_OS
+declare -A IMAGENAME_SIZES_FILE_GENERATED
 
-image_data_fileprev=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
-image_data_filenew=$(process_file "${WORKSPACE}/image-sizes.txt")
+IMAGE_DATA_OS=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
+IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
 IMAGE_SIZE_DIFF_FOUND="false"
 # Exract image size & name. Populate the associative arrays for both files
-while IFS=: read -r imagename imagesize; do
-  imagename_sizes_fileprev["$imagename"]=$imagesize
-done <<< "$image_data_fileprev"
+while IFS=: read -r IMAGENAME IMAGESIZE; do
+  IMAGENAME_SIZES_FILE_OS["$IMAGENAME"]=$IMAGESIZE
+done <<< "$IMAGE_DATA_OS"
 
-while IFS=: read -r imagename imagesize; do
-  imagename_sizes_filenew["$imagename"]=$imagesize
-done <<< "$image_data_filenew"
+while IFS=: read -r IMAGENAME IMAGESIZE; do
+  IMAGENAME_SIZES_FILE_GENERATED["$IMAGENAME"]=$IMAGESIZE
+done <<< "$IMAGE_DATA_GENERATED"
 
 
 # Compare sizes between the two files
-for imagename in "${!imagename_sizes_fileprev[@]}"; do
-  size1="${imagename_sizes_fileprev[$imagename]}"
-  size2="${imagename_sizes_filenew[$imagename]}"
+for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
+  FILE_SIZE_OS="${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}"
+  FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
-  if [ -n "$size1" ] && [ -n "$size2" ] && [ "$size2" -gt 0 ] && [ "$size2" -gt "$size1" ]; then
+  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$FILE_SIZE_OS" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
-    echo "Image size for $imagename has increased "
+    echo "Image size for $IMAGENAME has increased "
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
