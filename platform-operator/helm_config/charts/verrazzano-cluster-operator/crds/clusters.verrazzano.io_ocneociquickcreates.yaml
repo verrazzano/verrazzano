@@ -21,7 +21,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: OCNEOCIQuickCreate specifies the API for quick-create OCI OCNE
-          Clusters.
+          clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
