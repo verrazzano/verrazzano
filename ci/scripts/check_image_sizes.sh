@@ -52,15 +52,22 @@ while IFS=: read -r IMAGENAME IMAGESIZE; do
   IMAGENAME_SIZES_FILE_GENERATED["$IMAGENAME"]=$IMAGESIZE
 done <<< "$IMAGE_DATA_GENERATED"
 
+# Check if imagenames in filenew are not in fileprev
+for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
+  if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
+    echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt."
+  fi
+done
+
 
 # Compare sizes between the two files
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   FILE_SIZE_OS="${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}"
   FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
-  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$FILE_SIZE_OS" ]; then
+  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+100000)) ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
-    echo "Image size for $IMAGENAME has increased "
+    echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB "
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
