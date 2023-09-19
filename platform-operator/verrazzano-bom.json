@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230825101211-f2937ea",
+              "tag": "v2.0.0-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -322,12 +322,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230829191738-b6247ad8ac8",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -907,7 +907,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230601094358-fc41216e",
+              "tag": "v2.7.2-20230919043605-fc41216e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -919,7 +919,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230601100836-26c8b963",
+              "tag": "v6.2.7-20230919040640-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

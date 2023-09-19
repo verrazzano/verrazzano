@@ -232,6 +232,10 @@ func ensureDexNamespace(ctx spi.ComponentContext) error {
 			namespace.Labels = map[string]string{}
 		}
 		namespace.Labels[v8oconst.LabelVerrazzanoNamespace] = constants.DexNamespace
+		istio := ctx.EffectiveCR().Spec.Components.Istio
+		if istio != nil && istio.IsInjectionEnabled() {
+			namespace.Labels["istio-injection"] = "enabled"
+		}
 		return nil
 	})
 	if err != nil {

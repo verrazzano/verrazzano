@@ -76,6 +76,10 @@ spec:
                     path: admin-ca-bundle
                   - key: keycloak-url
                     path: keycloak-url
+                  - key: dex-url
+                    path: dex-url
+                  - key: oidc-provider
+                    path: oidc-provider
             - secret:
                 name: verrazzano-authproxy-secret
                 items:

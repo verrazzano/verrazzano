@@ -31,17 +31,9 @@ func (h ComponentHandler) GetWorkName() string {
 
 // IsWorkNeeded returns true if upgrade is needed
 func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UpgradeOperation)
-	if err != nil {
-		return false, result.NewResultShortRequeueDelayWithError(err)
-	}
-
-	installed, err := comp.IsInstalled(compCtx)
-	if err != nil {
-		ctx.Log.ErrorfThrottled("Error checking if Helm release installed for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
-		return true, result.NewResult()
-	}
-	return installed, result.NewResult()
+	module := ctx.CR.(*moduleapi.Module)
+	needUpgrade := module.Spec.Version != "" && (module.Spec.Version != module.Status.LastSuccessfulVersion)
+	return needUpgrade, result.NewResult()
 }
 
 // CheckDependencies checks if the dependencies are ready

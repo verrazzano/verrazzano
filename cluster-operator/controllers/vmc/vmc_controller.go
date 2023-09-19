@@ -380,6 +380,12 @@ func (r *VerrazzanoManagedClusterReconciler) syncMultiClusterCASecret(ctx contex
 
 // mutateManagedClusterCACertsSecret adds and removes managed cluster CA certs to/from the managed cluster CA certs secret
 func (r *VerrazzanoManagedClusterReconciler) mutateManagedClusterCACertsSecret(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, cacrtSecret *corev1.Secret) error {
+	ns := &corev1.Namespace{}
+	err := r.Client.Get(ctx, types.NamespacedName{Name: constants.VerrazzanoMonitoringNamespace}, ns)
+	if errors.IsNotFound(err) {
+		r.log.Infof("namespace %s does not exist", constants.VerrazzanoMonitoringNamespace)
+		return nil
+	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      constants.PromManagedClusterCACertsSecretName,
