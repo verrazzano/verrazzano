@@ -4,12 +4,9 @@
 import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
-<<<<<<< HEAD
-def agentLabel = env.JOB_NAME.contains('master') ? "phx-large" : "large"
 def SUSPECT_LIST = ""
-=======
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
->>>>>>> a8aa3551b9b1f16e6eaf90226340e877e404243d
+
 
 pipeline {
     options {
