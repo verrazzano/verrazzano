@@ -11,7 +11,6 @@ import (
 	v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -23,9 +22,9 @@ type FakeVerrazzanos struct {
 	ns   string
 }
 
-var verrazzanosResource = schema.GroupVersionResource{Group: "install.verrazzano.io", Version: "v1beta1", Resource: "verrazzanos"}
+var verrazzanosResource = v1beta1.SchemeGroupVersion.WithResource("verrazzanos")
 
-var verrazzanosKind = schema.GroupVersionKind{Group: "install.verrazzano.io", Version: "v1beta1", Kind: "Verrazzano"}
+var verrazzanosKind = v1beta1.SchemeGroupVersion.WithKind("Verrazzano")
 
 // Get takes name of the verrazzano, and returns the corresponding verrazzano object, and an error if there is any.
 func (c *FakeVerrazzanos) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Verrazzano, err error) {
