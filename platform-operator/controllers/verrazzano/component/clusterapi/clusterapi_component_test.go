@@ -4,6 +4,7 @@
 package clusterapi
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"os"
 	"testing"
 	"time"
@@ -90,9 +91,10 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 func TestGetDependencies(t *testing.T) {
 	var comp clusterAPIComponent
 	dependencies := comp.GetDependencies()
-	assert.Len(t, dependencies, 2)
+	assert.Len(t, dependencies, 3)
 	assert.Equal(t, cmconstants.CertManagerComponentName, dependencies[0])
 	assert.Equal(t, cmconstants.ClusterIssuerComponentName, dependencies[1])
+	assert.Equal(t, rancher.ComponentName, dependencies[2])
 }
 
 // TestIsReady tests the IsReady function

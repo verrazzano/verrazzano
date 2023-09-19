@@ -327,7 +327,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230914060539-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
