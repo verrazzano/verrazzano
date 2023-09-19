@@ -11,7 +11,7 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OKEQuickCreate specifies the API for quick-create OKE Clusters.
+// OKEQuickCreate specifies the API for quick-create OKE clusters.
 type OKEQuickCreate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -37,7 +37,7 @@ type (
 		IdentityRef NamespacedRef `json:"identityRef"`
 		// Kubernetes settings.
 		Kubernetes `json:"kubernetes"`
-		// OKE Cluster settings.
+		// OKE cluster settings.
 		OKE `json:"oke,omitempty"`
 	}
 	OKE struct {
@@ -50,7 +50,7 @@ type (
 
 		// List of Virtual Node pools.
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
-		// Network settings for the OKE Cluster.
+		// Network settings for the OKE cluster.
 		Network *OKENetwork `json:"network,omitempty"`
 	}
 	OKENetwork struct {
