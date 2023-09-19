@@ -3,10 +3,6 @@
 
 package operatorinit
 
-const (
-	failedToUpdate = "Failed to update %s: %v"
-)
-
 import (
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/webhooks"
@@ -19,6 +15,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+)
+
+const (
+	failedToUpdate = "Failed to update %s: %v"
 )
 
 // WebhookInit Webhook init container entry point
