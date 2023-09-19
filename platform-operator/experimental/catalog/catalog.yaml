@@ -19,7 +19,7 @@ modules:
   - name: rancher
     version: 2.7.5
   - name: cluster-api
-    version: 1.4.2
+    version: 1.4.6
   - name: verrazzano
     version: 2.0.0
   - name: fluentd
