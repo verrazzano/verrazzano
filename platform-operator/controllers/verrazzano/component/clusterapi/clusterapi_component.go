@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
@@ -111,7 +112,7 @@ func (c clusterAPIComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.V
 
 // GetDependencies returns the dependencies of this component.
 func (c clusterAPIComponent) GetDependencies() []string {
-	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName}
+	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName, rancher.ComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
