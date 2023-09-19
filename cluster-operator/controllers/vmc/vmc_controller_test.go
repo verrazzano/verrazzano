@@ -2253,9 +2253,9 @@ func expectSyncPrometheusScraper(mock *mocks.MockClient, vmcName string, prometh
 			return additionalScrapeConfigsAssertFunc(secret)
 		})
 
-	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	// Expect a call to get the verrazzano-monitoring namespace
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Get(gomock.Any(), types.NamespacedName{Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
 			return nil
@@ -2715,9 +2715,9 @@ func expectMockCallsForDelete(t *testing.T, mock *mocks.MockClient, namespace st
 			return nil
 		})
 
-	// Expect a call to get the verrazzano-monitoring namespace - return NotFound error
+	// Expect a call to get the verrazzano-monitoring namespace
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: "default", Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Get(gomock.Any(), types.NamespacedName{Name: vpoconstants.VerrazzanoMonitoringNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
 			ns.SetName(vpoconstants.VerrazzanoMonitoringNamespace)
 			return nil
