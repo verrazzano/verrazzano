@@ -5,8 +5,6 @@ package mcagent
 
 import (
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	corev1 "k8s.io/api/core/v1"
 	"testing"
 )
 
@@ -192,7 +190,6 @@ func TestSyncer_processStatusUpdates_RetriesOnConflict(t *testing.T) {
 	statusMocker.Finish()
 	adminMocker.Finish()
 }
-*/
 
 func makeStatusUpdateMessages() []clusters.StatusUpdateMessage {
 	secret := v1alpha1.MultiClusterSecret{}
@@ -214,3 +211,4 @@ func makeStatusUpdateMessages() []clusters.StatusUpdateMessage {
 	}
 	return []clusters.StatusUpdateMessage{msg1, msg2}
 }
+*/

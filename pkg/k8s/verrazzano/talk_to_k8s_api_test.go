@@ -146,7 +146,7 @@ func TestUpdateStatusV1Alpha1(t *testing.T) {
 	vzV1Beta1 := loadTestV1Beta1()
 	vzV1Alpha1 := loadTestV1Alpha1()
 	scheme := runtime.NewScheme()
-	err := v1beta1.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(vzV1Beta1).WithObjects(vzV1Beta1).Build()
 
 	ctx := context.TODO()
@@ -156,7 +156,7 @@ func TestUpdateStatusV1Alpha1(t *testing.T) {
 		Name:      vzV1Alpha1.Name,
 		Namespace: vzV1Alpha1.Namespace,
 	}
-	vzV1Alpha1, err = GetV1Alpha1(ctx, client, vzNamespacedName)
+	vzV1Alpha1, err := GetV1Alpha1(ctx, client, vzNamespacedName)
 	assert.NoError(t, err)
 
 	// Update the Verrazzano struct - change VZ State

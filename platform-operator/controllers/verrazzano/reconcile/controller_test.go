@@ -2260,6 +2260,7 @@ func TestPersistJobLog(t *testing.T) {
 	}
 }
 
+/*
 // dummy Status updater for testing purpose
 type statusUpdater string
 
@@ -2269,6 +2270,7 @@ func (s *statusUpdater) Update(_ context.Context, _ client.Object, _ ...client.U
 func (s *statusUpdater) Patch(context.Context, client.Object, client.Patch, ...client.PatchOption) error {
 	return nil
 }
+*/
 
 func createRelease(_ string, status release.Status) *release.Release {
 	now := time2.Now()

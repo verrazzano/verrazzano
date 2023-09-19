@@ -5,18 +5,11 @@ package mcagent
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -144,7 +137,6 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 	asserts.NotEmpty(newerCattleAgentHash)
 	asserts.Equal(previousCattleAgentHash, newerCattleAgentHash)
 }
-*/
 
 // newServer returns a httptest server which the
 // dynamic client and discovery client can send
@@ -242,3 +234,4 @@ func deleteFakeKubeConfig() error {
 	err := os.Remove("dummy-kubeconfig")
 	return err
 }
+*/
