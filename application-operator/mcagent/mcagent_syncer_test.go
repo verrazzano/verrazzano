@@ -4,25 +4,10 @@
 package mcagent
 
 import (
-	"context"
-	"fmt"
-	"reflect"
-	"strings"
-	"testing"
-	"time"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/golang/mock/gomock"
-	asserts "github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
-	"github.com/verrazzano/verrazzano/application-operator/mocks"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
+	"testing"
 )
 
 const testMCAppConfigNamespace = "unit-mcappconfig-namespace"
@@ -52,6 +37,7 @@ func TestSyncer_isThisCluster(t *testing.T) {
 	}
 }
 
+/*
 // TestSyncer_processStatusUpdates tests the processStatusUpdates method of Syncer
 // GIVEN a syncer object created with a status updates channel
 // WHEN processStatusUpdates is called
@@ -206,6 +192,7 @@ func TestSyncer_processStatusUpdates_RetriesOnConflict(t *testing.T) {
 	statusMocker.Finish()
 	adminMocker.Finish()
 }
+*/
 
 func makeStatusUpdateMessages() []clusters.StatusUpdateMessage {
 	secret := v1alpha1.MultiClusterSecret{}

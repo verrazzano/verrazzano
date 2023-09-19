@@ -434,6 +434,7 @@ func testUpdate(t *testing.T,
 	addKeycloakPodExec()
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
+		WithStatusSubresource(vz).
 		WithObjects(vz, sa, crb, &rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy, &authConfig, kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, keycloakPod).
 		WithLists(&ingressList, &jobList).Build()
 

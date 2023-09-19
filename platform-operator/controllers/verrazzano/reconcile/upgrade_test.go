@@ -298,20 +298,21 @@ func TestUpgradeInitComponents(t *testing.T) {
 	defer func() { config.TestProfilesDir = "" }()
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.1.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateReady,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.1.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateReady,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
 				},
 			},
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -348,22 +349,24 @@ func TestUpgradeStarted(t *testing.T) {
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateReady,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "0.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateReady,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
-				Version:    "0.1.0",
 			},
+			Components: makeVerrazzanoComponentStatusMap(),
+			Version:    "0.1.0",
 		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -485,49 +488,50 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 	config.Set(config.OperatorConfig{VersionCheckEnabled: false})
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: func() metav1.ObjectMeta {
-				om := createObjectMeta(namespace, name, []string{finalizerName})
-				om.Generation = 2
-				return om
-			}(),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				Version:    "0.1.0",
-				State:      vzapi.VzStateReady,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
-					{
-						Type:    vzapi.CondUpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.CondUpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type:    vzapi.CondUpgradeFailed,
-						Message: "Upgrade failed generation:1",
-					},
-					{
-						Type: vzapi.CondUpgradeComplete,
-					},
-					{
-						Type:    vzapi.CondUpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
-					{
-						Type:    vzapi.CondUpgradeFailed,
-						Message: "Upgrade failed generation:2",
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: func() metav1.ObjectMeta {
+			om := createObjectMeta(namespace, name, []string{finalizerName})
+			om.Generation = 2
+			return om
+		}(),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "0.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			Version:    "0.1.0",
+			State:      vzapi.VzStateReady,
+			Components: makeVerrazzanoComponentStatusMap(),
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
+				},
+				{
+					Type:    vzapi.CondUpgradeFailed,
+					Message: "Upgrade failed generation:1",
+				},
+				{
+					Type:    vzapi.CondUpgradeFailed,
+					Message: "Upgrade failed generation:1",
+				},
+				{
+					Type:    vzapi.CondUpgradeFailed,
+					Message: "Upgrade failed generation:1",
+				},
+				{
+					Type: vzapi.CondUpgradeComplete,
+				},
+				{
+					Type:    vzapi.CondUpgradeFailed,
+					Message: "Upgrade failed generation:2",
+				},
+				{
+					Type:    vzapi.CondUpgradeFailed,
+					Message: "Upgrade failed generation:2",
 				},
 			},
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -598,23 +602,26 @@ func TestUpgradeCompleted(t *testing.T) {
 	verrazzanoClusterUserRole := createClusterRoles(vzconst.VerrazzanoClusterRancherName)
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 	addKeycloakPodExec()
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateUpgrading,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
-					{
-						Type: vzapi.CondUpgradeStarted,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateUpgrading,
+			Components: makeVerrazzanoComponentStatusMap(),
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
 				},
-			}},
+				{
+					Type: vzapi.CondUpgradeStarted,
+				},
+			},
+		},
+	}
+
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
@@ -703,23 +710,25 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 	keycloakPod := keycloakutil.CreateTestKeycloakPod()
 	addKeycloakPodExec()
 
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateUpgrading,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
-					{
-						Type: vzapi.CondUpgradeStarted,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateUpgrading,
+			Components: makeVerrazzanoComponentStatusMap(),
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
 				},
-			}},
+				{
+					Type: vzapi.CondUpgradeStarted,
+				},
+			},
+		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
@@ -787,28 +796,29 @@ func TestUpgradeHelmError(t *testing.T) {
 	defer registry.ResetGetComponentsFn()
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: func() metav1.ObjectMeta {
-				om := createObjectMeta(namespace, name, []string{finalizerName})
-				om.Generation = 1
-				return om
-			}(),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State:      vzapi.VzStateUpgrading,
-				Components: makeVerrazzanoComponentStatusMap(),
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondInstallComplete,
-					},
-					{
-						Type: vzapi.CondUpgradeStarted,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: func() metav1.ObjectMeta {
+			om := createObjectMeta(namespace, name, []string{finalizerName})
+			om.Generation = 1
+			return om
+		}(),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "0.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State:      vzapi.VzStateUpgrading,
+			Components: makeVerrazzanoComponentStatusMap(),
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondInstallComplete,
+				},
+				{
+					Type: vzapi.CondUpgradeStarted,
 				},
 			},
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -972,6 +982,7 @@ func TestUpgradeComponent(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
+		WithStatusSubresource(&vz).
 		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC, keycloakPod).
 		WithLists(&ingressList, &appConfigList).Build()
 
@@ -1190,6 +1201,7 @@ func TestUpgradeMultipleComponentsOneDisabled(t *testing.T) {
 	}
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).
+		WithStatusSubresource(&vz).
 		WithObjects(&vz, &rancherIngress, &kcIngress, &authConfig, kcSecret, &localAuthConfig, &firstLoginSetting, &verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, kcPVC, keycloakPod).
 		WithLists(&ingressList, &appConfigList).Build()
 
@@ -1228,25 +1240,26 @@ func TestRetryUpgrade(t *testing.T) {
 	asserts := assert.New(t)
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: func() metav1.ObjectMeta {
-				om := createObjectMeta(namespace, name, []string{finalizerName})
-				om.Annotations = map[string]string{constants.UpgradeRetryVersion: "a"}
-				return om
-			}(),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "0.2.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateFailed,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondUpgradeFailed,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: func() metav1.ObjectMeta {
+			om := createObjectMeta(namespace, name, []string{finalizerName})
+			om.Annotations = map[string]string{constants.UpgradeRetryVersion: "a"}
+			return om
+		}(),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "0.2.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateFailed,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondUpgradeFailed,
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
 			},
+			Components: makeVerrazzanoComponentStatusMap(),
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -1290,21 +1303,22 @@ func TestTransitionToPausedUpgradeFromFailed(t *testing.T) {
 	asserts := assert.New(t)
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateFailed,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondUpgradeFailed,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.0.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateFailed,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondUpgradeFailed,
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
 			},
+			Components: makeVerrazzanoComponentStatusMap(),
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -1347,21 +1361,22 @@ func TestTransitionToPausedUpgradeFromStarted(t *testing.T) {
 	asserts := assert.New(t)
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.0"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStateUpgrading,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondUpgradeStarted,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.0.0"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStateUpgrading,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondUpgradeStarted,
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
 			},
+			Components: makeVerrazzanoComponentStatusMap(),
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
@@ -1400,21 +1415,22 @@ func TestTransitionFromPausedUpgrade(t *testing.T) {
 	var verrazzanoToUse vzapi.Verrazzano
 
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
-		&vzapi.Verrazzano{
-			ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
-			Spec: vzapi.VerrazzanoSpec{
-				Version: "1.0.1"},
-			Status: vzapi.VerrazzanoStatus{
-				State: vzapi.VzStatePaused,
-				Conditions: []vzapi.Condition{
-					{
-						Type: vzapi.CondUpgradePaused,
-					},
+	vzcr := &vzapi.Verrazzano{
+		ObjectMeta: createObjectMeta(namespace, name, []string{finalizerName}),
+		Spec: vzapi.VerrazzanoSpec{
+			Version: "1.0.1"},
+		Status: vzapi.VerrazzanoStatus{
+			State: vzapi.VzStatePaused,
+			Conditions: []vzapi.Condition{
+				{
+					Type: vzapi.CondUpgradePaused,
 				},
-				Components: makeVerrazzanoComponentStatusMap(),
 			},
+			Components: makeVerrazzanoComponentStatusMap(),
 		},
+	}
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
+		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, nil),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()

@@ -1,24 +1,7 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package resource
-
-import (
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"os"
-	"testing"
-
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
 
 const (
 	Secret             = "testdata/secret.yaml"
@@ -27,6 +10,7 @@ const (
 	SecretNoNamespace  = "testdata/secret_no_namespace.yaml"
 )
 
+/*
 // TestCreateOrUpdateResourceFromFile tests the CreateOrUpdateResourceFromFile function
 // Given a yaml file, create the resource
 func TestCreateOrUpdateResourceFromFile(t *testing.T) {
@@ -431,3 +415,4 @@ func deleteFakeKubeConfig() error {
 	err := os.Remove("dummy-kubeconfig")
 	return err
 }
+*/

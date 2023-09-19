@@ -126,7 +126,7 @@ func TestReconcileUninstalling(t *testing.T) {
 	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
 		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, labels),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
@@ -226,7 +226,7 @@ func TestReconcileUninstall(t *testing.T) {
 	_ = v1alpha1.AddToScheme(k8scheme.Scheme)
 	_ = vzappclusters.AddToScheme(k8scheme.Scheme)
 
-	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
 		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, labels),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
@@ -455,7 +455,7 @@ func buildFakeClientAndObjects(createMCNamespace bool, createProject bool, secre
 	}
 
 	// Add core resources
-	cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+	cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithStatusSubresource(vzcr).WithObjects(
 		vzcr,
 		rbac.NewServiceAccount(namespace, name, []string{}, labels),
 		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),

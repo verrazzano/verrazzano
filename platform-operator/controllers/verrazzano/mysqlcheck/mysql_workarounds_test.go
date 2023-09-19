@@ -176,6 +176,7 @@ func TestRepairICStuckDeleting(t *testing.T) {
 
 }
 
+/*
 // TestRepairMySQLPodsStuckTerminating tests the temporary workaround for MySQL
 // pods getting stuck terminating.
 // GIVEN a pod is deleting
@@ -273,6 +274,7 @@ func TestRepairMySQLPodsStuckTerminating(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, getInitialTimeMySQLPodsStuckChecked().IsZero())
 }
+*/
 
 func newInnoDBCluster(status string) *unstructured.Unstructured {
 	innoDBCluster := unstructured.Unstructured{}

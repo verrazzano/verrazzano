@@ -4,12 +4,15 @@
 package verrazzano
 
 import (
-	"testing"
-
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 const (
@@ -139,12 +142,14 @@ func TestUpdateV1Alpha1NotFound(t *testing.T) {
 }
 
 func TestUpdateStatusV1Alpha1(t *testing.T) {
-	ctx, client, err := getTestingContextAndClient()
-	assert.NoError(t, err)
 
-	// create the VZ resource. Stored as v1beta1.
-	vzV1Alpha1, err := createTestVZ(ctx, client)
-	assert.NoError(t, err)
+	vzV1Beta1 := loadTestV1Beta1()
+	vzV1Alpha1 := loadTestV1Alpha1()
+	scheme := runtime.NewScheme()
+	err := v1beta1.AddToScheme(scheme)
+	client := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(vzV1Beta1).WithObjects(vzV1Beta1).Build()
+
+	ctx := context.TODO()
 
 	// Get the VZ resource as it is before the Update
 	vzNamespacedName := types.NamespacedName{
