@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 	k8serror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"text/template"
 	"time"
@@ -233,7 +234,37 @@ func NukeOpensearch() error {
 			}
 		}
 	}
+
+	if err = resetClusterStatus(); err != nil {
+		t.Logs.Errorf("Failed to reset OpensearchCluster CR staus: %v", zap.Error(err))
+		return err
+	}
+
 	return nil
+}
+
+// resetClusterStatus set the .status.initialized to false in OpenSearchCluster CR
+// So that cluster can be bootstrapped again
+func resetClusterStatus() error {
+	dynamicClient, err := pkg.GetDynamicClient()
+	if err != nil {
+		return err
+	}
+	gvr := schema.GroupVersionResource{
+		Group:    "opensearch.opster.io",
+		Version:  "v1",
+		Resource: "opensearchclusters",
+	}
+	opensearchFetched, err := dynamicClient.Resource(gvr).Namespace(constants.VerrazzanoLoggingNamespace).Get(context.Background(), "opensearch", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	t.Logs.Infof("Setting cluster initialized status to false")
+	opensearchFetched.Object["status"].(map[string]interface{})["initialized"] = false
+
+	_, updateErr := dynamicClient.Resource(gvr).Namespace(constants.VerrazzanoLoggingNamespace).UpdateStatus(context.TODO(), opensearchFetched, metav1.UpdateOptions{})
+	return updateErr
 }
 
 // 'It' Wrapper to only run spec if the Velero is supported on the current Verrazzano version
