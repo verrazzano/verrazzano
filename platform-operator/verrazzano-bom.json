@@ -907,7 +907,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230601094358-fc41216e",
+              "tag": "v2.7.2-20230919043605-fc41216e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -919,7 +919,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230601100836-26c8b963",
+              "tag": "v6.2.7-20230919040640-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
