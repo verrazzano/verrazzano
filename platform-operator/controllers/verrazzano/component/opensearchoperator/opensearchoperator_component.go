@@ -135,7 +135,7 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 		err = yamlApplier.ApplyFT(filePath, args)
 
 		if err != nil {
-			return ctx.Log().ErrorfNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
+			return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
 		}
 	}
 

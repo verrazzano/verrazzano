@@ -5,10 +5,10 @@ package opensearchdashboards
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,7 +20,8 @@ const (
 )
 
 func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
-	isLegacyOSD := common.IsLegacyOSD(ctx)
+	isLegacyOSD, err := common.IsLegacyOSD(ctx)
+	ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OSD to be disabled: %v", err)
 	if isLegacyOSD {
 		return []types.NamespacedName{
 			{

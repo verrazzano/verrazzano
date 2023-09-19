@@ -5,20 +5,19 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	"k8s.io/apimachinery/pkg/types"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -233,7 +232,11 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		name := constants.OpensearchIngress
-		if common.IsLegacyOS(ctx) {
+		isLegacyOS, err := common.IsLegacyOS(ctx)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OS to be disabled: %v", err)
+		}
+		if isLegacyOS {
 			name = constants.LegacyOpensearchIngress
 		}
 		ingressNames = append(ingressNames, types.NamespacedName{

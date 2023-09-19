@@ -229,7 +229,11 @@ func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext)
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		name := constants.OpensearchDashboardsIngress
-		if common.IsLegacyOSD(ctx) {
+		isLegacyOSD, err := common.IsLegacyOSD(ctx)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OSD to be disabled: %v", err)
+		}
+		if isLegacyOSD {
 			name = constants.LegacyOpensearchDashboardsIngress
 		}
 		ingressNames = append(ingressNames, types.NamespacedName{

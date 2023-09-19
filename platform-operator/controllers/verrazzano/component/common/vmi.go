@@ -6,7 +6,6 @@ package common
 import (
 	"context"
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -23,11 +22,13 @@ import (
 	vzsecret "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -80,39 +81,37 @@ func DeleteVMI(ctx spi.ComponentContext) error {
 }
 
 // IsLegacyOS returns true if the OS that is running is managed by VMO
-func IsLegacyOS(ctx spi.ComponentContext) bool {
+func IsLegacyOS(ctx spi.ComponentContext) (bool, error) {
 	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
 		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
 		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
 			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
-				return false
+				return false, nil
 			}
-			ctx.Log().Errorf("Failed to get VMI, considering legacy OS to be disabled")
-			return false
+			return false, err
 		}
 		if systemVMI.Spec.Opensearch.Enabled {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // IsLegacyOSD returns true if the OSD that is running is managed by VMO
-func IsLegacyOSD(ctx spi.ComponentContext) bool {
+func IsLegacyOSD(ctx spi.ComponentContext) (bool, error) {
 	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
 		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
 		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
 			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
-				return false
+				return false, nil
 			}
-			ctx.Log().Errorf("Failed to get VMI, considering legacy OSD to be disabled")
-			return false
+			return false, err
 		}
 		if systemVMI.Spec.OpensearchDashboards.Enabled {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
 }
 
 // CreateOrUpdateVMI instantiates the VMI resource

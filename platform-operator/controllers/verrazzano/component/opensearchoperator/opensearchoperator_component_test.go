@@ -29,6 +29,8 @@ const (
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	podTemplateHashLabel         = "pod-template-hash"
 	dashboardLabelSelector       = "opensearch.cluster.dashboards"
+	controllerManagerLabel       = "controller-manager"
+	controlPlaneLabel            = "control-plane"
 
 	profilesRelativePath = "../../../../manifests/profiles"
 	esMaster             = "es-master"
@@ -351,7 +353,7 @@ func getNotReadyObjects() *fake.ClientBuilder {
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"control-plane": "controller-manager"},
+					MatchLabels: map[string]string{controlPlaneLabel: controllerManagerLabel},
 				}},
 			Status: appsv1.DeploymentStatus{
 				Replicas: 1, AvailableReplicas: 1, UpdatedReplicas: 1, ReadyReplicas: 0},
@@ -368,7 +370,7 @@ func getReadyObjects() *fake.ClientBuilder {
 			},
 			Spec: appsv1.DeploymentSpec{
 				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"control-plane": "controller-manager"},
+					MatchLabels: map[string]string{controlPlaneLabel: controllerManagerLabel},
 				},
 			},
 			Status: appsv1.DeploymentStatus{
@@ -383,7 +385,7 @@ func getReadyObjects() *fake.ClientBuilder {
 				Namespace: ComponentNamespace,
 				Name:      opensearchOperatorDeploymentName + "-95d8c5d96-m6mbr",
 				Labels: map[string]string{
-					"control-plane":      "controller-manager",
+					controlPlaneLabel:    controllerManagerLabel,
 					podTemplateHashLabel: "95d8c5d96",
 				},
 			},

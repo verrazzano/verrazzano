@@ -5,14 +5,15 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -60,7 +61,10 @@ func nodesToObjectKeys(ctx spi.ComponentContext) *ready.AvailabilityObjects {
 	objects := &ready.AvailabilityObjects{}
 	vz := ctx.EffectiveCR()
 	if vzcr.IsOpenSearchEnabled(vz) && vz.Spec.Components.Elasticsearch != nil {
-		isLegacyOS := common.IsLegacyOS(ctx)
+		isLegacyOS, err := common.IsLegacyOS(ctx)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OS to be disabled: %v", err)
+		}
 		ns := ComponentNamespace
 		if !isLegacyOS {
 			ns = constants.VerrazzanoLoggingNamespace
@@ -94,7 +98,10 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	if node.Replicas == nil || *node.Replicas < 1 {
 		return true
 	}
-	isLegacyOS := common.IsLegacyOS(ctx)
+	isLegacyOS, err := common.IsLegacyOS(ctx)
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OS to be disabled: %v", err)
+	}
 	ns := ComponentNamespace
 	if !isLegacyOS {
 		ns = constants.VerrazzanoLoggingNamespace
