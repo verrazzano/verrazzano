@@ -6,7 +6,6 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	appopclustersapi "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterutil "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
@@ -23,7 +22,7 @@ import (
 // This is a test utility function used by other multi-cluster resource validation tests.
 func NewScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
-	_ = appopclustersapi.AddToScheme(scheme)
+	_ = clusters.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &core.Secret{}, &core.SecretList{})

@@ -844,8 +844,6 @@ func TestHandleProject2(t *testing.T) {
 	pod, err = defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	//	err = defaulter.InjectDecoder(decoder)
-	//	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req = admission.Request{}
 	req.Namespace = "default"
 	marshaledPod, err = json.Marshal(pod)
@@ -1004,8 +1002,6 @@ func TestHandleProject3(t *testing.T) {
 	pod, err = defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	//	err = defaulter.InjectDecoder(decoder)
-	//	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req = admission.Request{}
 	req.Namespace = "default"
 	marshaledPod, err = json.Marshal(pod)
