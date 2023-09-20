@@ -54,7 +54,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	**********************/
 
 	if *effectiveCR.Spec.Components.Kibana.Enabled {
-		zap.S().Infof("Isha Kibana enabled")
 		err = r.CreateIndexPatterns(controllerCtx, effectiveCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -71,8 +70,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			}
 		}
 		return result.NewResultRequeueDelay(5, 6, time.Minute)
-	} else {
-		zap.S().Infof("Isha Kibana not enabled")
 	}
 	return result.NewResult()
 }
@@ -81,7 +78,6 @@ func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileCo
 	osDashboardsClient := NewOSDashboardsClient()
 	osdURL, err := GetOSDHTTPEndpoint(r.Client)
 	if err != nil {
-		zap.S().Infof("Error getting osd url", err)
 		return err
 	}
 	return osDashboardsClient.CreateDefaultIndexPatterns(r.log, osdURL)
