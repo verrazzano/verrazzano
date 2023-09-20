@@ -111,6 +111,17 @@ spec:
           matchLabels:
             statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         postHooks:
+		  - init:
+            timeout: 10m
+            initContainers:
+            - args:
+              - /usr/share/opensearch/bin/verrazzano-backup-hook --operation=pre-restore --velero-backup-name={{ .VeleroBackupName }}
+              command:
+              - sh
+              - -c
+              image: iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest
+              imagePullPolicy: Always
+              name: pre-hook
           - exec:
               container: opensearch
               command:

@@ -35,6 +35,7 @@ rules:
   - apps
   resources:
   - statefulsets
+  - statefulsets/scale
   verbs:
   - create
   - delete
