@@ -18,6 +18,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -40,6 +41,7 @@ var validSecret = corev1.Secret{
 
 const testManagedPrometheusHost = "prometheus"
 const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
+const testVZVersion = "dummy-verrazzano-version"
 
 // TestReconcileAgentSecretDeleted tests agent thread when the registration secret is deleted
 // GIVEN a request to process the agent loop
@@ -295,6 +297,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
 			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
+			assert.Equal(testVZVersion, vmc.Status.Verrazzano.Version)
 			return nil
 		})
 }
@@ -385,6 +388,7 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)
 	expectGetThanosQueryHostCalled(localClientMock)
+	expectGetWorkloadVZVersionCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 	assert.Nil(s.updateVMCStatus())
@@ -394,6 +398,22 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	assert.NotNil(s.updateVMCStatus())
 
 	adminMocker.Finish()
+}
+
+func expectGetWorkloadVZVersionCalled(mock *mocks.MockClient) {
+	// Expect a call to list the Verrazzanos.
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vzList *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vzList.Items = []v1beta1.Verrazzano{
+				{
+					Status: v1beta1.VerrazzanoStatus{
+						Version: testVZVersion,
+					},
+				},
+			}
+			return nil
+		})
 }
 
 func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
@@ -557,6 +577,7 @@ func expectAllCallsNoApps(adminMock *mocks.MockClient, mcMock *mocks.MockClient,
 	expectGetAPIServerURLCalled(mcMock)
 	expectGetPrometheusHostCalled(mcMock)
 	expectGetThanosQueryHostCalled(mcMock)
+	expectGetWorkloadVZVersionCalled(mcMock)
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Managed Cluster - expect call to get MC app config CRD - return exists
