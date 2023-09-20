@@ -297,6 +297,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
 			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
+			assert.NotNil(vmc.Status.Kubernetes.Version)
 			assert.Equal(testVZVersion, vmc.Status.Verrazzano.Version)
 			return nil
 		})
