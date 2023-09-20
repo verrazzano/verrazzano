@@ -254,7 +254,7 @@ func cleanupLeaderElectionResources(compContext spi.ComponentContext) error {
 	return nil
 }
 
-// checkOrphanedResources Checks that the leader-election resources in kube-system are successfully deleted; returns
+// verifyLeaderElectionResourcesDeleted Checks that the leader-election resources in kube-system are successfully deleted; returns
 // a retryable error if the resource still exists
 func verifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext) error {
 	for _, resource := range leaderElectionSystemResources {
