@@ -80,6 +80,8 @@ const (
 	istioIngressGatewayName         = "istio-ingressgateway"
 	istioSystemNamespace            = "istio-system"
 	testName                        = "test-name"
+	testwWorkloadName               = "test-contained-workload-name"
+	testRule                        = "%s-rule-0-dr"
 )
 
 var (
@@ -1146,7 +1148,7 @@ func TestSuccessfullyCreateNewIngressForServiceComponent(t *testing.T) {
 			return nil
 		})
 
-	containedName := "test-contained-workload-name"
+	containedName := testwWorkloadName
 	containedResource := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name": containedName,
@@ -1256,7 +1258,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkload(t *testing.T) {
 			return nil
 		})
 
-	containedName := "test-contained-workload-name"
+	containedName := testwWorkloadName
 	containedResource := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name": containedName,
@@ -3782,7 +3784,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 			return nil
 		})
 
-	containedName := "test-contained-workload-name"
+	containedName := testwWorkloadName
 	containedResource := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name": containedName,
@@ -3880,8 +3882,8 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioEna
 		})
 	// Expect a call to get the destination rule resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: fmt.Sprintf("%s-rule-0-dr", testTraitName)}, gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "DestinationRule"}, fmt.Sprintf("%s-rule-0-dr", testTraitName)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: fmt.Sprintf(testRule, testTraitName)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "DestinationRule"}, fmt.Sprintf(testRule, testTraitName)))
 
 	// Expect a call to create the DestinationRule resource and return success
 	mock.EXPECT().
@@ -3966,7 +3968,7 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 			return nil
 		})
 
-	containedName := "test-contained-workload-name"
+	containedName := testwWorkloadName
 	containedResource := map[string]interface{}{
 		"metadata": map[string]interface{}{
 			"name": containedName,
@@ -4064,8 +4066,8 @@ func TestSuccessfullyCreateNewIngressForVerrazzanoWorkloadWithHTTPCookieIstioDis
 		})
 	// Expect a call to get the destination rule resource related to the ingress trait and return that it is not found.
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: fmt.Sprintf("%s-rule-0-dr", testTraitName)}, gomock.Not(gomock.Nil()), gomock.Any()).
-		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "DestinationRule"}, fmt.Sprintf("%s-rule-0-dr", testTraitName)))
+		Get(gomock.Any(), types.NamespacedName{Namespace: testNamespace, Name: fmt.Sprintf(testRule, testTraitName)}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(k8serrors.NewNotFound(schema.GroupResource{Group: testNamespace, Resource: "DestinationRule"}, fmt.Sprintf(testRule, testTraitName)))
 
 	// Expect a call to create the DestinationRule resource and return success
 	mock.EXPECT().
