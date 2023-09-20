@@ -42,9 +42,9 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
-        string (name: 'BASELINE_IMAGE_SIZES_FILE_NAME',
-                defaultValue: '{CLEAN_BRANCH_NAME}/image-list',
-                description: 'To set the baseline image for image size comparison. If images increase in size, the pipeline will fail.',
+        booleanParam (name: 'BASELINE_IMAGE_SIZES_FILE_UPDATE',
+                defaultValue: false,
+                description: 'If true, image-sixes.txt file will be updated to the now newly generated file.',
                 trim: true)
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
@@ -97,11 +97,6 @@ pipeline {
         stage('Build Release Distributions') {
             steps {
                 script {
-def commitList =        getCommitList()
-                           withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                            SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                            echo "Suspect list: ${SUSPECT_LIST}"
                     }
                     try {
                         sh """
@@ -123,7 +118,7 @@ def commitList =        getCommitList()
                 """
                 script {
                     try{
-                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh ${params.BASELINE_IMAGE_SIZES_FILE_NAME}").trim()
+                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                     }
                     catch(error){
                         echo"Image Sizes have increased"
@@ -150,7 +145,36 @@ def commitList =        getCommitList()
                     expression { params.RUN_TESTS == true };
                 }
             }
+
             parallel {
+            stage('Build Release Distributions') {
+                    steps {
+                        script {
+                                def commitList = getCommitList()
+                                   withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                                def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                                    SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                                    echo "Suspect list: ${SUSPECT_LIST}"
+                            }
+                           }
+                        }
+
+                        script {
+                            try{
+                                IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
+                            }
+                            catch(error){
+                                echo"Image Sizes have increased"
+
+                               slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                            }
+                        }
+                        sh """
+                            echo "IMAGE_SIZE_DIFF Return value:  ${IMAGE_SIZE_DIFF} "
+                        """
+
+                    }
+
                 stage('Private Registry - Lite Distribution') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
