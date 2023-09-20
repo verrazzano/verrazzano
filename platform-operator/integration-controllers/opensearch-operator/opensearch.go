@@ -152,14 +152,14 @@ func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
 	return statefulSets.Items[0].Status.ReadyReplicas == statefulSets.Items[0].Status.Replicas
 }
 func GetOpenSearchHTTPEndpoint(client clipkg.Client) (string, error) {
-	opensearchURL, err := k8sutil.GetURLForIngress(client, "opensearch", "verrazzano-logging", "https")
+	opensearchURL, err := k8sutil.GetURLForIngress(client, "opensearch", "verrazzano-system", "https")
 	if err != nil {
 		return "", err
 	}
 	return opensearchURL, nil
 }
 func GetOSDHTTPEndpoint(client clipkg.Client) (string, error) {
-	osdURL, err := k8sutil.GetURLForIngress(client, "opensearch-dashboards", "verrazzano-logging", "https")
+	osdURL, err := k8sutil.GetURLForIngress(client, "opensearch-dashboards", "verrazzano-system", "https")
 	if err != nil {
 		return "", err
 	}

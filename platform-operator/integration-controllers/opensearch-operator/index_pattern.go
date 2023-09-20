@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
@@ -68,6 +69,7 @@ type SavedObjectType struct {
 func (od *OSDashboardsClient) CreateDefaultIndexPatterns(log vzlog.VerrazzanoLogger, openSearchDashboardsEndpoint string) error {
 	existingIndexPatterns, err := od.getDefaultIndexPatterns(openSearchDashboardsEndpoint, 50, fmt.Sprintf("%s+or+%s", strings.Replace(VZSystemIndexPattern, "*", "\\*", -1), strings.Replace(VZAppIndexPattern, "*", "\\*", -1)))
 	if err != nil {
+		zap.S().Infof("Isha error getting default index pattern", err)
 		return err
 	}
 	var savedObjectPayloads []SavedObjectType

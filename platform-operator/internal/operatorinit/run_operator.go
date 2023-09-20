@@ -126,10 +126,9 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			return errors.Wrap(err, "Failed to setup controller")
 		}
 	}
-	// init verrazzano module controller
 	if err := opensearchcontroller.InitController(mgr); err != nil {
-		log.Errorf("Failed to start module-based Verrazzano controller", err)
-		return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
+		log.Errorf("Failed to start module-based opensearch controller", err)
+		return errors.Wrap(err, "Failed to initialize controller for module-based opensearch controller")
 	}
 
 	// Setup Verrazzano controllers
