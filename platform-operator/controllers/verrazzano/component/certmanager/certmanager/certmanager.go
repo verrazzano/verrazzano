@@ -248,7 +248,12 @@ func cleanupLeaderElectionResources(compContext spi.ComponentContext) error {
 			Log:       compContext.Log(),
 		}.RemoveFinalizersAndDelete()
 		if err != nil {
-			return err
+			compContext.Log().ErrorfThrottled("Unexpected error cleaning up resource %s still exists: %s", resource.ObjectKey, err.Error())
+			return vzerrors.RetryableError{
+				Source:    ComponentName,
+				Operation: compContext.GetOperation(),
+				Cause:     err,
+			}
 		}
 	}
 	return nil
@@ -260,7 +265,12 @@ func verifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext) error {
 	for _, resource := range leaderElectionSystemResources {
 		exists, err := resourceExists(ctx.Client(), resource.ObjectKey, resource.obj)
 		if err != nil {
-			return err
+			ctx.Log().ErrorfThrottled("Unexpected error checking if resource %s still exists: %s", resource.ObjectKey, err.Error())
+			return vzerrors.RetryableError{
+				Source:    ComponentName,
+				Operation: ctx.GetOperation(),
+				Cause:     err,
+			}
 		}
 		if exists {
 			return vzerrors.RetryableError{
