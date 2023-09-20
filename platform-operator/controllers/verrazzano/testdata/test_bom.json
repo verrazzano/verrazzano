@@ -169,7 +169,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.3.3",
+      "version": "1.3.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -185,7 +185,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.8.1",
+      "version": "0.8.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -201,7 +201,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v0.1.0",
+      "version": "0.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
