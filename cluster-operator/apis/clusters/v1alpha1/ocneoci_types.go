@@ -11,7 +11,7 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OCNEOCIQuickCreate specifies the API for quick-create OCI OCNE Clusters.
+// OCNEOCIQuickCreate specifies the API for quick-create OCI OCNE clusters.
 type OCNEOCIQuickCreate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
