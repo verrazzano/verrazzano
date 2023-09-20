@@ -33,6 +33,12 @@ pipeline {
         string (name: 'INSTALL_LOOP_COUNT',
                 description: 'Install loop count, valid for Uninstall loop tests',
                 defaultValue: "3")
+        booleanParam (name: 'DUMP_K8S_CLUSTER_ON_SUCCESS',
+                description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)',
+                defaultValue: false)
+        booleanParam (name: 'CAPTURE_FULL_CLUSTER',
+                description: 'Whether to capture full cluster snapshot on test failure',
+                defaultValue: false)
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -139,7 +145,9 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.interrupt.uninstall')
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.interrupt.uninstall'),
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
                                     ], wait: true
                             }
                         }
@@ -159,7 +167,9 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop'),
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
                                     ], wait: true
                             }
                         }
@@ -179,7 +189,9 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop'),
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
                                     ], wait: true
                             }
                         }
@@ -199,7 +211,9 @@ pipeline {
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop')
+                                        string(name: 'CHAOS_TEST_TYPE', value: 'uninstall.reinstall.loop'),
+                                        booleanParam(name: 'CAPTURE_FULL_CLUSTER', value: params.CAPTURE_FULL_CLUSTER),
+                                        booleanParam(name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', value: params.DUMP_K8S_CLUSTER_ON_SUCCESS)
                                     ], wait: true
                             }
                         }
