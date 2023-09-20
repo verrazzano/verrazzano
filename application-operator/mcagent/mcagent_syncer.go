@@ -223,7 +223,7 @@ func (s *Syncer) getWorkloadVZVersion() (string, error) {
 	if len(vzList.Items) != 1 {
 		return "", fmt.Errorf("number of Verrazzano installations should be 1, but was %d", len(vzList.Items))
 	}
-	vzState := string(vzList.Items[0].Status.State)
+	vzState := string(vzList.Items[0].Status.Version)
 	return vzState, nil
 }
 
