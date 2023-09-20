@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -26,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 // Syncer contains context for synchronize operations
@@ -200,7 +200,10 @@ func (s *Syncer) updateVMCStatus() error {
 
 // getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
-	localKubeconfig := config.GetConfigOrDie()
+	localKubeconfig, err := k8sutil.GetKubeConfig()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Kubeconfig for this workload cluster")
+	}
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(localKubeconfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to get discovery client for this workload cluster")
