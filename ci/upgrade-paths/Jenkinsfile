@@ -3,6 +3,7 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
+def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
@@ -226,8 +227,6 @@ pipeline {
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
-
-        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
     }
 
     stages {
@@ -244,8 +243,6 @@ pipeline {
                 performVerrazzanoDirectoryOperations()
 
                 setInitValues()
-
-                downloadCLI()
             }
         }
 
@@ -277,172 +274,6 @@ pipeline {
                         }
                     }
                 }
-                stage("Configure Clusters") {
-                    parallel {
-                        stage("Configure OKE/OCI DNS") {
-                            when { expression { return params.TEST_ENV == 'ocidns_oke' } }
-                            stages {
-                                stage('Create OCI DNS zone') {
-                                    steps {
-                                        createOCIDNSZone()
-                                    }
-                                }
-                                stage('Configure OCI DNS Resources') {
-                                    environment {
-                                        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                                        OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                                        OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-                                    }
-                                    steps {
-                                        createTestOCIConfigSecret()
-                                    }
-                                }
-                                stage('Configure OCI DNS Installers') {
-                                    environment {
-                                        OCI_DNS_COMPARTMENT_OCID = credentials('oci-dns-compartment')
-                                        OCI_PRIVATE_KEY_FILE = credentials('oci-api-key')
-                                        OCI_DNS_ZONE_OCID = "${dns_zone_ocid}"
-                                    }
-                                    steps {
-                                        script {
-                                            configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_OCIDNS, "./tests/e2e/config/scripts/process_oci_dns_install_yaml.sh", "acme", params.ACME_ENVIRONMENT)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        stage("Configure KinD") {
-                            when { expression { return params.TEST_ENV == 'KIND' } }
-                            steps {
-                                configureVerrazzanoInstallers(INSTALL_CONFIG_FILE_KIND,"./tests/e2e/config/scripts/process_kind_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                            }
-                        }
-                        stage("Configure OKE/MagicDNS") {
-                            when { expression { return params.TEST_ENV == 'magicdns_oke' } }
-                            steps {
-                                configureVerrazzanoInstallers(env.INSTALL_CONFIG_FILE_NIPIO, "./tests/e2e/config/scripts/process_nipio_install_yaml.sh", params.WILDCARD_DNS_DOMAIN)
-                            }
-                        }
-                    }
-                }
-                stage ('Install Verrazzano') {
-                    steps {
-                        script {
-                            getVerrazzanoOperatorYaml()
-                        }
-                        installVerrazzano()
-                    }
-                    post {
-                        always {
-                            script {
-                                dumpInstallLogs()
-                            }
-                        }
-                        failure {
-                            script {
-                                dumpK8sCluster("${WORKSPACE}/install-failure-cluster-snapshot")
-                            }
-                        }
-                    }
-                }
-                stage('Multicluster Registration') {
-                    when { expression { isMultiCluster() } }
-                    stages {
-                        stage('Register managed clusters') {
-                            steps {
-                                registerManagedClusters()
-                            }
-                        }
-                        stage('verify-register') {
-                            steps {
-                                verifyRegisterManagedClusters(true)
-                            }
-                        }
-                    }
-                }
-                stage ('Pre-upgrade Acceptance Tests') {
-                    parallel {
-                        stage('pre-upgrade verify keycloak') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
-                            }
-                        }
-                        stage('opensearch pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
-                            }
-                        }
-                        stage('opensearch-dashboards pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/opensearch-dashboards', "${TEST_DUMP_ROOT}/opensearch-dashboards")
-                            }
-                        }
-                        stage('Grafana pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
-                            }
-                        }
-                        stage('Metricsbinding pre-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/pre-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
-                            }
-                        }
-                        stage ('examples helidon') {
-                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
-                            }
-                        }
-                        stage ('mc examples helidon') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "false", "true", "true")
-                            }
-                        }
-                        stage ('coherence workload') {
-                            when { expression { isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
-                            steps {
-                                runGinkgoVerify('workloads/coherence', "${TEST_DUMP_ROOT}/coherence-workload", "false", "false", "true", "hello-coherence-sc")
-                            }
-                        }
-                        stage ('mc coherence workload') {
-                            when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") && checkUpgradeBelowVer("v1.3.0") } }
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", "false", "true", "true")
-                            }
-                        }
-                        stage('deployment metrics') {
-                            steps {
-                                runGinkgoVerifyParallel('Prometheus pre-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompreupgrade", "false", "true", "true", "deploymetrics")
-                            }
-                        }
-                    }
-                }
-                stage('upgrade-platform-operator using kubectl') {
-                    when { expression { return params.INSTALLATION_METHOD_UPGRADE == "kubectl" } }
-                    stages {
-                        stage("upgrade-platform-operator") {
-                            steps {
-                                upgradePlatformOperator()
-                            }
-                        }
-                        stage("Verify Upgrade Required") {
-                            steps {
-                                runGinkgoRandomizeSerial('upgrade/pre-upgrade/verify-upgrade-required')
-                            }
-                        }
-                    }
-                }
-                stage("upgrade-verrazzano") {
-                    steps {
-                        upgradeVerrazzano()
-                    }
-                    post {
-                        always {
-                            performDescribeVerrazzanoResource()
-                        }
-                    }
-                }
             }
             post {
                 failure {
@@ -450,218 +281,14 @@ pipeline {
                         dumpK8sCluster("${WORKSPACE}/multicluster-install-cluster-snapshot")
                     }
                 }
-            }
-        }
-
-        stage('Verify Upgrade') {
-            // Rerun some stages to verify the upgrade
-            parallel {
-                stage ('verify-register') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        verifyRegisterManagedClusters(false)
-                    }
-                }
-                stage ('verify-permissions') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        verifyManagedClusterPermissions()
-                    }
-                }
-                stage ('system component metrics') {
-                    steps {
-                        runGinkgoRandomizeParallel('metrics/syscomponents')
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-verify-upgrade-cluster-snapshot")
-                    }
-                }
-            }
-        }
-        stage ('Verify Install') {
-            parallel {
-                stage('verify-install') {
-                    steps {
-                        runGinkgoRandomizeSerial('verify-install')
-                    }
-                }
-
-                stage ('mc verify-install') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        runGinkgoRandomizeParallel('multicluster/verify-install')
-                    }
-                }
-            }
-        }
-
-        // Run Verify Registry
-        stage('verify-registry') {
-            steps {
-                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                    script {
-                        runMulticlusterVerifyRegistry()
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-
-        stage ('Verify Infra') {
-            parallel {
-                stage('verify-scripts') {
-                    steps {
-                        runGinkgoRandomizeParallel('scripts/install')
-                    }
-                }
-                stage('verify-infra restapi') {
-                    steps {
-                        runGinkgoRandomizeParallel('verify-infra/restapi')
-                    }
-                }
-                stage('verify-infra oam') {
-                    steps {
-                        runGinkgoRandomizeParallel('verify-infra/oam')
-                    }
-                }
-                stage('verify-infra vmi') {
-                    steps {
-                        runGinkgoRandomizeParallel('verify-infra/vmi')
-                    }
-                }
-            }
-            post {
-                always {
-                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*', allowEmptyArchive: true
-                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                }
-            }
-        }
-        stage('Post-upgrade Acceptance Tests') {
-            stages {
-                stage ('Console') {
-                    when { expression { isMultiCluster() } }
-                        steps {
-                            runConsoleTests()
-                        }
-                        post {
-                            always {
-                                saveConsoleTestArtifacts()
-                            }
-                        }
-                }
-                stage('Post-upgrade Acceptance Tests parallel') {
-                    parallel {
-                        stage('post-upgrade verify keycloak') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
-                            }
-                        }
-                        stage('opensearch post-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
-                            }
-                        }
-                        stage('Grafana post-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/grafana', "${TEST_DUMP_ROOT}/grafana")
-                            }
-                        }
-                        stage('Metricsbinding post-upgrade') {
-                            steps {
-                                runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
-                            }
-                        }
-                        stage('deployment metrics') {
-                            steps {
-                                runGinkgoVerifyParallel('Prometheus post-upgrade', 'metrics/deploymetrics', "${TEST_DUMP_ROOT}/prompostupgrade", "true", "false", "false", "deploymetrics")
-                            }
-                        }
-                        stage ("Verify install scripts") {
-                            steps {
-                                runGinkgoRandomizeAdmin("scripts/install", "${TEST_DUMP_ROOT}/install-scripts")
-                            }
-                        }
-                        stage ('mc verify-api') {
-                            when { expression { isMultiCluster() } }
-                            steps {
-                                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                                    script {
-                                        runMulticlusterVerifyApi()
-                                    }
-                                }
-                            }
-                            post {
-                                failure {
-                                    script {
-                                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot-pre-uninstall")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                stage ('Verify & Uninstall Example Apps') {
-                    when { expression { isMultiCluster() } }
-                    parallel {
-                        stage ('mc examples helidon') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
-                            }
-                        }
-                        stage ('mc coherence workload') {
-                            steps {
-                                runGinkgoVerifyManaged("multicluster/workloads/mccoherence", "${TEST_DUMP_ROOT}/mccoherence-workload", checkUpgradeBelowVer("v1.3.0"), "false", "false")
-                            }
-                        }
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
-                    }
-                }
-                aborted {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
-                    }
-                }
                 success {
                     script {
                         sh """
-                            echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS in post success ${env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
+                            echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS in post success ${EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
                         """
-                        if (env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS) {
+                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                         }
-                    }
-                }
-            }
-        }
-        stage('Cleanup Tests') {
-            stages {
-                stage('verify deregister') {
-                    when { expression { isMultiCluster() } }
-                    steps {
-                        verifyDeregisterManagedClusters()
-                    }
-                }
-            }
-            post {
-                failure {
-                    script {
-                        dumpK8sCluster("${WORKSPACE}/multicluster-cleanup-tests-cluster-snapshot")
                     }
                 }
             }
@@ -672,18 +299,8 @@ pipeline {
             pipelinePostFailure()
         }
         always {
-            script {
-                if ( fileExists(env.TESTS_EXECUTED_FILE) ) {
-                    dumpAll()
-                }
-            }
-            copyGeneratedTestReports()
             archiveArtifacts artifacts: "**/*-operator.yaml,**/install-verrazzano.yaml,**/kube_config,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*cluster-snapshot*/**,**/*bug-report*/**,**/full-cluster/**,**/${TEST_REPORT}", allowEmptyArchive: true
             junit testResults: "**/${TEST_REPORT}", allowEmptyResults: true
-
-            script {
-                failBuildIfFailuresDuringArtifactsDump()
-            }
         }
         cleanup {
             deleteAll()
@@ -1821,6 +1438,7 @@ def getEffectiveDumpOnSuccess() {
         effectiveValue = true
         echo "Forcing dump on success based on global override setting"
     }
+    echo "effectiveValue: ${effectiveValue}"
     return effectiveValue
 }
 
@@ -2031,8 +1649,8 @@ def performDockerLogin() {
 
 def performSourceCodeCheckout() {
     script {
-        env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
-        echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS in performSourceCodeCheckout ${env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
+        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+        echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS ${EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
         if (params.GIT_COMMIT_TO_USE == "NONE") {
             echo "Specific GIT commit was not specified, use current head"
             def scmInfo = checkout scm
