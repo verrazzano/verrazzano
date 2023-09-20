@@ -42,6 +42,10 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        string (name: 'BASELINE_IMAGE_SIZES_FILE_NAME',
+                defaultValue: '{CLEAN_BRANCH_NAME}/image-list',
+                description: 'To set the baseline image for image size comparison. If images increase in size, the pipeline will fail.',
+                trim: true)
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
                 description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
@@ -119,7 +123,7 @@ def commitList =        getCommitList()
                 """
                 script {
                     try{
-                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
+                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh ${params.BASELINE_IMAGE_SIZES_FILE_NAME}").trim()
                     }
                     catch(error){
                         echo"Image Sizes have increased"

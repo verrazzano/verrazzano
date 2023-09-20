@@ -4,6 +4,14 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
+# Argument for image-sizes.txt file in object store
+if [ "$#" -ne 1 ]; then
+   echo "No valid arg for image-sizes.txt to compare image sizes"
+   exit 1
+fi
+
+IMAGE_LIST_PATH="$1"
+
 # Function to process the data from a file
 process_file() {
   local IMAGE_FILE="$1"
@@ -26,7 +34,7 @@ process_file() {
     echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
   done
 }
-oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
+oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${IMAGE_LIST_PATH} --file ${WORKSPACE}/image-sizes-objectstore.txt
 if [ $? -ne  0 ] ; then
  echo "${CLEAN_BRANCH_NAME}/image-list not found"
  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt
