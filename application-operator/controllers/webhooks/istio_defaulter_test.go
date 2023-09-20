@@ -32,10 +32,8 @@ import (
 // THEN Handle should return an error with http.StatusBadRequest
 func TestHandleBadRequest(t *testing.T) {
 
-	decoder := decoder()
-	defaulter := &IstioWebhook{}
-	err := defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
+	decoder := NewIstioWebhookDecoder()
+	defaulter := &IstioWebhook{Decoder: decoder}
 	req := admission.Request{}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
@@ -48,10 +46,12 @@ func TestHandleBadRequest(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestHandleIstioDisabled(t *testing.T) {
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	// Create a pod with Istio injection disabled
 	p := &corev1.Pod{
@@ -66,8 +66,6 @@ func TestHandleIstioDisabled(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -86,10 +84,12 @@ func TestHandleIstioDisabled(t *testing.T) {
 //	THEN Handle should return an Allowed response with no action required
 func TestHandleNoOnwerReference(t *testing.T) {
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	// Create a simple pod
 	p := &corev1.Pod{
@@ -101,8 +101,6 @@ func TestHandleNoOnwerReference(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -120,10 +118,12 @@ func TestHandleNoOnwerReference(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	u := newUnstructured("apps/v1", "Deployment", "test-deployment")
@@ -169,8 +169,6 @@ func TestHandleNoAppConfigOnwerReference(t *testing.T) {
 	pod, err := defaulter.DynamicClient.Resource(resource).Namespace("default").Create(context.TODO(), u, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -196,11 +194,13 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create an applicationConfiguration resource
@@ -230,8 +230,6 @@ func TestHandleAppConfigOnwerReference1(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -272,11 +270,13 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a non-default service account
@@ -318,8 +318,6 @@ func TestHandleAppConfigOnwerReference2(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -360,11 +358,13 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a non-default service account
@@ -406,8 +406,6 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -462,8 +460,6 @@ func TestHandleAppConfigOnwerReference3(t *testing.T) {
 	pod, err = defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req = admission.Request{}
 	req.Namespace = "default"
 	marshaledPod, err = json.Marshal(pod)
@@ -504,11 +500,13 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a non-default service account
@@ -550,8 +548,6 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -597,8 +593,6 @@ func TestHandleAppConfigOnwerReference4(t *testing.T) {
 	pod, err = defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req = admission.Request{}
 	req.Namespace = "default"
 	marshaledPod, err = json.Marshal(pod)
@@ -638,11 +632,13 @@ func TestHandleProject1(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a project in the verrazzano-mc namespace
@@ -699,8 +695,6 @@ func TestHandleProject1(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -734,11 +728,13 @@ func TestHandleProject2(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a project in the verrazzano-mc namespace
@@ -802,8 +798,6 @@ func TestHandleProject2(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -894,11 +888,13 @@ func TestHandleProject3(t *testing.T) {
 	assert.NoError(t, err, "Unexpected error adding to scheme")
 	client := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 
+	decoder := NewIstioWebhookDecoder()
 	defaulter := &IstioWebhook{
 		Client:        client,
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
 		IstioClient:   istiofake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 
 	// Create a project in the verrazzano-mc namespace
@@ -962,8 +958,6 @@ func TestHandleProject3(t *testing.T) {
 	pod, err := defaulter.KubeClient.CoreV1().Pods("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating pod")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -1043,9 +1037,8 @@ func TestIstioHandleFailed(t *testing.T) {
 
 	assert := assert.New(t)
 	// Create a request and decode(Handle) it
-	decoder := decoder()
-	defaulter := &IstioWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewIstioWebhookDecoder()
+	defaulter := &IstioWebhook{Decoder: decoder}
 	req := admission.Request{}
 	defaulter.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.IstioHandleError)

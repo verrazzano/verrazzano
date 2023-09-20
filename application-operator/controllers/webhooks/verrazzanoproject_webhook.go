@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -19,20 +19,8 @@ import (
 
 // VerrazzanoProjectValidator is a struct holding objects used during VerrazzanoProject validation.
 type VerrazzanoProjectValidator struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *VerrazzanoProjectValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InjectDecoder injects the decoder.
-func (v *VerrazzanoProjectValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
+	Client  client.Client
+	Decoder *admission.Decoder
 }
 
 // Handle performs validation of created or updated VerrazzanoProject resources.
@@ -45,7 +33,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 	defer handleDurationMetricObject.TimerStop()
 
 	prj := &v1alpha1.VerrazzanoProject{}
-	err = v.decoder.Decode(req, prj)
+	err = v.Decoder.Decode(req, prj)
 	if err != nil {
 		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
@@ -54,7 +42,7 @@ func (v *VerrazzanoProjectValidator) Handle(ctx context.Context, req admission.R
 	if prj.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create, k8sadmission.Update:
-			return translateErrorToResponse(validateVerrazzanoProject(v.client, prj))
+			return translateErrorToResponse(validateVerrazzanoProject(v.Client, prj))
 		}
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)

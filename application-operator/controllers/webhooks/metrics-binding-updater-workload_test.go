@@ -17,7 +17,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/fake"
 	ctrlfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -32,12 +31,7 @@ const testDeploymentName = "testDeployment"
 
 // newGeneratorWorkloadWebhook creates a new WorkloadWebhook
 func newGeneratorWorkloadWebhook() WorkloadWebhook {
-	scheme := newScheme()
-	scheme.AddKnownTypes(schema.GroupVersion{
-		Version: "v1",
-	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{}, &corev1.Namespace{})
-	_ = vzapp.AddToScheme(scheme)
-	decoder := admission.NewDecoder(scheme)
+	decoder, scheme := NewWorkloadWebhookDecoder()
 	cli := ctrlfake.NewClientBuilder().WithScheme(scheme).Build()
 	v := WorkloadWebhook{
 		Client:     cli,

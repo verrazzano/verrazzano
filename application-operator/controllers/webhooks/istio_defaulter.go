@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
+	"k8s.io/apimachinery/pkg/runtime"
 	"net/http"
 	"strings"
 
@@ -44,6 +46,13 @@ type IstioWebhook struct {
 	Decoder       *admission.Decoder
 	KubeClient    kubernetes.Interface
 	DynamicClient dynamic.Interface
+}
+
+func NewIstioWebhookDecoder() *admission.Decoder {
+	scheme := runtime.NewScheme()
+	_ = core.AddToScheme(scheme)
+	decoder := admission.NewDecoder(scheme)
+	return decoder
 }
 
 // Handle is the entry point for the mutating webhook.
@@ -142,12 +151,6 @@ func (a *IstioWebhook) Handle(ctx context.Context, req admission.Request) admiss
 	}
 	counterMetricObject.Inc(zapLogForMetrics, err)
 	return admission.PatchResponseFromRaw(req.Object.Raw, marshaledPod)
-}
-
-// InjectDecoder injects the decoder.
-func (a *IstioWebhook) InjectDecoder(d *admission.Decoder) error {
-	a.Decoder = d
-	return nil
 }
 
 // createUpdateAuthorizationPolicy will create/update an Istio authoriztion policy.

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 20223 Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -10,11 +10,9 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	admissionv1 "k8s.io/api/admission/v1"
-	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -90,16 +88,4 @@ func newAdmissionRequest(op admissionv1.Operation, obj interface{}) admission.Re
 		AdmissionRequest: admissionv1.AdmissionRequest{
 			Operation: op, Object: raw}}
 	return req
-}
-
-// newScheme creates a new scheme that includes this package's object for use by client
-// This is a test utility function used by other multi-cluster resource validation tests.
-func newScheme() *runtime.Scheme {
-	scheme := runtime.NewScheme()
-	_ = appopclustersapi.AddToScheme(scheme)
-	scheme.AddKnownTypes(schema.GroupVersion{
-		Version: "v1",
-	}, &corev1.Secret{}, &corev1.SecretList{})
-	_ = clustersapi.AddToScheme(scheme)
-	return scheme
 }

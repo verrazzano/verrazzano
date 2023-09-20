@@ -17,7 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
 	"go.uber.org/zap"
-	core "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -127,7 +127,7 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 
 	// register MySQL backup job mutating webhook
 	coreScheme := runtime.NewScheme()
-	_ = core.AddToScheme(coreScheme)
+	_ = corev1.AddToScheme(coreScheme)
 	mgr.GetWebhookServer().Register(
 		constants.MysqlBackupMutatingWebhookPath,
 		&webhook.Admission{

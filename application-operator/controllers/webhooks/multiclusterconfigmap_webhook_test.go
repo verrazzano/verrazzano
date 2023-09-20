@@ -22,7 +22,7 @@ import (
 
 // newMultiClusterConfigmapValidator creates a new MultiClusterConfigmapValidator
 func newMultiClusterConfigmapValidator() MultiClusterConfigmapValidator {
-	scheme := newScheme()
+	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterConfigmapValidator{client: cli, decoder: decoder}

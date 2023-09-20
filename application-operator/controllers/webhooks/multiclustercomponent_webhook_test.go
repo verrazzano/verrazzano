@@ -22,7 +22,7 @@ import (
 
 // newMultiClusterComponentValidator creates a new MultiClusterComponentValidator
 func newMultiClusterComponentValidator() MultiClusterComponentValidator {
-	scheme := newScheme()
+	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterComponentValidator{client: cli, decoder: decoder}

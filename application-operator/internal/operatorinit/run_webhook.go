@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 const (
@@ -134,7 +135,10 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	// VerrazzanoProject validating webhook
 	mgr.GetWebhookServer().Register(
 		"/validate-clusters-verrazzano-io-v1alpha1-verrazzanoproject",
-		&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{}})
+		&webhook.Admission{Handler: &webhooks.VerrazzanoProjectValidator{
+			Decoder: admission.NewDecoder(webhooks.NewScheme()),
+			Client:  mgr.GetClient(),
+		}})
 
 	dynamicClient, err := dynamic.NewForConfig(config)
 	if err != nil {
@@ -148,7 +152,8 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 		return err
 	}
 
-	// Register a webhook that listens on pods that are running in a istio enabled namespace.
+	// Register a webhook that listens on pods that are running in an Istio enabled namespace.
+	decoder := webhooks.NewIstioWebhookDecoder()
 	mgr.GetWebhookServer().Register(
 		webhooks.IstioDefaulterPath,
 		&webhook.Admission{
@@ -157,6 +162,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 				KubeClient:    kubeClient,
 				DynamicClient: dynamicClient,
 				IstioClient:   istioClientSet,
+				Decoder:       decoder,
 			},
 		},
 	)
@@ -164,12 +170,14 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	// Register the metrics binding mutating webhooks for plain old kubernetes objects workloads
 	// The webhooks handle legacy metrics template annotations on these workloads - newer
 	// workloads should rely on user-created monitor resources.
+	decoder, _ = webhooks.NewWorkloadWebhookDecoder()
 	mgr.GetWebhookServer().Register(
 		webhooks.MetricsBindingGeneratorWorkloadPath,
 		&webhook.Admission{
 			Handler: &webhooks.WorkloadWebhook{
 				Client:     mgr.GetClient(),
 				KubeClient: kubeClient,
+				Decoder:    decoder,
 			},
 		},
 	)

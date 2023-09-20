@@ -22,7 +22,7 @@ import (
 
 // newMultiClusterSecretValidator creates a new MultiClusterSecretValidator
 func newMultiClusterSecretValidator() MultiClusterSecretValidator {
-	scheme := newScheme()
+	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterSecretValidator{client: cli, decoder: decoder}

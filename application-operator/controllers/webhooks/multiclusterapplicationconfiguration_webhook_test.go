@@ -23,7 +23,7 @@ import (
 
 // newMultiClusterApplicationConfigurationValidator creates a new MultiClusterApplicationConfigurationValidator
 func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationConfigurationValidator {
-	scheme := newScheme()
+	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
 	v := MultiClusterApplicationConfigurationValidator{client: cli, decoder: decoder}
@@ -285,9 +285,8 @@ func TestValidateSecrets(t *testing.T) {
 func TestMultiClusterAppConfigHandleFailed(t *testing.T) {
 	assert := assert.New(t)
 	// Create a request and decode(Handle)
-	decoder := decoder()
-	defaulter := &IstioWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewIstioWebhookDecoder()
+	defaulter := &IstioWebhook{Decoder: decoder}
 	req := admission.Request{}
 	defaulter.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.MultiClusterAppconfigPodHandleError)

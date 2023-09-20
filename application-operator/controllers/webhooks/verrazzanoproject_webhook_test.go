@@ -23,10 +23,10 @@ import (
 
 // newVerrazzanoProjectValidator creates a new VerrazzanoProjectValidator
 func newVerrazzanoProjectValidator() VerrazzanoProjectValidator {
-	scheme := newScheme()
+	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
-	v := VerrazzanoProjectValidator{client: cli, decoder: decoder}
+	v := VerrazzanoProjectValidator{Client: cli, Decoder: decoder}
 	return v
 }
 
@@ -42,7 +42,7 @@ func TestVerrazzanoProject(t *testing.T) {
 	// Test data
 	testVP := testProject
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	req := newAdmissionRequest(admissionv1.Create, testVP)
 	res := v.Handle(context.TODO(), req)
@@ -66,7 +66,7 @@ func TestInvalidNamespace(t *testing.T) {
 	testVP := testProject
 	testVP.Namespace = "invalid-namespace"
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1.Create, testVP)
@@ -94,7 +94,7 @@ func TestInvalidNamespaces(t *testing.T) {
 	testVP := testProject
 	testVP.Spec.Template.Namespaces = []v1alpha12.NamespaceTemplate{}
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1.Create, testVP)
@@ -121,7 +121,7 @@ func TestNetworkPolicyNamespace(t *testing.T) {
 	// Test data
 	testVP := testNetworkPolicy
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1.Create, testVP)
@@ -147,7 +147,7 @@ func TestNetworkPolicyMissingNamespace(t *testing.T) {
 	testVP := testNetworkPolicy
 	testVP.Spec.Template.Namespaces[0].Metadata.Name = "ns2"
 	testMC := testManagedCluster
-	asrt.NoError(v.client.Create(context.TODO(), &testMC))
+	asrt.NoError(v.Client.Create(context.TODO(), &testMC))
 
 	// Test create
 	req := newAdmissionRequest(admissionv1.Create, testVP)
@@ -196,7 +196,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 			},
 		},
 	}
-	assert.NoError(t, v.client.Create(context.TODO(), existingVP1))
+	assert.NoError(t, v.Client.Create(context.TODO(), existingVP1))
 
 	existingVP2 := &v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
@@ -220,7 +220,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 			},
 		},
 	}
-	assert.NoError(t, v.client.Create(context.TODO(), existingVP2))
+	assert.NoError(t, v.Client.Create(context.TODO(), existingVP2))
 
 	currentVP := v1alpha12.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
@@ -240,7 +240,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 		},
 	}
 	// This test will succeed because Verrazzano project test-project has unique namespace project
-	err := validateNamespaceCanBeUsed(v.client, &currentVP)
+	err := validateNamespaceCanBeUsed(v.Client, &currentVP)
 	assert.Nil(t, err)
 
 	currentVP = v1alpha12.VerrazzanoProject{
@@ -262,10 +262,10 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 	}
 
 	// This test will fail because Verrazzano project test-project1 has conflicting namespace project2
-	err = validateNamespaceCanBeUsed(v.client, &currentVP)
+	err = validateNamespaceCanBeUsed(v.Client, &currentVP)
 	assert.NotNil(t, err)
 	// This test will fail same as above but this time coming in through parent validator
-	err = validateVerrazzanoProject(v.client, &currentVP)
+	err = validateVerrazzanoProject(v.Client, &currentVP)
 	assert.NotNil(t, err)
 
 	currentVP = v1alpha12.VerrazzanoProject{
@@ -291,7 +291,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 		},
 	}
 	// UPDATE FAIL This test will fail because Verrazzano project test-project2 has conflicting namespace project4
-	err = validateNamespaceCanBeUsed(v.client, &currentVP)
+	err = validateNamespaceCanBeUsed(v.Client, &currentVP)
 	assert.NotNil(t, err)
 
 	currentVP = v1alpha12.VerrazzanoProject{
@@ -317,7 +317,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 		},
 	}
 	// This test will fail because Verrazzano project name, existing-project-1, is using a namespace in existing-project-2
-	err = validateNamespaceCanBeUsed(v.client, &currentVP)
+	err = validateNamespaceCanBeUsed(v.Client, &currentVP)
 	assert.NotNil(t, err)
 
 	currentVP = v1alpha12.VerrazzanoProject{
@@ -343,7 +343,7 @@ func TestNamespaceUniquenessForProjects(t *testing.T) {
 		},
 	}
 	// UPDATE PASS This test will pass because Verrazzano project name, existing-project-1, is not using a namespace associated with any existing projects
-	err = validateNamespaceCanBeUsed(v.client, &currentVP)
+	err = validateNamespaceCanBeUsed(v.Client, &currentVP)
 	assert.Nil(t, err)
 }
 
@@ -465,7 +465,7 @@ func TestValidationSuccessForProjectCreationTargetingExistingManagedCluster(t *t
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &c))
+	asrt.NoError(v.Client.Create(context.TODO(), &c))
 
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
@@ -512,7 +512,7 @@ func TestValidationSuccessForProjectCreationWithoutTargetClustersOnManagedCluste
 			},
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &s))
+	asrt.NoError(v.Client.Create(context.TODO(), &s))
 
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)

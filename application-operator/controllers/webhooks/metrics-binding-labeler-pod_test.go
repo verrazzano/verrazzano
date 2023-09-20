@@ -23,7 +23,7 @@ import (
 
 // newLabelerPodWebhook creates a new LabelerPodWebhook
 func newLabelerPodWebhook() LabelerPodWebhook {
-	scheme := newScheme()
+	scheme := NewScheme()
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
 	}, &corev1.Namespace{}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{})

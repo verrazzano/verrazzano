@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -6,16 +6,30 @@ package webhooks
 import (
 	"context"
 	"fmt"
-
+	appopclustersapi "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	clusters "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clusterutil "github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
+	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	core "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+// newScheme creates a new scheme that includes this package's object for use by client
+// This is a test utility function used by other multi-cluster resource validation tests.
+func NewScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	_ = appopclustersapi.AddToScheme(scheme)
+	scheme.AddKnownTypes(schema.GroupVersion{
+		Version: "v1",
+	}, &core.Secret{}, &core.SecretList{})
+	_ = clustersapi.AddToScheme(scheme)
+	return scheme
+}
 
 func validateMultiClusterResource(c client.Client, r clusterutil.MultiClusterResource) error {
 	p := r.GetPlacement()

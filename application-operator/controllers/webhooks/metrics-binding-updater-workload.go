@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -7,6 +7,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"net/http"
 	"reflect"
 	"strings"
@@ -40,6 +43,15 @@ type WorkloadWebhook struct {
 	KubeClient kubernetes.Interface
 }
 
+func NewWorkloadWebhookDecoder() (*admission.Decoder, *runtime.Scheme) {
+	scheme := runtime.NewScheme()
+	scheme.AddKnownTypes(schema.GroupVersion{
+		Version: "v1",
+	}, &corev1.Pod{}, &appsv1.Deployment{}, &appsv1.ReplicaSet{}, &appsv1.StatefulSet{}, &corev1.Namespace{})
+	_ = vzapp.AddToScheme(scheme)
+	return admission.NewDecoder(scheme), scheme
+}
+
 // Handle - handler for the mutating webhook
 func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
 	log := zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "metrics-binding-generator-workload")
@@ -56,12 +68,6 @@ func (a *WorkloadWebhook) Handle(ctx context.Context, req admission.Request) adm
 	defer durationMetricHandle.TimerStop()
 	counterMetricHandle.Inc(zap.S(), err)
 	return a.handleWorkloadResource(ctx, req, log)
-}
-
-// InjectDecoder injects the decoder.
-func (a *WorkloadWebhook) InjectDecoder(d *admission.Decoder) error {
-	a.Decoder = d
-	return nil
 }
 
 // handleWorkloadResource decodes the admission request for a workload resource into an unstructured
