@@ -25,7 +25,7 @@ func newRequirementsValidatorV1alpha1(objects []client.Object) RequirementsValid
 	scheme := newV1alpha1Scheme()
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 	decoder := admission.NewDecoder(scheme)
-	v := RequirementsValidatorV1alpha1{client: client, decoder: decoder}
+	v := RequirementsValidatorV1alpha1{Client: client, Decoder: decoder}
 	return v
 }
 

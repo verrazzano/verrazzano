@@ -22,14 +22,8 @@ const (
 
 // MysqlValuesValidatorV1beta1 is a struct holding objects used during validation.
 type MysqlValuesValidatorV1beta1 struct {
-	decoder    *admission.Decoder
+	Decoder    *admission.Decoder
 	BomVersion string
-}
-
-// InjectDecoder injects the decoder.
-func (v *MysqlValuesValidatorV1beta1) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
 }
 
 // Handle performs validation of created or updated Verrazzano resources.
@@ -37,7 +31,7 @@ func (v *MysqlValuesValidatorV1beta1) Handle(ctx context.Context, req admission.
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, "verrazzano-platform-mysqlinstalloverrides")
 
 	vz := &v1beta1.Verrazzano{}
-	err := v.decoder.Decode(req, vz)
+	err := v.Decoder.Decode(req, vz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
@@ -46,7 +40,7 @@ func (v *MysqlValuesValidatorV1beta1) Handle(ctx context.Context, req admission.
 		switch req.Operation {
 		case k8sadmission.Update:
 			oldVz := v1beta1.Verrazzano{}
-			if err := v.decoder.DecodeRaw(req.OldObject, &oldVz); err != nil {
+			if err := v.Decoder.DecodeRaw(req.OldObject, &oldVz); err != nil {
 				return admission.Errored(http.StatusBadRequest, errors.Wrap(err, "unable to decode existing Verrazzano object"))
 			}
 			return v.validateMysqlValuesV1beta1(log, oldVz, vz)

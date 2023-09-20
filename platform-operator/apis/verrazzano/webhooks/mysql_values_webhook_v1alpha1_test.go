@@ -25,8 +25,7 @@ const (
 func newMysqlValuesValidatorV1alpha1() MysqlValuesValidatorV1alpha1 {
 	scheme := newV1alpha1Scheme()
 	decoder := admission.NewDecoder(scheme)
-	v := MysqlValuesValidatorV1alpha1{BomVersion: MinVersion}
-	v.InjectDecoder(decoder)
+	v := MysqlValuesValidatorV1alpha1{BomVersion: MinVersion, Decoder: decoder}
 	return v
 }
 

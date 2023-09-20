@@ -20,20 +20,8 @@ import (
 
 // RequirementsValidatorV1beta1 is a struct holding objects used during validation.
 type RequirementsValidatorV1beta1 struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *RequirementsValidatorV1beta1) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InjectDecoder injects the decoder.
-func (v *RequirementsValidatorV1beta1) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
+	Client  client.Client
+	Decoder *admission.Decoder
 }
 
 // Handle performs validation of the Verrazzano prerequisites based on the profiled used.
@@ -44,20 +32,20 @@ func (v *RequirementsValidatorV1beta1) Handle(ctx context.Context, req admission
 	var log = zap.S().With(vzlog.FieldResourceNamespace, req.Namespace, vzlog.FieldResourceName, req.Name, vzlog.FieldWebhook, RequirementsWebhook)
 	log.Infof("Processing Requirements validator webhook")
 	vz := &v1beta1.Verrazzano{}
-	err := v.decoder.Decode(req, vz)
+	err := v.Decoder.Decode(req, vz)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}
 	if vz.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create:
-			return validateRequirementsV1beta1(log, v.client, vz)
+			return validateRequirementsV1beta1(log, v.Client, vz)
 		case k8sadmission.Update:
 			oldVz := v1beta1.Verrazzano{}
-			if err := v.decoder.DecodeRaw(req.OldObject, &oldVz); err != nil {
+			if err := v.Decoder.DecodeRaw(req.OldObject, &oldVz); err != nil {
 				return admission.Errored(http.StatusBadRequest, errors.Wrap(err, "unable to decode existing Verrazzano object"))
 			}
-			return validateUpdatev1beta1(log, v.client, oldVz, vz)
+			return validateUpdatev1beta1(log, v.Client, oldVz, vz)
 		}
 	}
 	return admission.Allowed("")

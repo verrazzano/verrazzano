@@ -52,6 +52,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
+		CertDir:            certDir,
 		LeaderElection:     enableLeaderElection,
 		LeaderElectionID:   "5df248b4.verrazzano.io",
 	})
@@ -178,7 +179,6 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 		},
 	)
 
-	appConfigWebServer := webhook.NewServer(webhook.Options{CertDir: certDir})
 	appconfigWebhook := &webhooks.AppConfigWebhook{
 		Client:      mgr.GetClient(),
 		KubeClient:  kubeClient,
@@ -189,7 +189,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 			},
 		},
 	}
-	appConfigWebServer.Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
+	mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 
 	// MultiClusterApplicationConfiguration validating webhook
 	mgr.GetWebhookServer().Register(

@@ -5,8 +5,7 @@ package operatorinit
 
 import (
 	"fmt"
-	"os"
-
+	"github.com/pkg/errors"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -17,18 +16,19 @@ import (
 	internalconfig "github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/certificate"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/netpolicy"
-
-	"github.com/pkg/errors"
 	"go.uber.org/zap"
+	core "k8s.io/api/core/v1"
 	apiextensionsv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // WebhookInit Webhook init container entry point
@@ -126,6 +126,8 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 	}
 
 	// register MySQL backup job mutating webhook
+	coreScheme := runtime.NewScheme()
+	_ = core.AddToScheme(coreScheme)
 	mgr.GetWebhookServer().Register(
 		constants.MysqlBackupMutatingWebhookPath,
 		&webhook.Admission{
@@ -134,21 +136,39 @@ func setupWebhooksWithManager(log *zap.SugaredLogger, mgr manager.Manager, kubeC
 				KubeClient:    kubeClient,
 				DynamicClient: dynamicClient,
 				Defaulters:    []webhooks.MySQLDefaulter{},
+				Decoder:       admission.NewDecoder(coreScheme),
 			},
 		},
 	)
 
+	v1beta1Scheme := runtime.NewScheme()
+	_ = installv1beta1.AddToScheme(v1beta1Scheme)
+	v1alpha1Scheme := runtime.NewScheme()
+	_ = installv1alpha1.AddToScheme(v1alpha1Scheme)
+
 	// register requirements validator webhooks.
-	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{}})
-	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{}})
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1beta1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1beta1{
+		Decoder: admission.NewDecoder(v1beta1Scheme),
+		Client:  mgr.GetClient(),
+	}})
+	mgr.GetWebhookServer().Register(webhooks.RequirementsV1alpha1Path, &webhook.Admission{Handler: &webhooks.RequirementsValidatorV1alpha1{
+		Decoder: admission.NewDecoder(v1alpha1Scheme),
+		Client:  mgr.GetClient(),
+	}})
 
 	// register MySQL install values webhooks
 	bomFile, err := bom.NewBom(internalconfig.GetDefaultBOMFilePath())
 	if err != nil {
 		return err
 	}
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{BomVersion: bomFile.GetVersion()}})
-	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{BomVersion: bomFile.GetVersion()}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1beta1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1beta1{
+		BomVersion: bomFile.GetVersion(),
+		Decoder:    admission.NewDecoder(v1beta1Scheme),
+	}})
+	mgr.GetWebhookServer().Register(webhooks.MysqlInstallValuesV1alpha1path, &webhook.Admission{Handler: &webhooks.MysqlValuesValidatorV1alpha1{
+		BomVersion: bomFile.GetVersion(),
+		Decoder:    admission.NewDecoder(v1alpha1Scheme),
+	}})
 
 	return nil
 }

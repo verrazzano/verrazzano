@@ -41,9 +41,7 @@ func decoder() *admission.Decoder {
 func TestHandleBadRequestMySQL(t *testing.T) {
 
 	decoder := decoder()
-	defaulter := &MySQLBackupJobWebhook{}
-	err := defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
+	defaulter := &MySQLBackupJobWebhook{Decoder: decoder}
 	req := admission.Request{}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
@@ -56,9 +54,11 @@ func TestHandleBadRequestMySQL(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestHandleIstioDisabledMysqlBackupJob(t *testing.T) {
 
+	decoder := decoder()
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	// Create a job with Istio injection disabled
 	p := &batchv1.Job{
@@ -73,9 +73,6 @@ func TestHandleIstioDisabledMysqlBackupJob(t *testing.T) {
 
 	job, err := defaulter.KubeClient.BatchV1().Jobs("default").Create(context.TODO(), p, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating job")
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
 	marshaledJob, err := json.Marshal(job)
@@ -92,9 +89,11 @@ func TestHandleIstioDisabledMysqlBackupJob(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 
+	decoder := decoder()
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	// Create a job with Istio injection disabled
 	job := &batchv1.Job{
@@ -110,9 +109,6 @@ func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 	job, err := defaulter.KubeClient.BatchV1().Jobs("default").Create(context.TODO(), job, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating job")
 
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
 	marshaledJob, err := json.Marshal(job)
@@ -129,9 +125,11 @@ func TestHandleSkipAnnotateMysqlBackupJob(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 
+	decoder := decoder()
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	// Create a job with Istio injection disabled
 	job := &batchv1.Job{
@@ -144,8 +142,6 @@ func TestHandleAnnotateMysqlBackupJob(t *testing.T) {
 
 	job, err := defaulter.KubeClient.BatchV1().Jobs("default").Create(context.TODO(), job, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating job")
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
 	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
@@ -178,9 +174,11 @@ func TestConvertAPIVersionToGroupAndVersion(t *testing.T) {
 // THEN Handle should return an Allowed response with no action required
 func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 	var err error
+	decoder := decoder()
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	u := newUnstructured(jobAPIVerison, "CronJob", "MySqlCronJob")
 	resource := schema.GroupVersionResource{
@@ -205,9 +203,6 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating cronjob")
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
 	marshaledJob, err := json.Marshal(job)
@@ -226,9 +221,11 @@ func TestIsCronJobCreatedByMysqlOperator(t *testing.T) {
 
 func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 	var err error
+	decoder := decoder()
 	defaulter := &MySQLBackupJobWebhook{
 		DynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
 		KubeClient:    fake.NewSimpleClientset(),
+		Decoder:       decoder,
 	}
 	u := newUnstructured(jobAPIVerison, "CronJob", "MySqlCronJob1")
 	resource := schema.GroupVersionResource{
@@ -253,9 +250,6 @@ func TestIsCronJobCreatedByMysqlOperator2(t *testing.T) {
 	}
 	job, err := defaulter.KubeClient.BatchV1().CronJobs("default").Create(context.TODO(), cronjob, metav1.CreateOptions{})
 	assert.NoError(t, err, "Unexpected error creating cronjob")
-	decoder := decoder()
-	err = defaulter.InjectDecoder(decoder)
-	assert.NoError(t, err, "Unexpected error injecting decoder")
 	req := admission.Request{}
 	req.Namespace = "default"
 	marshaledJob, err := json.Marshal(job)

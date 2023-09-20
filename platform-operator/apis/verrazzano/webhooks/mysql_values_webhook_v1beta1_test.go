@@ -85,7 +85,7 @@ const (
 func newMysqlValuesValidatorV1beta1() MysqlValuesValidatorV1beta1 {
 	scheme := newScheme()
 	decoder := admission.NewDecoder(scheme)
-	v := MysqlValuesValidatorV1beta1{decoder: decoder, BomVersion: MinVersion}
+	v := MysqlValuesValidatorV1beta1{Decoder: decoder, BomVersion: MinVersion}
 	return v
 }
 
