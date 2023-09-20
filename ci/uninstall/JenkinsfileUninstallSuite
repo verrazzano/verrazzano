@@ -30,6 +30,9 @@ pipeline {
                         defaultValue: 'nip.io',
                         description: 'This is the wildcard DNS domain',
                         trim: true)
+        string (name: 'INSTALL_LOOP_COUNT',
+                description: 'Install loop count, valid for Uninstall loop tests',
+                defaultValue: "3")
         string (name: 'TAGGED_TESTS',
                 defaultValue: '',
                 description: 'A comma separated list of build tags for tests that should be executed (e.g. unstable_test). Default:',
@@ -149,7 +152,7 @@ pipeline {
                                 build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: params.INSTALL_LOOP_COUNT),
                                         string(name: 'INSTALL_PROFILE', value: "prod"),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -169,7 +172,7 @@ pipeline {
                                 build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: params.INSTALL_LOOP_COUNT),
                                         string(name: 'INSTALL_PROFILE', value: "dev"),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
@@ -189,7 +192,7 @@ pipeline {
                                 build job: "/verrazzano-uninstall-resiliency-test/${CLEAN_BRANCH_NAME}",
                                     parameters: [
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'INSTALL_LOOP_COUNT', value: "5"),
+                                        string(name: 'INSTALL_LOOP_COUNT', value: params.INSTALL_LOOP_COUNT),
                                         string(name: 'INSTALL_PROFILE', value: "managed-cluster"),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),

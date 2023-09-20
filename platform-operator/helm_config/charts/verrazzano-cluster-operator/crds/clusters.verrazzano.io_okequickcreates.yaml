@@ -20,7 +20,7 @@ spec:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: OKEQuickCreate specifies the API for quick-create OKE Clusters.
+        description: OKEQuickCreate specifies the API for quick-create OKE clusters.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -82,7 +82,7 @@ spec:
                 - version
                 type: object
               oke:
-                description: OKE Cluster settings.
+                description: OKE cluster settings.
                 properties:
                   cloudInitScript:
                     description: Cloud-init script to run during node startup.
@@ -99,7 +99,7 @@ spec:
                     pattern: ^([0-9a-zA-Z-_]+[.:])([0-9a-zA-Z-_]*[.:]){3,}([0-9a-zA-Z-_]+)$
                     type: string
                   network:
-                    description: Network settings for the OKE Cluster.
+                    description: Network settings for the OKE cluster.
                     properties:
                       cniType:
                         description: CNI Type for cluster networking. May be FLANNEL_OVERLAY
