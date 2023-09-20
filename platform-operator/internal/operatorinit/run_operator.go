@@ -24,6 +24,7 @@ import (
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
+	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/integration-controllers/opensearch-operator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"
@@ -124,6 +125,11 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		if err = reconciler.SetupWithManager(mgr); err != nil {
 			return errors.Wrap(err, "Failed to setup controller")
 		}
+	}
+	// init verrazzano module controller
+	if err := opensearchcontroller.InitController(mgr); err != nil {
+		log.Errorf("Failed to start module-based Verrazzano controller", err)
+		return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 	}
 
 	// Setup Verrazzano controllers

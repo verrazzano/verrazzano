@@ -665,6 +665,8 @@ github.com/verrazzano/fluent-operator/v2 v2.2.0 h1:rsKzccy5Di5SdbIJW31AdbWqET7cH
 github.com/verrazzano/fluent-operator/v2 v2.2.0/go.mod h1:v/q0zLEOWP6MKHP7xvrhtASZTwlrk4LcCne/kgPQ7J0=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3 h1:bxHzLJ7CtPOQ8RKVEGbxb3q1Zoq7wMH60AF6vSEXdEo=
 github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3/go.mod h1:yw2g1lpW2qcQPPVI/0pcgmnRQL2KU9CucT06laPlG24=
+github.com/verrazzano/pkg v0.0.2 h1:Q80lpGaAswNPXkZZL/0THIa9PXvewi+c6xSSzWQyhG8=
+github.com/verrazzano/pkg v0.0.2/go.mod h1:l9utTv9KBQZlJI/HYnw2NQwisYTeHeHl82XOlCiZygM=
 github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd h1:+YEpt1F5UUr20PSeyvy4knsEO//a3SnmjJj1AvAxRqk=
 github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd/go.mod h1:CVq6IMZE0jH+h6j+TiClWnN9oxV174HG19XdJNxxrBc=
 github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595 h1:+4buE2SAKOJbTavB6zJhNd95wkfQ22NY95SvBJF0YlQ=
