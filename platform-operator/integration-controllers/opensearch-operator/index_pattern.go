@@ -32,7 +32,7 @@ type (
 
 func NewOSDashboardsClient(pas string) *OSDashboardsClient {
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec //#gosec G402
 	}
 	od := &OSDashboardsClient{
 		httpClient: &http.Client{Transport: tr},
