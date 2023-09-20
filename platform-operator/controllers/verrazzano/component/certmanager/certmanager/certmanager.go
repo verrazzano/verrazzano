@@ -6,10 +6,16 @@ package certmanager
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
+	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"io"
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
@@ -41,8 +47,10 @@ const (
 	acmeSolverArg = "--acme-http01-solver-image="
 
 	// Uninstall resources
-	controllerConfigMap = "cert-manager-controller"
-	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
+	controllerConfigMap          = "cert-manager-controller"
+	caInjectorConfigMap          = "cert-manager-cainjector-leader-election"
+	caInjectorLeaderElectionRole = "cert-manager-cainjector:leaderelection"
+	controllerLeaderElectionRole = "cert-manager:leaderelection"
 )
 
 const snippetSubstring = "rfc2136:\n"
@@ -75,6 +83,21 @@ var ociDNSSnippet = strings.Split(`ocidns:
   required:
     - ocizonename
   type: object`, "\n")
+
+// Defines a set of leader election resources that Cert-Manager creates that sometimes gets orphaned on uninstall,
+// possibly due to Rancher finalizers
+var leaderElectionSystemResources = []struct {
+	client.ObjectKey
+	obj client.Object
+}{
+	{types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{}},
+	{types.NamespacedName{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{}},
+	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
+	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.Role{}},
+	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
+	{types.NamespacedName{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.Role{}},
+	{types.NamespacedName{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
+}
 
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
@@ -214,33 +237,53 @@ func createSnippetWithPadding(padding string) []byte {
 	return []byte(builder.String())
 }
 
-// uninstallCertManager is the implementation for the cert-manager uninstall step
+// cleanupLeaderElectionResources is the implementation for the cert-manager uninstall step
 // this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func uninstallCertManager(compContext spi.ComponentContext) error {
-	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	err := vzresource.Resource{
-		Name:      controllerConfigMap,
-		Namespace: constants.KubeSystem,
-		Client:    compContext.Client(),
-		Object:    &v1.ConfigMap{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
+func cleanupLeaderElectionResources(compContext spi.ComponentContext) error {
+	for _, resource := range leaderElectionSystemResources {
+		err := vzresource.Resource{
+			Name:      resource.Name,
+			Namespace: resource.Namespace,
+			Client:    compContext.Client(),
+			Object:    resource.obj,
+			Log:       compContext.Log(),
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			return err
+		}
 	}
-
-	err = vzresource.Resource{
-		Name:      caInjectorConfigMap,
-		Namespace: constants.KubeSystem,
-		Client:    compContext.Client(),
-		Object:    &v1.ConfigMap{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
 	return nil
+}
+
+// checkOrphanedResources Checks that the leader-election resources in kube-system are successfully deleted; returns
+// a retryable error if the resource still exists
+func verifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext) error {
+	for _, resource := range leaderElectionSystemResources {
+		exists, err := resourceExists(ctx.Client(), resource.ObjectKey, resource.obj)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return spi2.RetryableError{
+				Source: ComponentName,
+			}
+		}
+		ctx.Log().Progressf("Verified that resource %s has been successfully deleted", resource.ObjectKey)
+	}
+	return nil
+}
+
+// resourceExists checks if the specified Object still exists in the cluster; returns true/nil if the object exists,
+// false/nil if not
+func resourceExists(cli client.Client, key client.ObjectKey, obj client.Object) (bool, error) {
+	err := cli.Get(context.TODO(), key, obj)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // GetOverrides gets the install overrides
