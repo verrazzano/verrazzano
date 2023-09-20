@@ -277,7 +277,7 @@ func verifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext) error {
 				Source: ComponentName,
 			}
 		}
-		ctx.Log().Progressf("Verified that resource %s has been successfully deleted", resource.ObjectKey)
+		ctx.Log().Debugf("Verified that resource %s has been successfully deleted", resource.ObjectKey)
 	}
 	return nil
 }
