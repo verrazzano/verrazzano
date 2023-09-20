@@ -75,7 +75,11 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 }
 
 func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	osDashboardsClient := NewOSDashboardsClient()
+	pas, err := GetVerrazzanoPassword(r.Client)
+	if err != nil {
+		return err
+	}
+	osDashboardsClient := NewOSDashboardsClient(pas)
 	osdURL, err := GetOSDHTTPEndpoint(r.Client)
 	if err != nil {
 		return err

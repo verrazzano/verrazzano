@@ -4,6 +4,7 @@
 package opensearchoperator
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -29,11 +30,15 @@ type (
 	}
 )
 
-func NewOSDashboardsClient() *OSDashboardsClient {
+func NewOSDashboardsClient(pas string) *OSDashboardsClient {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	od := &OSDashboardsClient{
-		httpClient: http.DefaultClient,
+		httpClient: &http.Client{Transport: tr},
 	}
 	od.DoHTTP = func(request *http.Request) (*http.Response, error) {
+		request.SetBasicAuth("verrazzano", pas)
 		return od.httpClient.Do(request)
 	}
 	return od

@@ -5,12 +5,15 @@ package opensearchoperator
 
 import (
 	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -164,4 +167,14 @@ func GetOSDHTTPEndpoint(client clipkg.Client) (string, error) {
 		return "", err
 	}
 	return osdURL, nil
+}
+
+// GetVerrazzanoPassword returns the password credential for the Verrazzano secret
+func GetVerrazzanoPassword(client clipkg.Client) (string, error) {
+	var secret = &corev1.Secret{}
+	err := client.Get(context.TODO(), types.NamespacedName{Name: "verrazzano", Namespace: "verrazzano-system"}, secret)
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch secret %s/%s, %v", "verrazzano", "verrazzano-system", err)
+	}
+	return string(secret.Data["password"]), nil
 }
