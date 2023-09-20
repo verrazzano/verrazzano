@@ -117,6 +117,7 @@ func isJobExecutionContainerCompleted(pod *corev1.Pod) bool {
 	return false
 }
 
+// IsMysqlOperatorJob returns true if this is the MySQL backup job
 func IsMysqlOperatorJob(cli client.Client, object client.Object) bool {
 	// Cast object to job
 	job := object.(*batchv1.Job)
