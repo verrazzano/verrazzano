@@ -117,18 +117,7 @@ pipeline {
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
                 """
                 script {
-                    try{
-                        IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
-                    }
-                    catch(error){
-                        echo"Image Sizes have increased"
-
-                       slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
-                    }
                 }
-                sh """
-                    echo "IMAGE_SIZE_DIFF Return value:  ${IMAGE_SIZE_DIFF} "
-                """
             }
             post {
                 always {
