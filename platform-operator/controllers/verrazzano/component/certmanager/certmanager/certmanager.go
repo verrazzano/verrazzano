@@ -94,9 +94,8 @@ var leaderElectionSystemResources = []struct {
 	{types.NamespacedName{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{}},
 	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
 	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.Role{}},
-	{types.NamespacedName{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
-	{types.NamespacedName{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.Role{}},
 	{types.NamespacedName{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.RoleBinding{}},
+	{types.NamespacedName{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}, &rbac.Role{}},
 }
 
 // CertIssuerType identifies the certificate issuer type
