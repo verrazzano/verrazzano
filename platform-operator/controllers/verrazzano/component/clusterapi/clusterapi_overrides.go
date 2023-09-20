@@ -414,7 +414,8 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, err
 	}
 
-	// We standardized BOM component versions to be
+	// We standardized BOM component versions to be valid semver and not have the v prefix
+	// CAPI requires the v prefix for it's components though so add it back in
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
 	}
