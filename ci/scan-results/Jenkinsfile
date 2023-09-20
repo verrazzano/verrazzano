@@ -16,6 +16,12 @@ pipeline {
         }
     }
 
+    parameters {
+        booleanParam (name: 'TEST_RUN',
+            description: 'Indicate whether this is a TEST run, which will do some stuff but will not try uploading anything, ignored for master/release-* runs',
+            defaultValue: true)
+    }
+
     triggers { cron("@daily") }
 
     environment {
@@ -96,10 +102,12 @@ pipeline {
     post {
         success {
             script {
-                build job: '/upload-scan-report', parameters: [
-                    string(name: 'UPSTREAM_JOB', value: "${env.JOB_NAME}"),
-                    string(name: 'UPSTREAM_BUILD', value: "${env.BUILD_NUMBER}")
-                ], propagate: false, wait: false
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-.*" || params.TEST_RUN == false) {
+                    build job: '/upload-scan-report', parameters: [
+                        string(name: 'UPSTREAM_JOB', value: "${env.JOB_NAME}"),
+                        string(name: 'UPSTREAM_BUILD', value: "${env.BUILD_NUMBER}")
+                    ], propagate: false, wait: false
+                }
             }
         }
     }
