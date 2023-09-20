@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzyaml "github.com/verrazzano/verrazzano/pkg/yaml"
@@ -412,12 +411,6 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 	version, err := bomFile.GetComponentVersion(component)
 	if err != nil {
 		return nil, err
-	}
-
-	// We standardized BOM component versions to be valid semver and not have the v prefix
-	// CAPI requires the v prefix for it's components though so add it back in
-	if !strings.HasPrefix(version, "v") {
-		version = "v" + version
 	}
 
 	subComp, err := bomFile.GetSubcomponent(subcomponent)
