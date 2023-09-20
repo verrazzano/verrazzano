@@ -81,6 +81,7 @@ const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
 const istioRevisionMutatingWebhook = "istio-revision-tag-default"
 
+// for unit testing
 var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
@@ -456,12 +457,12 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks)
 }
 
-func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
-	err := deleteIstioCoreDNS(context)
+func (i istioComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	err := deleteIstioCoreDNS(compContext)
 	if err != nil {
 		return err
 	}
-	err = removeIstioHelmSecrets(context)
+	err = removeIstioHelmSecrets(compContext)
 	if err != nil {
 		return err
 	}

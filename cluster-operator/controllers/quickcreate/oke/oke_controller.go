@@ -5,29 +5,37 @@ package oke
 
 import (
 	"context"
+	_ "embed"
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	"go.uber.org/zap"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
 	finalizerKey = "verrazzano.io/oci-oke-cluster"
 )
 
+var (
+	//go:embed template/cluster/cluster.goyaml
+	clusterTemplate []byte
+	//go:embed template/nodes/nodes.goyaml
+	nodesTemplate []byte
+)
+
 type ClusterReconciler struct {
-	clipkg.Client
-	Scheme *runtime.Scheme
-	Logger *zap.SugaredLogger
+	*controller.Base
+	Scheme            *runtime.Scheme
+	CredentialsLoader oci.CredentialsLoader
+	OCIClientGetter   func(credentials *oci.Credentials) (oci.Client, error)
 }
 
 func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	cluster := &vmcv1alpha1.OKEQuickCreate{}
-	err := r.Get(ctx, req.NamespacedName, cluster)
+	q := &vmcv1alpha1.OKEQuickCreate{}
+	err := r.Get(ctx, req.NamespacedName, q)
 	// if cluster not found, no work to be done
 	if apierrors.IsNotFound(err) {
 		return controller.RequeueDelay(), nil
@@ -35,50 +43,60 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 	if err != nil {
 		return controller.RequeueDelay(), err
 	}
+	if err := r.SetNewResourceLogger(q); err != nil {
+		return controller.RequeueDelay(), err
+	}
+	return r.reconcile(ctx, q)
+}
 
-	err = r.reconcile(ctx, cluster)
+func (r *ClusterReconciler) reconcile(ctx context.Context, q *vmcv1alpha1.OKEQuickCreate) (ctrl.Result, error) {
+	// If quick create is completed, or being deleted, clean up the quick create
+	if !q.GetDeletionTimestamp().IsZero() || q.Status.Phase == vmcv1alpha1.QuickCreatePhaseComplete {
+		return ctrl.Result{}, r.Cleanup(ctx, q, finalizerKey)
+	}
+	// Add any finalizers if they are not present
+	if isMissingFinalizer(q) {
+		return r.SetFinalizers(ctx, q, finalizerKey)
+	}
+	return r.syncCluster(ctx, q)
+}
+
+func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OKEQuickCreate) (ctrl.Result, error) {
+	props, err := NewProperties(ctx, r.Client, r.CredentialsLoader, r.OCIClientGetter, q)
 	if err != nil {
 		return controller.RequeueDelay(), err
 	}
+	// If provisioning has not successfully started, attempt to create the OKE control plane
+	if shouldProvision(q) {
+		if err := controller.ApplyTemplates(r.Client, props, clusterTemplate); err != nil {
+			return controller.RequeueDelay(), err
+		}
+		q.Status = vmcv1alpha1.OKEQuickCreateStatus{
+			Phase: vmcv1alpha1.QuickCreatePhaseProvisioning,
+		}
+		r.Log.Oncef("provisioning OKE cluster: %s/%s", q.Namespace, q.Name)
+		return r.UpdateStatus(ctx, q)
+	}
+	// If OCI Network is loaded, create the nodes and update phase to completed
+	if props.HasOCINetwork() {
+		if err := controller.ApplyTemplates(r.Client, props, nodesTemplate); err != nil {
+			return controller.RequeueDelay(), err
+		}
+		q.Status.Phase = vmcv1alpha1.QuickCreatePhaseComplete
+		r.Log.Oncef("completed provisioning OKE cluster: %s/%s", q.Namespace, q.Name)
+		return r.UpdateStatus(ctx, q)
+	}
+	r.Log.Progressf("waiting for OKE cluster infrastructure: %s/%s", q.Namespace, q.Name)
+	// Quick Create is not complete yet, requeue
 	return controller.RequeueDelay(), nil
 }
 
-func (r ClusterReconciler) reconcile(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
-	// If cluster is being deleted, handle delete
-	if !cluster.GetDeletionTimestamp().IsZero() {
-		return r.delete(ctx, cluster)
-	}
-	// Set finalizer if not present
-	if err := r.setFinalizer(ctx, cluster); err != nil {
-		return err
-	}
-	return r.syncCluster(ctx, cluster)
+func isMissingFinalizer(q *vmcv1alpha1.OKEQuickCreate) bool {
+	return !vzstring.SliceContainsString(q.GetFinalizers(), finalizerKey)
 }
 
-func (r *ClusterReconciler) delete(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
-	if !vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerKey) {
-		return nil
-	}
-	cluster.SetFinalizers(vzstring.RemoveStringFromSlice(cluster.GetFinalizers(), finalizerKey))
-	err := r.Update(ctx, cluster)
-	if err != nil && !apierrors.IsConflict(err) {
-		return err
-	}
-	return nil
-}
-
-func (r *ClusterReconciler) setFinalizer(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
-	if finalizers, added := vzstring.SliceAddString(cluster.GetFinalizers(), finalizerKey); added {
-		cluster.SetFinalizers(finalizers)
-		if err := r.Update(ctx, cluster); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (r *ClusterReconciler) syncCluster(ctx context.Context, cluster *vmcv1alpha1.OKEQuickCreate) error {
-	return nil
+func shouldProvision(q *vmcv1alpha1.OKEQuickCreate) bool {
+	return q.Status.Phase == ""
 }
 
 // SetupWithManager creates a new controller and adds it to the manager

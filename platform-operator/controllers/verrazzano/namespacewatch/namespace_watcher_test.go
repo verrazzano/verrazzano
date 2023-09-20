@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	reldir       = "../../../manifests/profiles"
-	cattleSystem = "cattle-system"
+	reldir          = "../../../manifests/profiles"
+	cattleSystem    = "cattle-system"
+	testBomFilePath = "../testdata/test_bom.json"
 )
 
 var period = time.Duration(10) * time.Second
@@ -51,7 +52,7 @@ func TestStart(t *testing.T) {
 	asserts.Nil(t, namespaceWatcher.shutdown)
 }
 
-// TestMoveSystemNamespaces tests the following cases
+// TestNotToMoveSystemNamespacesWhenRancherNotReady tests the following cases
 // GIVEN that rancher component is enabled and in not ready state in Verrazzano installation
 // OR when subcomponents are not ready
 // THEN no operation takes place
@@ -118,6 +119,10 @@ func TestNotToMoveSystemNamespacesWhenRancherNotReady(t *testing.T) {
 // When namespaces on the cluster does not have label "verrazzano.io/namespace"
 // THEN the namespace  is ignored
 func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
+	oldBomPath := config.GetDefaultBOMFilePath()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath(oldBomPath)
+
 	namespace1 := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "verrazzano-system",
@@ -167,7 +172,7 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 		newPod(rancher.FleetSystemNamespace, "fleet-controller"),
 		newPod(rancher.FleetLocalSystemNamespace, "fleet-agent"),
 		newReadyDeployment(rancher.ComponentNamespace, "rancher"),
-		newReadyDeployment(rancher.ComponentNamespace, "rancher-webhook"),
+		newReadyDeploymentWithImage(rancher.ComponentNamespace, "rancher-webhook", "rancher-webhook:v0.2.6-20221005161115-fee4a23"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "gitjob"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "fleet-controller"),
 		newReadyDeployment(rancher.FleetLocalSystemNamespace, "fleet-agent"), namespace1).Build()
@@ -189,6 +194,10 @@ func TestToNotMoveSystemNamespacesWhenNoSystemNSLabel(t *testing.T) {
 // THEN the method retrieves the System project ID from the rancher
 // And updates the namespace annotation and label with the Project ID.
 func TestMoveSystemNamespaces(t *testing.T) {
+	oldBomPath := config.GetDefaultBOMFilePath()
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer config.SetDefaultBomFilePath(oldBomPath)
+
 	namespace1 := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "verrazzano-system",
@@ -241,7 +250,7 @@ func TestMoveSystemNamespaces(t *testing.T) {
 		newPod(rancher.FleetSystemNamespace, "fleet-controller"),
 		newPod(rancher.FleetLocalSystemNamespace, "fleet-agent"),
 		newReadyDeployment(rancher.ComponentNamespace, "rancher"),
-		newReadyDeployment(rancher.ComponentNamespace, "rancher-webhook"),
+		newReadyDeploymentWithImage(rancher.ComponentNamespace, "rancher-webhook", "rancher-webhook:v0.2.6-20221005161115-fee4a23"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "gitjob"),
 		newReadyDeployment(rancher.FleetSystemNamespace, "fleet-controller"),
 		newReadyDeployment(rancher.FleetLocalSystemNamespace, "fleet-agent"), namespace1).Build()
@@ -290,6 +299,31 @@ func newReadyDeployment(namespace string, name string) *appsv1.Deployment {
 		Spec: appsv1.DeploymentSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": name},
+			},
+		},
+		Status: appsv1.DeploymentStatus{
+			AvailableReplicas: 1,
+			Replicas:          1,
+			UpdatedReplicas:   1,
+		},
+	}
+}
+
+func newReadyDeploymentWithImage(namespace string, name string, image string) *appsv1.Deployment {
+	return &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Labels:    map[string]string{"app": name},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": name},
+			},
+			Template: v1.PodTemplateSpec{
+				Spec: v1.PodSpec{
+					Containers: []v1.Container{{Image: image}},
+				},
 			},
 		},
 		Status: appsv1.DeploymentStatus{

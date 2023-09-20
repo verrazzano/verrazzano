@@ -17,7 +17,8 @@ type (
 		Credentials *oci.Credentials
 	}
 	ClientImpl struct {
-		VCN *core.Vcn
+		VCN                 *core.Vcn
+		AvailabilityDomains []oci.AvailabilityDomain
 	}
 )
 
@@ -27,11 +28,12 @@ func (c *CredentialsLoaderImpl) GetCredentialsIfAllowed(_ context.Context, _ cli
 
 func (c *ClientImpl) GetSubnetByID(_ context.Context, id, role string) (*oci.Subnet, error) {
 	return &oci.Subnet{
-		ID:   id,
-		Role: role,
-		Name: role,
-		CIDR: "10.0.0.0/16",
-		Type: "public",
+		ID:          id,
+		Role:        role,
+		Name:        role,
+		DisplayName: role,
+		CIDR:        "10.0.0.0/16",
+		Type:        "public",
 	}, nil
 }
 
@@ -40,4 +42,8 @@ func (c *ClientImpl) GetVCNByID(_ context.Context, id string) (*core.Vcn, error)
 		return c.VCN, nil
 	}
 	return nil, errors.New("vcn not found")
+}
+
+func (c *ClientImpl) GetAvailabilityAndFaultDomains(_ context.Context) ([]oci.AvailabilityDomain, error) {
+	return c.AvailabilityDomains, nil
 }

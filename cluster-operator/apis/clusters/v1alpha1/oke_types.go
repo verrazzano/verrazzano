@@ -11,7 +11,7 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// OKEQuickCreate specifies the API for quick-create OKE Clusters.
+// OKEQuickCreate specifies the API for quick-create OKE clusters.
 type OKEQuickCreate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -33,31 +33,39 @@ type OKEQuickCreateList struct {
 
 type (
 	OKEQuickCreateSpec struct {
-		CommonClusterSpec `json:",inline"`
+		// Reference for cloud authentication.
+		IdentityRef NamespacedRef `json:"identityRef"`
 		// Kubernetes settings.
 		Kubernetes `json:"kubernetes"`
-		// OKE Cluster settings.
-		OKESpec `json:"oke,omitempty"`
+		// OKE cluster settings.
+		OKE `json:"oke,omitempty"`
 	}
-	OKESpec struct {
+	OKE struct {
 		CommonOCI `json:",inline"`
+		// +optional
+
 		// List of Node pools.
 		NodePools []NamedOCINode `json:"nodePools,omitempty"`
+		// +optional
+
 		// List of Virtual Node pools.
 		VirtualNodePools []VirtualNodePool `json:"virtualNodePools,omitempty"`
-		// Network settings for the OKE Cluster.
+		// Network settings for the OKE cluster.
 		Network *OKENetwork `json:"network,omitempty"`
 	}
 	OKENetwork struct {
+		// +optional
+
 		// VCN and subnet settings for existing networks.
-		Network Network `json:",inline"`
+		Config *Network `json:"config"`
 		// CNI Type for cluster networking. May be FLANNEL_OVERLAY or OCI_VCN_IP_NATIVE.
 		CNIType CNIType `json:"cniType"`
 	}
 	VirtualNodePool struct {
 		// +patchMergeKey=name
 		// +patchStrategy=merge,retainKeys
-		Name string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+		Name     string `json:"name" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
+		Replicas *int   `json:"replicas"`
 	}
 	OKEQuickCreateStatus struct {
 		Phase QuickCreatePhase `json:"phase"`

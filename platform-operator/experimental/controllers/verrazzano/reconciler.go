@@ -15,6 +15,7 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -22,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -77,6 +79,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+	controllerCtx.Log.Oncef("Started reconciling Verrazzano for generation %v", actualCR.Generation)
 
 	// Do global pre-work
 	if res := r.preWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
@@ -85,9 +88,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// Do the actual install, update, and or upgrade.
 	if res := r.doWork(log, actualCR, effectiveCR); res.ShouldRequeue() {
-		if res := r.updateStatusIfNeeded(log, actualCR); res.ShouldRequeue() {
-			return res
-		}
 		return res
 	}
 
@@ -97,7 +97,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
-	r.updateStatusInstallUpgradeComplete(actualCR)
+	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
 	return result.NewResult()
 }
 
@@ -105,7 +108,8 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
 	// Pre-create the Verrazzano System namespace if it doesn't already exist, before kicking off the install job,
 	// since it is needed for the subsequent step to syncLocalRegistration secret.
-	if err := custom.CreateVerrazzanoSystemNamespace(r.Client, effectiveCR, log); err != nil {
+	istio := effectiveCR.Spec.Components.Istio
+	if err := namespace.CreateVerrazzanoSystemNamespace(r.Client, istio != nil && istio.IsInjectionEnabled()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -177,11 +181,13 @@ func (r Reconciler) postInstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-install: configuring auth providers, if needed")
 	if err := rancher.ConfigureAuthProviders(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-install: configuring ArgoCD OIDC, if needed")
 	if err := argocd.ConfigureKeycloakOIDC(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -197,32 +203,40 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-upgrade: configuring auth providers, if needed")
 	if err := rancher.ConfigureAuthProviders(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade Rancher configure auth providers: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-upgrade: configuring ArgoCD OIDC, if needed")
 	if err := argocd.ConfigureKeycloakOIDC(componentCtx); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade ArgoCD configure OIDC: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	// Make sure namespaces get updated with Istio Enabled
+	common.CreateAndLabelNamespaces(componentCtx)
+
+	log.Once("Global post-upgrade: restarting all components that have an old Istio proxy sidecar")
 	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), componentCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	log.Once("Global post-upgrade: doing MySQL post-upgrade cleanup")
 	if err := mysql.PostUpgradeCleanup(log, componentCtx.Client()); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade MySQL cleanup: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	if !r.areModulesDoneReconciling(log, actualCR) {
-		log.Progress("Waiting for modules to be done in Verrazzano post-upgrade processing")
+		log.Progress("Global post-upgrade: waiting for modules to be done")
 		return result.NewResultShortRequeueDelay()
 	}
 
 	if vzcr.IsApplicationOperatorEnabled(componentCtx.EffectiveCR()) && vzcr.IsIstioEnabled(componentCtx.EffectiveCR()) {
+		log.Once("Global post-upgrade: restarting all applications that have an old Istio proxy sidecar")
 		err := restart.RestartApps(log, r.Client, actualCR.Generation)
 		if err != nil {
 			log.ErrorfThrottled("Failed Verrazzano post-upgrade application restarts: %v", err)

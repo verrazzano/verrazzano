@@ -23,7 +23,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Values.ingressNGINX.namespace }}/sa/ingress-controller-ingress-nginx"]
       to:
         - operation:
-            ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}", "{{ .Values.api.v2Port }}"]
+            ports: ["{{ .Values.api.port }}", "{{ .Values.api.grpcPort }}", "{{ .Values.api.v2.port }}"]
 {{- if or .Values.fluentd.enabled (and .Values.fluentOperator.enabled .Values.fluentbitOpensearchOutput.enabled) }}
     # verrazzano-authproxy:8775 <- fluentd, fluentBit
     - from:

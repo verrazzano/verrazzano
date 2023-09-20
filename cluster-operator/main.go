@@ -82,7 +82,7 @@ func handleFlags() operatorinit.Properties {
 		"Runs in webhook mode; if false, runs the main operator reconcile loop")
 	flag.BoolVar(&runWebhookInit, "run-webhook-init", false,
 		"Runs the webhook initialization code")
-	flag.BoolVar(&enableQuickCreate, "quick-create", false, "If true, enables Quick Create Clusters")
+	flag.BoolVar(&enableQuickCreate, "quick-create", true, "If true, enables Quick Create Clusters")
 	flag.StringVar(&certDir, "cert-dir", "/etc/certs/", "The directory containing tls.crt and tls.key.")
 	flag.StringVar(&ingressHost, "ingress-host", "", "The host used for Rancher API requests.")
 	flag.BoolVar(&disableCAPIRancherRegistration, "disable-capi-rancher-registration", false,

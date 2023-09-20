@@ -12,6 +12,7 @@ import (
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -79,7 +80,7 @@ func (c jaegerOperatorComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c jaegerOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{istio.ComponentName, cmconstants.CertManagerComponentName, opensearch.ComponentName, fluentoperator.ComponentName}),
 		watch.GetCreateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetUpdateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetDeleteSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),

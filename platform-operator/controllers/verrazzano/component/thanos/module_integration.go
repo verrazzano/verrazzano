@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -57,5 +58,5 @@ func (c ThanosComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazza
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c ThanosComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName})
 }

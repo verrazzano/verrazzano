@@ -117,6 +117,8 @@ func (s *Syncer) syncRegistrationFromAdminCluster() (controllerutil.OperationRes
 			registrationSecret.Data[mcconstants.JaegerOSTLSCAKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSCAKey]
 			registrationSecret.Data[mcconstants.JaegerOSTLSCertKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSCertKey]
 			registrationSecret.Data[mcconstants.JaegerOSTLSKey] = adminRegistrationSecret.Data[mcconstants.JaegerOSTLSKey]
+			registrationSecret.Data[mcconstants.DexURLKey] = adminRegistrationSecret.Data[mcconstants.DexURLKey]
+			registrationSecret.Data[mcconstants.OidcProviderKey] = adminRegistrationSecret.Data[mcconstants.OidcProviderKey]
 			return nil
 		})
 		if err != nil {
@@ -152,7 +154,11 @@ func registrationInfoEqual(regSecret1 corev1.Secret, regSecret2 corev1.Secret) b
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSTLSCertKey],
 			regSecret2.Data[mcconstants.JaegerOSTLSCertKey]) &&
 		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.JaegerOSTLSKey],
-			regSecret2.Data[mcconstants.JaegerOSTLSKey])
+			regSecret2.Data[mcconstants.JaegerOSTLSKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.DexURLKey],
+			regSecret2.Data[mcconstants.DexURLKey]) &&
+		byteSlicesEqualTrimmedWhitespace(regSecret1.Data[mcconstants.OidcProviderKey],
+			regSecret2.Data[mcconstants.OidcProviderKey])
 }
 
 // syncLocalClusterCA - synchronize the local cluster CA cert -- update admin copy if local CA changes

@@ -6,9 +6,10 @@ package vmc
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -18,7 +19,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"strings"
 )
 
 const vmiIngest = "vmi-system-os-ingest"
@@ -114,19 +114,37 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
 		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
 	} else {
-		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, true)
-		if err != nil {
+		esSecret, err := r.getSecret(constants.VerrazzanoSystemNamespace, constants.VerrazzanoESInternal, false)
+		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
-		esCaBundle = adminCaBundle
-		esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
-		esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+
+		if len(esSecret.Data) > 0 {
+			esCaBundle = adminCaBundle
+			esUsername = esSecret.Data[mcconstants.VerrazzanoUsernameKey]
+			esPassword = esSecret.Data[mcconstants.VerrazzanoPasswordKey]
+		}
+
 	}
 
 	// Get the keycloak URL
-	keycloakURL, err := k8sutil.GetURLForIngress(r.Client, "keycloak", "keycloak", "https")
+	keycloakURL, err := r.getIngressURL("keycloak", "keycloak")
 	if err != nil {
 		return err
+	}
+
+	dexURL, err := r.getIngressURL("verrazzano-auth", "dex")
+	if err != nil {
+		return err
+	}
+
+	if keycloakURL == "" && dexURL == "" {
+		return fmt.Errorf("no oidc provider found")
+	}
+
+	oidcProvider := "keycloak"
+	if vzcr.IsDexEnabled(&vzList.Items[0]) {
+		oidcProvider = "dex"
 	}
 
 	// Get the Jaeger OpenSearch related data if it exists
@@ -150,6 +168,8 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 		mcconstants.JaegerOSTLSCertKey:      jaegerStorage.TLSCert,
 		mcconstants.JaegerOSUsernameKey:     jaegerStorage.username,
 		mcconstants.JaegerOSPasswordKey:     jaegerStorage.password,
+		mcconstants.DexURLKey:               []byte(dexURL),
+		mcconstants.OidcProviderKey:         []byte(oidcProvider),
 	}
 	return nil
 }
@@ -234,7 +254,7 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 		// Combine the two CA bundles
 		tlsCABundle := optSecret.Data[constants.RancherTLSCAKey]
 		if len(tlsCABundle) > 0 {
-			r.log.Infof("Adding tls-ca bundle to Admin CA bundle")
+			r.log.Debugf("Adding tls-ca bundle to Admin CA bundle")
 			caBundle = tlsCABundle
 		}
 	}
@@ -250,9 +270,25 @@ func (r *VerrazzanoManagedClusterReconciler) getAdminCaBundle() ([]byte, error) 
 			r.log.Infof("Adding ingress CA cert bundle to Admin CA bundle")
 			caBundle = append(caBundle, tlsIngressCA...)
 		} else {
-			r.log.Infof("ingress CA bundle already present in bundle data, skipping")
+			r.log.Debugf("ingress CA bundle already present in bundle data, skipping")
 		}
 	}
 
 	return caBundle, nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) getIngressURL(namespace string, name string) (string, error) {
+	var ingress = &k8net.Ingress{}
+	err := r.Get(context.TODO(), types.NamespacedName{Name: name, Namespace: namespace}, ingress)
+	if err != nil && errors.IsNotFound(err) {
+		r.log.Infof("ingress %s/%s does not exist", namespace, name)
+		return "", nil
+	}
+
+	if err != nil {
+		return "", fmt.Errorf("unable to fetch ingress %s/%s, %v", namespace, name, err)
+	}
+
+	r.log.Infof("found ingress %s/%s", namespace, name)
+	return fmt.Sprintf("%s://%s", "https", ingress.Spec.Rules[0].Host), nil
 }

@@ -66,6 +66,7 @@ rules:
     resources:
       - serviceaccounts
       - configmaps
+      - endpoints
       - secrets
       - services
       - pods/exec
@@ -134,8 +135,13 @@ rules:
       - bootstrap.cluster.x-k8s.io
       - addons.cluster.x-k8s.io
     resources:
+      - ocimanagedmachinepools
       - ociclusters
+      - ocivirtualmachinepools
+      - ocimanagedclusters
+      - ocimanagedcontrolplanes
       - ocimachinetemplates
+      - ocimanagedmachinepool
       - ocnecontrolplanes
       - ocneconfigtemplates
       - clusterresourcesets
@@ -148,6 +154,7 @@ rules:
     resources:
       - clusters
       - machinedeployments
+      - machinepools
     verbs:
       - create
       - update

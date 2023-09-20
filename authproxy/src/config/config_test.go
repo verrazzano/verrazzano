@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
 	"go.uber.org/zap"
 )
 
@@ -19,19 +20,19 @@ func TestInitConfiguration(t *testing.T) {
 	const testClientID = "unit-test-client-id"
 
 	// create temporary files with test data and override the filenames
-	serviceURLFile, err := makeTempFile(testServiceURL)
+	serviceURLFile, err := file.MakeTempFile(testServiceURL)
 	if serviceURLFile != nil {
 		defer os.Remove(serviceURLFile.Name())
 	}
 	assert.NoError(t, err)
 
-	externalURLFile, err := makeTempFile(testExternalURL)
+	externalURLFile, err := file.MakeTempFile(testExternalURL)
 	if externalURLFile != nil {
 		defer os.Remove(externalURLFile.Name())
 	}
 	assert.NoError(t, err)
 
-	clientIDFile, err := makeTempFile(testClientID)
+	clientIDFile, err := file.MakeTempFile(testClientID)
 	if clientIDFile != nil {
 		defer os.Remove(clientIDFile.Name())
 	}
@@ -88,18 +89,6 @@ func TestInitConfiguration(t *testing.T) {
 
 	// stop the goroutine
 	keepWatching.Store(false)
-}
-
-// makeTempFile creates a temporary file and writes the specified contents
-func makeTempFile(content string) (*os.File, error) {
-	tmpFile, err := os.CreateTemp("", "")
-	if err != nil {
-		return nil, err
-	}
-	defer tmpFile.Close()
-
-	_, err = tmpFile.Write([]byte(content))
-	return tmpFile, err
 }
 
 // eventually executes the provided function until it either returns true or exceeds a number of attempts

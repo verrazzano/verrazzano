@@ -508,6 +508,26 @@ func TestSyncRegistrationFromAdminCluster(t *testing.T) {
 			controllerutil.OperationResultNone,
 			fmt.Errorf("secrets \"verrazzano-local-ca-bundle\" not found"),
 		},
+		{
+			"Dex url is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.DexURLKey: "new dex url",
+			}, "", ""),
+			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
+		{
+			"OIDC Provider is updated in admin cluster but not synced to managed1",
+			&testAdminCASecret,
+			createSecretWithOverrides(adminRegSecretPath, map[string]string{
+				mcconstants.OidcProviderKey: "dex or keycloak",
+			}, "", ""),
+			createSecretWithOverrides(clusterRegSecretPath, nil, "", ""),
+			controllerutil.OperationResultUpdated,
+			nil,
+		},
 	}
 
 	for _, tt := range tests {
@@ -802,6 +822,8 @@ func assertRegistrationInfoEqual(t *testing.T, regSecret1 *corev1.Secret, regSec
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSCAKey], regSecret2.Data[mcconstants.JaegerOSTLSCAKey], "Jaeger OS TLS CA is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSCertKey], regSecret2.Data[mcconstants.JaegerOSTLSCertKey], "Jaeger OS TLS Cert is different")
 	asserts.Equal(t, regSecret1.Data[mcconstants.JaegerOSTLSKey], regSecret2.Data[mcconstants.JaegerOSTLSKey], "Jaeger OS TLS Key is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.DexURLKey], regSecret2.Data[mcconstants.DexURLKey], "Dex URL is different")
+	asserts.Equal(t, regSecret1.Data[mcconstants.OidcProviderKey], regSecret2.Data[mcconstants.OidcProviderKey], "OIDC Provider is different")
 }
 
 func createSecretWithOverrides(filepath string, overrides map[string]string, newNamespace string, newName string) *corev1.Secret {

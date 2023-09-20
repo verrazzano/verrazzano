@@ -201,7 +201,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.4.2",
+      "version": "v1.4.6",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -209,7 +209,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.4.2-20230601170413-d75d4df4d"
+              "tag": "v1.4.6-20230919163417-54657bc14"
             }
           ]
         }
@@ -217,7 +217,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.0",
+      "version": "v0.12.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -225,7 +225,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.0"
+              "tag": "v0.12.1"
             }
           ]
         }
@@ -271,7 +271,7 @@
             },
             {
               "image": "console",
-              "tag": "v2.0.0-20230828163609-10891b3",
+              "tag": "v2.0.0-20230912070053-2d1883d",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -301,7 +301,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230825101211-f2937ea",
+              "tag": "v2.0.0-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -322,12 +322,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230529152058-071cbb2e727",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -592,7 +592,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230529051244-228d40b314",
+              "tag": "v20.0.1-20230919161553-c397f447f5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -907,7 +907,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230601094358-fc41216e",
+              "tag": "v2.7.2-20230919043605-fc41216e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -919,7 +919,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230601100836-26c8b963",
+              "tag": "v6.2.7-20230919040640-26c8b963",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -929,7 +929,7 @@
     },
     {
       "name": "thanos",
-      "version": "v0.30.2",
+      "version": "v0.32.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -937,8 +937,26 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.30.2-20230525123422-4b7a94ea",
+              "tag": "v0.32.2-20230911193410-1e27f1f9",
               "helmRegKey": "image.registry",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "dex",
+      "version": "v2.37.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "dex",
+          "images": [
+            {
+              "image": "dex",
+              "tag": "v2.37.0-20230911122845-caabc629",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

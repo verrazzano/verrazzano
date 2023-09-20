@@ -46,12 +46,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Info("Configuring the proxy Kubernetes API client")
-	err = proxy.ConfigureKubernetesAPIProxy(authproxy, mgr.GetClient(), log)
-	if err != nil {
-		os.Exit(1)
-	}
-
 	log.Info("Starting manager")
 	go func() {
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
@@ -59,6 +53,12 @@ func main() {
 			os.Exit(1)
 		}
 	}()
+
+	log.Info("Configuring the proxy Kubernetes API client")
+	err = proxy.ConfigureKubernetesAPIProxy(authproxy, mgr.GetClient(), log)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	log.Info("Starting up proxy server to listen for requests")
 	err = authproxy.ListenAndServe()
@@ -69,7 +69,7 @@ func main() {
 
 // handleFlags sets up the CLI flags, parses them, and initializes loggers
 func handleFlags() {
-	flag.IntVar(&proxyPort, "proxy-port", 8777, "Port for incoming request to the Auth Proxy.")
+	flag.IntVar(&proxyPort, "port", 8777, "Port the Auth Proxy listens on.")
 
 	opts := kzap.Options{}
 	opts.BindFlags(flag.CommandLine)

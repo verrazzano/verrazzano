@@ -14,17 +14,22 @@ import (
 )
 
 var (
-	gvkOCICluster = schema.GroupVersionKind{
+	GVKOCICluster = schema.GroupVersionKind{
 		Group:   "infrastructure.cluster.x-k8s.io",
 		Version: "v1beta2",
 		Kind:    "ocicluster",
 	}
+	GVKOCIManagedCluster = schema.GroupVersionKind{
+		Group:   "infrastructure.cluster.x-k8s.io",
+		Version: "v1beta2",
+		Kind:    "ocimanagedcluster",
+	}
 )
 
-func GetNetwork(ctx context.Context, cli clipkg.Client, o clipkg.Object) (*vmcv1alpha1.Network, error) {
+func GetNetwork(ctx context.Context, cli clipkg.Client, o clipkg.Object, gvk schema.GroupVersionKind) (*vmcv1alpha1.Network, error) {
 	network := &vmcv1alpha1.Network{}
 	ociCluster := &unstructured.Unstructured{}
-	ociCluster.SetGroupVersionKind(gvkOCICluster)
+	ociCluster.SetGroupVersionKind(gvk)
 	err := cli.Get(ctx, types.NamespacedName{
 		Namespace: o.GetNamespace(),
 		Name:      o.GetName(),

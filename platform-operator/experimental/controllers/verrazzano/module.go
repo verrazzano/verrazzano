@@ -8,12 +8,14 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,36 +34,81 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 	// Create or Update a Module for each enabled resource
 	for _, comp := range registry.GetComponents() {
 		if !comp.IsEnabled(effectiveCR) {
-			continue
-		}
-		if !comp.ShouldUseModule() {
-			continue
+			// If the component is not enabled then check if it is installed.
+			// There is an edge case where a component might be disabled, but installed.
+			// For example in VMO 1.5 -> 1.6 upgrade, VMO.IsEnabled used to return true if
+			// Prometheus was enabled, but for 1.6 it returns false. So 1.6 VMO.IsEnabled might
+			// return false, when VMO is really installed.  In that case, we need to create the
+			// Module CR so that we can uninstall it (see deleteModules in reconciler.go).
+			componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+			installed, err := comp.IsInstalled(componentCtx)
+			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+			if !installed {
+				continue
+			}
 		}
 
+		// Get the module version from the catalog
 		version := catalog.GetVersion(comp.Name())
 		if version == nil {
 			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
-
-		module := moduleapi.Module{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      comp.Name(),
-				Namespace: vzconst.VerrazzanoInstallNamespace,
-			},
-		}
-		opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
-		})
-		log.Debugf("Module %s update result: %v", module.Name, opResult)
-		if err != nil {
-			if !errors.IsConflict(err) {
-				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
-			}
-			return result.NewResultShortRequeueDelayWithError(err)
+		if res := r.createOrUpdateOneModule(log, actualCR, effectiveCR, comp, version); res.ShouldRequeue() {
+			return res
 		}
 	}
 	return result.NewResult()
+}
+
+func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, comp componentspi.Component, version *semver.SemVersion) result.Result {
+	// Create or update the module
+	moduleToUpdate := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
+
+	// Stash the current state of the module away for comparison after update
+	currentModule := &moduleapi.Module{}
+	if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&moduleToUpdate), currentModule); err != nil && !errors.IsNotFound(err) {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Create/Update the module if necessary
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &moduleToUpdate, func() error {
+		return r.mutateModule(log, actualCR, effectiveCR, &moduleToUpdate, comp, version.ToString())
+	})
+	if err != nil {
+		if !errors.IsConflict(err) {
+			log.ErrorfThrottled("Failed createOrUpdate module %s: %v", moduleToUpdate.Name, err)
+		}
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Update the status IFF the module has been updated
+	if r.moduleDeepEqual(currentModule, &moduleToUpdate) {
+		opResult = controllerutil.OperationResultNone
+	}
+	// If the copy operation resulted in an update to the target, set the VZ condition to install started/Reconciling
+	if res := r.updateStatusIfNeeded(log, actualCR, opResult); res.ShouldRequeue() {
+		return res
+	}
+	return result.NewResult()
+}
+
+// moduleDeepEqual - Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
+// do a DeepEqual of the before/after relevant module fields to see if anything there changed.
+func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Module) bool {
+	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
+	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
+	//
+	// For now we will use DeepEqual to compare parts of the Module objects we care about directly unless we can
+	// determine why we're getting diffs from the full ObjectCompare
+	return equality.Semantic.DeepEqual(mod1.Spec, mod2.Spec) &&
+		equality.Semantic.DeepEqual(mod1.ObjectMeta, mod2.ObjectMeta) &&
+		equality.Semantic.DeepEqual(mod1.Status, mod2.Status)
 }
 
 // mutateModule mutates the module for the create or update callback
@@ -81,6 +128,7 @@ func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion
 
+	// Set the module values and valuesFrom fields
 	return r.setModuleValues(log, actualCR, effectiveCR, module, comp)
 }
 
