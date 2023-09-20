@@ -8,18 +8,13 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	spi2 "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"io"
-	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"os"
-	"path/filepath"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -29,7 +24,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -264,7 +264,7 @@ func verifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext) error {
 			return err
 		}
 		if exists {
-			return spi2.RetryableError{
+			return vzerrors.RetryableError{
 				Source: ComponentName,
 			}
 		}
