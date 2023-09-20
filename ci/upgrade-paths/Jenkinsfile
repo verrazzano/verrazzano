@@ -3,7 +3,6 @@
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
@@ -227,6 +226,8 @@ pipeline {
         VERSION_FOR_INSTALL = "${params.VERSION_FOR_INSTALL}"
         TARGET_UPGRADE_OPERATOR_YAML = "${WORKSPACE}/target-upgrade-operator.yaml"
         RUNNING_OPERATOR_VERSION = ""
+
+        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
     }
 
     stages {
@@ -638,7 +639,10 @@ pipeline {
                 }
                 success {
                     script {
-                        if (EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS == true) {
+                        sh """
+                            echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS in post success ${env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
+                        """
+                        if (env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS) {
                             dumpK8sCluster("${WORKSPACE}/multicluster-post-upgrade-acceptance-tests-cluster-snapshot")
                         }
                     }
@@ -2027,7 +2031,8 @@ def performDockerLogin() {
 
 def performSourceCodeCheckout() {
     script {
-        EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+        env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = getEffectiveDumpOnSuccess()
+        echo "EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS in performSourceCodeCheckout ${env.EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS}"
         if (params.GIT_COMMIT_TO_USE == "NONE") {
             echo "Specific GIT commit was not specified, use current head"
             def scmInfo = checkout scm
