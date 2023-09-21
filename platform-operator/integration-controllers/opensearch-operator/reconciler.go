@@ -53,11 +53,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	* Add default index patterns
 	**********************/
 
-	if *effectiveCR.Spec.Components.Kibana.Enabled {
-		//err = r.CreateIndexPatterns(controllerCtx, effectiveCR)
-		//if err != nil {
-		//	return result.NewResultShortRequeueDelayWithError(err)
-		//}
+	if *effectiveCR.Spec.Components.Kibana.Enabled && *effectiveCR.Spec.Components.Elasticsearch.Enabled {
 		if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
 			zap.S().Infof("DisableDefaultPolicy false")
 			err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
@@ -65,10 +61,16 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		} else {
-			zap.S().Warn("DisableDefaultPolicy true")
-
+			zap.S().Infof("DisableDefaultPolicy true")
 			err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
+				return result.NewResultShortRequeueDelayWithError(err)
+			}
+		}
+		if len(effectiveCR.Spec.Components.Elasticsearch.Policies) > 0 {
+			err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
+			if err != nil {
+				zap.S().Infof("ConfigureISMPolicies true")
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		}
@@ -107,5 +109,15 @@ func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.Reconc
 	}
 	osClient := NewOSClient(pas)
 	err = osClient.DeleteDefaultISMPolicy(r.log, r.Client, vz)
+	return err
+}
+
+func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+	pas, err := GetVerrazzanoPassword(r.Client)
+	if err != nil {
+		return err
+	}
+	osClient := NewOSClient(pas)
+	err = osClient.ConfigureISM(r.log, r.Client, vz)
 	return err
 }
