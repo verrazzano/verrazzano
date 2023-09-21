@@ -9,8 +9,6 @@ WORKDIR /root/go/src/github.com/verrazzano/verrazzano
 COPY . .
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 
-#ENV GO_LDFLAGS="-extldflags -static"
-
 RUN go mod download -x \
     && GOMODULE=on GOPRIVATE=github.com/verrazzano GOOS=linux GOARCH=amd64 go build \
     		-ldflags "-s -w" \
