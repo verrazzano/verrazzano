@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -19,20 +19,8 @@ import (
 
 // MultiClusterApplicationConfigurationValidator is a struct holding objects used during validation.
 type MultiClusterApplicationConfigurationValidator struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *MultiClusterApplicationConfigurationValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InjectDecoder injects the decoder.
-func (v *MultiClusterApplicationConfigurationValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
+	Client  client.Client
+	Decoder *admission.Decoder
 }
 
 // Handle performs validation of created or updated MultiClusterApplicationConfiguration resources.
@@ -45,7 +33,7 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 	defer handleDurationMetricObject.TimerStop()
 
 	mcac := &v1alpha1.MultiClusterApplicationConfiguration{}
-	err = v.decoder.Decode(req, mcac)
+	err = v.Decoder.Decode(req, mcac)
 	if err != nil {
 		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
@@ -54,7 +42,7 @@ func (v *MultiClusterApplicationConfigurationValidator) Handle(ctx context.Conte
 	if mcac.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create, k8sadmission.Update:
-			err = validateMultiClusterResource(v.client, mcac)
+			err = validateMultiClusterResource(v.Client, mcac)
 			if err != nil {
 				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())
@@ -79,7 +67,7 @@ func (v *MultiClusterApplicationConfigurationValidator) validateSecrets(mcac *v1
 
 	secrets := corev1.SecretList{}
 	listOptions := &client.ListOptions{Namespace: mcac.Namespace}
-	err := v.client.List(context.TODO(), &secrets, listOptions)
+	err := v.Client.List(context.TODO(), &secrets, listOptions)
 	if err != nil {
 		return err
 	}

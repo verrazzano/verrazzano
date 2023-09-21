@@ -6,6 +6,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"net/http"
 
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -14,6 +15,7 @@ import (
 	"go.uber.org/zap"
 	istioversionedclient "istio.io/client-go/pkg/clientset/versioned"
 	v1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -26,7 +28,7 @@ const AppConfigDefaulterPath = "/appconfig-defaulter"
 
 // AppConfigWebhook uses a list of AppConfigDefaulters to supply appconfig default values
 type AppConfigWebhook struct {
-	decoder     *admission.Decoder
+	Decoder     *admission.Decoder
 	Client      client.Client
 	KubeClient  kubernetes.Interface
 	IstioClient istioversionedclient.Interface
@@ -39,13 +41,14 @@ type AppConfigDefaulter interface {
 	Cleanup(appConfig *oamv1.ApplicationConfiguration, dryRun bool, log *zap.SugaredLogger) error
 }
 
-// InjectDecoder injects admission.Decoder
-func (a *AppConfigWebhook) InjectDecoder(d *admission.Decoder) error {
-	a.decoder = d
-	return nil
-}
-
 var appconfigMarshalFunc = json.Marshal
+
+func NewAppConfigWebhookDecoder() *admission.Decoder {
+	scheme := runtime.NewScheme()
+	_ = core.AddToScheme(scheme)
+	decoder := admission.NewDecoder(scheme)
+	return decoder
+}
 
 // Handle handles appconfig mutate Request
 func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) admission.Response {
@@ -67,7 +70,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 
 	// if the operation is Delete then decode the old object and call the defaulter to cleanup any app conf defaults
 	if req.Operation == v1.Delete {
-		err := a.decoder.DecodeRaw(req.OldObject, appConfig)
+		err := a.Decoder.DecodeRaw(req.OldObject, appConfig)
 		if err != nil {
 			return admission.Errored(http.StatusBadRequest, err)
 		}
@@ -88,7 +91,7 @@ func (a *AppConfigWebhook) Handle(ctx context.Context, req admission.Request) ad
 		return admission.Allowed("cleaned up appconfig default")
 	}
 
-	err = a.decoder.Decode(req, appConfig)
+	err = a.Decoder.Decode(req, appConfig)
 	if err != nil {
 		return admission.Errored(http.StatusBadRequest, err)
 	}

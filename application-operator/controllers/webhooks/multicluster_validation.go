@@ -18,14 +18,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// newScheme creates a new scheme that includes this package's object for use by client
-// This is a test utility function used by other multi-cluster resource validation tests.
+// NewScheme creates a new scheme that includes this package's object for use by client
+// This is a utility function used by other multi-cluster resources.
 func NewScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	_ = clusters.AddToScheme(scheme)
 	scheme.AddKnownTypes(schema.GroupVersion{
 		Version: "v1",
-	}, &core.Secret{}, &core.SecretList{})
+	}, &core.Pod{}, &core.Secret{}, &core.SecretList{})
 	_ = clustersapi.AddToScheme(scheme)
 	return scheme
 }

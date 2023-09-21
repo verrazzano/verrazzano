@@ -68,7 +68,7 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 
 	kubeClient, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		log.Errorf("Failed to get clientset", err)
+		log.Errorf("Failed to get clientset: %v", err)
 		return err
 	}
 
@@ -187,10 +187,12 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 			Handler: &webhooks.LabelerPodWebhook{
 				Client:        mgr.GetClient(),
 				DynamicClient: dynamicClient,
+				Decoder:       admission.NewDecoder(webhooks.NewScheme()),
 			},
 		},
 	)
 
+	decoder = webhooks.NewAppConfigWebhookDecoder()
 	appconfigWebhook := &webhooks.AppConfigWebhook{
 		Client:      mgr.GetClient(),
 		KubeClient:  kubeClient,
@@ -200,28 +202,53 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 				Client: mgr.GetClient(),
 			},
 		},
+		Decoder: decoder,
 	}
 	mgr.GetWebhookServer().Register(webhooks.AppConfigDefaulterPath, &webhook.Admission{Handler: appconfigWebhook})
 
 	// MultiClusterApplicationConfiguration validating webhook
 	mgr.GetWebhookServer().Register(
 		"/validate-clusters-verrazzano-io-v1alpha1-multiclusterapplicationconfiguration",
-		&webhook.Admission{Handler: &webhooks.MultiClusterApplicationConfigurationValidator{}})
+		&webhook.Admission{
+			Handler: &webhooks.MultiClusterApplicationConfigurationValidator{
+				Client:  mgr.GetClient(),
+				Decoder: admission.NewDecoder(webhooks.NewScheme()),
+			},
+		},
+	)
 
 	// MultiClusterComponent validating webhook
 	mgr.GetWebhookServer().Register(
 		"/validate-clusters-verrazzano-io-v1alpha1-multiclustercomponent",
-		&webhook.Admission{Handler: &webhooks.MultiClusterComponentValidator{}})
+		&webhook.Admission{
+			Handler: &webhooks.MultiClusterComponentValidator{
+				Client:  mgr.GetClient(),
+				Decoder: admission.NewDecoder(webhooks.NewScheme()),
+			},
+		},
+	)
 
 	// MultiClusterConfigMap validating webhook
 	mgr.GetWebhookServer().Register(
 		"/validate-clusters-verrazzano-io-v1alpha1-multiclusterconfigmap",
-		&webhook.Admission{Handler: &webhooks.MultiClusterConfigmapValidator{}})
+		&webhook.Admission{
+			Handler: &webhooks.MultiClusterConfigmapValidator{
+				Client:  mgr.GetClient(),
+				Decoder: admission.NewDecoder(webhooks.NewScheme()),
+			},
+		},
+	)
 
 	// MultiClusterSecret validating webhook
 	mgr.GetWebhookServer().Register(
 		"/validate-clusters-verrazzano-io-v1alpha1-multiclustersecret",
-		&webhook.Admission{Handler: &webhooks.MultiClusterSecretValidator{}})
+		&webhook.Admission{
+			Handler: &webhooks.MultiClusterSecretValidator{
+				Client:  mgr.GetClient(),
+				Decoder: admission.NewDecoder(webhooks.NewScheme()),
+			},
+		},
+	)
 
 	// +kubebuilder:scaffold:builder
 

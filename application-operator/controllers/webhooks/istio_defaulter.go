@@ -7,11 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
-	"k8s.io/apimachinery/pkg/runtime"
-	"net/http"
-	"strings"
-
 	"github.com/gertd/go-pluralize"
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	"github.com/verrazzano/verrazzano/application-operator/controllers"
@@ -26,11 +21,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"net/http"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+	"strings"
 )
 
 // IstioDefaulterPath specifies the path of Istio defaulter webhook
@@ -50,7 +48,7 @@ type IstioWebhook struct {
 
 func NewIstioWebhookDecoder() *admission.Decoder {
 	scheme := runtime.NewScheme()
-	_ = core.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
 	decoder := admission.NewDecoder(scheme)
 	return decoder
 }

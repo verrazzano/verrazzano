@@ -34,7 +34,7 @@ func newLabelerPodWebhook() LabelerPodWebhook {
 		Client:        cli,
 		DynamicClient: fake.NewSimpleDynamicClient(runtime.NewScheme()),
 	}
-	_ = v.InjectDecoder(decoder)
+	v.Decoder = decoder
 	return v
 }
 

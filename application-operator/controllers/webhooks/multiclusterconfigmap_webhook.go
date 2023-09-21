@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package webhooks
@@ -16,20 +16,8 @@ import (
 
 // MultiClusterConfigmapValidator is a struct holding objects used during validation.
 type MultiClusterConfigmapValidator struct {
-	client  client.Client
-	decoder *admission.Decoder
-}
-
-// InjectClient injects the client.
-func (v *MultiClusterConfigmapValidator) InjectClient(c client.Client) error {
-	v.client = c
-	return nil
-}
-
-// InjectDecoder injects the decoder.
-func (v *MultiClusterConfigmapValidator) InjectDecoder(d *admission.Decoder) error {
-	v.decoder = d
-	return nil
+	Client  client.Client
+	Decoder *admission.Decoder
 }
 
 // Handle performs validation of created or updated MultiClusterConfigmap resources.
@@ -42,7 +30,7 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 	defer handleDurationMetricObject.TimerStop()
 
 	mccm := &v1alpha1.MultiClusterConfigMap{}
-	err = v.decoder.Decode(req, mccm)
+	err = v.Decoder.Decode(req, mccm)
 	if err != nil {
 		errorCounterMetricObject.Inc(zapLogForMetrics, err)
 		return admission.Errored(http.StatusBadRequest, err)
@@ -51,7 +39,7 @@ func (v *MultiClusterConfigmapValidator) Handle(ctx context.Context, req admissi
 	if mccm.ObjectMeta.DeletionTimestamp.IsZero() {
 		switch req.Operation {
 		case k8sadmission.Create, k8sadmission.Update:
-			err = validateMultiClusterResource(v.client, mccm)
+			err = validateMultiClusterResource(v.Client, mccm)
 			if err != nil {
 				errorCounterMetricObject.Inc(zapLogForMetrics, err)
 				return admission.Denied(err.Error())

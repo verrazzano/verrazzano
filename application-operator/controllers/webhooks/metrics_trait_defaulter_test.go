@@ -52,7 +52,7 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 	req := admission.Request{}
 
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, configPath)}
-	decoder := decoder()
+	decoder := NewAppConfigWebhookDecoder()
 	appConfig := &oamv1.ApplicationConfiguration{}
 	err := decoder.Decode(req, appConfig)
 	if err != nil {
@@ -92,7 +92,7 @@ func testDefaulter(t *testing.T, componentPath, configPath, workloadPath string,
 func testMetricsTraitDefaulterCleanup(t *testing.T, configPath string, dryRun bool) {
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, configPath)}
-	decoder := decoder()
+	decoder := NewAppConfigWebhookDecoder()
 	appConfig := &oamv1.ApplicationConfiguration{}
 	err := decoder.Decode(req, appConfig)
 	if err != nil {

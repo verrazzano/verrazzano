@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	oamv1 "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	"github.com/golang/mock/gomock"
 	"github.com/prometheus/client_golang/prometheus/testutil"
@@ -27,22 +26,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func decoder() *admission.Decoder {
-	scheme := runtime.NewScheme()
-	_ = core.AddToScheme(scheme)
-	decoder := admission.NewDecoder(scheme)
-	return decoder
-}
-
 // TestAppConfigDefaulterHandleError tests handling an invalid appconfig admission.Request
 // GIVEN a AppConfigDefaulter and an appconfig admission.Request
 // WHEN Handle is called with an invalid admission.Request containing no content
 // THEN Handle should return an error with http.StatusBadRequest
 func TestAppConfigDefaulterHandleError(t *testing.T) {
 
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewAppConfigWebhookDecoder()
+	defaulter := &AppConfigWebhook{Decoder: decoder}
 	req := admission.Request{}
 	res := defaulter.Handle(context.TODO(), req)
 	assert.False(t, res.Allowed)
@@ -55,9 +46,8 @@ func TestAppConfigDefaulterHandleError(t *testing.T) {
 // THEN Handle should return a patch response
 func TestAppConfigDefaulterHandle(t *testing.T) {
 
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewAppConfigWebhookDecoder()
+	defaulter := &AppConfigWebhook{Decoder: decoder}
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
@@ -109,9 +99,8 @@ func TestAppConfigWebhookHandleDeleteSecretNotFound(t *testing.T) {
 // THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleMarshalError(t *testing.T) {
 
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewAppConfigWebhookDecoder()
+	defaulter := &AppConfigWebhook{Decoder: decoder}
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	appconfigMarshalFunc = func(v interface{}) ([]byte, error) {
@@ -139,9 +128,8 @@ func (*mockErrorDefaulter) Cleanup(appConfig *oamv1.ApplicationConfiguration, dr
 // THEN Handle should return error with http.StatusInternalServerError
 func TestAppConfigDefaulterHandleDefaultError(t *testing.T) {
 
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{Defaulters: []AppConfigDefaulter{&mockErrorDefaulter{}}}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewAppConfigWebhookDecoder()
+	defaulter := &AppConfigWebhook{Defaulters: []AppConfigDefaulter{&mockErrorDefaulter{}}, Decoder: decoder}
 	req := admission.Request{}
 	req.Object = runtime.RawExtension{Raw: readYaml2Json(t, "hello-conf.yaml")}
 	res := defaulter.Handle(context.TODO(), req)
@@ -154,9 +142,8 @@ func TestHandleFailed(t *testing.T) {
 
 	assert := assert.New(t)
 	// Create a request and decode(Handle) it
-	decoder := decoder()
-	defaulter := &AppConfigWebhook{}
-	_ = defaulter.InjectDecoder(decoder)
+	decoder := NewAppConfigWebhookDecoder()
+	defaulter := &AppConfigWebhook{Decoder: decoder}
 	req := admission.Request{}
 	defaulter.Handle(context.TODO(), req)
 	reconcileerrorCounterObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.AppconfigHandleError)
@@ -178,14 +165,14 @@ func testAppConfigWebhookHandleDelete(t *testing.T, certFound, secretFound, dryR
 			List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any())
 
 	}
-	decoder := decoder()
+	decoder := NewAppConfigWebhookDecoder()
 
 	webhook := &AppConfigWebhook{
 		Client:      mockClient,
 		KubeClient:  fake.NewSimpleClientset(),
 		IstioClient: istiofake.NewSimpleClientset(),
+		Decoder:     decoder,
 	}
-	_ = webhook.InjectDecoder(decoder)
 	req := admission.Request{
 		AdmissionRequest: admissionv1.AdmissionRequest{Operation: admissionv1.Delete},
 	}

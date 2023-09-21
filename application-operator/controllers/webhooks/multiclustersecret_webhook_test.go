@@ -25,7 +25,7 @@ func newMultiClusterSecretValidator() MultiClusterSecretValidator {
 	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
-	v := MultiClusterSecretValidator{client: cli, decoder: decoder}
+	v := MultiClusterSecretValidator{Client: cli, Decoder: decoder}
 	return v
 }
 
@@ -135,8 +135,8 @@ func TestValidationSuccessForMultiClusterSecretCreationTargetingExistingManagedC
 		},
 	}
 
-	asrt.NoError(v.client.Create(context.TODO(), &c))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
+	asrt.NoError(v.Client.Create(context.TODO(), &c))
+	asrt.NoError(v.Client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)
@@ -191,8 +191,8 @@ func TestValidationSuccessForMultiClusterSecretCreationWithoutTargetClustersOnMa
 		},
 	}
 
-	asrt.NoError(v.client.Create(context.TODO(), &s))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
+	asrt.NoError(v.Client.Create(context.TODO(), &s))
+	asrt.NoError(v.Client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1.Create, p)
 	res := v.Handle(context.TODO(), req)

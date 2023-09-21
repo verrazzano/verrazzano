@@ -26,7 +26,7 @@ func newMultiClusterApplicationConfigurationValidator() MultiClusterApplicationC
 	scheme := NewScheme()
 	decoder := admission.NewDecoder(scheme)
 	cli := fake.NewClientBuilder().WithScheme(scheme).Build()
-	v := MultiClusterApplicationConfigurationValidator{client: cli, decoder: decoder}
+	v := MultiClusterApplicationConfigurationValidator{Client: cli, Decoder: decoder}
 	return v
 }
 
@@ -136,8 +136,8 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationTargeti
 		},
 	}
 
-	asrt.NoError(v.client.Create(context.TODO(), &mc))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
+	asrt.NoError(v.Client.Create(context.TODO(), &mc))
+	asrt.NoError(v.Client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1.Create, mcac)
 	res := v.Handle(context.TODO(), req)
@@ -192,8 +192,8 @@ func TestValidationSuccessForMultiClusterApplicationConfigurationCreationWithout
 		},
 	}
 
-	asrt.NoError(v.client.Create(context.TODO(), &s))
-	asrt.NoError(v.client.Create(context.TODO(), &vp))
+	asrt.NoError(v.Client.Create(context.TODO(), &s))
+	asrt.NoError(v.Client.Create(context.TODO(), &vp))
 
 	req := newAdmissionRequest(admissionv1.Create, mcac)
 	res := v.Handle(context.TODO(), req)
@@ -274,7 +274,7 @@ func TestValidateSecrets(t *testing.T) {
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 	}
-	asrt.NoError(v.client.Create(context.TODO(), &secret1))
+	asrt.NoError(v.Client.Create(context.TODO(), &secret1))
 
 	// Secret should be found, so success is expected
 	asrt.NoError(v.validateSecrets(mcac))
