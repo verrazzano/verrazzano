@@ -48,30 +48,6 @@ func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 		configSnippet.Replicas = grafana.Replicas
 	}
 
-	//dns := effectiveCR.Spec.Components.DNS
-	//if dns != nil {
-	//	configSnippet.DNS = &vzapi.DNSComponent{
-	//		External:         dns.External,
-	//		InstallOverrides: vzapi.InstallOverrides{}, // always ignore the overrides here, those are handled separately
-	//		OCI:              dns.OCI,
-	//		Wildcard:         dns.Wildcard,
-	//	}
-	//}
-
-	//nginx := effectiveCR.Spec.Components.Ingress
-	//if nginx != nil {
-	//	configSnippet.Ingress = nginx.DeepCopy()
-	//	configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
-	//}
-	//
-	//if len(effectiveCR.Spec.EnvironmentName) > 0 {
-	//	configSnippet.EnvironmentName = effectiveCR.Spec.EnvironmentName
-	//}
-
-	//configSnippet.PrometheusEnabled = vzcr.IsPrometheusEnabled(effectiveCR)
-	//configSnippet.ThanosEnabled = vzcr.IsThanosEnabled(effectiveCR)
-	//configSnippet.PrometheusOperatorEnabled = vzcr.IsPrometheusOperatorEnabled(effectiveCR)
-
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 
