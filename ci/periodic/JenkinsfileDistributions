@@ -44,8 +44,7 @@ pipeline {
                 trim: true)
         booleanParam (name: 'BASELINE_IMAGE_SIZES_FILE_UPDATE',
                 defaultValue: false,
-                description: 'If true, image-sixes.txt file will be updated to the now newly generated file.',
-                trim: true)
+                description: 'If true, image-sixes.txt file will be updated to the now newly generated file.')
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
                 description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
@@ -133,7 +132,7 @@ pipeline {
                     expression { params.RUN_TESTS == true };
                 }
             }
-    }
+        }
             parallel {
                 stage('Check Image Sizes') {
                     steps {
