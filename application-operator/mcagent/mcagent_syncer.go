@@ -200,7 +200,7 @@ func (s *Syncer) updateVMCStatus() error {
 
 // getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
-	localKubeconfig, err := k8sutil.GetKubeConfig()
+	localKubeconfig, err := k8sutil.GetConfigFromController()
 	if err != nil {
 		return "", fmt.Errorf("failed to get Kubeconfig for this workload cluster: %v", err)
 	}
