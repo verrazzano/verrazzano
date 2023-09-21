@@ -209,6 +209,8 @@ func Test_updateEnvValue(t *testing.T) {
 func TestReconcile_AgentSecretPresenceAndValidity(t *testing.T) {
 	assert := asserts.New(t)
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}}
+	defer setDiscoveryClientFunc(getDiscoveryClientFunc)
+	setDiscoveryClientFunc(fakeDiscoveryClientFunc)
 	type fields struct {
 		AgentSecretFound         bool
 		AgentSecretValid         bool
@@ -592,9 +594,6 @@ func expectServiceAndPodMonitorsList(mock *mocks.MockClient, assert *asserts.Ass
 // expectAllCallsNoApps expects all the calls that a reconcile of the MC agent would result in, if
 // there are no applications or VerrazzanoProjects. It does not include the initial call to get the agent secret.
 func expectAllCallsNoApps(adminMock *mocks.MockClient, mcMock *mocks.MockClient, adminStatusMock *mocks.MockStatusWriter, clusterName string, assert *asserts.Assertions) {
-	defer setDiscoveryClientFunc(getDiscoveryClientFunc)
-	setDiscoveryClientFunc(fakeDiscoveryClientFunc)
-
 	// Admin Cluster - expect a get followed by status update on VMC to record last agent connect time
 	vmcName := types.NamespacedName{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 	expectGetAPIServerURLCalled(mcMock)
