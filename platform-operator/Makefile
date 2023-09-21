@@ -128,10 +128,10 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom docker-build-common
+docker-build: generate-bom generate-catalog docker-build-common
 
 .PHONY: docker-build-debug
-docker-build-debug: generate-bom docker-build-common
+docker-build-debug: generate-bom generate-catalog docker-build-common
 
 .PHONY: docker-build-common
 docker-build-common:
