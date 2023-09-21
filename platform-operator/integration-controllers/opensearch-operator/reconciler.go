@@ -88,13 +88,21 @@ func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileCo
 }
 
 func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	osClient := NewOSClient()
+	pas, err := GetVerrazzanoPassword(r.Client)
+	if err != nil {
+		return err
+	}
+	osClient := NewOSClient(pas)
 	err := osClient.SyncDefaultISMPolicy(r.log, r.Client, vz)
 	return err
 }
 
 func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	osClient := NewOSClient()
-	err := osClient.DeleteDefaultISMPolicy(r.log, r.Client, vz)
+	pas, err := GetVerrazzanoPassword(r.Client)
+	if err != nil {
+		return err
+	}
+	osClient := NewOSClient(pas)
+	err = osClient.DeleteDefaultISMPolicy(r.log, r.Client, vz)
 	return err
 }

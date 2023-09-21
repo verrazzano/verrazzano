@@ -5,6 +5,7 @@ package opensearchoperator
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -31,11 +32,15 @@ const (
 	contentTypeHeader = "Content-Type"
 )
 
-func NewOSClient() *OSClient {
+func NewOSClient(pas string) *OSClient {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec //#gosec G402
+	}
 	o := &OSClient{
-		httpClient: http.DefaultClient,
+		httpClient: &http.Client{Transport: tr},
 	}
 	o.DoHTTP = func(request *http.Request) (*http.Response, error) {
+		request.SetBasicAuth("verrazzano", pas)
 		return o.httpClient.Do(request)
 	}
 	return o
