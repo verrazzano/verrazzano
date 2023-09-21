@@ -254,7 +254,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -300,7 +300,7 @@
     },
     {
       "name": "verrazzano-console",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -308,7 +308,7 @@
           "images": [
             {
               "image": "console",
-              "tag": "v2.0.0-20230912070053-2d1883d",
+              "tag": "vVERRAZZANO_VERSION-20230912070053-2d1883d",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
@@ -318,7 +318,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -326,7 +326,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230913103358-6033fa2",
+              "tag": "vVERRAZZANO_VERSION-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -400,7 +400,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -417,7 +417,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -434,7 +434,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -451,7 +451,7 @@
     },
     {
       "name": "verrazzano-authproxy",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
+              "tag": "vVERRAZZANO_VERSION-20230628190510-b8bc75a"
             }
           ]
         }
