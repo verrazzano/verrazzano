@@ -84,6 +84,8 @@ pipeline {
         CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
 
         // Environment variable for Verrazzano CLI executable
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
         VZ_COMMAND="${GO_REPO_PATH}/vz"
 
         VERRAZZANO_INSTALL_LOGS_DIR="${WORKSPACE}/verrazzano/platform-operator/scripts/install/build/logs"
