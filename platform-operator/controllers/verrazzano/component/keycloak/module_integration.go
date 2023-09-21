@@ -14,13 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 )
 
-// valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
-//type valuesConfig struct {
-//	Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
-//	DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
-//	EnvironmentName string                       `json:"environmentName,omitempty"`
-//}
-
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
@@ -46,32 +39,3 @@ func (c KeycloakComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor
 		watch.GetUpdateSecretWatch(vzconst.ThanosInternalUserSecretName, vzconst.VerrazzanoMonitoringNamespace),
 	)
 }
-
-// GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
-//func (c KeycloakComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
-//	if effectiveCR == nil {
-//		return nil, nil
-//	}
-//
-//	configSnippet := valuesConfig{
-//		EnvironmentName: effectiveCR.Spec.EnvironmentName,
-//	}
-//
-//	dns := effectiveCR.Spec.Components.DNS
-//	if dns != nil {
-//		configSnippet.DNS = &vzapi.DNSComponent{
-//			External:         dns.External,
-//			InstallOverrides: vzapi.InstallOverrides{}, // always ignore the overrides here, those are handled separately
-//			OCI:              dns.OCI,
-//			Wildcard:         dns.Wildcard,
-//		}
-//	}
-//
-//	nginx := effectiveCR.Spec.Components.Ingress
-//	if nginx != nil {
-//		configSnippet.Ingress = nginx.DeepCopy()
-//		configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
-//	}
-//
-//	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
-//}

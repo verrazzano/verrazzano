@@ -26,14 +26,6 @@ type valuesConfig struct {
 	Replicas *int32              `json:"replicas,omitempty"`
 	SMTP     *vmov1.SMTPInfo     `json:"smtp,omitempty"`
 
-	//Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
-	//DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
-	//EnvironmentName string                       `json:"environmentName,omitempty"`
-
-	//ThanosEnabled     bool `json:"thanosEnabled"`
-	//PrometheusEnabled bool `json:"prometheusEnabled"`
-	//PrometheusOperatorEnabled bool `json:"prometheusOperatorEnabled"`
-
 	DefaultVolumeSource      *corev1.VolumeSource            `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 	VolumeClaimSpecTemplates []vzapi.VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
