@@ -22,10 +22,13 @@ Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates. -->")
+Copyright (c) 2021, Oracle and/or its affiliates.")
 Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+Copyright (c) 2022, 2023, Oracle and/or its affiliates. -->
 Copyright (c) 2022, Oracle and/or its affiliates.
 Copyright (c) 2023, Oracle and/or its affiliates.
+Copyright (c) {{if ne $createdYear $updatedYear }}{{printf "%s" $createdYear}}, {{end}}{{printf "%s" $updatedYear}}, Oracle and/or its affiliates.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 Copyright 2020, 2023, Oracle Corporation and/or its affiliates.
@@ -55,21 +58,6 @@ Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 -  MIT
 -  MPL-2.0
 -  UPL-1.0
-
---------------------------------- (separator) ----------------------------------
-
-== Dependency
-cloud.google.com/go/compute
-
-== License Type
-SPDX:Apache-2.0
-
-== Copyright
-Copyright 2014 Google LLC
-Copyright 2016 Google LLC
-Copyright 2018 Google LLC
-Copyright 2021 Google LLC
-Copyright 2022 Google LLC
 
 --------------------------------- (separator) ----------------------------------
 
@@ -151,6 +139,18 @@ SPDX:MIT
 Copyright (C) 2014-2015, Lann Martin
 Copyright (C) 2015, Matt Farina and Matt Butcher
 Copyright (C) 2015-2016, Google
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/adrg/xdg
+
+== License Type
+SPDX:MIT
+
+== Copyright
+Copyright (c) 2014 Adrian-George Bostan <adrg@epistack.com>
+Copyright (c) 2014 Adrian-George Bostan.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -287,6 +287,47 @@ violate applicable laws.
 For more information, please see https://www.bis.doc.gov
 
 See also https://www.apache.org/dev/crypto.html and/or seek legal counsel.
+
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/coredns/caddy
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright 2015 Light Code Labs, LLC
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/coredns/corefile-migration
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+(no copyright notices found)
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/coreos/go-oidc/v3
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright 2014 CoreOS, Inc
+
+== Notices
+CoreOS Project
+Copyright 2014 CoreOS, Inc
+
+This product includes software developed at CoreOS, Inc.
+(http://www.coreos.com/).
 
 
 --------------------------------- (separator) ----------------------------------
@@ -693,6 +734,26 @@ SPDX:MIT
 == Copyright
 Copyright (c) 2012 James Cooper <james@bitmechanic.com>
 Copyright 2012 James Cooper. All rights reserved.
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/go-jose/go-jose/v3
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2010 The Go Authors.  All rights reserved.
+Copyright 2010 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors.  All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright 2014 Square Inc.
+Copyright 2016 Square, Inc.
+Copyright 2016 Zbigniew Mandziejewicz
+Copyright 2017 Square Inc.
+Copyright 2018 Square Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1162,7 +1223,7 @@ Copyright 2020, The Go Authors. All rights reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-github.com/google/go-github/v45
+github.com/google/go-github/v48
 
 == License Type
 SPDX:BSD-3-Clause--modified-by-Google
@@ -1791,7 +1852,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Copyright (c) 2013-2020, Frank Schroeder
 Copyright 2011 The Go Authors. All rights reserved.
 Copyright 2013-2014 Frank Schroeder. All rights reserved.
-Copyright 2018 Frank Schroeder. All rights reserved.
+Copyright 2013-2022 Frank Schroeder. All rights reserved.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2396,6 +2457,7 @@ Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
 Copyright 2022 The Prometheus Authors
+Copyright 2023 The Prometheus Authors
 
 == Notices
 procfs provides functions to retrieve system, kernel and process
@@ -2816,7 +2878,9 @@ Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -3251,28 +3315,29 @@ SPDX:Apache-2.0
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-google.golang.org/genproto
+google.golang.org/genproto/googleapis/api
 
 == License Type
 SPDX:Apache-2.0
 
 == Copyright
-Copyright (c) 2015, Google Inc.
 Copyright 2015 Google LLC
-Copyright 2016 Google Inc.
 Copyright 2016 Google LLC
-Copyright 2017 Google Inc.
-Copyright 2018 Google Inc.
-Copyright 2018 Google LLC
-Copyright 2018 The Grafeas Authors. All rights reserved.
 Copyright 2019 Google LLC.
-Copyright 2019 The Grafeas Authors. All rights reserved.
-Copyright 2020 Google LLC
-Copyright 2020 Google LLC.
-Copyright 2021 Google LLC
-Copyright 2021 Google LLC.
-Copyright 2021 The Grafeas Authors. All rights reserved.
 Copyright 2022 Google LLC
+Copyright 2023 Google LLC
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+google.golang.org/genproto/googleapis/rpc
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright 2022 Google LLC
+Copyright 2023 Google LLC
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3287,6 +3352,7 @@ Copyright 2014 gRPC authors.
 Copyright 2015 The gRPC Authors
 Copyright 2015 gRPC authors.
 Copyright 2015-2016 gRPC authors.
+Copyright 2016 The gRPC Authors
 Copyright 2016 gRPC authors.
 Copyright 2017 gRPC authors.
 Copyright 2018 The gRPC Authors
@@ -3296,6 +3362,7 @@ Copyright 2020 The gRPC Authors
 Copyright 2020 gRPC authors.
 Copyright 2021 gRPC authors.
 Copyright 2022 gRPC authors.
+Copyright 2023 gRPC authors.
 
 == Notices
 Copyright 2014 gRPC authors.
@@ -3588,6 +3655,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3602,11 +3670,10 @@ Copyright 2016 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
-Copyright 2020 Google LLC
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 Google LLC
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3629,6 +3696,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3648,6 +3716,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3666,6 +3735,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3686,6 +3756,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3719,6 +3790,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3765,15 +3837,20 @@ SPDX:Apache-2.0
 
 == Copyright
 Copyright (C) MongoDB, Inc. 2017-present.
+Copyright (c) 2020 The Go Authors. All rights reserved.
 Copyright 2015 go-swagger maintainers
 Copyright 2016 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2017 go-swagger maintainers
 Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
+Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Go Authors. All rights reserved.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3845,6 +3922,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3864,6 +3942,7 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4148,7 +4227,6 @@ sigs.k8s.io/kustomize/api
 SPDX:Apache-2.0
 
 == Copyright
-Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
@@ -4860,5 +4938,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19.11 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  e749cc3089c315c87a015ea827dca19d
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-108-gc398c3cf GitCommit:c398c3cf1bca9bc72e2382e8918b1e9ccedd0816 GitTreeState:clean BuildDate:2023-04-16T22:18:59Z GoVersion:go1.19.2 Compiler:gc Platform:linux/amd64}
+=== License file based on go.mod with md5 sum:  b444e9813726ee6971457caf024211fc
