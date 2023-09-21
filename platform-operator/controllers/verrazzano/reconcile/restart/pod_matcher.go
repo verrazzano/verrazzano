@@ -58,7 +58,7 @@ func (o *OutdatedSidecarPodMatcher) ReInit() error {
 		return nil
 	}
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
-		verrazzanoSubcomponent, fluentdImageName)
+		fluentdSubcomponent, fluentdImageName)
 	if err != nil {
 		return err
 	}
@@ -89,7 +89,7 @@ func (o *OutdatedSidecarPodMatcher) Matches(log vzlog.VerrazzanoLogger, podList 
 
 func (w *WKOPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
-		verrazzanoSubcomponent, fluentdImageName,
+		fluentdSubcomponent, fluentdImageName,
 		wkoSubcomponent, wkoExporterImageName)
 	if err != nil {
 		return err
@@ -144,7 +144,7 @@ func (e *EnvoyOlderThanTwoVersionsPodMatcher) Matches(log vzlog.VerrazzanoLogger
 
 func (a *AppPodMatcher) ReInit() error {
 	images, err := getImages(istioSubcomponent, proxyv2ImageName,
-		verrazzanoSubcomponent, fluentdImageName)
+		fluentdSubcomponent, fluentdImageName)
 	if err != nil {
 		return err
 	}
