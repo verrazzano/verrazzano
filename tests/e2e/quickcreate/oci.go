@@ -17,7 +17,7 @@ const (
 	OciCompartment = "OCI_COMPARTMENT_ID"
 	OciTenancyID   = "OCI_TENANCY_ID"
 	PubKey         = "CAPI_NODE_SSH_KEY_PATH"
-	APIKey         = "CAPI_OCI_PRIVATE_KEY_PATH"
+	APIKey         = "CAPI_OCI_PRIVATE_KEY_PATH" //nolint:gosec //#gosec G101
 	ClusterID      = "CLUSTER_ID"
 	OkeVersion     = "OKE_VERSION"
 	OcneVersion    = "OCNE_VERSION"
