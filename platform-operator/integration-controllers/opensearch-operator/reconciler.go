@@ -54,16 +54,19 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	**********************/
 
 	if *effectiveCR.Spec.Components.Kibana.Enabled {
-		err = r.CreateIndexPatterns(controllerCtx, effectiveCR)
-		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
+		//err = r.CreateIndexPatterns(controllerCtx, effectiveCR)
+		//if err != nil {
+		//	return result.NewResultShortRequeueDelayWithError(err)
+		//}
 		if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
+			zap.S().Infof("DisableDefaultPolicy false")
 			err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		} else {
+			zap.S().Warn("DisableDefaultPolicy true")
+
 			err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)

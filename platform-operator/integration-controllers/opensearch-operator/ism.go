@@ -11,6 +11,7 @@ import (
 	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -284,14 +285,18 @@ func (o *OSClient) updateISMPolicy(openSearchEndpoint string, policyName string,
 // createOrUpdateDefaultISMPolicy creates the default ISM policies if not exist, else the policies will be updated.
 func (o *OSClient) createOrUpdateDefaultISMPolicy(log vzlog.VerrazzanoLogger, openSearchEndpoint string) ([]*ISMPolicy, error) {
 	var defaultPolicies []*ISMPolicy
+	zap.S().Infof("createOrUpdateDefaultISMPolicy Isha")
+
 	allPolicyList, err := o.getAllPolicies(openSearchEndpoint)
 	if err != nil {
+		zap.S().Infof("getAllPolicies error", err)
 		return nil, err
 	}
 	log.Debugf("os system has %v policies", len(allPolicyList.Policies))
 	for policyName, policyFile := range defaultISMPoliciesMap {
 		policy, err := getISMPolicyFromFile(policyFile)
 		if err != nil {
+			zap.S().Info("getISMPolicyFromFile error")
 			return nil, err
 		}
 		log.Debugf("checking if custom policy exists for %s from file %s", policyName, policyFile)
@@ -304,8 +309,11 @@ func (o *OSClient) createOrUpdateDefaultISMPolicy(log vzlog.VerrazzanoLogger, op
 			// When the default policy is created or updated
 			// Add default policy to the current write index of the data stream
 			if createdPolicy != nil {
+				zap.S().Infof("adding  policy")
 				err = o.addDefaultPolicyToDataStream(log, openSearchEndpoint, policyName, policy)
 				if err != nil {
+					zap.S().Infof("addDefaultPolicyToDataStream error", err)
+
 					return defaultPolicies, err
 				}
 			}
