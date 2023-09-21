@@ -5,7 +5,7 @@ package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -24,10 +24,15 @@ const (
 	NodeGroupLabel = "node-group"
 )
 
+var (
+	ReplicaToDisableDefaultNode int32
+)
+
 type OpensearchCleanUpModifier struct {
 }
 
 type OpensearchAllNodeRolesModifier struct {
+	NodeReplicas int32
 }
 
 func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -65,7 +70,12 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: &ReplicaToDisableDefaultNode,
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -94,7 +104,12 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: &ReplicaToDisableDefaultNode,
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -111,7 +126,12 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: &ReplicaToDisableDefaultNode,
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -144,11 +164,9 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      string(vmov1.MasterRole),
-				Replicas:  common.Int32Ptr(3),
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
+				Name:     "es-" + string(vmov1.MasterRole),
+				Replicas: &u.NodeReplicas,
+				Roles:    []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 			},
 		)
 }
@@ -174,7 +192,7 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	m := OpensearchAllNodeRolesModifier{}
+	m := OpensearchAllNodeRolesModifier{NodeReplicas: 1}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
 
