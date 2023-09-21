@@ -97,12 +97,13 @@ pipeline {
         stage('Build Release Distributions') {
             steps {
                 script {
-                    }
+
                     try {
                         sh """
                              echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
                         """
-                    } catch(error) {
+                    }
+                    catch(error) {
                         echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
                         retry(4) {
                             sleep(30)
@@ -116,8 +117,6 @@ pipeline {
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
                 """
-                script {
-                }
             }
             post {
                 always {
@@ -136,33 +135,30 @@ pipeline {
             }
 
             parallel {
-            stage('Build Release Distributions') {
+                stage('Check Image Sizes') {
                     steps {
                         script {
-                                def commitList = getCommitList()
-                                   withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                            def commitList = getCommitList()
+                            withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
                                 def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                                    SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                                    echo "Suspect list: ${SUSPECT_LIST}"
+                                SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                                echo "Suspect list: ${SUSPECT_LIST}"
                             }
-                           }
                         }
-
                         script {
-                            try{
+                            try {
                                 IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                             }
-                            catch(error){
-                                echo"Image Sizes have increased"
-
+                            catch(error) {
+                               currentBuild.result = "SUCCESS"
                                slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                             }
                         }
                         sh """
                             echo "IMAGE_SIZE_DIFF Return value:  ${IMAGE_SIZE_DIFF} "
                         """
-
                     }
+                }
 
                 stage('Private Registry - Lite Distribution') {
                     steps {
