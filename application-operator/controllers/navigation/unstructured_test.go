@@ -23,6 +23,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	testNamespace = "test-namespace"
+)
+
 // TestGetKindOfUnstructured tests the GetKindOfUnstructured function.
 func TestGetKindOfUnstructured(t *testing.T) {
 	assert := asserts.New(t)
@@ -148,7 +152,7 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	options := []client.ListOption{client.InNamespace("test-namespace")}
+	options := []client.ListOption{client.InNamespace(testNamespace)}
 	cli.EXPECT().
 		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -165,7 +169,7 @@ func TestGetUnstructuredChildResourcesByAPIVersionKindsPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "test-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), testNamespace, "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)
@@ -186,13 +190,13 @@ func TestFetchUnstructuredChildResourcesByAPIVersionKindsNegative(t *testing.T) 
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	options := []client.ListOption{client.InNamespace("test-namespace")}
+	options := []client.ListOption{client.InNamespace(testNamespace)}
 	cli.EXPECT().
 		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
 			return fmt.Errorf("test-error")
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), testNamespace, "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.Error(err)
 	assert.Equal("test-error", err.Error())
@@ -214,7 +218,7 @@ func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
 
 	mocker = gomock.NewController(t)
 	cli = mocks.NewMockClient(mocker)
-	options := []client.ListOption{client.InNamespace("test-namespace")}
+	options := []client.ListOption{client.InNamespace(testNamespace)}
 	cli.EXPECT().
 		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -232,7 +236,7 @@ func TestGetUnstructuredChildResourcesByDeploymentPositive(t *testing.T) {
 						Name:       "test-workload-name",
 						UID:        "wrong-workload-uid"}}}})
 		})
-	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), "test-namespace", "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
+	children, err = FetchUnstructuredChildResourcesByAPIVersionKinds(ctx, cli, vzlog.DefaultLogger(), testNamespace, "test-workload-uid", []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}})
 	mocker.Finish()
 	assert.NoError(err)
 	assert.Len(children, 1)

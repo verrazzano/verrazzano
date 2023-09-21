@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package restart
@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	istioSubcomponent      = "istiod"
-	verrazzanoSubcomponent = "verrazzano"
-	proxyv2ImageName       = "proxyv2"
-	fluentdImageName       = "fluentd-kubernetes-daemonset"
-	wkoSubcomponent        = "weblogic-operator"
-	wkoExporterImageName   = "weblogic-monitoring-exporter"
+	istioSubcomponent    = "istiod"
+	fluentdSubcomponent  = "fluentd"
+	proxyv2ImageName     = "proxyv2"
+	fluentdImageName     = "fluentd-kubernetes-daemonset"
+	wkoSubcomponent      = "weblogic-operator"
+	wkoExporterImageName = "weblogic-monitoring-exporter"
 )
 
 type bomTool struct {
