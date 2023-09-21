@@ -308,7 +308,7 @@
           "images": [
             {
               "image": "console",
-              "tag": "vVERRAZZANO_VERSION-20230912070053-2d1883d",
+              "tag": "v2.0.0-20230912070053-2d1883d",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
@@ -326,7 +326,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "vVERRAZZANO_VERSION-20230913103358-6033fa2",
+              "tag": "v2.0.0-20230913103358-6033fa2",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "vVERRAZZANO_VERSION-20230628190510-b8bc75a"
+              "tag": "v2.0.0-20230628190510-b8bc75a"
             }
           ]
         }
