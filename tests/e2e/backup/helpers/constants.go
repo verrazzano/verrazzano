@@ -111,7 +111,7 @@ spec:
           matchLabels:
             statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         postHooks:
-		  - init:
+          - init:
               timeout: 30m
               initContainers:
                 - args:
