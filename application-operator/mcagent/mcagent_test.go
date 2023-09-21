@@ -53,7 +53,7 @@ var testK8sVersion = &version.Info{
 
 func fakeDiscoveryClientFunc() (discovery.DiscoveryInterface, error) {
 	discoveryClient := fakediscovery.FakeDiscovery{
-		Fake: &clientgotesting.Fake{},
+		Fake:               &clientgotesting.Fake{},
 		FakedServerVersion: testK8sVersion,
 	}
 	return &discoveryClient, nil
