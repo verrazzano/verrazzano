@@ -12,11 +12,11 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apiserver/pkg/storage/names"
 	"os"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,7 +57,7 @@ type (
 func newContext(cli clipkg.Client, clusterType string) (*QCContext, error) {
 	qc := &QCContext{
 		ClusterType: clusterType,
-		Namespace:   names.SimpleNameGenerator.GenerateName("qc-"),
+		Namespace:   pkg.SimpleNameGenerator.New("qc-"),
 		Client:      cli,
 	}
 	if err := qc.setDynamicValues(); err != nil {
@@ -118,7 +118,7 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		CLUSTER_ID: names.SimpleNameGenerator.GenerateName("qc-"),
+		CLUSTER_ID: pkg.SimpleNameGenerator.New("qc-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
