@@ -118,7 +118,7 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		CLUSTER_ID: pkg.SimpleNameGenerator.New("qc-"),
+		ClusterId: pkg.SimpleNameGenerator.New("qc-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (qc *QCContext) deleteObject(o clipkg.Object) error {
 }
 
 func (qc *QCContext) cleanupCAPICluster() error {
-	name, ok := qc.Parameters[CLUSTER_ID].(string)
+	name, ok := qc.Parameters[ClusterId].(string)
 	if !ok {
 		return nil
 	}
@@ -174,7 +174,7 @@ func (qc *QCContext) isClusterReady() error {
 	cluster := &v1beta1.Cluster{}
 	if err := qc.Client.Get(context.TODO(), types.NamespacedName{
 		Namespace: qc.Namespace,
-		Name:      qc.Parameters[CLUSTER_ID].(string),
+		Name:      qc.Parameters[ClusterId].(string),
 	}, cluster); err != nil {
 		return err
 	}
@@ -219,14 +219,14 @@ func (i input) addLatestOCNEVersion(client clipkg.Client, clusterType string) er
 			ocneVersion = defaults.Release
 		}
 	}
-	i[OCNE_VERSION] = ocneVersion
+	i[OcneVersion] = ocneVersion
 	return nil
 }
 
 func (i input) addFileContents() error {
 	files := []string{
-		PUB_KEY,
-		API_KEY,
+		PubKey,
+		ApiKey,
 	}
 	for _, filevar := range files {
 		path := os.Getenv(filevar)
@@ -238,8 +238,8 @@ func (i input) addFileContents() error {
 			return err
 		}
 		i[filevar] = string(b)
-		if filevar == API_KEY {
-			i.b64EncodeKV(API_KEY, B64_KEY)
+		if filevar == ApiKey {
+			i.b64EncodeKV(ApiKey, B64Key)
 		}
 	}
 	return nil

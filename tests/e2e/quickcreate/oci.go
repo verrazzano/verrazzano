@@ -11,25 +11,25 @@ import (
 )
 
 const (
-	OCI_USER_ID     = "OCI_USER_ID"
-	OCI_FINGERPRINT = "OCI_CREDENTIALS_FINGERPRINT"
-	OCI_REGION      = "OCI_REGION"
-	OCI_COMPARTMENT = "OCI_COMPARTMENT_ID"
-	OCI_TENANCY_ID  = "OCI_TENANCY_ID"
-	PUB_KEY         = "CAPI_NODE_SSH_KEY_PATH"
-	API_KEY         = "CAPI_OCI_PRIVATE_KEY_PATH"
-	CLUSTER_ID      = "CLUSTER_ID"
-	OKE_VERSION     = "OKE_VERSION"
-	OCNE_VERSION    = "OCNE_VERSION"
-	OCNE_IMAGE_ID   = "OCNE_IMAGE_ID"
-	OKE_IMAGE_ID    = "OKE_IMAGE_ID"
-	OKE_CNI_TYPE    = "CNI_TYPE"
+	OciUserId      = "OCI_USER_ID"
+	OciFingerprint = "OCI_CREDENTIALS_FINGERPRINT"
+	OciRegion      = "OCI_REGION"
+	OciCompartment = "OCI_COMPARTMENT_ID"
+	OciTenancyId   = "OCI_TENANCY_ID"
+	PubKey         = "CAPI_NODE_SSH_KEY_PATH"
+	ApiKey         = "CAPI_OCI_PRIVATE_KEY_PATH"
+	ClusterId      = "CLUSTER_ID"
+	OkeVersion     = "OKE_VERSION"
+	OcneVersion    = "OCNE_VERSION"
+	OcneImageId    = "OCNE_IMAGE_ID"
+	OkeImageId     = "OKE_IMAGE_ID"
+	OkeCniType     = "CNI_TYPE"
 
-	B64_KEY         = "B64_KEY"
-	B64_FINGERPRINT = "B64_FINGERPRINT"
-	B64_REGION      = "B64_REGION"
-	B64_TENANCY     = "B64_TENANCY"
-	B64_USER        = "B64_USER"
+	B64Key         = "B64_KEY"
+	B64Fingerprint = "B64_FINGERPRINT"
+	B64Region      = "B64_REGION"
+	B64Tenancy     = "B64_TENANCY"
+	B64User        = "B64_USER"
 )
 
 type (
@@ -59,11 +59,11 @@ func (i input) prepareOCI(clusterType string) error {
 
 func (i input) addOCIEnv() error {
 	keys := []string{
-		OCI_REGION,
-		OCI_COMPARTMENT,
-		OCI_FINGERPRINT,
-		OCI_TENANCY_ID,
-		OCI_USER_ID,
+		OciRegion,
+		OciCompartment,
+		OciFingerprint,
+		OciTenancyId,
+		OciUserId,
 	}
 	for _, key := range keys {
 		if err := i.addEnvValue(key); err != nil {
@@ -71,19 +71,19 @@ func (i input) addOCIEnv() error {
 		}
 	}
 
-	i.b64EncodeKV(OCI_REGION, B64_REGION)
-	i.b64EncodeKV(OCI_FINGERPRINT, B64_FINGERPRINT)
-	i.b64EncodeKV(OCI_TENANCY_ID, B64_TENANCY)
-	i.b64EncodeKV(OCI_USER_ID, B64_USER)
+	i.b64EncodeKV(OciRegion, B64Region)
+	i.b64EncodeKV(OciFingerprint, B64Fingerprint)
+	i.b64EncodeKV(OciTenancyId, B64Tenancy)
+	i.b64EncodeKV(OciUserId, B64User)
 	return nil
 }
 
 func (i input) newOCIClient() (OCIClient, error) {
-	tenancy := i[OCI_TENANCY_ID].(string)
-	user := i[OCI_USER_ID].(string)
-	key := i[API_KEY].(string)
-	fingerprint := i[OCI_FINGERPRINT].(string)
-	region := i[OCI_REGION].(string)
+	tenancy := i[OciTenancyId].(string)
+	user := i[OciUserId].(string)
+	key := i[ApiKey].(string)
+	fingerprint := i[OciFingerprint].(string)
+	region := i[OciRegion].(string)
 	provider := common.NewRawConfigurationProvider(tenancy, user, region, fingerprint, key, nil)
 	containerEngineClient, err := containerengine.NewContainerEngineClientWithConfigurationProvider(provider)
 	if err != nil {
@@ -100,7 +100,7 @@ func (i input) newOCIClient() (OCIClient, error) {
 }
 
 func (i input) addOCIValues(client OCIClient, clusterType string) error {
-	compartmentID := i[OCI_COMPARTMENT].(string)
+	compartmentID := i[OciCompartment].(string)
 	switch clusterType {
 	case OKE:
 		// add the latest OKE version
@@ -108,13 +108,13 @@ func (i input) addOCIValues(client OCIClient, clusterType string) error {
 		if err != nil {
 			return err
 		}
-		i[OKE_VERSION] = version
+		i[OkeVersion] = version
 		imageID, err := oci.GetOKENodeImageForVersion(client.ContainerEngineClient, compartmentID, version)
 		if err != nil {
 			return err
 		}
-		i[OKE_IMAGE_ID] = imageID
-		if err := i.addEnvValue(OKE_CNI_TYPE); err != nil {
+		i[OkeImageId] = imageID
+		if err := i.addEnvValue(OkeCniType); err != nil {
 			return err
 		}
 	case OCNEOCI:
@@ -122,7 +122,7 @@ func (i input) addOCIValues(client OCIClient, clusterType string) error {
 		if err != nil {
 			return err
 		}
-		i[OCNE_IMAGE_ID] = imageID
+		i[OcneImageId] = imageID
 	}
 
 	return nil
