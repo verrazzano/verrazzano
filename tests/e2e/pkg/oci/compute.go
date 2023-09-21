@@ -29,7 +29,7 @@ func GetOL8ImageID(client core.ComputeClient, compartmentID string) (string, err
 		}
 	}
 	if len(filteredImages) < 1 {
-		return "", errors.New("no OL6 compatible images found")
+		return "", errors.New("no OL8 compatible images found")
 	}
 	return filteredImages[0], nil
 }
