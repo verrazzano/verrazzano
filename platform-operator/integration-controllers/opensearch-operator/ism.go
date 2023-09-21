@@ -560,11 +560,13 @@ func getISMPolicyFromFile(policyFileName string) (*ISMPolicy, error) {
 	policypath := filepath.Join(config.GetPlatformDir(), defaultPolicyPath)
 	policyBytes, err := os.ReadFile(policypath + policyFileName)
 	if err != nil {
+		zap.S().Infof("ReadFile error", err)
 		return nil, err
 	}
 	var policy ISMPolicy
 	err = json.Unmarshal(policyBytes, &policy)
 	if err != nil {
+		zap.S().Infof("Unmarshal error", err)
 		return nil, err
 	}
 	return &policy, nil
