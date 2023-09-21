@@ -14,7 +14,7 @@ spec:
         version: {{.OKE_VERSION}}
     oke:
         compartment: {{.OCI_COMPARTMENT_ID}}
-        region: {{.OCI_REGION}}
+        region: {{.CAPI_CLUSTER_REGION}}
         imageId: {{.OKE_IMAGE_ID}}
         sshPublicKey: {{.CAPI_NODE_SSH_KEY_PATH}}
         network:

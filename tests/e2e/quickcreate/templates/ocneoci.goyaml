@@ -14,7 +14,7 @@ spec:
         version: "{{.OCNE_VERSION}}"
     oci:
         compartment: {{.OCI_COMPARTMENT_ID}}
-        region: {{.OCI_REGION}}
+        region: {{.CAPI_CLUSTER_REGION}}
         imageId: {{.OCNE_IMAGE_ID}}
         sshPublicKey: {{.CAPI_NODE_SSH_KEY_PATH}}
         network:
