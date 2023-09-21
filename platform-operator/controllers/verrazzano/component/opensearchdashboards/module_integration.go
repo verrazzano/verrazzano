@@ -9,7 +9,6 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -55,6 +54,6 @@ func (d opensearchDashboardsComponent) ShouldUseModule() bool {
 func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName}),
 	)
 }

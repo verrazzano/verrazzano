@@ -60,6 +60,6 @@ func (g grafanaComponent) ShouldUseModule() bool {
 func (g grafanaComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentJSONName, thanos.ComponentName, prometheusOperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName, thanos.ComponentName, prometheusOperator.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{vmo.ComponentName, fluentoperator.ComponentName, nginx.ComponentName, grafanadashboards.ComponentName}),
 	)
 }
