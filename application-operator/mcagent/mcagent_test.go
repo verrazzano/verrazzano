@@ -27,6 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/discovery"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	clientgotesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -42,6 +46,18 @@ var validSecret = corev1.Secret{
 const testManagedPrometheusHost = "prometheus"
 const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
 const testVZVersion = "dummy-verrazzano-version"
+
+var testK8sVersion = &version.Info{
+	GitVersion: "v1.26.3",
+}
+
+func fakeDiscoveryClientFunc() (discovery.DiscoveryInterface, error) {
+	discoveryClient := fakediscovery.FakeDiscovery{
+		Fake: &clientgotesting.Fake{},
+		FakedServerVersion: testK8sVersion,
+	}
+	return &discoveryClient, nil
+}
 
 // TestReconcileAgentSecretDeleted tests agent thread when the registration secret is deleted
 // GIVEN a request to process the agent loop
@@ -297,7 +313,7 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
 			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
-			assert.NotNil(vmc.Status.Kubernetes.Version)
+			assert.Equal(testK8sVersion.String(), vmc.Status.Kubernetes.Version)
 			assert.Equal(testVZVersion, vmc.Status.Verrazzano.Version)
 			return nil
 		})
@@ -385,6 +401,9 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 		LocalClient:        localClientMock,
 	}
 	vmcName := types.NamespacedName{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
+
+	defer setDiscoveryClientFunc(getDiscoveryClientFunc)
+	setDiscoveryClientFunc(fakeDiscoveryClientFunc)
 
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)

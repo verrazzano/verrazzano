@@ -52,6 +52,21 @@ var (
 	retryDelay = 3 * time.Second
 )
 
+// Needed for unit testing
+var getDiscoveryClientFunc = defaultGetDiscoveryClientFunc
+
+func defaultGetDiscoveryClientFunc() (discovery.DiscoveryInterface, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Kubeconfig for this workload cluster: %v", err)
+	}
+	return discovery.NewDiscoveryClientForConfig(config)
+}
+
+func setDiscoveryClientFunc(f func() (discovery.DiscoveryInterface, error)) {
+	getDiscoveryClientFunc = f
+}
+
 // Check if the placement is for this cluster
 func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
 	// Loop through the cluster list looking for the cluster name
@@ -200,11 +215,7 @@ func (s *Syncer) updateVMCStatus() error {
 
 // getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
-	localKubeconfig, err := k8sutil.GetConfigFromController()
-	if err != nil {
-		return "", fmt.Errorf("failed to get Kubeconfig for this workload cluster: %v", err)
-	}
-	discoveryClient, err := discovery.NewDiscoveryClientForConfig(localKubeconfig)
+	discoveryClient, err := getDiscoveryClientFunc()
 	if err != nil {
 		return "", fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
 	}
