@@ -16,7 +16,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&clusterType, "clusterType", OCNEOCI, "The type of Quick Create cluster to test")
+	flag.StringVar(&clusterType, "clusterType", Ocneoci, "The type of Quick Create cluster to test")
 }
 
 func TestQuickCreate(test *testing.T) {

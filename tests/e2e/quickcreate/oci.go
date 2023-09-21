@@ -11,18 +11,18 @@ import (
 )
 
 const (
-	OciUserId      = "OCI_USER_ID"
+	OciUserID      = "OCI_USER_ID"
 	OciFingerprint = "OCI_CREDENTIALS_FINGERPRINT"
 	OciRegion      = "OCI_REGION"
 	OciCompartment = "OCI_COMPARTMENT_ID"
-	OciTenancyId   = "OCI_TENANCY_ID"
+	OciTenancyID   = "OCI_TENANCY_ID"
 	PubKey         = "CAPI_NODE_SSH_KEY_PATH"
-	ApiKey         = "CAPI_OCI_PRIVATE_KEY_PATH"
-	ClusterId      = "CLUSTER_ID"
+	APIKey         = "CAPI_OCI_PRIVATE_KEY_PATH"
+	ClusterID      = "CLUSTER_ID"
 	OkeVersion     = "OKE_VERSION"
 	OcneVersion    = "OCNE_VERSION"
-	OcneImageId    = "OCNE_IMAGE_ID"
-	OkeImageId     = "OKE_IMAGE_ID"
+	OcneImageID    = "OCNE_IMAGE_ID"
+	OkeImageID     = "OKE_IMAGE_ID"
 	OkeCniType     = "CNI_TYPE"
 
 	B64Key         = "B64_KEY"
@@ -40,7 +40,7 @@ type (
 )
 
 func (qc *QCContext) isOCICluster() bool {
-	return qc.ClusterType == OCNEOCI || qc.ClusterType == OKE
+	return qc.ClusterType == Ocneoci || qc.ClusterType == Oke
 }
 
 func (i input) prepareOCI(clusterType string) error {
@@ -62,8 +62,8 @@ func (i input) addOCIEnv() error {
 		OciRegion,
 		OciCompartment,
 		OciFingerprint,
-		OciTenancyId,
-		OciUserId,
+		OciTenancyID,
+		OciUserID,
 	}
 	for _, key := range keys {
 		if err := i.addEnvValue(key); err != nil {
@@ -73,15 +73,15 @@ func (i input) addOCIEnv() error {
 
 	i.b64EncodeKV(OciRegion, B64Region)
 	i.b64EncodeKV(OciFingerprint, B64Fingerprint)
-	i.b64EncodeKV(OciTenancyId, B64Tenancy)
-	i.b64EncodeKV(OciUserId, B64User)
+	i.b64EncodeKV(OciTenancyID, B64Tenancy)
+	i.b64EncodeKV(OciUserID, B64User)
 	return nil
 }
 
 func (i input) newOCIClient() (OCIClient, error) {
-	tenancy := i[OciTenancyId].(string)
-	user := i[OciUserId].(string)
-	key := i[ApiKey].(string)
+	tenancy := i[OciTenancyID].(string)
+	user := i[OciUserID].(string)
+	key := i[APIKey].(string)
 	fingerprint := i[OciFingerprint].(string)
 	region := i[OciRegion].(string)
 	provider := common.NewRawConfigurationProvider(tenancy, user, region, fingerprint, key, nil)
@@ -102,8 +102,8 @@ func (i input) newOCIClient() (OCIClient, error) {
 func (i input) addOCIValues(client OCIClient, clusterType string) error {
 	compartmentID := i[OciCompartment].(string)
 	switch clusterType {
-	case OKE:
-		// add the latest OKE version
+	case Oke:
+		// add the latest Oke version
 		version, err := oci.GetLatestOKEVersion(client.ContainerEngineClient, compartmentID)
 		if err != nil {
 			return err
@@ -113,16 +113,16 @@ func (i input) addOCIValues(client OCIClient, clusterType string) error {
 		if err != nil {
 			return err
 		}
-		i[OkeImageId] = imageID
+		i[OkeImageID] = imageID
 		if err := i.addEnvValue(OkeCniType); err != nil {
 			return err
 		}
-	case OCNEOCI:
+	case Ocneoci:
 		imageID, err := oci.GetOL8ImageID(client.ComputeClient, compartmentID)
 		if err != nil {
 			return err
 		}
-		i[OcneImageId] = imageID
+		i[OcneImageID] = imageID
 	}
 
 	return nil

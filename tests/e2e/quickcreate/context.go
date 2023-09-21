@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	OCNEOCI = "ocneoci"
-	OKE     = "oke"
+	Ocneoci = "ocneoci"
+	Oke     = "oke"
 )
 
 var (
@@ -38,8 +38,8 @@ var (
 	ociClusterIdentity []byte
 
 	clusterTemplateMap = map[string][]byte{
-		OCNEOCI: ocneociTemplate,
-		OKE:     okeTemplate,
+		Ocneoci: ocneociTemplate,
+		Oke:     okeTemplate,
 	}
 )
 
@@ -118,7 +118,7 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		ClusterId: pkg.SimpleNameGenerator.New("qc-"),
+		ClusterID: pkg.SimpleNameGenerator.New("qc-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
@@ -150,7 +150,7 @@ func (qc *QCContext) deleteObject(o clipkg.Object) error {
 }
 
 func (qc *QCContext) cleanupCAPICluster() error {
-	name, ok := qc.Parameters[ClusterId].(string)
+	name, ok := qc.Parameters[ClusterID].(string)
 	if !ok {
 		return nil
 	}
@@ -174,7 +174,7 @@ func (qc *QCContext) isClusterReady() error {
 	cluster := &v1beta1.Cluster{}
 	if err := qc.Client.Get(context.TODO(), types.NamespacedName{
 		Namespace: qc.Namespace,
-		Name:      qc.Parameters[ClusterId].(string),
+		Name:      qc.Parameters[ClusterID].(string),
 	}, cluster); err != nil {
 		return err
 	}
@@ -185,7 +185,7 @@ func (qc *QCContext) isClusterReady() error {
 }
 
 func (i input) addLatestOCNEVersion(client clipkg.Client, clusterType string) error {
-	if clusterType != OCNEOCI {
+	if clusterType != Ocneoci {
 		return nil
 	}
 	const (
@@ -194,8 +194,8 @@ func (i input) addLatestOCNEVersion(client clipkg.Client, clusterType string) er
 	)
 	cm := &corev1.ConfigMap{}
 	if err := client.Get(context.Background(), types.NamespacedName{
-		ocneConfigMapNamespace,
-		ocneConfigMapName,
+		Namespace: ocneConfigMapNamespace,
+		Name:      ocneConfigMapName,
 	}, cm); err != nil {
 		return err
 	}
@@ -226,7 +226,7 @@ func (i input) addLatestOCNEVersion(client clipkg.Client, clusterType string) er
 func (i input) addFileContents() error {
 	files := []string{
 		PubKey,
-		ApiKey,
+		APIKey,
 	}
 	for _, filevar := range files {
 		path := os.Getenv(filevar)
@@ -238,8 +238,8 @@ func (i input) addFileContents() error {
 			return err
 		}
 		i[filevar] = string(b)
-		if filevar == ApiKey {
-			i.b64EncodeKV(ApiKey, B64Key)
+		if filevar == APIKey {
+			i.b64EncodeKV(APIKey, B64Key)
 		}
 	}
 	return nil

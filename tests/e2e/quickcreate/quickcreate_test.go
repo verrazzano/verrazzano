@@ -54,7 +54,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 		return
 	}
 	Eventually(func() error {
-		err := ctx.deleteObject(ctx.namespaceObject())
+		err := ctx.cleanupCAPICluster()
 		if err != nil {
 			t.Logs.Info(err)
 		}
