@@ -93,7 +93,7 @@ func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.Reconc
 		return err
 	}
 	osClient := NewOSClient(pas)
-	err := osClient.SyncDefaultISMPolicy(r.log, r.Client, vz)
+	err = osClient.SyncDefaultISMPolicy(r.log, r.Client, vz)
 	return err
 }
 

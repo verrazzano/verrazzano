@@ -10,8 +10,10 @@ import (
 	"github.com/verrazzano/pkg/diff"
 	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -84,11 +86,11 @@ const (
 	// Default amount of time before a policy-managed index is rolled over
 	defaultRolloverIndexAge = "1d"
 	// Descriptor to identify policies as being managed by the VMI
-	vmiManagedPolicy = "__vmi-managed__"
+	vmiManagedPolicy = "__operator-managed__"
 
 	systemDefaultPolicyFileName = "vz-system-default-ISM-policy.json"
 	appDefaultPolicyFileName    = "vz-application-default-ISM-policy.json"
-	defaultPolicyPath           = "manifests/opensearch/"
+	defaultPolicyPath           = "integration-controllers/manifests/opensearch/"
 	systemDefaultPolicy         = "vz-system"
 	applicationDefaultPolicy    = "vz-application"
 )
@@ -547,7 +549,8 @@ func toISMPolicy(policy *vmcontrollerv1.IndexManagementPolicy) *ISMPolicy {
 
 // getISMPolicyFromFile reads the given json file and return the ISMPolicy object after unmarshalling.
 func getISMPolicyFromFile(policyFileName string) (*ISMPolicy, error) {
-	policyBytes, err := os.ReadFile(defaultPolicyPath + policyFileName)
+	policypath := filepath.Join(config.GetPlatformDir(), defaultPolicyPath)
+	policyBytes, err := os.ReadFile(policypath + policyFileName)
 	if err != nil {
 		return nil, err
 	}
