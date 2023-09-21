@@ -21,13 +21,13 @@ func CreateOrDeleteFluentbitFilterAndParser(ctx spi.ComponentContext, fluentbitF
 	args := make(map[string]interface{})
 	args["namespace"] = namespace
 	templatePath := path.Join(config.GetThirdPartyManifestsDir(), "fluent-operator/"+fluentbitFilterAndParserTemplate)
-	if delete {
-		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil && !meta.IsNoMatchError(err) {
-			return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
-		}
-		return nil
-	}
 	if vzcr.IsFluentOperatorEnabled(ctx.EffectiveCR()) {
+		if delete {
+			if err := k8sutil.NewYAMLApplier(ctx.Client(), "").DeleteFT(templatePath, args); err != nil && !meta.IsNoMatchError(err) {
+				return ctx.Log().ErrorfNewErr("Failed Deleting Filter and Parser for Fluent Operator: %v", err)
+			}
+			return nil
+		}
 		if err := k8sutil.NewYAMLApplier(ctx.Client(), "").ApplyFT(templatePath, args); err != nil {
 			return ctx.Log().ErrorfNewErr("Failed applying Filter and Parser for Fluent Operator: %v", err)
 		}

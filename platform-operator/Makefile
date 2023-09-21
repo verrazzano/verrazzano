@@ -225,3 +225,8 @@ generate-bom:
 	mkdir out || true
 	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_VERSION} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ${VERRAZZANO_AUTHPROXY_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
 
+.PHONY: generate-catalog
+generate-catalog:
+	@echo Generating catalog with verrazzano version ${VERRAZZANO_VERSION}
+	mkdir out || true
+	../tools/scripts/generate_catalog.sh manifests/catalog/catalog.yaml ${VERRAZZANO_VERSION} out/generated-catalog.yaml
