@@ -133,7 +133,7 @@ pipeline {
                     expression { params.RUN_TESTS == true };
                 }
             }
-
+    }
             parallel {
                 stage('Check Image Sizes') {
                     steps {
