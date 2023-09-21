@@ -91,7 +91,7 @@ const (
 
 	systemDefaultPolicyFileName = "vz-system-default-ISM-policy.json"
 	appDefaultPolicyFileName    = "vz-application-default-ISM-policy.json"
-	defaultPolicyPath           = "integration-controllers/manifests/opensearch"
+	defaultPolicyPath           = "opensearch-operator"
 	systemDefaultPolicy         = "vz-system"
 	applicationDefaultPolicy    = "vz-application"
 )
@@ -557,7 +557,7 @@ func toISMPolicy(policy *vmcontrollerv1.IndexManagementPolicy) *ISMPolicy {
 
 // getISMPolicyFromFile reads the given json file and return the ISMPolicy object after unmarshalling.
 func getISMPolicyFromFile(policyFileName string) (*ISMPolicy, error) {
-	policypath := filepath.Join(config.GetPlatformDir(), defaultPolicyPath)
+	policypath := filepath.Join(config.GetThirdPartyManifestsDir(), defaultPolicyPath)
 	policyBytes, err := os.ReadFile(policypath + "/" + policyFileName)
 	if err != nil {
 		zap.S().Infof("ReadFile error", err)
