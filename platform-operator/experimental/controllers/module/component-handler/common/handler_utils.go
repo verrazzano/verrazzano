@@ -10,12 +10,12 @@ import (
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
+	modulecatalog "github.com/verrazzano/verrazzano/pkg/catalog"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	modulecatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -119,11 +119,11 @@ func isDependencyReady(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, modu
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	version := catalog.GetVersion(comp.Name())
-	if version == nil {
+	if version == "" {
 		err = ctx.Log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if version.ToString() != module.Status.LastSuccessfulVersion {
+	if version != module.Status.LastSuccessfulVersion {
 		return result.NewResultShortRequeueDelay()
 	}
 

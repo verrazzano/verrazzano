@@ -9,7 +9,7 @@ modules:
   - name: cert-manager-webhook-oci
     version: 0.1.0
   - name: cluster-issuer
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: dex
     version: 2.37.0
   - name: external-dns
@@ -21,21 +21,21 @@ modules:
   - name: cluster-api
     version: 1.4.6
   - name: verrazzano
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: fluentd
     version: 1.14.5
   - name: verrazzano-console
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: verrazzano-monitoring-operator
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: oam-kubernetes-runtime
     version: 0.3.3
   - name: verrazzano-cluster-operator
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: verrazzano-cluster-agent
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: verrazzano-application-operator
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: weblogic-operator
     version: 4.1.2
   - name: coherence-operator
@@ -73,7 +73,7 @@ modules:
   - name: thanos
     version: 0.32.2
   - name: verrazzano-network-policies
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: opensearch
     version: 2.3.0
   - name: opensearch-dashboards
@@ -81,6 +81,6 @@ modules:
   - name: grafana
     version: 7.5.17
   - name: verrazzano-grafana-dashboards
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
   - name: verrazzano-authproxy
-    version: 2.0.0
+    version: VERRAZZANO_VERSION
