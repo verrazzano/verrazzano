@@ -5,9 +5,9 @@ package authproxy
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -17,11 +17,7 @@ import (
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
-	Ingress                   *v1alpha1.IngressNginxComponent      `json:"ingress,omitempty"`
-	DNS                       *v1alpha1.DNSComponent               `json:"dns,omitempty"`
-	EnvironmentName           string                               `json:"environmentName,omitempty"`
-	Kubernetes                *v1alpha1.AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
-	PrometheusOperatorEnabled bool                                 `json:"prometheusOperatorEnabled"`
+	Kubernetes *v1alpha1.AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
@@ -32,39 +28,19 @@ func (c authProxyComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Ve
 
 	configSnippet := valuesConfig{}
 
-	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil {
-		configSnippet.DNS = &v1alpha1.DNSComponent{
-			External:         dns.External,
-			InstallOverrides: v1alpha1.InstallOverrides{}, // always ignore the overrides here, those are handled separately
-			OCI:              dns.OCI,
-			Wildcard:         dns.Wildcard,
-		}
-	}
-
-	nginx := effectiveCR.Spec.Components.Ingress
-	if nginx != nil {
-		configSnippet.Ingress = nginx.DeepCopy()
-		configSnippet.Ingress.InstallOverrides.ValueOverrides = []v1alpha1.Overrides{}
-	}
-
 	authProxy := effectiveCR.Spec.Components.AuthProxy
 	if authProxy.Kubernetes != nil {
 		configSnippet.Kubernetes = authProxy.Kubernetes.DeepCopy()
 	}
 
-	configSnippet.PrometheusOperatorEnabled = vzcr.IsPrometheusOperatorEnabled(effectiveCR)
-
-	if len(effectiveCR.Spec.EnvironmentName) > 0 {
-		configSnippet.EnvironmentName = effectiveCR.Spec.EnvironmentName
-	}
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c authProxyComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, fluentoperator.ComponentName, common.PrometheusOperatorComponentName}),
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, common.PrometheusOperatorComponentName}),
 		watch.GetCreateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetUpdateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetDeleteSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
