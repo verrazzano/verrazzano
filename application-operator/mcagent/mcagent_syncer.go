@@ -202,16 +202,16 @@ func (s *Syncer) updateVMCStatus() error {
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
 	localKubeconfig, err := k8sutil.GetKubeConfig()
 	if err != nil {
-		return "", fmt.Errorf("failed to get Kubeconfig for this workload cluster")
+		return "", fmt.Errorf("failed to get Kubeconfig for this workload cluster: %v", err)
 	}
 	discoveryClient, err := discovery.NewDiscoveryClientForConfig(localKubeconfig)
 	if err != nil {
-		return "", fmt.Errorf("failed to get discovery client for this workload cluster")
+		return "", fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
 	}
 
 	k8sVersion, err := discoveryClient.ServerVersion()
 	if err != nil {
-		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster")
+		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster: %v", err)
 	}
 	return k8sVersion.String(), nil
 }
@@ -221,7 +221,7 @@ func (s *Syncer) getWorkloadK8sVersion() (string, error) {
 func (s *Syncer) getWorkloadVZVersion() (string, error) {
 	vzList := &v1beta1.VerrazzanoList{}
 	if err := s.LocalClient.List(s.Context, vzList, &client.ListOptions{}); err != nil {
-		return "", fmt.Errorf("error listing Verrazzanos")
+		return "", fmt.Errorf("error listing Verrazzanos: %v", err)
 	}
 	if len(vzList.Items) != 1 {
 		return "", fmt.Errorf("number of Verrazzano installations should be 1, but was %d", len(vzList.Items))
