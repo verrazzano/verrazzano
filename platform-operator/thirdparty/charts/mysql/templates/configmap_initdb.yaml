@@ -1,0 +1,13 @@
+{{- if .Values.initdbScripts }}
+{{- $cluster_name :=  default "mysql" .Release.Name }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: initsql
+  namespace: {{ .Release.Namespace }}
+data:
+{{- range $key, $val := .Values.initdbScripts }}
+  {{ $key }}: |-
+{{ $val | indent 4}}
+{{- end }}
+{{- end -}}
