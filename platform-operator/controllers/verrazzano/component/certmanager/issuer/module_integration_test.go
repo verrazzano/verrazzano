@@ -91,15 +91,6 @@ func TestGetModuleSpec(t *testing.T) {
 				  "verrazzano": {
 					"module": {
 					  "spec": {
-						"dns": {
-						  "oci": {
-							"dnsScope": "global",
-							"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-							"dnsZoneOCID": "ocid..zone.myzone",
-							"dnsZoneName": "myzone",
-							"ociConfigSecret": "oci"
-						  }
-						},
 						"issuerConfig": {
 						  "ca": {
 							"secretName": "newsecret"
@@ -154,15 +145,6 @@ func TestGetModuleSpec(t *testing.T) {
 				  "verrazzano": {
 					"module": {
 					  "spec": {
-						"dns": {
-						  "oci": {
-							"dnsScope": "global",
-							"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-							"dnsZoneOCID": "ocid..zone.myzone",
-							"dnsZoneName": "myzone",
-							"ociConfigSecret": "oci"
-						  }
-						},
 						"issuerConfig": {
 						  "ca": {
 							"secretName": "newsecret"
