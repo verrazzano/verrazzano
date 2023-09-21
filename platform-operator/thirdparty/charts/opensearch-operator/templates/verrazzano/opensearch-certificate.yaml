@@ -8,7 +8,7 @@ apiVersion: cert-manager.io/v1
 kind: Issuer
 metadata:
   name: opensearch-self-signed-issuer
-  namespace: cert-manager
+  namespace: {{ .Values.clusterResourceNamespace }}
 spec:
   selfSigned: {}
 ---
@@ -17,7 +17,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: opensearch-ca-cert
-  namespace: cert-manager
+  namespace: {{ .Values.clusterResourceNamespace }}
 spec:
   secretName: opensearch-ca-cert
   duration: 2160h0m0s
