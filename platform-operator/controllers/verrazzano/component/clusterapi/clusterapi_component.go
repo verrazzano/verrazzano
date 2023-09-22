@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+	"os/exec"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -224,28 +225,19 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		return c.Upgrade(ctx)
 	}
 
-	capiClient, err := capiInitFunc("")
-	if err != nil {
-		return err
-	}
-
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
 	overridesContext := newOverridesContext(overrides)
-	// Set up the init options for the CAPI init.
-	initOptions := clusterapi.InitOptions{
-		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
-		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())},
-		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
-		TargetNamespace:         ComponentNamespace,
-	}
 
-	_, err = capiClient.Init(initOptions)
-	return err
+	return exec.Command("clusterctl", "init",
+		"--target-namespace", ComponentNamespace,
+		"--core", fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
+		"--control-plane", fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion()),
+		"--infrastructure", fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion()),
+		"--bootstrap", fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())).Run()
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -261,18 +253,7 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
-	capiClient, err := capiInitFunc("")
-	if err != nil {
-		return err
-	}
-
-	// Set up the delete options for the CAPI delete operation.
-	deleteOptions := clusterapi.DeleteOptions{
-		DeleteAll:        true,
-		IncludeNamespace: true,
-		IncludeCRDs:      false,
-	}
-	return capiClient.Delete(deleteOptions)
+	return exec.Command("clusterctl", "delete", "--all", "--include-namespace ").Run()
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
