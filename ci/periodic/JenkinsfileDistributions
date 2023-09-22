@@ -44,7 +44,7 @@ pipeline {
                 trim: true)
         booleanParam (name: 'BASELINE_IMAGE_SIZES_FILE_UPDATE',
                 defaultValue: false,
-                description: 'If true, image-sixes.txt file will be updated to the now newly generated file.')
+                description: 'If true, image-sizes.txt file will be updated to reflect latest image sizes. ')
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
                 description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
@@ -124,7 +124,7 @@ pipeline {
             }
         }
 
-        stage('Update Baseline txt File') {
+        stage('Update Baseline Image-Sizes File') {
             when {
                 anyOf {
                     expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == true };
