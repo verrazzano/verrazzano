@@ -4,9 +4,12 @@
 package clusterapi
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os/exec"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -74,11 +77,21 @@ type capiUpgradeOptions struct {
 var capiRunCmdFunc func(cmd *exec.Cmd) error
 
 // runCAPICmd - wrapper for executing commands, required for unit testing
-func runCAPICmd(cmd *exec.Cmd) error {
+func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	if capiRunCmdFunc != nil {
 		return capiRunCmdFunc(cmd)
 	}
-	return cmd.Run()
+	stdoutBuffer := &bytes.Buffer{}
+	stderrBuffer := &bytes.Buffer{}
+	cmd.Stdout = stdoutBuffer
+	cmd.Stderr = stderrBuffer
+
+	log.Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
+	err := cmd.Run()
+	if err != nil {
+		log.Infof("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+	}
+	return err
 }
 
 type clusterAPIComponent struct {
@@ -244,8 +257,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		"--infrastructure", infrastructureArgValue,
 		"--bootstrap", bootstrapArgValue)
 
-	ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
-	return runCAPICmd(cmd)
+	return runCAPICmd(cmd, ctx.Log())
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -262,12 +274,7 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace ")
-	ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
-	err := runCAPICmd(cmd)
-	if err != nil {
-		ctx.Log().Errorf("clusterctl delete command failed: %s", err.Error())
-	}
-	return err
+	return runCAPICmd(cmd, ctx.Log())
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
@@ -312,8 +319,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
 		}
 		cmd := exec.Command("clusterctl", args...)
-		ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
-		return runCAPICmd(cmd)
+		return runCAPICmd(cmd, ctx.Log())
 	}
 	return nil
 }
