@@ -152,8 +152,8 @@ pipeline {
                         IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                     }
                     catch(error) {
-                       //currentBuild.result = "SUCCESS"
-                       buildResult: 'SUCCESS', stageResult: 'FAILURE'
+                       currentBuild.result = "SUCCESS"
+                       //buildResult: 'SUCCESS', stageResult: 'FAILURE'
                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                        sh "exit 1"
                     }
