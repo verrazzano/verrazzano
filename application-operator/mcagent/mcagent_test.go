@@ -536,7 +536,7 @@ func expectAgentStateConfigMapFound(mock *mocks.MockClient, clusterName string) 
 }
 
 func expectGetMCNamespace(mock *mocks.MockClient) {
-	// expect a get to check if the verrazzano-mc namespace exists
+	// expect a get for the verrazzano-mc namespace
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: mcAgentStateConfigMapName.Namespace}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
