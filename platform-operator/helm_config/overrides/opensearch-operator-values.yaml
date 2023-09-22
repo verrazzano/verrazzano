@@ -39,3 +39,5 @@ ingress:
     serviceName: verrazzano-authproxy
     portNumber: 8775
     tls: []
+
+clusterResourceNamespace: ""

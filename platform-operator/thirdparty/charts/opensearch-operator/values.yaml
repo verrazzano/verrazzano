@@ -71,6 +71,3 @@ kubeRbacProxy:
   image: 
     repository: "gcr.io/kubebuilder/kube-rbac-proxy"
     tag: "v0.8.0"
-
-clusterResourceNamespace: ""
-
