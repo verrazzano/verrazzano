@@ -31,11 +31,12 @@ import (
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient        client.Client
-	LocalClient        client.Client
-	Log                *zap.SugaredLogger
-	ManagedClusterName string
-	Context            context.Context
+	AdminClient          client.Client
+	LocalClient          client.Client
+	LocalDiscoveryClient discovery.DiscoveryInterface
+	Log                  *zap.SugaredLogger
+	ManagedClusterName   string
+	Context              context.Context
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string
@@ -215,12 +216,7 @@ func (s *Syncer) updateVMCStatus() error {
 
 // getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
-	discoveryClient, err := getDiscoveryClientFunc()
-	if err != nil {
-		return "", fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
-	}
-
-	k8sVersion, err := discoveryClient.ServerVersion()
+	k8sVersion, err := s.LocalDiscoveryClient.ServerVersion()
 	if err != nil {
 		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster: %v", err)
 	}

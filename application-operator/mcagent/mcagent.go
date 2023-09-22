@@ -141,6 +141,13 @@ func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret)
 	}
 	s.AdminClient = adminClient
 
+	// Create the discovery client for the managed cluster
+	localDiscoveryClient, err := getDiscoveryClientFunc()
+	if err != nil {
+		return fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
+	}
+	s.LocalDiscoveryClient = localDiscoveryClient
+
 	// Sync cattle-cluster-agent deployment which will set the new cattleAgentHash on the Syncer
 	cattleAgentHashValue, err := s.syncCattleClusterAgent(mcAgentStateConfigMap.Data[cattleAgentHashData], "")
 	if err != nil {
