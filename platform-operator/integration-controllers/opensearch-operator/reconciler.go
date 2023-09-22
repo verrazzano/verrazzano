@@ -50,29 +50,24 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 
 	/*********************
-	* Add default index patterns
+	* Add default index patterns and ISM policies
 	**********************/
 
 	if *effectiveCR.Spec.Components.Kibana.Enabled && *effectiveCR.Spec.Components.Elasticsearch.Enabled {
 		if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
-			zap.S().Infof("DisableDefaultPolicy false")
 			err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		} else {
-			zap.S().Infof("DisableDefaultPolicy true")
 			err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
 		}
-		if len(effectiveCR.Spec.Components.Elasticsearch.Policies) > 0 {
-			err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
-			if err != nil {
-				zap.S().Infof("ConfigureISMPolicies true")
-				return result.NewResultShortRequeueDelayWithError(err)
-			}
+		err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
 		}
 		return result.NewResultRequeueDelay(5, 6, time.Minute)
 	}
