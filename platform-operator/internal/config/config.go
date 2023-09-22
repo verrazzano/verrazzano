@@ -31,7 +31,7 @@ const (
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
-	catalogDirSuffix             = "/platform-operator/experimental/catalog"
+	catalogDirSuffix             = "/platform-operator/manifests/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -80,6 +80,9 @@ type OperatorConfig struct {
 	// default-value: false, disabling the validation
 	ResourceRequirementsValidation bool
 
+	// CloudCredentialWatchEnabled enables/disables watching the cloud credentials for updates
+	CloudCredentialWatchEnabled bool
+
 	// WebhookValidationEnabled enables/disables webhook validation without removing the webhook itself
 	WebhookValidationEnabled bool
 
@@ -116,12 +119,13 @@ var instance = OperatorConfig{
 	RunWebhooks:                    false,
 	ResourceRequirementsValidation: false,
 	WebhookValidationEnabled:       true,
+	CloudCredentialWatchEnabled:    false,
 	VerrazzanoRootDir:              rootDir,
 	HealthCheckPeriodSeconds:       60,
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ModuleIntegration:              false,
+	ModuleIntegration:              true,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

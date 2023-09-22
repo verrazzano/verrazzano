@@ -5,14 +5,12 @@ package reconcile
 
 import (
 	"fmt"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	vzcontext "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/context"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -31,9 +29,6 @@ const (
 
 	// vzStateInstallComponents is the state where the components are being installed
 	vzStateInstallComponents reconcileState = "vzInstallComponents"
-
-	// vzStateWaitModulesReady wait for components installed using Modules to be ready
-	vzStateWaitModulesReady reconcileState = "vzWaitModulesReady"
 
 	// vzStatePostInstall is the global PostInstall state
 	vzStatePostInstall reconcileState = "vzPostInstall"
@@ -151,15 +146,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 			if err != nil || res.Requeue {
 				return res, err
 			}
-			tracker.vzState = vzStateWaitModulesReady
-
-		case vzStateWaitModulesReady:
-			if !preUpgrade {
-				ready, err := r.modulesReady(spiCtx)
-				if err != nil || !ready {
-					return ctrl.Result{Requeue: true}, err
-				}
-			}
 			tracker.vzState = vzStatePostInstall
 
 		case vzStatePostInstall:
@@ -170,9 +156,6 @@ func (r *Reconciler) reconcileComponents(vzctx vzcontext.VerrazzanoContext, preU
 				if err := argocd.ConfigureKeycloakOIDC(spiCtx); err != nil {
 					return ctrl.Result{Requeue: true}, err
 				}
-			}
-			if err := r.forceSyncComponentReconciledGeneration(spiCtx.ActualCR()); err != nil {
-				return newRequeueWithDelay(), err
 			}
 			tracker.vzState = vzStateReconcileEnd
 		}
@@ -206,11 +189,6 @@ func checkGenerationUpdated(spiCtx spi.ComponentContext) bool {
 // if it a watched component
 func (r *Reconciler) reconcileWatchedComponents(spiCtx spi.ComponentContext) error {
 	for _, comp := range registry.GetComponents() {
-		if comp.ShouldUseModule() {
-			// Ignore if this component is being handled by a Module
-			continue
-		}
-
 		spiCtx.Log().Debugf("Reconciling watched component %s", comp.Name())
 		if r.IsWatchedComponent(comp.GetJSONName()) {
 			if err := comp.Reconcile(spiCtx); err != nil {

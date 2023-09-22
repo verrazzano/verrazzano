@@ -42,10 +42,10 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "istio"
+const ComponentName = common.IstioComponentName
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = "istio"
+const ComponentJSONName = common.IstioComponentName
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
@@ -57,7 +57,7 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 // IstioNamespace is the default Istio namespace
-const IstioNamespace = constants.IstioSystemNamespace
+const IstioNamespace = common.IstioNamespace
 
 // IstioCoreDNSReleaseName is the name of the istiocoredns release
 const IstioCoreDNSReleaseName = "istiocoredns"
@@ -81,6 +81,7 @@ const istioSidecarMutatingWebhook = "istio-sidecar-injector"
 
 const istioRevisionMutatingWebhook = "istio-revision-tag-default"
 
+// for unit testing
 var istioLabelSelector = clipkg.ListOptions{LabelSelector: labels.Set(map[string]string{"release": "istio"}).AsSelector()}
 
 const (
@@ -456,12 +457,12 @@ func (i istioComponent) PreUpgrade(context spi.ComponentContext) error {
 	return webhook.DeleteMutatingWebhookConfiguration(context.Log(), context.Client(), webhooks)
 }
 
-func (i istioComponent) PostUpgrade(context spi.ComponentContext) error {
-	err := deleteIstioCoreDNS(context)
+func (i istioComponent) PostUpgrade(compContext spi.ComponentContext) error {
+	err := deleteIstioCoreDNS(compContext)
 	if err != nil {
 		return err
 	}
-	err = removeIstioHelmSecrets(context)
+	err = removeIstioHelmSecrets(compContext)
 	if err != nil {
 		return err
 	}

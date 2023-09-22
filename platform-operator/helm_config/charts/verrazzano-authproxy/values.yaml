@@ -34,7 +34,6 @@ affinity:
 config:
   envName:
   dnsSuffix:
-  prometheusOperatorEnabled:
   ingressClassName:
 
 dns:
@@ -42,9 +41,13 @@ dns:
     domain:
 
 v2:
+  enabled: false
   image:
   port: 8777
 
-  oidcIssuerURL: placeholder
+  # The in-cluster service URL to access the OIDC provider (configured at install time)
+  # oidcServiceURL:
+  # The URL to access the OIDC provider from outside of the cluster (configured at install time)
+  # oidcExternalURL:
   oidcClientID: verrazzano-pkce
   oidcConfigSecret: verrazzano-authproxy-oidc-config

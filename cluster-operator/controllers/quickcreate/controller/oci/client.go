@@ -7,6 +7,7 @@ import (
 	"context"
 	"github.com/oracle/oci-go-sdk/v53/common"
 	"github.com/oracle/oci-go-sdk/v53/core"
+	"github.com/oracle/oci-go-sdk/v53/identity"
 )
 
 const (
@@ -18,17 +19,29 @@ const (
 type (
 	Client interface {
 		GetSubnetByID(ctx context.Context, id, role string) (*Subnet, error)
+		GetVCNByID(ctx context.Context, id string) (*core.Vcn, error)
+		GetAvailabilityAndFaultDomains(ctx context.Context) ([]AvailabilityDomain, error)
 	}
 	// ClientImpl OCI Client implementation
 	ClientImpl struct {
-		vnClient core.VirtualNetworkClient
+		tenancyID      string
+		vnClient       core.VirtualNetworkClient
+		identityClient identity.IdentityClient
 	}
 	Subnet struct {
-		ID   string
-		Role string
+		ID          string
+		Role        string
+		Name        string
+		DisplayName string
+		CIDR        string
+		Type        string
+	}
+	AvailabilityDomain struct {
+		Name         string
+		FaultDomains []FaultDomain
+	}
+	FaultDomain struct {
 		Name string
-		CIDR string
-		Type string
 	}
 )
 
@@ -42,8 +55,14 @@ func NewClient(creds *Credentials) (Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	i, err := identity.NewIdentityClientWithConfigurationProvider(provider)
+	if err != nil {
+		return nil, err
+	}
 	return &ClientImpl{
-		vnClient: net,
+		tenancyID:      creds.Tenancy,
+		vnClient:       net,
+		identityClient: i,
 	}, nil
 }
 
@@ -59,12 +78,52 @@ func (c *ClientImpl) GetSubnetByID(ctx context.Context, subnetID, role string) (
 
 	sn := response.Subnet
 	return &Subnet{
-		ID:   subnetID,
-		CIDR: *sn.CidrBlock,
-		Type: subnetAccess(sn),
-		Name: role,
-		Role: role,
+		ID:          subnetID,
+		CIDR:        *sn.CidrBlock,
+		Type:        subnetAccess(sn),
+		Name:        role,
+		DisplayName: *sn.DisplayName,
+		Role:        role,
 	}, nil
+}
+
+func (c *ClientImpl) GetVCNByID(ctx context.Context, id string) (*core.Vcn, error) {
+	response, err := c.vnClient.GetVcn(ctx, core.GetVcnRequest{
+		VcnId: &id,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &response.Vcn, nil
+}
+
+func (c *ClientImpl) GetAvailabilityAndFaultDomains(ctx context.Context) ([]AvailabilityDomain, error) {
+	ads, err := c.identityClient.ListAvailabilityDomains(ctx, identity.ListAvailabilityDomainsRequest{
+		CompartmentId: &c.tenancyID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var availabilityDomains []AvailabilityDomain
+	for _, ad := range ads.Items {
+		availabilityDomain := AvailabilityDomain{
+			Name: *ad.Name,
+		}
+		fd, err := c.identityClient.ListFaultDomains(ctx, identity.ListFaultDomainsRequest{
+			CompartmentId:      &c.tenancyID,
+			AvailabilityDomain: ad.Name,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, f := range fd.Items {
+			availabilityDomain.FaultDomains = append(availabilityDomain.FaultDomains, FaultDomain{
+				Name: *f.Name,
+			})
+		}
+		availabilityDomains = append(availabilityDomains, availabilityDomain)
+	}
+	return availabilityDomains, nil
 }
 
 // subnetAccess returns public or private, depending on a subnet's access type

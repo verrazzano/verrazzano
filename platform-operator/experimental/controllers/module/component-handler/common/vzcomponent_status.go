@@ -51,7 +51,7 @@ func UpdateVerrazzanoComponentStatusToDisabled(ctx handlerspi.HandlerContext, Vz
 	return result.NewResult()
 }
 
-// UpdateVerrazzanoComponentStatus updates the component status
+// UpdateVerrazzanoComponentStatus updates the Verrazzano component status
 func UpdateVerrazzanoComponentStatus(ctx handlerspi.HandlerContext, sd StatusData) result.Result {
 	// Always get the latest module from the controller-runtime cache to try and avoid conflict error
 	vzcr := &vzapi.Verrazzano{}

@@ -30,6 +30,7 @@ type chartValues struct {
 	ArgoCD              *argoCDValues            `json:"argoCd,omitempty"`
 	FluentOperator      *fluentOperatorValues    `json:"fluentOperator,omitempty"`
 	ClusterAPI          *clusterAPIValues        `json:"clusterAPI,omitempty"`
+	Dex                 *dexValues               `json:"dex,omitempty"`
 }
 
 type authproxyValues struct {
@@ -115,5 +116,9 @@ type clusterAPIValues struct {
 }
 
 type fluentOperatorValues struct {
+	Enabled bool `json:"enabled"` // Always write
+}
+
+type dexValues struct {
 	Enabled bool `json:"enabled"` // Always write
 }

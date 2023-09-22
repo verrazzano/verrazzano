@@ -12,11 +12,11 @@ spec:
     clusterNetwork:
         pods:
             cidrBlocks:
-                - {{.Kubernetes.ClusterNetwork.PodCIDR}}
+                - {{.KubernetesBase.ClusterNetwork.PodCIDR}}
         serviceDomain: cluster.local
         services:
             cidrBlocks:
-                - {{.Kubernetes.ClusterNetwork.ServiceCIDR}}
+                - {{.KubernetesBase.ClusterNetwork.ServiceCIDR}}
     controlPlaneRef:
         apiVersion: controlplane.cluster.x-k8s.io/v1alpha1
         kind: OCNEControlPlane
@@ -46,13 +46,13 @@ spec:
     networkSpec:
         vcn:
             name: {{.Name}}
-            cidr: {{.Kubernetes.ClusterNetwork.ServiceCIDR}}
+            cidr: 10.0.0.0/16
             networkSecurityGroup:
                 list:
                     - egressRules:
                           - egressRule:
                                 description: Kubernetes API traffic to Control Plane
-                                destination: 10.96.0.0/29
+                                destination: 10.0.0.0/29
                                 destinationType: CIDR_BLOCK
                                 isStateless: false
                                 protocol: "6"
@@ -78,7 +78,7 @@ spec:
                                     type: 3
                                 isStateless: false
                                 protocol: "1"
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                       name: ocne-control-plane-endpoint
                       role: control-plane-endpoint
@@ -92,7 +92,7 @@ spec:
                       ingressRules:
                           - ingressRule:
                                 description: Inbound East-West traffic
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                                 isStateless: false
                                 protocol: all
@@ -101,7 +101,7 @@ spec:
                                     communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.8/29
+                                source: 10.0.0.8/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -111,7 +111,7 @@ spec:
                                 description: Control plane node to Control Plane(apiserver port) communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -121,7 +121,7 @@ spec:
                                 description: Worker Node to Control Plane(apiserver port) communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -131,7 +131,7 @@ spec:
                                 description: etcd client communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -141,7 +141,7 @@ spec:
                                 description: etcd peer
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -151,7 +151,7 @@ spec:
                                 description: Calico networking (BGP)
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -161,7 +161,7 @@ spec:
                                 description: Calico networking (BGP)
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -171,13 +171,13 @@ spec:
                                 description: Calico networking with IP-in-IP enabled
                                 isStateless: false
                                 protocol: "4"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Calico networking with IP-in-IP enabled
                                 isStateless: false
                                 protocol: "4"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Path discovery
@@ -186,7 +186,7 @@ spec:
                                     type: 3
                                 isStateless: false
                                 protocol: "1"
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Inbound SSH traffic to Control Plane
@@ -202,7 +202,7 @@ spec:
                                 description: Control Plane to Control Plane Kubelet Communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -220,7 +220,7 @@ spec:
                       ingressRules:
                           - ingressRule:
                                 description: Inbound East-West traffic
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                                 isStateless: false
                                 protocol: all
@@ -241,13 +241,13 @@ spec:
                                     type: 3
                                 isStateless: false
                                 protocol: "1"
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Control Plane to worker node Kubelet Communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -257,7 +257,7 @@ spec:
                                 description: Worker node to worker node Kubelet Communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -267,7 +267,7 @@ spec:
                                 description: Calico networking (BGP)
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -277,7 +277,7 @@ spec:
                                 description: Calico networking (BGP)
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -287,19 +287,19 @@ spec:
                                 description: Calico networking with IP-in-IP enabled
                                 isStateless: false
                                 protocol: "4"
-                                source: 10.96.0.0/29
+                                source: 10.0.0.0/29
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Calico networking with IP-in-IP enabled
                                 isStateless: false
                                 protocol: "4"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Worker node to default NodePort ingress communication
                                 isStateless: false
                                 protocol: "6"
-                                source: 10.96.64.0/20
+                                source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                                 tcpOptions:
                                     destinationPortRange:
@@ -310,7 +310,7 @@ spec:
                     - egressRules:
                           - egressRule:
                                 description: Service LoadBalancer to default NodePort egress communication
-                                destination: 10.96.64.0/20
+                                destination: 10.0.64.0/20
                                 destinationType: CIDR_BLOCK
                                 isStateless: false
                                 protocol: "6"
@@ -326,7 +326,7 @@ spec:
                                     type: 3
                                 isStateless: false
                                 protocol: "1"
-                                source: 10.96.0.0/16
+                                source: 10.0.0.0/16
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
                                 description: Accept http traffic on port 80
@@ -351,19 +351,19 @@ spec:
                       name: ocne-service-lb
                       role: service-lb
             subnets:
-                - cidr: 10.96.0.8/29
+                - cidr: 10.0.0.8/29
                   name: ocne-control-plane-endpoint
                   role: control-plane-endpoint
                   type: public
-                - cidr: 10.96.0.0/29
+                - cidr: 10.0.0.0/29
                   name: ocne-control-plane
                   role: control-plane
                   type: private
-                - cidr: 10.96.0.32/27
+                - cidr: 10.0.0.32/27
                   name: ocne-service-lb
                   role: service-lb
                   type: public
-                - cidr: 10.96.64.0/20
+                - cidr: 10.0.64.0/20
                   name: ocne-worker
                   role: worker
                   type: private

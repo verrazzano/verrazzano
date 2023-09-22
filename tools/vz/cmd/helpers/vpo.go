@@ -468,11 +468,24 @@ func PrintSimpleLogFormat(sc *bufio.Scanner, outputStream io.Writer, regexp *reg
 	// res[0][2] is the timestamp
 	// res[0][1] is the level
 	// res[0][4] is the message
-	if res != nil {
+
+	if res != nil && isAcceptableMessageForSimpleLogFormat(res[0][1], res[0][4]) {
 		// Print each log message in the form "timestamp level message".
 		// For example, "2022-06-03T00:05:10.042Z info Component keycloak successfully installed"
 		fmt.Fprintf(outputStream, fmt.Sprintf("%s %s %s\n", res[0][2], res[0][1], res[0][4]))
 	}
+}
+
+// isNotAcceptableMessageForSimpleLogFormat returns true if a message should be filtered out from the console
+func isAcceptableMessageForSimpleLogFormat(level string, message string) bool {
+	if (level != "error" && level != "info") || strings.Contains(message, "Starting EventSource") {
+		return false
+	}
+	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate") || strings.Contains(message, "Associating NetworkPolicy") || strings.Contains(message, "Updating the Labels and Annotations") || strings.Contains(message, "Resetting initial MySQL pod readiness check") || strings.Contains(message, "waiting for readiness gates") || strings.Contains(message, "required ingresses") || strings.Contains(message, "waiting for") || strings.Contains(message, "Waiting for") || strings.Contains(message, "Certificate") || strings.Contains(message, "Replica") || strings.Contains(message, "Starting Controller") || strings.Contains(message, "Starting workers") || strings.Contains(message, "Helm") || strings.Contains(message, "helm") || strings.Contains(message, "Applying yaml") || strings.Contains(message, "Successfully deleted")) {
+		return false
+	}
+	return true
+
 }
 
 // return the operation string to display

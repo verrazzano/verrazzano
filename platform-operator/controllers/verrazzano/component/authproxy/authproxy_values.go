@@ -35,13 +35,16 @@ type proxyValues struct {
 	AuthnStateTTL                string `json:"AuthnStateTTL,omitempty"`
 	MaxRequestSize               string `json:"MaxRequestSize,omitempty"`
 	ProxyBufferSize              string `json:"ProxyBufferSize,omitempty"`
+	OidcProviderHostDex          string `json:"OidcProviderHostDex,omitempty"`
+	OidcProviderHostInClusterDex string `json:"OidcProviderHostInClusterDex,omitempty"`
+	OidcProviderForConsole       string `json:"OidcProviderForConsole,omitempty"`
+	OidcProviderClientSecret     string `json:"OidcProviderClientSecret,omitempty"`
 }
 
 type configValues struct {
-	EnvName                   string `json:"envName,omitempty"`
-	DNSSuffix                 string `json:"dnsSuffix,omitempty"`
-	PrometheusOperatorEnabled bool   `json:"prometheusOperatorEnabled,omitempty"`
-	IngressClassName          string `json:"ingressClassName,omitempty"`
+	EnvName          string `json:"envName,omitempty"`
+	DNSSuffix        string `json:"dnsSuffix,omitempty"`
+	IngressClassName string `json:"ingressClassName,omitempty"`
 }
 
 type dnsValues struct {

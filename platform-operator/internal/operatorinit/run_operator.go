@@ -20,8 +20,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
-	integrationcascade "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/cascade"
-	integrationsingle "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/integration/single"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
@@ -100,34 +98,12 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 	// Set up the reconciler
 	statusUpdater := healthcheck.NewStatusUpdater(mgr.GetClient())
 
-	// Setup Verrazzano controllers
-	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
-	reconciler := reconcile.Reconciler{
-		Client:            mgr.GetClient(),
-		Scheme:            mgr.GetScheme(),
-		DryRun:            vzconfig.DryRun,
-		WatchedComponents: map[string]bool{},
-		WatchMutex:        &sync.RWMutex{},
-		StatusUpdater:     statusUpdater,
-	}
-	if err = reconciler.SetupWithManager(mgr); err != nil {
-		return errors.Wrap(err, "Failed to setup controller")
-	}
-	if vzconfig.HealthCheckPeriodSeconds > 0 {
-		healthCheck.Start()
-	}
-
-	// Verrazzano has 2 verrazzano CR controllers, the new experimental module based controller and the original one.
-	// Use the new controller if module integration is enabled.  Also create the module controllers
+	// There are 2 verrazzano CR controllers, the new module-based controller and the original (legacy) one.
+	// Use the new module-base controllers if module integration is enabled otherwise use the legacy verrazzano one.
 	if vzconfig.ModuleIntegration {
 		if err := initModuleControllers(log, mgr); err != nil {
 			log.Errorf("Failed to start all module controllers", err)
 			return errors.Wrap(err, "Failed to initialize modules controllers for the components")
-		}
-
-		if err := initIntegrationControllers(log, mgr); err != nil {
-			log.Errorf("Failed to start all integration controllers", err)
-			return errors.Wrap(err, "Failed to initialize integration controllers")
 		}
 
 		// init verrazzano module controller
@@ -135,11 +111,34 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 			log.Errorf("Failed to start module-based Verrazzano controller", err)
 			return errors.Wrap(err, "Failed to initialize controller for module-based Verrazzano controller")
 		}
+	} else {
+		// init legacy verrazzano controller
+		reconciler := reconcile.Reconciler{
+			Client:            mgr.GetClient(),
+			Scheme:            mgr.GetScheme(),
+			DryRun:            vzconfig.DryRun,
+			WatchedComponents: map[string]bool{},
+			WatchMutex:        &sync.RWMutex{},
+			StatusUpdater:     statusUpdater,
+		}
+		if err = reconciler.SetupWithManager(mgr); err != nil {
+			return errors.Wrap(err, "Failed to setup controller")
+		}
 	}
 
+	// Setup Verrazzano controllers
+	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
+	if vzconfig.HealthCheckPeriodSeconds > 0 {
+		healthCheck.Start()
+	}
+	dynamicClient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get Dynamic Client")
+	}
 	// Setup secrets reconciler
 	if err = (&secrets.VerrazzanoSecretsReconciler{
 		Client:        mgr.GetClient(),
+		DynamicClient: dynamicClient,
 		Scheme:        mgr.GetScheme(),
 		StatusUpdater: statusUpdater,
 	}).SetupWithManager(mgr); err != nil {
@@ -248,10 +247,20 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 }
 
 // initModuleControllers creates a controller for every module
-// The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
-// respective component.
+// The controller uses the module name (i.e. component name) as a predicate,
+// so that each controller only processes Module CRs for the respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-	const maxReconciles = 30
+	// Run 50 controllers max concurrently.  Even though there is a controller for each
+	// module, the controller-runtime serializes reconciles if the MaxConcurrentReconciles is 1.
+	// This is because it is the same resource type being reconcile, but with a
+	// different predicate per controller.  Also, with the MaxConcurrentReconciles > 1, there
+	// is a chance that the controller-runtime will call the same controller (e.g. istio) to
+	// reconcile, while it is already reconciling a given CR.  There is a check in the
+	// module-operator package to catch this and requeue, thereby never allowing more
+	// than 1 instance of the same module from having more than 1 outstanding reconcile happening.
+	// See https://github.com/verrazzano/verrazzano-modules/blob/main/module-operator/controllers/module/reconciler.go#L225
+	// for details.
+	const maxReconciles = 50
 
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
@@ -260,7 +269,13 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		// init controller
+		// Create and initialize the module controller.  Note that the implementation of the module controller
+		// is in the module-operator package (in the module-operator repo).  This is the exact
+		// same controller that is used by the module-operator used by OCNE.  The only difference
+		// is the set of handlers.  This code uses component shim handlers in the VPO code, whereas
+		// the OCNE module-operator uses OCNE handlers in the module-operator controller.  See
+		// ModuleHandlerInfo param below.  Also see the module-operator where the OCNE handlers are used
+		// for comparison: https://github.com/verrazzano/verrazzano-modules/blob/main/module-operator/main.go
 		if err := module.InitController(module.ModuleControllerConfig{
 			ControllerManager: mgr,
 			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),
@@ -272,26 +287,5 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 			return err
 		}
 	}
-	return nil
-}
-
-// initModuleControllers creates the integration controllers
-func initIntegrationControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-	// single module integration controller
-	if err := integrationsingle.InitController(integrationsingle.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
-	// other modules integration controller
-	if err := integrationcascade.InitController(integrationcascade.IntegrationControllerConfig{
-		ControllerManager: mgr,
-	}); err != nil {
-		log.Errorf("Failed to start the integration controller:%v", err)
-		return err
-	}
-
 	return nil
 }

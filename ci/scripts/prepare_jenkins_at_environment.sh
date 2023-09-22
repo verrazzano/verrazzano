@@ -31,6 +31,7 @@ ENABLE_THANOS_STORE_GATEWAY=${ENABLE_THANOS_STORE_GATEWAY:-false}
 ENABLE_THANOS_COMPACTOR=${ENABLE_THANOS_COMPACTOR:-false}
 ENABLE_THANOS_RULER=${ENABLE_THANOS_RULER:-false}
 INSTALL_EXTERNAL_CERT_MANAGER=${INSTALL_EXTERNAL_CERT_MANAGER:-false}
+ENABLE_DEX=${ENABLE_DEX:-false}
 
 clusterNames=$(kind get clusters)
 if [[ $clusterNames == *"${CLUSTER_NAME}"* ]]; then
@@ -117,12 +118,17 @@ EOF
     kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
   fi
 
+  # create verrazzano-github-token secret in verrazzano-install ns
+  if [ -n "${GITHUB_TOKEN}" ]; then
+    ./tests/e2e/config/scripts/create-github-token-secret.sh "verrazzano-github-token" "${GITHUB_TOKEN}" "verrazzano-install"
+  fi
+
   # create secret in verrazzano-install ns
   ./tests/e2e/config/scripts/create-image-pull-secret.sh "${IMAGE_PULL_SECRET}" "${DOCKER_REPO}" "${DOCKER_CREDS_USR}" "${DOCKER_CREDS_PSW}" "verrazzano-install"
 
   # optionally create a cluster dump snapshot for verifying uninstalls
   if [ -n "${CLUSTER_SNAPSHOT_DIR}" ]; then
-    ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR}
+    ./tests/e2e/config/scripts/looping-test/dump_cluster.sh ${CLUSTER_SNAPSHOT_DIR} false
   fi
 
 

@@ -1,12 +1,17 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
 if [ -z "$GO_REPO_PATH" ]; then
   echo "This script requires GO_REPO_PATH to be set, and is expected to only be called from Jenkins"
   exit 1
+fi
+
+if [ "${ENABLE_DEX}" == "true" ]; then
+  echo "Skip running console tests, when Dex is enabled"
+  exit 0
 fi
 
 # Temporarily clone the console repo until it is moved to the Verrazzano repo
@@ -16,7 +21,7 @@ console_sha=${CONSOLE_REPO_BRANCH}
 if [[ -z $console_sha ]]; then
   # Get tag of console from BOM
   # shellcheck disable=SC2002
-  console_tag=$(cat "verrazzano/platform-operator/verrazzano-bom.json" |jq -r '.components[] | select(.name == "verrazzano") | .subcomponents[] | select (.name == "verrazzano") | .images[] | select ((.image == "console") or (.image == "console-jenkins")) | .tag')
+  console_tag=$(cat "verrazzano/platform-operator/verrazzano-bom.json" |jq -r '.components[] | select(.name == "verrazzano-console") | .subcomponents[] | select (.name == "verrazzano-console") | .images[] | select ((.image == "console") or (.image == "console-jenkins")) | .tag')
   # Split tag on '-' character and get last element
   console_sha=${console_tag##*-}
 

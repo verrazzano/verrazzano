@@ -8,12 +8,15 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
@@ -45,6 +48,11 @@ var isVerbose bool
 
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
+
+type CaCrtInfo struct {
+	Name    string `json:"name"`
+	Expired bool   `json:"expired"`
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -308,6 +316,31 @@ func captureCertificates(client clipkg.Client, namespace, captureDir string, vzH
 		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+		captureCaCrtExpirationInfo(client, certificateList, namespace, captureDir, vzHelper)
+	}
+	return nil
+}
+
+// captureCaCrtExpirationInfo is a helper function of the captureCertificates function that loops through the certificates in a particular namespace and outputs a file containing information about the ca.crt of each certificate
+func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
+	caCrtList := []CaCrtInfo{}
+	for _, cert := range certificateList.Items {
+		caCrtInfoForCert, isFound, err := isCaExpired(client, cert, namespace)
+
+		if err != nil {
+			return err
+		}
+		if isFound {
+			caCrtList = append(caCrtList, *caCrtInfoForCert)
+		}
+
+	}
+	if len(caCrtList) > 0 {
+		LogMessage(fmt.Sprintf("ca.crts in namespace: %s ...\n", namespace))
+		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
+			return err
+		}
+
 	}
 	return nil
 }
@@ -795,4 +828,36 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 		podList = removePod(podList, p)
 	}
 	return podList
+}
+
+func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*CaCrtInfo, bool, error) {
+	correspondingSecretName := cert.Spec.SecretName
+	secretForCertificate := &corev1.Secret{}
+	err := client.Get(context.Background(), clipkg.ObjectKey{
+		Namespace: namespace,
+		Name:      correspondingSecretName,
+	}, secretForCertificate)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtData, ok := secretForCertificate.Data["ca.crt"]
+	if !ok {
+		return nil, false, nil
+	}
+	caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
+	if caCrtDataPemDecoded == nil {
+		return nil, false, fmt.Errorf("Failure to PEM Decode Certificate")
+	}
+	certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
+	expirationDateOfCert := certificate.NotAfter
+
+	if time.Now().Unix() > expirationDateOfCert.Unix() {
+		caCrtInfoForCert.Expired = true
+
+	}
+	return &caCrtInfoForCert, true, nil
 }

@@ -5,18 +5,21 @@ package proxy
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
+	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/go-retryablehttp"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testserver"
+	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -26,6 +29,8 @@ const (
 	testAPIServerURL = "https://api-server.io"
 	caCertFile       = "./testdata/test-ca.crt"
 )
+
+var serverURL string
 
 // TestConfigureKubernetesAPIProxy tests the configuration of the API proxy
 // GIVEN an Auth proxy object
@@ -42,155 +47,6 @@ func TestConfigureKubernetesAPIProxy(t *testing.T) {
 	err := ConfigureKubernetesAPIProxy(authproxy, c, log)
 	assert.NoError(t, err)
 	assert.NotNil(t, authproxy.Handler)
-}
-
-// TestServeHTTP tests the proxy server forwarding requests
-// GIVEN a request to the Auth proxy server
-// WHEN  the request is formatted correctly
-// THEN  the request is properly forwarded to the API server
-func TestServeHTTP(t *testing.T) {
-	ingressHost := "inghost.example.com"
-	originVal := fmt.Sprintf("https://%s", ingressHost)
-	tests := []struct {
-		name             string
-		reqMethod        string
-		headers          map[string]string
-		expectedStatus   int
-		expectedRespHdrs map[string]string
-	}{
-		{"POST request with no added headers", http.MethodPost, map[string]string{}, http.StatusOK, map[string]string{contentTypeHeader: runtime.ContentTypeJSON}},
-		{"GET request with Host header", http.MethodPost, map[string]string{"Host": ingressHost}, http.StatusOK, map[string]string{}},
-		{"GET request with valid Origin and Host headers", http.MethodGet, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Access-Control-Allow-Origin": originVal, contentTypeHeader: runtime.ContentTypeJSON}},
-		{"OPTIONS request with valid Origin and Host headers", http.MethodOptions, map[string]string{"Host": ingressHost, "Origin": originVal}, http.StatusOK, map[string]string{"Content-Length": "0", "Access-Control-Allow-Origin": originVal}},
-		{"POST request with Host and invalid Origin header", http.MethodPost, map[string]string{"Host": ingressHost, "Origin": "https://notvalid"}, http.StatusForbidden, map[string]string{}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			testBody := "test-body"
-
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				assert.NotNil(t, r)
-				assert.Equal(t, apiPath, r.URL.Path)
-				body, err := io.ReadAll(r.Body)
-				assert.NoError(t, err)
-				assert.Equal(t, testBody, string(body))
-				w.Header().Add(contentTypeHeader, runtime.ContentTypeJSON)
-			}))
-			defer server.Close()
-
-			handler := Handler{
-				URL:    server.URL,
-				Client: retryablehttp.NewClient(),
-				Log:    zap.S(),
-			}
-
-			url := fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
-			r := httptest.NewRequest(tt.reqMethod, url, strings.NewReader(testBody))
-
-			for name, val := range tt.headers {
-				r.Header.Set(name, val)
-			}
-
-			w := httptest.NewRecorder()
-			handler.ServeHTTP(w, r)
-			assert.Equal(t, tt.expectedStatus, w.Code)
-
-			for name, val := range tt.expectedRespHdrs {
-				assert.Equal(t, val, w.Header().Get(name))
-			}
-
-		})
-	}
-}
-
-// TestReformatAPIRequest tests the reformatting of the request to be sent to the API server
-
-func TestReformatAPIRequest(t *testing.T) {
-	handler := Handler{
-		URL:    testAPIServerURL,
-		Client: retryablehttp.NewClient(),
-		Log:    zap.S(),
-	}
-
-	tests := []struct {
-		name        string
-		url         string
-		expectedURL string
-	}{
-		// GIVEN a request to the Auth proxy server
-		// WHEN  the request is formatted correctly
-		// THEN  the request is properly formatted to be sent to the API server
-		{
-			name:        "test cluster path",
-			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s", apiPath),
-			expectedURL: fmt.Sprintf("%s%s", handler.URL, apiPath),
-		},
-		// GIVEN a request to the Auth proxy server
-		// WHEN  the request is malformed
-		// THEN  a malformed request is returned
-		{
-			name:        "test malformed request",
-			url:         "malformed-request1234",
-			expectedURL: fmt.Sprintf("%s/%s", handler.URL, "malformed-request1234"),
-		},
-		// GIVEN a request to the Auth proxy server
-		// WHEN  the request has a query param
-		// THEN  the query param is added to the outgoing request
-		{
-			name:        "test query param",
-			url:         fmt.Sprintf("https://authproxy.io/clusters/local%s?watch=1", apiPath),
-			expectedURL: fmt.Sprintf("%s%s?watch=1", handler.URL, apiPath),
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodGet, tt.url, strings.NewReader(""))
-			assert.NoError(t, err)
-
-			formattedReq, err := handler.reformatAPIRequest(req)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedURL, formattedReq.URL.String())
-		})
-	}
-}
-
-// TestValidateRequest tests the request validation for the Auth Proxy
-func TestValidateRequest(t *testing.T) {
-	// GIVEN a request without the cluster path
-	// WHEN  the request is validated
-	// THEN  an error is returned
-	url := fmt.Sprintf("%s/%s", testAPIServerURL, apiPath)
-	req, err := http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
-	err = validateRequest(req)
-	assert.Error(t, err)
-
-	// GIVEN a request with the cluster path
-	// WHEN  the request is validated
-	// THEN  no error is returned
-	url = fmt.Sprintf("%s/clusters/local%s", testAPIServerURL, apiPath)
-	req, err = http.NewRequest(http.MethodGet, url, strings.NewReader(""))
-	assert.NoError(t, err)
-	err = validateRequest(req)
-	assert.NoError(t, err)
-}
-
-// TestObfuscateTestData tests that request authorization headers get scrubbed
-// GIVEN a request with an authorization header
-// WHEN  the request is scrubbed
-// THEN  the header contains a different value
-func TestObfuscateTestData(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, testAPIServerURL, strings.NewReader(""))
-	assert.NoError(t, err)
-
-	authKey := "Authorization"
-	basicAuth := "Basic username:pass"
-	tokenAuth := "Bearer test-token"
-	req.Header[authKey] = []string{basicAuth, tokenAuth}
-
-	obfReq := obfuscateRequestData(req)
-	assert.NotEqual(t, basicAuth, obfReq.Header[authKey][0])
-	assert.NotEqual(t, tokenAuth, obfReq.Header[authKey][1])
 }
 
 // TestLoadCAData tests that the CA data is properly loaded from sources
@@ -223,6 +79,140 @@ func TestLoadCAData(t *testing.T) {
 	assert.NotEmpty(t, pool)
 }
 
+// TestLoadBearerToken tests that the bearer token is properly loaded from the config
+func TestLoadBearerToken(t *testing.T) {
+	log := zap.S()
+
+	// GIVEN a config with Bearer Token populated
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets the bearer token data
+	testToken := "test-token"
+	config := &rest.Config{
+		BearerToken: testToken,
+	}
+	bearerToken, err := loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Equal(t, testToken, bearerToken)
+
+	// GIVEN a config with the Bearer Token file populated
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets the bearer token data
+	testTokenFile, err := file.MakeTempFile(testToken)
+	if testTokenFile != nil {
+		defer os.Remove(testTokenFile.Name())
+	}
+	assert.NoError(t, err)
+	config = &rest.Config{
+		BearerTokenFile: testTokenFile.Name(),
+	}
+	bearerToken, err = loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Equal(t, testToken, bearerToken)
+
+	// GIVEN a config with no bearer information
+	// WHEN  the bearer token is loaded
+	// THEN  the handler gets not bearer token data
+	config = &rest.Config{}
+	bearerToken, err = loadBearerToken(config, log)
+	assert.NoError(t, err)
+	assert.Empty(t, bearerToken)
+}
+
+// TestInitializeAuthenticator tests that the authenticator gets initialized if it has not previously
+func TestInitializeAuthenticator(t *testing.T) {
+	handler := Handler{
+		URL:       testAPIServerURL,
+		K8sClient: fake.NewClientBuilder().Build(),
+		Log:       zap.S(),
+	}
+
+	server := testserver.FakeOIDCProviderServer(t)
+	serverURL = server.URL
+
+	getOIDCConfigFunc = fakeOIDCConfig
+	defer func() { getOIDCConfigFunc = getOIDCConfiguration }()
+
+	// GIVEN a request to initialize the authenticator
+	// WHEN the authenticator has already been initialized
+	// THEN no error is returned
+	handler.AuthInited.Store(true)
+	err := handler.initializeAuthenticator()
+	assert.NoError(t, err)
+
+	// GIVEN a request to initialize the authenticator
+	// WHEN the authenticator has not been initialized
+	// THEN no error is returned
+	handler.AuthInited.Store(false)
+	err = handler.initializeAuthenticator()
+	assert.NoError(t, err)
+}
+
+// TestFindPathHandler tests that the correct handler is returned for a given request
+func TestFindPathHandler(t *testing.T) {
+	handler := Handler{
+		URL:       testAPIServerURL,
+		K8sClient: fake.NewClientBuilder().Build(),
+		Log:       zap.S(),
+	}
+
+	// GIVEN a request
+	// WHEN the url has the callback path
+	// THEN the callback function is returned
+	callbackURL, err := url.Parse(fmt.Sprintf("%s%s", testAPIServerURL, callbackPath))
+	assert.NoError(t, err)
+	req := &http.Request{URL: callbackURL}
+	handlerfunc := handler.findPathHandler(req)
+	handlerName := runtime.FuncForPC(reflect.ValueOf(handlerfunc).Pointer()).Name()
+	authCallbackName := runtime.FuncForPC(reflect.ValueOf(handler.handleAuthCallback).Pointer()).Name()
+	assert.Equal(t, handlerName, authCallbackName)
+
+	// GIVEN a request
+	// WHEN the url has the logout path
+	// THEN the logout function is returned
+	logoutURL, err := url.Parse(fmt.Sprintf("%s%s", testAPIServerURL, logoutPath))
+	assert.NoError(t, err)
+	req = &http.Request{URL: logoutURL}
+	handlerfunc = handler.findPathHandler(req)
+	handlerName = runtime.FuncForPC(reflect.ValueOf(handlerfunc).Pointer()).Name()
+	logoutName := runtime.FuncForPC(reflect.ValueOf(handler.handleLogout).Pointer()).Name()
+	assert.Equal(t, handlerName, logoutName)
+
+	// GIVEN a request
+	// WHEN the url has any path
+	// THEN the api server function is returned
+	apiReqURL, err := url.Parse(testAPIServerURL)
+	assert.NoError(t, err)
+	req = &http.Request{URL: apiReqURL}
+	handlerfunc = handler.findPathHandler(req)
+	handlerName = runtime.FuncForPC(reflect.ValueOf(handlerfunc).Pointer()).Name()
+	apiReqName := runtime.FuncForPC(reflect.ValueOf(handler.handleAPIRequest).Pointer()).Name()
+	assert.Equal(t, handlerName, apiReqName)
+
+}
+
+// TestServeHTTP tests that the incoming HTTP requests can be properly handled and forwarded
+// GIVEN an HTTP request
+// WHEN the request is processed
+// THEN no error is returned
+func TestServeHTTP(t *testing.T) {
+	handler := Handler{
+		URL:       testAPIServerURL,
+		K8sClient: fake.NewClientBuilder().Build(),
+		Log:       zap.S(),
+	}
+
+	server := testserver.FakeOIDCProviderServer(t)
+	serverURL = server.URL
+
+	getOIDCConfigFunc = fakeOIDCConfig
+	defer func() { getOIDCConfigFunc = getOIDCConfiguration }()
+
+	// Sending an option request so the API Server request terminates early
+	req := httptest.NewRequest(http.MethodOptions, serverURL, strings.NewReader(""))
+	rw := httptest.NewRecorder()
+	handler.ServeHTTP(rw, req)
+}
+
 func testConfig() (*rest.Config, error) {
 	return &rest.Config{
 		Host: "test-host",
@@ -230,4 +220,11 @@ func testConfig() (*rest.Config, error) {
 			CAFile: caCertFile,
 		},
 	}, nil
+}
+
+func fakeOIDCConfig() auth.OIDCConfiguration {
+	return auth.OIDCConfiguration{
+		ExternalURL: serverURL,
+		ServiceURL:  serverURL,
+	}
 }

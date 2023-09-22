@@ -5,10 +5,6 @@ package thanos
 
 import (
 	"fmt"
-	"path/filepath"
-
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -16,13 +12,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"path/filepath"
 )
 
 // ComponentName is the name of the component
@@ -57,7 +56,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "image.pullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "thanos-values.yaml"),
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{common.IstioComponentName, networkpolicies.ComponentName, nginx.ComponentName, common.PrometheusOperatorComponentName, fluentoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
@@ -83,15 +82,15 @@ func NewComponent() spi.Component {
 }
 
 // IsReady component check for Thanos
-func (t ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
-	return t.HelmComponent.IsReady(ctx) && t.isThanosReady(ctx)
+func (c ThanosComponent) IsReady(ctx spi.ComponentContext) bool {
+	return c.HelmComponent.IsReady(ctx) && c.isThanosReady(ctx)
 }
 
 // IsAvailable returns the component availability for ThanosComponent, also accounting for optional
 // subcomponents like store gateway
-func (t ThanosComponent) IsAvailable(ctx spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
-	deployments := t.getEnabledDeployments(ctx)
-	statefulsets := t.getEnabledStatefulsets(ctx)
+func (c ThanosComponent) IsAvailable(ctx spi.ComponentContext) (string, v1alpha1.ComponentAvailability) {
+	deployments := c.getEnabledDeployments(ctx)
+	statefulsets := c.getEnabledStatefulsets(ctx)
 	actualAvailabilityObjects := ready.AvailabilityObjects{
 		DeploymentNames:  deployments,
 		StatefulsetNames: statefulsets,
@@ -100,21 +99,21 @@ func (t ThanosComponent) IsAvailable(ctx spi.ComponentContext) (string, v1alpha1
 }
 
 // isThanosReady returns true if the availability objects that exist, have the minimum number of expected replicas
-func (t ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
+func (c ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	// If a Thanos subcomponent is enabled, the deployment or statefulset will definitely exist
 	// once the Helm install completes. For the Thanos deployments and statefulsets that exist,
 	// check if replicas are ready.
-	deploymentsToCheck := t.getEnabledDeployments(ctx)
-	statefulsetsToCheck := t.getEnabledStatefulsets(ctx)
+	deploymentsToCheck := c.getEnabledDeployments(ctx)
+	statefulsetsToCheck := c.getEnabledStatefulsets(ctx)
 
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploymentsToCheck, 1, prefix) &&
 		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix)
 }
 
-func (t ThanosComponent) getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
+func (c ThanosComponent) getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 	enabledDeployments := []types.NamespacedName{}
-	for _, deploymentName := range t.AvailabilityObjects.DeploymentNames {
+	for _, deploymentName := range c.AvailabilityObjects.DeploymentNames {
 		if exists, err := ready.DoesDeploymentExist(ctx.Client(), deploymentName); err == nil && exists {
 			enabledDeployments = append(enabledDeployments, deploymentName)
 		}
@@ -122,9 +121,9 @@ func (t ThanosComponent) getEnabledDeployments(ctx spi.ComponentContext) []types
 	return enabledDeployments
 }
 
-func (t ThanosComponent) getEnabledStatefulsets(ctx spi.ComponentContext) []types.NamespacedName {
+func (c ThanosComponent) getEnabledStatefulsets(ctx spi.ComponentContext) []types.NamespacedName {
 	enabledStatefulsets := []types.NamespacedName{}
-	for _, stsName := range t.AvailabilityObjects.StatefulsetNames {
+	for _, stsName := range c.AvailabilityObjects.StatefulsetNames {
 		if exists, err := ready.DoesStatefulsetExist(ctx.Client(), stsName); err == nil && exists {
 			enabledStatefulsets = append(enabledStatefulsets, stsName)
 		}
@@ -133,30 +132,30 @@ func (t ThanosComponent) getEnabledStatefulsets(ctx spi.ComponentContext) []type
 }
 
 // IsEnabled Thanos enabled check for installation
-func (t ThanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
+func (c ThanosComponent) IsEnabled(effectiveCR runtime.Object) bool {
 	return vzcr.IsThanosEnabled(effectiveCR)
 }
 
 // PreInstall handles the pre-install operations for the Thanos component
-func (t ThanosComponent) PreInstall(ctx spi.ComponentContext) error {
+func (c ThanosComponent) PreInstall(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
 
-	return t.HelmComponent.PreInstall(ctx)
+	return c.HelmComponent.PreInstall(ctx)
 }
 
 // PreUpgrade handles the pre-upgrade operations for the Thanos component
-func (t ThanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
+func (c ThanosComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := preInstallUpgrade(ctx); err != nil {
 		return err
 	}
 
-	return t.HelmComponent.PreUpgrade(ctx)
+	return c.HelmComponent.PreUpgrade(ctx)
 }
 
 // GetIngressNames returns the Thanos ingress names
-func (t ThanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (c ThanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var ingressNames []types.NamespacedName
 	if !vzcr.IsThanosEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
 		return ingressNames
@@ -180,7 +179,7 @@ func (t ThanosComponent) GetIngressNames(ctx spi.ComponentContext) []types.Names
 }
 
 // GetCertificateNames returns the TLS secret for the Thanos component
-func (t ThanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
+func (c ThanosComponent) GetCertificateNames(ctx spi.ComponentContext) []types.NamespacedName {
 	var certificateNames []types.NamespacedName
 
 	if !vzcr.IsThanosEnabled(ctx.EffectiveCR()) || !vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {

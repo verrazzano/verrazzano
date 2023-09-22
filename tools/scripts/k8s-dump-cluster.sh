@@ -205,6 +205,7 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get gateway -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/gateways.json || true
         kubectl --insecure-skip-tls-verify get virtualservice -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/virtualservices.json || true
         kubectl --insecure-skip-tls-verify get rolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/role-bindings.json || true
+        kubectl --insecure-skip-tls-verify get roles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/roles.json || true
         kubectl --insecure-skip-tls-verify get clusterrolebindings -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-role-bindings.json || true
         kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-roles.json || true
         kubectl --insecure-skip-tls-verify get ns $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/namespace.json || true
@@ -224,7 +225,6 @@ function dump_extra_details_per_namespace() {
         kubectl --insecure-skip-tls-verify get verrazzanocoherenceworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-coherence-workload.json || true
         kubectl --insecure-skip-tls-verify get verrazzanohelidonworkload -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/verrazzano-helidon-workload.json || true
         kubectl --insecure-skip-tls-verify get domain -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/domain.json || true
-        kubectl --insecure-skip-tls-verify get clusterroles -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/cluster-roles.json || true
         kubectl --insecure-skip-tls-verify get certificaterequests.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/certificate-requests.json || true
         kubectl --insecure-skip-tls-verify get orders.acme.cert-manager.io -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/acme-orders.json || true
         kubectl --insecure-skip-tls-verify get statefulsets -n $NAMESPACE -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/$NAMESPACE/statefulsets.json || true
@@ -253,6 +253,9 @@ function full_k8s_cluster_snapshot() {
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
   kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-resources.json || true
 
+  # Get the installed Verrazzano modules, in the verrazzano-install namespace
+  kubectl --insecure-skip-tls-verify get modules.platform.verrazzano.io --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-modules.json || true
+
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kubectl-version.json || true
     kubectl --insecure-skip-tls-verify get crd -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/crd.json || true
@@ -269,7 +272,7 @@ function full_k8s_cluster_snapshot() {
     dump_extra_details_per_namespace
     dump_configmaps
     helm version 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/helm-version.out || true
-    helm ls -A -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/helm-ls.json || true
+    helm ls -A -o json 2>/dev/null | jq . > $CAPTURE_DIR/cluster-snapshot/helm-ls.json || true
     dump_es_indexes > $CAPTURE_DIR/cluster-snapshot/es_indexes.out || true
     process_nodes_output || true
     # dump the Prometheus scrape configuration

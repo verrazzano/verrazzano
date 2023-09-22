@@ -55,6 +55,9 @@ var skipPods = map[string][]string{
 	"verrazzano-backup": {
 		"^restic.*$",
 	},
+	"verrazzano-monitoring": {
+		"^jaeger-operator-jaeger-es-index-cleaner.*$",
+	},
 }
 
 var skipContainers = []string{"jaeger-agent"}
@@ -158,6 +161,7 @@ var _ = t.Describe("Ensure pod security", Label("f:security.podsecurity"), func(
 		Entry("Checking pod security in keycloak", "keycloak"),
 		Entry("Checking pod security in argocd", "argocd"),
 		Entry("Checking pod security in istio-system", "istio-system"),
+		Entry("Checking pod security in verrazzano-auth", "verrazzano-auth"),
 	)
 })
 

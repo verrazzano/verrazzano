@@ -11,11 +11,12 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	modulecatalog "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -110,11 +111,27 @@ func isDependencyReady(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, modu
 		return result.NewResultShortRequeueDelay()
 	}
 
+	// Make sure the module version matches the catalog version. This ensures that
+	// dependent modules finish upgrade before module that depend on them start upgrade.
+	catalog, err := modulecatalog.NewCatalog(config.GetCatalogPath())
+	if err != nil {
+		ctx.Log.ErrorfThrottled("Error loading module catalog: %v", err)
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	version := catalog.GetVersion(comp.Name())
+	if version == "" {
+		err = ctx.Log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	if version != module.Status.LastSuccessfulVersion {
+		return result.NewResultShortRequeueDelay()
+	}
+
 	return result.NewResult()
 }
 
 func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verrazzano, compName string, operation string) (spi.ComponentContext, spi.Component, error) {
-	compCtx, err := spi.NewContext(vzlog.DefaultLogger(), ctx.Client, vz, nil, false)
+	compCtx, err := spi.NewContext(ctx.Log, ctx.Client, vz, nil, false)
 	if err != nil {
 		compCtx.Log().Errorf("Failed to create component context: %v", err)
 		return nil, nil, err
@@ -126,7 +143,7 @@ func getComponentByNameAndContext(ctx handlerspi.HandlerContext, vz *vzapi.Verra
 		return nil, nil, err
 	}
 
-	return compCtx.Operation(operation), comp, nil
+	return compCtx.Init(compName).Operation(operation), comp, nil
 }
 
 // CheckDependencies checks if the dependencies are ready

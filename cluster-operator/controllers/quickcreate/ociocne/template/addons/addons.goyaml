@@ -82,7 +82,7 @@ stringData:
                     calicoNetwork:
                         bgp: Disabled
                         ipPools:
-                            - cidr: {{ .Kubernetes.ClusterNetwork.PodCIDR }}
+                            - cidr: {{ .KubernetesBase.ClusterNetwork.PodCIDR }}
                               encapsulation: VXLAN
                     {{- if .PrivateRegistry }}
                     registry: {{.PrivateRegistry.URL}}
@@ -107,6 +107,7 @@ stringData:
             namespace: kube-system
         stringData:
             cloud-provider.yaml: |-
+                {{- if eq .UseInstancePrincipal "false" }}
                 auth:
                   region: {{.OCI.Region}}
                   tenancy: {{.Tenancy}}
@@ -115,11 +116,14 @@ stringData:
                   key: |-
 {{.PrivateKey | nindent 20 }}
                   fingerprint: {{.Fingerprint}}
-              {{- if .Passphrase}}
+                  {{- if .Passphrase}}
                   key_passphrase: {{.Passphrase}}
-              {{- else }}
+                  {{- else }}
                   key_passphrase: ""
-              {{- end }}
+                  {{- end }}
+                {{- else }}
+                useInstancePrincipals: true
+                {{- end }}
                 vcn: {{.Network.VCN}}
                 loadBalancer:
                   subnet1: {{.LoadBalancerSubnet}}
@@ -150,6 +154,7 @@ stringData:
             namespace: kube-system
         stringData:
             config.yaml: |-
+                {{- if eq .UseInstancePrincipal "false" }}
                 auth:
                   region: {{.OCI.Region}}
                   tenancy: {{.Tenancy}}
@@ -158,11 +163,14 @@ stringData:
                   key: |-
 {{.PrivateKey | nindent 20 }}
                   fingerprint: {{.Fingerprint}}
-              {{- if .Passphrase}}
+                  {{- if .Passphrase}}
                   key_passphrase: {{.Passphrase}}
-              {{- else }}
+                  {{- else }}
                   key_passphrase: ""
-              {{- end }}
+                  {{- end }}
+                {{- else }}
+                useInstancePrincipals: true
+                {{- end }}
                 vcn: {{.Network.VCN}}
                 loadBalancer:
                   subnet1: {{.LoadBalancerSubnet}}
@@ -186,7 +194,7 @@ metadata:
     name: {{.Name}}-image-pull-secret
     namespace: {{.Namespace}}
 stringData:
-    csi.yaml: |
+    registry-secret.yaml: |
         apiVersion: v1
         kind: Secret
         metadata:

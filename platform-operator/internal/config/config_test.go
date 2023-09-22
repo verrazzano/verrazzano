@@ -31,7 +31,9 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.False(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.False(conf.ResourceRequirementsValidation, "ResourceRequirementsValidation default value is incorrect")
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.False(conf.CloudCredentialWatchEnabled, "CloudCredentialWatchEnabled is incorrect")
 	asserts.Equal(conf.VerrazzanoRootDir, "/verrazzano", "VerrazzanoRootDir is incorrect")
+	asserts.True(conf.ModuleIntegration, "Module integration is enabled by default")
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-monitoring-operator", GetHelmVMOChartsDir(), "GetHelmVmoChartsDir() is incorrect")
@@ -47,7 +49,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is correct")
 	asserts.Equal("/verrazzano/platform-operator/verrazzano-bom.json", GetDefaultBOMFilePath(), "GetDefaultBOMFilePath() is correct")
 	asserts.Equal("/verrazzano/platform-operator/experimental/manifests/integration-charts", GetIntegrationChartsDir(), "GetIntegrationChartsDir() is correct")
-
+	asserts.Equal("/verrazzano/platform-operator/manifests/catalog/catalog.yaml", GetCatalogPath(), "GetCatalogPath() is correct")
 }
 
 // TestSetConfig tests setting config values
@@ -76,6 +78,7 @@ func TestSetConfig(t *testing.T) {
 		RunWebhooks:                    true,
 		ResourceRequirementsValidation: true,
 		WebhookValidationEnabled:       false,
+		CloudCredentialWatchEnabled:    false,
 		VerrazzanoRootDir:              "/root",
 		HealthCheckPeriodSeconds:       int64(0),
 		MySQLCheckPeriodSeconds:        int64(0),
@@ -93,6 +96,7 @@ func TestSetConfig(t *testing.T) {
 	asserts.True(conf.RunWebhooks, "RunWebhooks is incorrect")
 	asserts.True(conf.ResourceRequirementsValidation, "ResourceRequirementsValidation default value is incorrect")
 	asserts.False(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
+	asserts.False(conf.CloudCredentialWatchEnabled, "CloudCredentialWatchEnabled is incorrect")
 	asserts.Equal(conf.DryRun, true, "Default dry run is true")
 	asserts.Equal("/root", conf.VerrazzanoRootDir, "VerrazzanoRootDir is incorrect")
 	asserts.Equal("/etc/verrazzano/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")

@@ -105,7 +105,7 @@ function scan_release_binaries() {
 
   cd $DIR_TO_SCAN
   ls
-  count_files=$(find . -maxdepth 5 -type f  | LC_ALL=C grep -c /)
+  local count_files=$(find . -maxdepth 5 -type f  | LC_ALL=C grep -c /)
 
   cd $SCANNER_HOME
   # The scan takes more than 50 minutes, the option --SUMMARY prints each and every file from all the layers, which is removed.
@@ -121,15 +121,32 @@ function scan_release_binaries() {
   fi
     tail -25 ${SCAN_REPORT} > ${scan_summary}
 
-  files_to_skip=0
-  clean_files="$(expr $count_files - $files_to_skip)"
-  files_not_scanned="$(expr $count_files - $clean_files)"
+  # Get the files not scanned count from the summary
+  local files_not_scanned=$(grep 'Not Scanned:...................     ' $scan_summary | sed 's/\tNot Scanned:...................     //g')
+
+  echo "File count: $count_files"
+  echo "Files not scanned: $files_not_scanned"
+
+  # Default the number of clean files expected to all of them (lite distribution all must be clean, full dist we allow for some skips and
+  # in that case will adjust this below if required)
+  local clean_files="$count_files"
 
   # Workaround to address the issue where scanner fails to open a file from ghcr.io_verrazzano_fluentd-kubernetes-daemonset image
   if [ "$BUNDLE_TO_SCAN" == "Full" ];then
-    files_to_skip=1
-    clean_files="$(expr $count_files - $files_to_skip)"
-    files_not_scanned="$(expr $count_files - $clean_files)"
+    # The scanner has had issues in the past where it fails to open a file (seen in ghcr.io_verrazzano_fluentd-kubernetes-daemonset image)
+    # We have a workaround that allows up to 1 file to not be scanned and still pass the checking here.
+    if [[ $files_not_scanned -gt 1 ]]; then
+      echo "There were $files_not_scanned files that were not scanned, that exceeds the threshold for the full distribution and the scan is being treated as failed"
+      return 1
+    fi
+    # Update the expectation for the number of clean files to include any not scanned
+    clean_files="$(expr $count_files - $files_not_scanned)"
+  else
+    # For the lite distribution
+    if [[ $files_not_scanned -gt 0 ]]; then
+      echo "There were $files_not_scanned files that were not scanned, none can be skipped for the lite distribution and the scan is being treated as failed"
+      return 1
+    fi
   fi
 
   # The following set of lines from the summary in the scan report is used here for validation.

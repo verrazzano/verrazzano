@@ -5,8 +5,10 @@ package fake
 
 import (
 	"context"
-	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"errors"
+	"github.com/oracle/oci-go-sdk/v53/core"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
+	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -14,19 +16,34 @@ type (
 	CredentialsLoaderImpl struct {
 		Credentials *oci.Credentials
 	}
-	ClientImpl struct{}
+	ClientImpl struct {
+		VCN                 *core.Vcn
+		AvailabilityDomains []oci.AvailabilityDomain
+	}
 )
 
-func (c *CredentialsLoaderImpl) GetCredentialsIfAllowed(_ context.Context, _ clipkg.Client, _ vmcv1alpha1.NamespacedRef, _ string) (*oci.Credentials, error) {
+func (c *CredentialsLoaderImpl) GetCredentialsIfAllowed(_ context.Context, _ clipkg.Client, _ types.NamespacedName, _ string) (*oci.Credentials, error) {
 	return c.Credentials, nil
 }
 
-func (c *ClientImpl) GetSubnetByID(ctx context.Context, id, role string) (*oci.Subnet, error) {
+func (c *ClientImpl) GetSubnetByID(_ context.Context, id, role string) (*oci.Subnet, error) {
 	return &oci.Subnet{
-		ID:   id,
-		Role: role,
-		Name: role,
-		CIDR: "10.0.0.0/16",
-		Type: "public",
+		ID:          id,
+		Role:        role,
+		Name:        role,
+		DisplayName: role,
+		CIDR:        "10.0.0.0/16",
+		Type:        "public",
 	}, nil
+}
+
+func (c *ClientImpl) GetVCNByID(_ context.Context, id string) (*core.Vcn, error) {
+	if id == *c.VCN.Id {
+		return c.VCN, nil
+	}
+	return nil, errors.New("vcn not found")
+}
+
+func (c *ClientImpl) GetAvailabilityAndFaultDomains(_ context.Context) ([]oci.AvailabilityDomain, error) {
+	return c.AvailabilityDomains, nil
 }

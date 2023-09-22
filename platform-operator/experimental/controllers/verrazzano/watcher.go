@@ -6,7 +6,9 @@ package verrazzano
 import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -24,6 +26,10 @@ func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 			WatchedResourceKind: source.Kind{Type: &corev1.ConfigMap{}},
 			FuncShouldReconcile: r.ShouldConfigMapTriggerReconcile,
 		},
+		{
+			WatchedResourceKind: source.Kind{Type: &batchv1.Job{}},
+			FuncShouldReconcile: r.ShouldJobTriggerReconcile,
+		},
 	}
 }
 
@@ -32,7 +38,7 @@ func (r Reconciler) ShouldSecretTriggerReconcile(cli client.Client, wev controll
 	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
-	vzcr := vzapi.Verrazzano{}
+	vzcr := vzv1alpha1.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
@@ -46,11 +52,16 @@ func (r Reconciler) ShouldConfigMapTriggerReconcile(cli client.Client, wev contr
 	if wev.NewWatchedObject.GetNamespace() != wev.ReconcilingResource.Namespace {
 		return false
 	}
-	vzcr := vzapi.Verrazzano{}
+	vzcr := vzv1alpha1.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), wev.ReconcilingResource, &vzcr); err != nil {
 		return false
 	}
 	names := getOverrideResourceNames(&vzcr, configMapType)
 	_, ok := names[wev.NewWatchedObject.GetName()]
 	return ok
+}
+
+// ShouldJobTriggerReconcile returns true if reconcile should be done in response to a Job lifecycle event
+func (r Reconciler) ShouldJobTriggerReconcile(cli client.Client, wev controllerspi.WatchEvent) bool {
+	return custom.IsMysqlOperatorJob(cli, wev.NewWatchedObject)
 }

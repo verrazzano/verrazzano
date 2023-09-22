@@ -46,7 +46,7 @@ spec:
               ssh_authorized_keys: {{$.OCI.SSHPublicKey}}
       {{- end }}
             shape: {{.Shape}}
-      {{- if contains .Shape "Flex" }}
+      {{- if and (or .OCPUs .MemoryGbs) (contains .Shape "Flex") }}
             shapeConfig:
             {{- if .OCPUs }}
                 ocpus: "{{.OCPUs}}"
@@ -80,5 +80,5 @@ spec:
               apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
               kind: OCIMachineTemplate
               name: {{.Name}}
-          version: {{$.Kubernetes.Version}}
+          version: {{$.KubernetesVersion}}
 {{- end }}
