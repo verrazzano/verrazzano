@@ -32,10 +32,10 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "prometheus-operator"
+const ComponentName = common.PrometheusOperatorComponentName
 
 // ComponentNamespace is the namespace of the component
-const ComponentNamespace = constants.VerrazzanoMonitoringNamespace
+const ComponentNamespace = common.PrometheusOperatorComponentNamespace
 
 // ComponentJSONName is the JSON name of the component in the CRD
 const ComponentJSONName = "prometheusOperator"

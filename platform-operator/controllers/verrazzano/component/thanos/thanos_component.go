@@ -5,6 +5,7 @@ package thanos
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"path/filepath"
 
@@ -21,7 +22,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
@@ -58,7 +58,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "image.pullSecrets[0]",
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "thanos-values.yaml"),
-			Dependencies:              []string{istio.ComponentName, networkpolicies.ComponentName, nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{istio.ComponentName, networkpolicies.ComponentName, nginx.ComponentName, common.PrometheusOperatorComponentName, fluentoperator.ComponentName},
 			AppendOverridesFunc:       AppendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{

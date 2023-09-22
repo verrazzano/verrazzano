@@ -18,7 +18,6 @@ import (
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,14 +41,14 @@ var sharedNamespaces = []string{
 
 // DeleteNamespace deletes a namespace
 func DeleteNamespace(cli client.Client, log vzlog.VerrazzanoLogger, namespace string) error {
-	ns := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace, // required by the controller Delete call
-		},
-	}
-	err := cli.Delete(context.TODO(), &ns, &client.DeleteOptions{})
-	if err != nil && !errors.IsNotFound(err) {
-		log.Errorf("Failed deleting namespace %s: %v", ns.Name, err)
+	err := resource.Resource{
+		Name:   namespace,
+		Client: cli,
+		Object: &corev1.Namespace{},
+		Log:    log,
+	}.RemoveFinalizersAndDelete()
+	if err != nil {
+		log.ErrorfThrottled("Error during namespace deletion: %v", err)
 		return err
 	}
 	return nil
