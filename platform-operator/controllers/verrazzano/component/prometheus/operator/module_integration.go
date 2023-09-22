@@ -10,8 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
@@ -53,7 +53,7 @@ func (c prometheusComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verr
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c prometheusComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, istio.ComponentName, appoper.ComponentName, clusteroperator.ComponentName, cmconstants.ClusterIssuerComponentName, vmo.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, common.IstioComponentName, appoper.ComponentName, clusteroperator.ComponentName, cmconstants.ClusterIssuerComponentName, vmo.ComponentName}),
 		watch.GetModuleUpdatedWatches([]string{nginx.ComponentName, cmconstants.ClusterIssuerComponentName, vmo.ComponentName}),
 	)
 }
