@@ -60,7 +60,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "argocd-values.yaml"),
 			AppendOverridesFunc:       AppendOverrides,
 			Certificates:              certificates,
-			Dependencies:              []string{networkpolicies.ComponentName, common.IstioComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, keycloak.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, common.IstioComponentName, nginx.ComponentName, cmconstants.ClusterIssuerComponentName, keycloak.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
