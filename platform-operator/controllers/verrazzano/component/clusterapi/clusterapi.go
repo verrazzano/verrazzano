@@ -8,15 +8,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
 	v1 "k8s.io/api/core/v1"
-	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"text/template"
 )
 
 const clusterctlYamlTemplate = `
@@ -222,9 +220,9 @@ func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersio
 }
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
-func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
+func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (capiUpgradeOptions, error) {
 	c.initializeImageVersionsOverrides(ctx.Log(), overrides)
-	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
+	applyUpgradeOptions := capiUpgradeOptions{}
 	podList := &v1.PodList{}
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
@@ -252,7 +250,7 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 }
 
 // isUpgradeOptionsNotEmpty returns true if any of the options is not empty
-func isUpgradeOptionsNotEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
+func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) != 0 ||
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||

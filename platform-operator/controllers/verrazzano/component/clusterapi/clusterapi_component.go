@@ -18,7 +18,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,6 +65,13 @@ var capiDeployments = []types.NamespacedName{
 }
 
 type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (clusterapi.Client, error)
+
+type capiUpgradeOptions struct {
+	CoreProvider            string
+	BootstrapProviders      []string
+	ControlPlaneProviders   []string
+	InfrastructureProviders []string
+}
 
 var capiInitFunc = clusterapi.New
 
@@ -235,13 +241,15 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
 	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
 	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
-
-	return exec.Command("clusterctl", "init",
+	cmd := exec.Command("clusterctl", "init",
 		"--target-namespace", ComponentNamespace,
 		"--core", coreArgValue,
 		"--control-plane", controlPlaneArgValue,
 		"--infrastructure", infrastructureArgValue,
-		"--bootstrap", bootstrapArgValue).Run()
+		"--bootstrap", bootstrapArgValue)
+
+	ctx.Log().Infof("executing the command: %s", cmd.String())
+	return cmd.Run()
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -257,7 +265,9 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
-	return exec.Command("clusterctl", "delete", "--all", "--include-namespace ").Run()
+	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace ")
+	ctx.Log().Infof("executing the command: %s", cmd.String())
+	return cmd.Run()
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
@@ -269,10 +279,6 @@ func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
-	capiClient, err := capiInitFunc("")
-	if err != nil {
-		return err
-	}
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
@@ -287,7 +293,27 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
-		return capiClient.ApplyUpgrade(applyUpgradeOptions)
+		// Create the variable input list for apply
+		args := []string{"apply"}
+		if len(applyUpgradeOptions.CoreProvider) > 0 {
+			args = append(args, "--core")
+			args = append(args, applyUpgradeOptions.CoreProvider)
+		}
+		if len(applyUpgradeOptions.BootstrapProviders) > 0 {
+			args = append(args, "--bootstrap")
+			args = append(args, applyUpgradeOptions.BootstrapProviders[0])
+		}
+		if len(applyUpgradeOptions.ControlPlaneProviders) > 0 {
+			args = append(args, "--control-plane")
+			args = append(args, applyUpgradeOptions.ControlPlaneProviders[0])
+		}
+		if len(applyUpgradeOptions.InfrastructureProviders) > 0 {
+			args = append(args, "--infrastructure")
+			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
+		}
+		cmd := exec.Command("apply", args...)
+		ctx.Log().Errorf("executing command: %s", cmd.String())
+		return cmd.Run()
 	}
 	return nil
 }
