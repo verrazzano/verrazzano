@@ -214,7 +214,14 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build ingress overrides: %v", err)
 	}
-
+	clusterResourceNamespace := constants.CertManagerNamespace
+	if ctx.EffectiveCR().Spec.Components.ClusterIssuer != nil && ctx.EffectiveCR().Spec.Components.ClusterIssuer.ClusterResourceNamespace != "" {
+		clusterResourceNamespace = ctx.EffectiveCR().Spec.Components.ClusterIssuer.ClusterResourceNamespace
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "clusterResourceNamespace",
+		Value: clusterResourceNamespace,
+	})
 	return kvs, nil
 }
 
