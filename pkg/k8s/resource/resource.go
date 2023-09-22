@@ -21,9 +21,10 @@ type Resource struct {
 	Client    client.Client
 	Object    client.Object
 	Log       vzlog.VerrazzanoLogger
-} // CleanupLeaderElectionResources is the implementation for the cert-manager uninstall step
-// this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func CleanupLeaderElectionResources(ctx spi.ComponentContext, objects []client.Object) error {
+}
+
+// CleanupResources deletes and removes finalizers from resources
+func CleanupResources(ctx spi.ComponentContext, objects []client.Object) error {
 	for _, object := range objects {
 		err := Resource{
 			Name:      object.GetName(),
@@ -44,9 +45,8 @@ func CleanupLeaderElectionResources(ctx spi.ComponentContext, objects []client.O
 	return nil
 }
 
-// VerifyLeaderElectionResourcesDeleted Checks that the leader-election resources in kube-system are successfully deleted; returns
-// a retryable error if the resource still exists
-func VerifyLeaderElectionResourcesDeleted(ctx spi.ComponentContext, objects []client.Object) error {
+// VerifyResourcesDeleted verifies resources have been fully cleaned up
+func VerifyResourcesDeleted(ctx spi.ComponentContext, objects []client.Object) error {
 	for _, object := range objects {
 		exists, err := Resource{
 			Name:      object.GetName(),

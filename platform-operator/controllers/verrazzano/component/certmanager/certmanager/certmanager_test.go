@@ -315,7 +315,7 @@ func TestUninstallCertManager(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
-			err := resource.CleanupLeaderElectionResources(fakeContext, leaderElectionSystemResources)
+			err := resource.CleanupResources(fakeContext, leaderElectionSystemResources)
 			assert.NoError(t, err)
 			// expect the controller ConfigMap to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})

@@ -188,10 +188,10 @@ func (c certManagerComponent) PostUninstall(compContext spi.ComponentContext) er
 		compContext.Log().Debug("cert-manager PostUninstall dry run")
 		return nil
 	}
-	if err := resource.CleanupLeaderElectionResources(compContext, leaderElectionSystemResources); err != nil {
+	if err := resource.CleanupResources(compContext, leaderElectionSystemResources); err != nil {
 		return err
 	}
-	return resource.VerifyLeaderElectionResourcesDeleted(compContext, leaderElectionSystemResources)
+	return resource.VerifyResourcesDeleted(compContext, leaderElectionSystemResources)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

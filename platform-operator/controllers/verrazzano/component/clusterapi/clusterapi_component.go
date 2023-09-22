@@ -307,10 +307,10 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		if err = resource.CleanupLeaderElectionResources(ctx, components); err != nil {
+		if err = resource.CleanupResources(ctx, components); err != nil {
 			return err
 		}
-		if err = resource.VerifyLeaderElectionResourcesDeleted(ctx, components); err != nil {
+		if err = resource.VerifyResourcesDeleted(ctx, components); err != nil {
 			return err
 		}
 
