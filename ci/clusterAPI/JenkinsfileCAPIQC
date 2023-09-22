@@ -5,7 +5,9 @@ def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def okeCNITypes = ['FLANNEL_OVERLAY', 'OCI_VCN_IP_NATIVE']
 Collections.shuffle(availableRegions)
+Collections.shuffle(okeCNITypes)
 
 pipeline {
     options {
@@ -31,6 +33,7 @@ pipeline {
                 choices: ["1.27", "1.26", "1.25", "1.24"])
         booleanParam(description: 'Deploy OCNE OCI Cluster', name: 'DEPLOY_OCNEOCI_CLUSTER', defaultValue: true)
         booleanParam(description: 'Deploy OKE Cluster', name: 'DEPLOY_OKE_CLUSTER', defaultValue: true)
+        choice (description: 'CNI Type for OKE', name: 'OKE_CNI_TYPE', choices: okeCNITypes )
         choice (description: 'OCI region to launch CAPI clusters in', name: 'CAPI_CLUSTER_REGION', choices: availableRegions )
         string(name: 'GIT_COMMIT_TO_USE',
                 defaultValue: 'NONE',
@@ -133,6 +136,7 @@ pipeline {
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
         CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
+        CNI_TYPE = "${params.OKE_CNI_TYPE}"
     }
 
     stages {

@@ -5,11 +5,11 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: OKEQuickCreate
 metadata:
     name: {{.CLUSTER_ID}}
-    namespace: default
+    namespace: {{.NAMESPACE}}
 spec:
     identityRef:
         name: test
-        namespace: default
+        namespace: {{.NAMESPACE}}
     kubernetes:
         version: {{.OKE_VERSION}}
     oke:

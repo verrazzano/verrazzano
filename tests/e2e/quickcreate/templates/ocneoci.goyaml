@@ -5,11 +5,11 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: OCNEOCIQuickCreate
 metadata:
     name: {{.CLUSTER_ID}}
-    namespace: default
+    namespace: {{.NAMESPACE}}
 spec:
     identityRef:
         name: test
-        namespace: default
+        namespace: {{.NAMESPACE}}
     ocne:
         version: "{{.OCNE_VERSION}}"
     oci:
