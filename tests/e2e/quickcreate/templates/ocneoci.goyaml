@@ -5,16 +5,16 @@ apiVersion: clusters.verrazzano.io/v1alpha1
 kind: OCNEOCIQuickCreate
 metadata:
     name: {{.CLUSTER_ID}}
-    namespace: default
+    namespace: {{.NAMESPACE}}
 spec:
     identityRef:
         name: test
-        namespace: default
+        namespace: {{.NAMESPACE}}
     ocne:
         version: "{{.OCNE_VERSION}}"
     oci:
         compartment: {{.OCI_COMPARTMENT_ID}}
-        region: {{.OCI_REGION}}
+        region: {{.CAPI_CLUSTER_REGION}}
         imageId: {{.OCNE_IMAGE_ID}}
         sshPublicKey: {{.CAPI_NODE_SSH_KEY_PATH}}
         network:

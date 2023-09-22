@@ -7,15 +7,15 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/authproxy"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 )
 
 // GetWatchDescriptors Returns a watch on the whole VZ CR spec, as the VZ "module" looks at a lot of settings; for now
 // just watch for any changes and trigger this to reconcile
 func (c verrazzanoComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	wd := watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
+	wd := watch.GetModuleInstalledWatches([]string{common.IstioComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, authproxy.ComponentName, fluentoperator.ComponentName})
 	return append(wd, watch.GetVerrazzanoSpecWatch()...)
 }
