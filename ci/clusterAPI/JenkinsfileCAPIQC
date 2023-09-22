@@ -67,16 +67,21 @@ pipeline {
         NETRC_FILE = credentials('netrc')
         POST_DUMP_FAILED_FILE = "${WORKSPACE}/post_dump_failed_file.tmp"
         TESTS_EXECUTED_FILE = "${WORKSPACE}/tests_executed_file.tmp"
+        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
+        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        OCR_CREDS = credentials('ocr-pull-and-push-account')
+        OCR_REPO = 'container-registry.oracle.com'
         GITHUB_PKGS_CREDS = credentials('github-packages-credentials-rw')
+        GHCR_REPO = 'ghcr.io'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
         INSTALL_CONFIG_FILE_KIND = "./tests/e2e/config/scripts/${params.CRD_API_VERSION}/install-verrazzano-kind.yaml"
+        TEST_OVERRIDE_CONFIGMAP_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-configmap.yaml"
+        TEST_OVERRIDE_SECRET_FILE = "./tests/e2e/config/scripts/pre-install-overrides/test-overrides-secret.yaml"
         INSTALL_PROFILE = "${params.INSTALL_PROFILE}"
         KIND_NODE_COUNT = "3"
         VZ_ENVIRONMENT_NAME = "default"
         TEST_SCRIPTS_DIR = "${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts"
         VERRAZZANO_OPERATOR_IMAGE="${params.VERRAZZANO_OPERATOR_IMAGE}"
-        KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
-        VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
 
         // Environment variables required to capture cluster snapshot and bug report on test failure
         DUMP_KUBECONFIG="${KUBECONFIG}"
@@ -117,6 +122,20 @@ pipeline {
         OCI_CLI_USER = credentials('oci-user-ocid')
         OCI_CLI_FINGERPRINT = credentials('oci-api-key-fingerprint')
         OCI_CLI_KEY_FILE = credentials('oci-api-key')
+
+        // TF parameters
+        TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
+        TF_VAR_tenancy_id = credentials('oci-tenancy')
+        TF_VAR_tenancy_name = credentials('oci-tenancy-name')
+        TF_VAR_user_id = credentials('oci-user-ocid')
+        TF_VAR_region = "${params.CAPI_CLUSTER_REGION}"
+        TF_VAR_kubernetes_version = "${params.OKE_CLUSTER_VERSION}"
+        TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
+        TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
+        TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
+        TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
+        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
         // CAPI variables
         OCI_USER_ID = credentials('oci-user-ocid')
