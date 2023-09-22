@@ -5,9 +5,9 @@ package thanos
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 )
@@ -15,7 +15,7 @@ import (
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c ThanosComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{istio.ComponentName, nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{nginx.ComponentName, istio.ComponentName, promoperator.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{common.IstioComponentName, nginx.ComponentName, promoperator.ComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{nginx.ComponentName, common.IstioComponentName, promoperator.ComponentName}),
 	)
 }
