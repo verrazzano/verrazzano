@@ -4,6 +4,8 @@
 package catalog
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"sigs.k8s.io/yaml"
 )
@@ -48,6 +50,14 @@ func (c *Catalog) init(yamlCatalog string) error {
 
 	// Build a map of modules
 	for _, module := range c.Modules {
+		if module.Version == constants.BomVerrazzanoVersion {
+			version, err := validators.GetCurrentBomVersion()
+			if err != nil {
+				return err
+			}
+			c.versionMap[module.Name] = version.ToString()
+			module.Version = version.ToString()
+		}
 		c.versionMap[module.Name] = module.Version
 	}
 	return nil
