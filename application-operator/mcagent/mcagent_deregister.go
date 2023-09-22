@@ -5,6 +5,7 @@ package mcagent
 
 import (
 	"context"
+	"errors"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -56,6 +57,8 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 	}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
+		reason, code := reasonAndCodeForError(err)
+		s.Log.Infof("reason: %s code: %s", reason, code)
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
 		return false, err
 	}
@@ -64,4 +67,15 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 		return false, err
 	}
 	return true, nil
+}
+
+func reasonAndCodeForError(err error) (metav1.StatusReason, int32) {
+	if status, ok := err.(APIStatus); ok || errors.As(err, &status) {
+		return status.Status().Reason, status.Status().Code
+	}
+	return metav1.StatusReasonUnknown, 0
+}
+
+type APIStatus interface {
+	Status() metav1.Status
 }
