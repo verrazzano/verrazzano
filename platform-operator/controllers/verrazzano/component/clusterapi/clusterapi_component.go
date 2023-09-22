@@ -290,7 +290,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
 		// Create the variable input list for apply
-		args := []string{"apply"}
+		args := []string{"upgrade", "apply"}
 		if len(applyUpgradeOptions.CoreProvider) > 0 {
 			args = append(args, "--core")
 			args = append(args, applyUpgradeOptions.CoreProvider)
@@ -307,7 +307,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			args = append(args, "--infrastructure")
 			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
 		}
-		cmd := exec.Command("upgrade", args...)
+		cmd := exec.Command("clusterctl", args...)
 		ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
 		return runCAPICmd(cmd)
 	}
