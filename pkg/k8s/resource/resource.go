@@ -47,11 +47,13 @@ func (r Resource) Delete() error {
 
 // RemoveFinializersAndDelete removes all finalizers from a resource and deletes the resource
 func (r Resource) RemoveFinalizersAndDelete() error {
-	err := r.RemoveFinalizers()
+	// always delete first, then remove finalizer to reduce the chance that a Rancher webhook
+	// will add it back (since the deletion timestamp will be non-zero)
+	err := r.Delete()
 	if err != nil {
 		return err
 	}
-	return r.Delete()
+	return r.RemoveFinalizers()
 }
 
 // RemoveFinalizers removes all finalizers from a resource

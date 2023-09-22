@@ -117,38 +117,7 @@ func TestGetModuleSpec(t *testing.T) {
 			  "verrazzano": {
 				"module": {
 				  "spec": {
-			        "keycloakAuthEnabled": true,
-					"clusterIssuer": {
-					  "enabled": true,
-					  "clusterResourceNamespace": "secretNS",
-					  "ca": {
-						"secretName": "secretName"
-					  }
-					},
-					"ingress": {
-					  "enabled": true,
-					  "ingressClassName": "myclass",
-					  "ports": [
-						{
-						  "name": "myport",
-						  "protocol": "tcp",
-						  "port": 8000,
-						  "targetPort": 0,
-						  "nodePort": 80
-						}
-					  ],
-					  "type": "LoadBalancer"
-					},
-					"dns": {
-					  "oci": {
-						"dnsScope": "global",
-						"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-						"dnsZoneOCID": "ocid..zone.myzone",
-						"dnsZoneName": "myzone",
-						"ociConfigSecret": "oci"
-					  }
-					},
-					"environmentName": "Myenv"
+			        "keycloakAuthEnabled": true
 				  }
 				}
 			  }
