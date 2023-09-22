@@ -123,6 +123,20 @@ pipeline {
                 }
             }
         }
+
+        stage('Update Baseline txt File') {
+            when {
+                anyOf {
+                    expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == true };
+                }
+            }
+            steps {
+                script {
+                   oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt
+                }
+            }
+        }
+        
         stage('Check Image Sizes') {
             steps {
                 script {
@@ -138,8 +152,10 @@ pipeline {
                         IMAGE_SIZE_DIFF = sh(returnStdout: true, script: "ci/scripts/check_image_sizes.sh").trim()
                     }
                     catch(error) {
-                       currentBuild.result = "SUCCESS"
+                       //currentBuild.result = "SUCCESS"
+                       buildResult: 'SUCCESS', stageResult: 'FAILURE'
                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Job Failed: Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                       sh "exit 1"
                     }
                 }
                 sh """
