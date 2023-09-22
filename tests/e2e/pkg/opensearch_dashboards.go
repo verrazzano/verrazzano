@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package pkg
@@ -133,6 +133,7 @@ func PostOpensearchDashboards(path string, body string, additionalHeaders ...str
 func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	clientset, err := GetKubernetesClientsetForCluster(kubeconfigPath)
 	isMinversion150, _ := IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isMinversion200, _ := IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
 
 	if err != nil {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
@@ -140,7 +141,7 @@ func getOpenSearchDashboardsURL(kubeconfigPath string) string {
 	}
 	ingressList, _ := clientset.NetworkingV1().Ingresses("verrazzano-system").List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
-		if (isMinversion150 && ingress.Name == "vmi-system-osd") || (!isMinversion150 && ingress.Name == "vmi-system-kibana") {
+		if (isMinversion200 && ingress.Name == "opensearch-dashboards") || (isMinversion150 && ingress.Name == "vmi-system-osd") || (!isMinversion150 && ingress.Name == "vmi-system-kibana") {
 			Log(Info, fmt.Sprintf("Found Kibana/OpenSearch Dashboards Ingress %v, host %s", ingress.Name, ingress.Spec.Rules[0].Host))
 			return fmt.Sprintf("https://%s", ingress.Spec.Rules[0].Host)
 		}

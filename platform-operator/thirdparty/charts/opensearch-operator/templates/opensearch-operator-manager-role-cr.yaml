@@ -2,8 +2,23 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: opensearch-operator-manager-role
+  name: {{ include "opensearch-operator.fullname" . }}-{{ .Release.Namespace }}-manager-role
 rules:
+# Pod exec and velero rules are required for Velero Backup and Restore
+- apiGroups:
+  - ""
+  resources:
+  - pods/exec
+  verbs:
+  - create
+- apiGroups:
+  - velero.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - watch
 - apiGroups:
   - apps
   resources:
@@ -20,6 +35,7 @@ rules:
   - apps
   resources:
   - statefulsets
+  - statefulsets/scale
   verbs:
   - create
   - delete
@@ -109,12 +125,50 @@ rules:
   - update
   - watch
 - apiGroups:
+  - "policy"
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - opensearch.opster.io
   resources:
   - events
   verbs:
   - create
   - patch
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchactiongroups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchactiongroups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchactiongroups/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - opensearch.opster.io
   resources:
@@ -163,6 +217,32 @@ rules:
   - opensearch.opster.io
   resources:
   - opensearchroles/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchtenants
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchtenants/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - opensearch.opster.io
+  resources:
+  - opensearchtenants/status
   verbs:
   - get
   - patch
