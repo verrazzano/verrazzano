@@ -2,7 +2,40 @@
 # Create certificates to be used by OpenSearch cluster with Verrazzano CA
 # Required for the security plugin in OpenSearch
 
-# Certificate name and secret name are kept same and will be generated based on opensearchCluster.name variable
+# Create a selfsigned Issuer in order to create a root CA certificate for
+# signing certificates required for the security plugin in OpenSearch.
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: opensearch-self-signed-issuer
+  namespace: {{ .Values.clusterResourceNamespace }}
+spec:
+  selfSigned: {}
+---
+# Generate a CA Certificate used to sign certificates required for the security plugin in OpenSearch.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: opensearch-ca-cert
+  namespace: {{ .Values.clusterResourceNamespace }}
+spec:
+  secretName: opensearch-ca-cert
+  duration: 2160h0m0s
+  renewBefore: 360h0m0s
+  issuerRef:
+    name: opensearch-self-signed-issuer
+  commonName: "ca.opensearch"
+  isCA: true
+---
+# Create an ClusterIssuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: opensearch-root-issuer
+spec:
+  ca:
+    secretName: opensearch-ca-cert
+---
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
@@ -26,7 +59,7 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: verrazzano-cluster-issuer
+    name: opensearch-root-issuer
 status: {}
 ---
 apiVersion: cert-manager.io/v1
@@ -57,7 +90,7 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: verrazzano-cluster-issuer
+    name: opensearch-root-issuer
 status: {}
 ---
 apiVersion: cert-manager.io/v1
@@ -89,7 +122,7 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: verrazzano-cluster-issuer
+    name: opensearch-root-issuer
 status: {}
 ---
 apiVersion: cert-manager.io/v1
@@ -120,7 +153,7 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: verrazzano-cluster-issuer
+    name: opensearch-root-issuer
 status: {}
 ---
 {{- if lookup "v1" "Namespace" "" "verrazzano-monitoring" }}
@@ -147,6 +180,6 @@ spec:
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer
-    name: verrazzano-cluster-issuer
+    name: opensearch-root-issuer
 status: {}
 {{- end }}
