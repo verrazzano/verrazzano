@@ -28,8 +28,9 @@ RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs ope
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano \
-    && curl https://github.com/verrazzano/cluster-api/releases/download/v1.4.6/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl \
-    && chown verrazzano:verrazzano /usr/local/bin/clusterctl
+    && curl -L https://github.com/verrazzano/cluster-api/releases/download/v1.4.6/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl \
+    && chown verrazzano:verrazzano /usr/local/bin/clusterctl \
+    && chmod +x /usr/local/bin/clusterctl
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
