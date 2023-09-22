@@ -12,8 +12,8 @@ import (
 	"testing"
 )
 
-const catalogPath = "./catalog.yaml"
-const bomPath = "../../verrazzano-bom.json"
+const catalogPath = "../../platform-operator/manifests/catalog/catalog.yaml"
+const bomPath = "../../platform-operator/verrazzano-bom.json"
 
 type bomSubcomponentOverrides struct {
 	subcomponentName string

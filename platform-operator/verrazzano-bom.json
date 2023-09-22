@@ -154,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230818161107-07044c506",
+              "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.24.0",
               "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230920212002-537165164",
+              "tag": "v2.7.6-20230921193355-4a359105b",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230920212002-537165164"
+              "tag": "v2.7.6-20230921193355-4a359105b"
             }
           ]
         },
@@ -254,7 +254,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -300,7 +300,7 @@
     },
     {
       "name": "verrazzano-console",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -318,7 +318,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -400,7 +400,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -417,7 +417,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -434,7 +434,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -451,7 +451,7 @@
     },
     {
       "name": "verrazzano-authproxy",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -948,7 +948,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230919040640-26c8b963",
+              "tag": "v7.0.12-20230921093854-848a7e94",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -994,10 +994,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.24.0",
-    "v1.25.0",
-    "v1.26.0",
-    "v1.27.0"
-  ]
+  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
 }

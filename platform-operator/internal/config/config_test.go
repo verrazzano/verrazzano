@@ -49,7 +49,7 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is correct")
 	asserts.Equal("/verrazzano/platform-operator/verrazzano-bom.json", GetDefaultBOMFilePath(), "GetDefaultBOMFilePath() is correct")
 	asserts.Equal("/verrazzano/platform-operator/experimental/manifests/integration-charts", GetIntegrationChartsDir(), "GetIntegrationChartsDir() is correct")
-
+	asserts.Equal("/verrazzano/platform-operator/manifests/catalog/catalog.yaml", GetCatalogPath(), "GetCatalogPath() is correct")
 }
 
 // TestSetConfig tests setting config values
