@@ -7,13 +7,14 @@ import (
 	"context"
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	moduleCatalog "github.com/verrazzano/verrazzano/pkg/catalog"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,23 +54,60 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 
 		// Get the module version from the catalog
 		version := catalog.GetVersion(comp.Name())
-		if version == nil {
+		if version == "" {
 			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
-		// Create or update the module
-		module := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
-		_, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &module, func() error {
-			return r.mutateModule(log, actualCR, effectiveCR, &module, comp, version.ToString())
-		})
-		if err != nil {
-			if !errors.IsConflict(err) {
-				log.ErrorfThrottled("Failed createOrUpdate module %s: %v", module.Name, err)
-			}
-			return result.NewResultShortRequeueDelayWithError(err)
+		if res := r.createOrUpdateOneModule(log, actualCR, effectiveCR, comp, version); res.ShouldRequeue() {
+			return res
 		}
 	}
 	return result.NewResult()
+}
+
+func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, comp componentspi.Component, version string) result.Result {
+	// Create or update the module
+	moduleToUpdate := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
+
+	// Stash the current state of the module away for comparison after update
+	currentModule := &moduleapi.Module{}
+	if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&moduleToUpdate), currentModule); err != nil && !errors.IsNotFound(err) {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Create/Update the module if necessary
+	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &moduleToUpdate, func() error {
+		return r.mutateModule(log, actualCR, effectiveCR, &moduleToUpdate, comp, version)
+	})
+	if err != nil {
+		if !errors.IsConflict(err) {
+			log.ErrorfThrottled("Failed createOrUpdate module %s: %v", moduleToUpdate.Name, err)
+		}
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// Update the status IFF the module has been updated
+	if r.moduleDeepEqual(currentModule, &moduleToUpdate) {
+		opResult = controllerutil.OperationResultNone
+	}
+	// If the copy operation resulted in an update to the target, set the VZ condition to install started/Reconciling
+	if res := r.updateStatusIfNeeded(log, actualCR, opResult); res.ShouldRequeue() {
+		return res
+	}
+	return result.NewResult()
+}
+
+// moduleDeepEqual - Workaround, CreateOrUpdate is returning a false-positive update even when none of the fields change,
+// do a DeepEqual of the before/after relevant module fields to see if anything there changed.
+func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Module) bool {
+	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
+	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
+	//
+	// For now we will use DeepEqual to compare parts of the Module objects we care about directly unless we can
+	// determine why we're getting diffs from the full ObjectCompare
+	return equality.Semantic.DeepEqual(mod1.Spec, mod2.Spec) &&
+		equality.Semantic.DeepEqual(mod1.ObjectMeta, mod2.ObjectMeta) &&
+		equality.Semantic.DeepEqual(mod1.Status, mod2.Status)
 }
 
 // mutateModule mutates the module for the create or update callback

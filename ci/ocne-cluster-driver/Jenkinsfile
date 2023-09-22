@@ -3,7 +3,7 @@
 
 def DEFAULT_REPO_URL
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "phx-large" : "large"
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
@@ -488,11 +488,6 @@ pipeline {
         failure {
             script {
                 archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**', allowEmptyArchive: true
-                script {
-                    if (env.JOB_NAME == "verrazzano-ocne-cluster-driver-tests/master" || env.JOB_NAME ==~ "verrazzano-ocne-cluster-driver-tests/release-*") {
-                        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                    }
-                }
             }
         }
         cleanup {

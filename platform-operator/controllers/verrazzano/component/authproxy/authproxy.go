@@ -79,7 +79,11 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		OpenSearch:                &opensearchConfig,
 	}
 
-	if !common.IsLegacyOS(ctx) {
+	isLegacyOS, err := common.IsLegacyOS(ctx)
+	if err != nil {
+		return kvs, err
+	}
+	if !isLegacyOS {
 		overrides.Config.OpenSearch.Namespace = constants.VerrazzanoLoggingNamespace
 		overrides.Config.OpenSearch.Protocol = "https"
 		overrides.Config.OpenSearch.Service = "opensearch"

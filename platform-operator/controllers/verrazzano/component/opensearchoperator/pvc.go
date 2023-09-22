@@ -22,11 +22,15 @@ import (
 	c "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var (
+	PVCListingError = "Failed listing persistent volumes: %v"
+)
+
 // getOSPersistentVolumes returns the list of older PersistentVolumes used by VMO OpenSearch
 func getOSPersistentVolumes(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) ([]v1.PersistentVolume, error) {
 	pvList := &v1.PersistentVolumeList{}
 	if err := ctx.Client().List(context.TODO(), pvList); err != nil {
-		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
 	}
 
 	var openSearchPVList []v1.PersistentVolume
@@ -49,7 +53,7 @@ func getPVsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) (
 		if errors.IsNotFound(err) {
 			return pvList.Items, nil
 		}
-		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
 	}
 	return pvList.Items, nil
 }
@@ -61,7 +65,7 @@ func getPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) 
 		if errors.IsNotFound(err) {
 			return pvcList.Items, nil
 		}
-		return nil, ctx.Log().ErrorfNewErr("Failed listing persistent volumes: %v", err)
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
 	}
 	return pvcList.Items, nil
 }

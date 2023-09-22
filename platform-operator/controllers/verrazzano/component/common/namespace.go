@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -98,6 +97,12 @@ func CreateAndLabelNamespaces(ctx spi.ComponentContext) error {
 		}
 	}
 
+	if vzcr.IsDexEnabled(ctx.EffectiveCR()) {
+		if err := namespace.CreateDexNamespace(ctx.Client(), istioInject); err != nil {
+			return ctx.Log().ErrorfNewErr("Failed creating namespace %s: %v", constants.DexNamespace, err)
+		}
+	}
+
 	return nil
 }
 
@@ -140,12 +145,4 @@ func CheckExistingNamespace(ns []corev1.Namespace, includeNamespace func(*corev1
 		}
 	}
 	return nil
-}
-
-func DoesNamespaceExists(client clipkg.Client, name string) bool {
-	ns := corev1.Namespace{}
-	if err := client.Get(context.TODO(), types.NamespacedName{Name: name}, &ns); err != nil {
-		return false
-	}
-	return true
 }

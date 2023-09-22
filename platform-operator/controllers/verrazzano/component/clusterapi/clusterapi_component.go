@@ -6,6 +6,7 @@ package clusterapi
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -13,8 +14,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -109,7 +112,7 @@ func (c clusterAPIComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.V
 
 // GetDependencies returns the dependencies of this component.
 func (c clusterAPIComponent) GetDependencies() []string {
-	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName}
+	return []string{cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName, rancher.ComponentName}
 }
 
 // IsReady indicates whether a component is Ready for dependency components.
@@ -299,19 +302,6 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
-		// get all the resource that will be deleted and recreated
-		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
-		if err != nil {
-			ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
-			return err
-		}
-
-		// delete the RBAC resources that Rancher puts finalizers on and keep requeuing until they're gone
-		if err = deleteRBACComponents(ctx, components); err != nil {
-			return err
-		}
-
-		// then apply the upgrade
 		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil

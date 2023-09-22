@@ -36,6 +36,7 @@ const (
 	// Certificate names
 	osdCertificateName = "system-tls-osd"
 	osCertificateName  = "system-tls-os-ingest"
+	OpsterGroup        = "opensearch.opster.io"
 )
 
 var (
@@ -47,19 +48,19 @@ var (
 
 	GetControllerRuntimeClient = GetClient
 	clusterGVR                 = schema.GroupVersionResource{
-		Group:    "opensearch.opster.io",
+		Group:    OpsterGroup,
 		Resource: "opensearchclusters",
 		Version:  "v1",
 	}
 
 	roleGVR = schema.GroupVersionResource{
-		Group:    "opensearch.opster.io",
+		Group:    OpsterGroup,
 		Resource: "opensearchroles",
 		Version:  "v1",
 	}
 
 	rolesMappingGVR = schema.GroupVersionResource{
-		Group:    "opensearch.opster.io",
+		Group:    OpsterGroup,
 		Resource: "opensearchuserrolebindings",
 		Version:  "v1",
 	}
