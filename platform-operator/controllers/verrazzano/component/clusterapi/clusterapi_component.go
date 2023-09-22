@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
 // ComponentName is the name of the component
@@ -64,8 +63,6 @@ var capiDeployments = []types.NamespacedName{
 	},
 }
 
-type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (clusterapi.Client, error)
-
 type capiUpgradeOptions struct {
 	CoreProvider            string
 	BootstrapProviders      []string
@@ -73,16 +70,15 @@ type capiUpgradeOptions struct {
 	InfrastructureProviders []string
 }
 
-var capiInitFunc = clusterapi.New
+// capiRunCmdFunc - required for unit tests
+var capiRunCmdFunc func(cmd *exec.Cmd) error
 
-// SetCAPIInitFunc For unit testing, override the CAPI init function
-func SetCAPIInitFunc(f CAPIInitFuncType) {
-	capiInitFunc = f
-}
-
-// ResetCAPIInitFunc For unit testing, reset the CAPI init function to its default
-func ResetCAPIInitFunc() {
-	capiInitFunc = clusterapi.New
+// runCAPICmd - wrapper for executing commands, required for unit testing
+func runCAPICmd(cmd *exec.Cmd) error {
+	if capiRunCmdFunc != nil {
+		return capiRunCmdFunc(cmd)
+	}
+	return cmd.Run()
 }
 
 type clusterAPIComponent struct {
@@ -249,7 +245,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		"--bootstrap", bootstrapArgValue)
 
 	ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
-	return cmd.Run()
+	return runCAPICmd(cmd)
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -267,7 +263,7 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace ")
 	ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
-	return cmd.Run()
+	return runCAPICmd(cmd)
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
@@ -313,7 +309,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 		}
 		cmd := exec.Command("apply", args...)
 		ctx.Log().Errorf("Component %s is executing the command: %s", ComponentName, cmd.String())
-		return cmd.Run()
+		return runCAPICmd(cmd)
 	}
 	return nil
 }

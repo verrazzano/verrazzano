@@ -4,8 +4,8 @@
 package clusterapi
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
@@ -21,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -35,10 +35,6 @@ const (
 	podTemplateHashLabel         = "pod-template-hash"
 	providerLabel                = "cluster.x-k8s.io/provider"
 )
-
-func fakeClusterAPINew(_ string, _ ...client.Option) (client.Client, error) {
-	return &FakeClusterAPIClient{}, nil
-}
 
 // TestNewComponent tests the NewComponent function
 // GIVEN a call to NewComponent
@@ -400,8 +396,8 @@ func TestPreInstall(t *testing.T) {
 //	WHEN ClusterAPI is installed
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
 
@@ -418,8 +414,7 @@ func TestInstall(t *testing.T) {
 //	WHEN ClusterAPI is Uninstalled
 //	THEN no error is returned
 func TestUninstall(t *testing.T) {
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
@@ -451,8 +446,7 @@ func TestPreUpgrade(t *testing.T) {
 // WHEN ClusterAPI is upgraded
 // THEN no error is returned
 func TestUpgrade(t *testing.T) {
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
 
@@ -763,4 +757,8 @@ func getReadyDeployments() *fake.ClientBuilder {
 			},
 		},
 	)
+}
+
+func fakeCAPICmdRunner(cmd *exec.Cmd) error {
+	return nil
 }
