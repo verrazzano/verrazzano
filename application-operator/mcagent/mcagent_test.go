@@ -257,6 +257,7 @@ func TestReconcile_AgentSecretPresenceAndValidity(t *testing.T) {
 				expectAgentSecretNotFound(mcMock)
 			}
 			if tt.fields.AgentSecretFound && tt.fields.AgentSecretValid {
+				expectGetMCNamespace(mcMock)
 				clusterName := string(secretToUse.Data[constants.ClusterNameData])
 				if tt.fields.AgentStateConfigMapFound {
 					// Managed Cluster - expect call to get the agent state config map at the beginning of reconcile
@@ -532,6 +533,16 @@ func expectAgentStateConfigMapFound(mock *mocks.MockClient, clusterName string) 
 			}
 			return nil
 		}).Times(2)
+}
+
+func expectGetMCNamespace(mock *mocks.MockClient) {
+	// expect a get to check if the verrazzano-mc namespace exists
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: mcAgentStateConfigMapName.Namespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.Name = name.Name
+			return nil
+		})
 }
 
 func expectAgentStateConfigMapCreated(mock *mocks.MockClient, clusterName string) {
