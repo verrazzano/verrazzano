@@ -243,7 +243,7 @@ pipeline {
                         REALM_NAME = "test-realm"
                     }
                     steps {
-                         script {
+                        script {
                             def RUNNER_REGION = sh(returnStdout: true, script: "curl -s -H \"Authorization: Bearer Oracle\" http://169.254.169.254/opc/v2/instance/canonicalRegionName").trim()
                             println("runner region is ${RUNNER_REGION}, OCI CAPI region is ${env.OCI_REGION}")
                         }
