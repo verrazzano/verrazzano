@@ -9,15 +9,20 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strings"
 	"text/template"
 )
+
+const rbacGroup = "rbac.authorization.k8s.io"
 
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
@@ -258,3 +263,77 @@ func isUpgradeOptionsNotEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) boo
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
 		len(upgradeOptions.InfrastructureProviders) != 0
 }
+
+func getComponentsToUpgrade(c clusterapi.Client, options clusterapi.ApplyUpgradeOptions) ([]client.Object, error) {
+	var components []unstructured.Unstructured
+	var componentObjects []client.Object
+	if options.CoreProvider != "" {
+		coreComponents, err := c.GetProviderComponents(clusterAPIProviderName, v1alpha3.CoreProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		if err != nil {
+			return componentObjects, err
+		}
+		components = append(components, coreComponents.Objs()...)
+	}
+
+	if len(options.BootstrapProviders) != 0 {
+		boostrapComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.BootstrapProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		if err != nil {
+			return componentObjects, err
+		}
+		components = append(components, boostrapComponents.Objs()...)
+	}
+
+	if len(options.ControlPlaneProviders) != 0 {
+		controlPlaneComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.ControlPlaneProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		if err != nil {
+			return componentObjects, err
+		}
+		components = append(components, controlPlaneComponents.Objs()...)
+	}
+
+	if len(options.InfrastructureProviders) != 0 {
+		infrastructureComponents, err := c.GetProviderComponents(
+			ociProviderName, v1alpha3.InfrastructureProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		if err != nil {
+			return componentObjects, err
+		}
+		components = append(components, infrastructureComponents.Objs()...)
+	}
+	for i := range components {
+		componentObjects = append(componentObjects, &components[i])
+	}
+	return componentObjects, nil
+}
+
+//
+//// deleteRBACComponents deletes all the RBAC resources and check to ensure they were deleted
+//func deleteRBACComponents(ctx spi.ComponentContext, components []client.Object) error {
+//	for i := range components {
+//		component := components[i]
+//		if component.GroupVersionKind().Group == rbacGroup {
+//			err := ctx.Client().Delete(context.TODO(), &component)
+//			if err != nil && !errors.IsNotFound(err) {
+//				ctx.Log().Errorf("Unexpected error deleting %s %s: %v", component.GetKind(), component.GetName(), err)
+//				return err
+//			}
+//		}
+//	}
+//
+//	for i := range components {
+//		component := components[i]
+//		if component.GroupVersionKind().Group == rbacGroup {
+//			err := ctx.Client().Get(context.TODO(),
+//				types.NamespacedName{Name: component.GetName(), Namespace: component.GetNamespace()}, &component)
+//			if errors.IsNotFound(err) {
+//				continue
+//			}
+//			if err != nil {
+//				ctx.Log().Errorf("Unexpected error getting %s %s: %v", component.GetKind(), component.GetName(), err)
+//				return err
+//			}
+//			ctx.Log().Progress("Waiting for cluster-api RBAC resources to be deleted before upgrade")
+//			return err
+//		}
+//	}
+//	return nil
+//}
