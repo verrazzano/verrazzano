@@ -5,6 +5,7 @@ package registry
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
@@ -64,7 +65,6 @@ import (
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
@@ -176,7 +176,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), kiali.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), promoperator.ComponentName)
+	a.Equal(comps[i].Name(), common.PrometheusOperatorComponentName)
 	i++
 	a.Equal(comps[i].Name(), promadapter.ComponentName)
 	i++

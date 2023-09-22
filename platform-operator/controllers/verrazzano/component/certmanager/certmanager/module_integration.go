@@ -6,9 +6,9 @@ package certmanager
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -43,5 +43,5 @@ func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, prometheusOperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, common.PrometheusOperatorComponentName})
 }

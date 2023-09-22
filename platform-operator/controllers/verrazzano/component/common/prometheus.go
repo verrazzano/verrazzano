@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -20,6 +20,12 @@ import (
 )
 
 const keycloakHTTPService = "keycloak-http"
+
+// PrometheusOperatorComponentName is the name of the Prometheus Operator component
+const PrometheusOperatorComponentName = "prometheus-operator"
+
+// PrometheusOperatorComponentNamespace is the namespace of the component
+const PrometheusOperatorComponentNamespace = constants.VerrazzanoMonitoringNamespace
 
 // UpdatePrometheusAnnotations updates annotations on the Prometheus CR to include the outbound IP for Keycloak
 func UpdatePrometheusAnnotations(ctx spi.ComponentContext, prometheusNamespace string, promOperComponentName string) error {
