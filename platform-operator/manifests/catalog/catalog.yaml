@@ -15,7 +15,7 @@ modules:
   - name: external-dns
     version: 0.12.2
   - name: istio
-    version: 1.17.2
+    version: 1.19.0
   - name: rancher
     version: 2.7.5
   - name: cluster-api
