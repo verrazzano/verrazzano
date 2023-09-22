@@ -24,6 +24,7 @@ COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-op
 RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.26.6-1.el8 istio-istioctl-1.17.2-3.el8 \
     && microdnf clean all \
     && rm -rf /var/cache/yum /var/lib/rpm/* \
+    && curl https://github.com/verrazzano/cluster-api/releases/download/v1.4.6/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl \
     && groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
