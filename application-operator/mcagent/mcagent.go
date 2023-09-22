@@ -190,10 +190,18 @@ func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret)
 // updateMCAgentStateConfigMap updates the managed cluster name and cattle agent hash in the
 // agent state config map if those have changed from what was there before
 func (r *Reconciler) updateMCAgentStateConfigMap(ctx context.Context, managedClusterName string, cattleAgentHashValue string) error {
+	// create the ConfigMap's namespace if it doesn't already exist
+	mcAgentStateNamespace := corev1.Namespace{}
+	mcAgentStateNamespace.Name = mcAgentStateConfigMapName.Namespace
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateNamespace, func() error { return nil })
+	if err != nil {
+		return fmt.Errorf("failed to create namespace %s: %v", mcAgentStateConfigMapName.Namespace, err)
+	}
+
 	mcAgentStateConfigMap := corev1.ConfigMap{}
 	mcAgentStateConfigMap.Name = mcAgentStateConfigMapName.Name
 	mcAgentStateConfigMap.Namespace = mcAgentStateConfigMapName.Namespace
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateConfigMap, func() error {
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateConfigMap, func() error {
 		if mcAgentStateConfigMap.Data == nil {
 			mcAgentStateConfigMap.Data = map[string]string{}
 		}
