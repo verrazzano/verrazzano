@@ -71,5 +71,6 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
+         echo "Image size diff found"
          cat ${WORKSPACE}/result.txt
 fi
