@@ -308,7 +308,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
 		}
 		cmd := exec.Command("apply", args...)
-		ctx.Log().Errorf("Component %s is executing the command: %s", ComponentName, cmd.String())
+		ctx.Log().Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
 		return runCAPICmd(cmd)
 	}
 	return nil
