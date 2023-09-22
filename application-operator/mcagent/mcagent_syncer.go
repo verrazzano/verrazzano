@@ -234,9 +234,14 @@ func (s *Syncer) getWorkloadVZVersion() (string, error) {
 	if err := s.LocalClient.List(s.Context, vzList, &client.ListOptions{}); err != nil {
 		return "", fmt.Errorf("error listing Verrazzanos: %v", err)
 	}
-	if len(vzList.Items) != 1 {
-		return "", fmt.Errorf("number of Verrazzano installations should be 1, but was %d", len(vzList.Items))
+	if len(vzList.Items) > 1 {
+		return "", fmt.Errorf("number of Verrazzano installations should be 0 or 1, but was %d", len(vzList.Items))
 	}
+	if len(vzList.Items) == 0 {
+		// If there is no Verrazzano installed on this workload cluster, leave version empty but do not error
+		return "", nil
+	}
+	// Verrazzano is on this cluster, so get the version
 	vzState := string(vzList.Items[0].Status.Version)
 	return vzState, nil
 }
