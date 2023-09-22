@@ -273,7 +273,7 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
-	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace ")
+	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
 	return runCAPICmd(cmd, ctx.Log())
 }
 
