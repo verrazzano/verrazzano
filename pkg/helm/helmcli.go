@@ -153,7 +153,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
-			log.ErrorfThrottledNewErr("Failed running Helm command for release %s: %v",
+			log.ErrorfThrottled("Failed running Helm command for release %s: %v",
 				releaseName, err.Error())
 			return nil, err
 		}
