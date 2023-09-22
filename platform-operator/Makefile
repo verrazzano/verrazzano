@@ -17,6 +17,8 @@ CREATE_LATEST_TAG=0
 CRD_OPTIONS ?= "crd:crdVersions=v1,maxDescLen=0"
 KUBECONFIG ?= ${HOME}/.kube/config
 
+export MODULE_INTEGRATION ?= true
+
 ifndef DOCKER_IMAGE_FULLNAME
 DOCKER_IMAGE_NAME ?= ${NAME}-dev
 DOCKER_IMAGE_FULLNAME=${DOCKER_IMAGE_NAME}
@@ -126,10 +128,10 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom go-build-linux docker-build-common
+docker-build: generate-bom generate-catalog go-build-linux docker-build-common
 
 .PHONY: docker-build-debug
-docker-build-debug: generate-bom go-build-linux-debug docker-build-common
+docker-build-debug: generate-bom generate-catalog go-build-linux-debug docker-build-common
 
 .PHONY: docker-build-common
 docker-build-common:
@@ -223,3 +225,8 @@ generate-bom:
 	mkdir out || true
 	../tools/scripts/generate_bom.sh verrazzano-bom.json ${VERRAZZANO_VERSION} ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE} ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE} ${VERRAZZANO_AUTHPROXY_IMAGE} ${DOCKER_IMAGE_NAME} ${DOCKER_IMAGE_TAG} out/generated-verrazzano-bom.json
 
+.PHONY: generate-catalog
+generate-catalog:
+	@echo Generating catalog with verrazzano version ${VERRAZZANO_VERSION}
+	mkdir out || true
+	../tools/scripts/generate_catalog.sh manifests/catalog/catalog.yaml ${VERRAZZANO_VERSION} out/generated-catalog.yaml

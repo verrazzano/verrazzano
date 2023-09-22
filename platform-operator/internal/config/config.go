@@ -14,25 +14,25 @@ import (
 )
 
 const (
-	rootDir                         = "/verrazzano"
-	platformDirSuffix               = "/platform-operator"
-	profilesDirSuffix               = "/platform-operator/manifests/profiles"
-	installDirSuffix                = "/platform-operator/scripts/install"
-	thirdPartyDirSuffix             = "/platform-operator/thirdparty/charts"
-	thirdPartyManifestsDirSuffix    = "/platform-operator/thirdparty/manifests"
-	helmConfigDirSuffix             = "/platform-operator/helm_config"
-	helmChartsDirSuffix             = "/platform-operator/helm_config/charts"
-	helmVPOChartsDirSuffix          = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
-	helmVMOChartsDirSuffix          = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
-	helmAppOpChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano-application-operator"
-	helmClusterOpChartsDirSuffix    = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
-	helmKialiChartsDirSuffix        = "/platform-operator/thirdparty/charts/kiali-server"
-	helmPromOpChartsDirSuffix       = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
-	helmOamChartsDirSuffix          = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
+	rootDir                      = "/verrazzano"
+	platformDirSuffix            = "/platform-operator"
+	profilesDirSuffix            = "/platform-operator/manifests/profiles"
+	installDirSuffix             = "/platform-operator/scripts/install"
+	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
+	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
+	helmConfigDirSuffix          = "/platform-operator/helm_config"
+	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
+	helmVPOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
+	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
+	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
+	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
+	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
+	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOpenSearchOpChartsDirSuffix = "/platform-operator/thirdparty/charts/opensearch-operator"
-	helmOverridesDirSuffix          = "/platform-operator/helm_config/overrides"
-	integrationChartsDirSuffix      = "/platform-operator/experimental/manifests/integration-charts"
-	catalogDirSuffix                = "/platform-operator/experimental/catalog"
+	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
+	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
+	catalogDirSuffix             = "/platform-operator/manifests/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -126,7 +126,7 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ModuleIntegration:              false,
+	ModuleIntegration:              true,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
