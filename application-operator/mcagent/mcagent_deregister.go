@@ -58,7 +58,7 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
 		reason, code := reasonAndCodeForError(err)
-		s.Log.Infof("reason: %v code: %d", reason, code)
+		s.Log.Infof("unwrap: %v, err: %v, reason: %v, code: %d", errors.Unwrap(err), err, reason, code)
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
 		return false, err
 	}
@@ -70,7 +70,8 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 }
 
 func reasonAndCodeForError(err error) (metav1.StatusReason, int32) {
-	if status, ok := err.(APIStatus); ok || errors.As(err, &status) {
+	status, ok := err.(APIStatus)
+	if ok || errors.As(err, &status) {
 		return status.Status().Reason, status.Status().Code
 	}
 	return metav1.StatusReasonUnknown, 0
