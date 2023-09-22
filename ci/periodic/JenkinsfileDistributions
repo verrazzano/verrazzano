@@ -150,7 +150,7 @@ pipeline {
               script {
                     sh """
                         ci/scripts/check_image_sizes.sh
-                        if [ $? -eq 1 ]; then
+                        if [ $? == 1 ]; then
                             echo ${WORKSPACE}/result.txt
                         fi
                     """
