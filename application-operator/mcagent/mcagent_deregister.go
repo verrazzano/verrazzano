@@ -58,7 +58,7 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
 		reason, code := reasonAndCodeForError(err)
-		s.Log.Infof("reason: %s code: %s", reason, code)
+		s.Log.Infof("reason: %v code: %d", reason, code)
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
 		return false, err
 	}
