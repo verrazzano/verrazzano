@@ -14,5 +14,15 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c kialiComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{common.IstioComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{
+			nginx.ComponentName,
+			common.IstioComponentName,
+			cmconstants.ClusterIssuerComponentName,
+			fluentoperator.ComponentName,
+		}),
+		watch.GetModuleUpdatedWatches([]string{
+			nginx.ComponentName,
+		}),
+	)
 }
