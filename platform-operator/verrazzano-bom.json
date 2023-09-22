@@ -19,8 +19,8 @@
       ]
     },
     {
-      "name": "ingress-nginx",
-      "version": "v1.7.1",
+      "name": "ingress-controller",
+      "version": "1.7.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "v1.9.1",
+      "version": "1.9.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -85,6 +85,7 @@
     },
     {
       "name": "cert-manager-webhook-oci",
+      "version": "0.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -102,7 +103,7 @@
     },
     {
       "name": "external-dns",
-      "version": "v0.12.2",
+      "version": "0.12.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -145,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "v2.7.5",
+      "version": "2.7.5",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -153,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230818161107-07044c506",
+              "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.24.0",
               "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.5-20230831191011-c6f745626",
+              "tag": "v2.7.6-20230921193355-4a359105b",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.5-20230831191011-c6f745626"
+              "tag": "v2.7.6-20230921193355-4a359105b"
             }
           ]
         },
@@ -173,7 +174,7 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230403204343-4124528"
+              "tag": "v0.1.20-20230908151457-b1ce5ae"
             },
             {
               "image": "rancher-webhook",
@@ -181,11 +182,11 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.0-20230803175255-e6633a6d"
+              "tag": "v0.7.1-20230913140901-c69add6c"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.0-20230803175255-e6633a6d"
+              "tag": "v0.7.1-20230913140901-c69add6c"
             },
             {
               "image": "rancher-gitjob",
@@ -253,7 +254,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -263,17 +264,6 @@
               "image": "proxyv2",
               "tag": "1.17.2-20230627214838-887ef0a0",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
-            },
-            {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230810212038-8777b84",
-              "helmFullImageKey": "logging.fluentdImage"
-            },
-            {
-              "image": "console",
-              "tag": "v2.0.0-20230912070053-2d1883d",
-              "helmFullImageKey": "console.imageName",
-              "helmTagKey": "console.imageVersion"
             },
             {
               "image": "nginx-ingress-controller",
@@ -292,8 +282,43 @@
       ]
     },
     {
+      "name": "fluentd",
+      "version": "1.14.5",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluentd",
+          "images": [
+            {
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "v1.14.5-20230810212038-8777b84",
+              "helmFullImageKey": "logging.fluentdImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verrazzano-console",
+      "version": "VERRAZZANO_VERSION",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-console",
+          "images": [
+            {
+              "image": "console",
+              "tag": "v2.0.0-20230912070053-2d1883d",
+              "helmFullImageKey": "imageName",
+              "helmTagKey": "imageTag"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano-monitoring-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -375,7 +400,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -392,7 +417,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -409,7 +434,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -426,7 +451,7 @@
     },
     {
       "name": "verrazzano-authproxy",
-      "version": "2.0.0",
+      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -677,6 +702,7 @@
     },
     {
       "name": "prometheus-adapter",
+      "version": "0.10.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -694,6 +720,7 @@
     },
     {
       "name": "kube-state-metrics",
+      "version": "2.8.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -712,6 +739,7 @@
     },
     {
       "name": "prometheus-pushgateway",
+      "version": "21.4.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -728,7 +756,8 @@
       ]
     },
     {
-      "name": "node-exporter",
+      "name": "prometheus-node-exporter",
+      "version": "1.3.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -745,7 +774,7 @@
       ]
     },
     {
-      "name": "jaeger",
+      "name": "jaeger-operator",
       "version": "1.42.0",
       "subcomponents": [
         {
@@ -919,7 +948,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v6.2.7-20230919040640-26c8b963",
+              "tag": "v7.0.12-20230921093854-848a7e94",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -929,7 +958,7 @@
     },
     {
       "name": "thanos",
-      "version": "v0.32.2",
+      "version": "0.32.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -948,7 +977,7 @@
     },
     {
       "name": "dex",
-      "version": "v2.37.0",
+      "version": "2.37.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -965,10 +994,5 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": [
-    "v1.24.0",
-    "v1.25.0",
-    "v1.26.0",
-    "v1.27.0"
-  ]
+  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
 }
