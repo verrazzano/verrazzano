@@ -38,6 +38,19 @@ spec:
   tlsUseSelfSigned: {{ $use_self_signed }}
   router:
     instances: {{ required "router.instances is required" $routerInstances }}
+    podSpec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: router
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
 {{- if (((.Values).router).podSpec) }}
     podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
 {{- end }}
@@ -64,6 +77,10 @@ spec:
 {{- end }}
   secretName: {{ .Release.Name }}-cluster-secret
   imagePullPolicy : {{ .Values.image.pullPolicy }}
+{{- $repositoryPath := .Values.image.repository }}
+{{- if $repositoryPath }}
+  imageRepository: {{ $repositoryPath }}
+{{- end }}
   baseServerId: {{ required "baseServerId is required" .Values.baseServerId }}
   version: {{ .Values.serverVersion | default .Chart.AppVersion }}
   {{- if ((.Values).edition) }}
