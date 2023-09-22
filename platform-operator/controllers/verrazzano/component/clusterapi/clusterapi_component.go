@@ -231,13 +231,17 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	}
 
 	overridesContext := newOverridesContext(overrides)
+	coreArgValue := fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion())
+	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
+	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
+	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
 
 	return exec.Command("clusterctl", "init",
 		"--target-namespace", ComponentNamespace,
-		"--core", fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
-		"--control-plane", fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion()),
-		"--infrastructure", fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion()),
-		"--bootstrap", fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())).Run()
+		"--core", coreArgValue,
+		"--control-plane", controlPlaneArgValue,
+		"--infrastructure", infrastructureArgValue,
+		"--bootstrap", bootstrapArgValue).Run()
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
