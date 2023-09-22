@@ -300,40 +300,9 @@ func getComponentsToUpgrade(c clusterapi.Client, options clusterapi.ApplyUpgrade
 		components = append(components, infrastructureComponents.Objs()...)
 	}
 	for i := range components {
-		componentObjects = append(componentObjects, &components[i])
+		if components[i].GetObjectKind().GroupVersionKind().Group == rbacGroup {
+			componentObjects = append(componentObjects, &components[i])
+		}
 	}
 	return componentObjects, nil
 }
-
-//
-//// deleteRBACComponents deletes all the RBAC resources and check to ensure they were deleted
-//func deleteRBACComponents(ctx spi.ComponentContext, components []client.Object) error {
-//	for i := range components {
-//		component := components[i]
-//		if component.GroupVersionKind().Group == rbacGroup {
-//			err := ctx.Client().Delete(context.TODO(), &component)
-//			if err != nil && !errors.IsNotFound(err) {
-//				ctx.Log().Errorf("Unexpected error deleting %s %s: %v", component.GetKind(), component.GetName(), err)
-//				return err
-//			}
-//		}
-//	}
-//
-//	for i := range components {
-//		component := components[i]
-//		if component.GroupVersionKind().Group == rbacGroup {
-//			err := ctx.Client().Get(context.TODO(),
-//				types.NamespacedName{Name: component.GetName(), Namespace: component.GetNamespace()}, &component)
-//			if errors.IsNotFound(err) {
-//				continue
-//			}
-//			if err != nil {
-//				ctx.Log().Errorf("Unexpected error getting %s %s: %v", component.GetKind(), component.GetName(), err)
-//				return err
-//			}
-//			ctx.Log().Progress("Waiting for cluster-api RBAC resources to be deleted before upgrade")
-//			return err
-//		}
-//	}
-//	return nil
-//}
