@@ -86,10 +86,10 @@ func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
 
-	log.Infof("Component %s is executing the command: %s", ComponentName, cmd.String())
+	log.Debugf("Component %s is executing the command: %s", ComponentName, cmd.String())
 	err := cmd.Run()
 	if err != nil {
-		log.Infof("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		log.Debugf("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
 	}
 	return err
 }
@@ -274,7 +274,10 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
-	return runCAPICmd(cmd, ctx.Log())
+	// Temporarily ignore the return status until a clusterctl version issue is resolved
+
+	_ = runCAPICmd(cmd, ctx.Log())
+	return nil
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
