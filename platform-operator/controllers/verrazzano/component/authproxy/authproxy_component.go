@@ -6,6 +6,7 @@ package authproxy
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -62,7 +63,7 @@ func NewComponent() spi.Component {
 			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_3_0,
 			ImagePullSecretKeyname:    "global.imagePullSecrets[0]",
 			GetInstallOverridesFunc:   GetOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, fluentoperator.ComponentName, dex.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, nginx.ComponentName, istio.ComponentName, fluentoperator.ComponentName, dex.ComponentName},
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{
 					{
