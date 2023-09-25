@@ -36,7 +36,7 @@ func TestAppendAppOperatorOverrides(t *testing.T) {
 
 	config.SetDefaultBomFilePath(testBomFilePath)
 
-	const expectedFluentdImage = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2"
+	const expectedFluentdImage = "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230810212038-8777b84"
 	const expectedIstioProxyImage = "ghcr.io/verrazzano/proxyv2:1.7.3"
 	const expectedWeblogicMonitoringExporterImage = "ghcr.io/oracle/weblogic-monitoring-exporter:2.0.4"
 

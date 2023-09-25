@@ -113,14 +113,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret) error {
 	managedClusterName := string(agentSecret.Data[constants.ClusterNameData])
 
+	// Create the discovery client for the managed cluster
+	localDiscoveryClient, err := getDiscoveryClientFunc()
+	if err != nil {
+		return fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
+	}
+
 	// Initialize the syncer object
 	s := &Syncer{
-		LocalClient:         r.Client,
-		Log:                 r.Log,
-		Context:             ctx,
-		ProjectNamespaces:   []string{},
-		StatusUpdateChannel: r.AgentChannel,
-		ManagedClusterName:  managedClusterName,
+		LocalClient:          r.Client,
+		LocalDiscoveryClient: localDiscoveryClient,
+		Log:                  r.Log,
+		Context:              ctx,
+		ProjectNamespaces:    []string{},
+		StatusUpdateChannel:  r.AgentChannel,
+		ManagedClusterName:   managedClusterName,
 	}
 
 	// Read current agent state from config map
@@ -160,6 +167,7 @@ func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret)
 	}
 
 	// Update the status of our VMC on the admin cluster to record the last time we connected
+	// and update other fields of in the VMC status
 	err = s.updateVMCStatus()
 	if err != nil {
 		// we couldn't update status of the VMC - but we should keep going with the rest of the work
@@ -189,10 +197,18 @@ func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret)
 // updateMCAgentStateConfigMap updates the managed cluster name and cattle agent hash in the
 // agent state config map if those have changed from what was there before
 func (r *Reconciler) updateMCAgentStateConfigMap(ctx context.Context, managedClusterName string, cattleAgentHashValue string) error {
+	// create the ConfigMap's namespace if it doesn't already exist
+	mcAgentStateNamespace := corev1.Namespace{}
+	mcAgentStateNamespace.Name = mcAgentStateConfigMapName.Namespace
+	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateNamespace, func() error { return nil })
+	if err != nil {
+		return fmt.Errorf("failed to create namespace %s: %v", mcAgentStateConfigMapName.Namespace, err)
+	}
+
 	mcAgentStateConfigMap := corev1.ConfigMap{}
 	mcAgentStateConfigMap.Name = mcAgentStateConfigMapName.Name
 	mcAgentStateConfigMap.Namespace = mcAgentStateConfigMapName.Namespace
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateConfigMap, func() error {
+	_, err = controllerutil.CreateOrUpdate(ctx, r.Client, &mcAgentStateConfigMap, func() error {
 		if mcAgentStateConfigMap.Data == nil {
 			mcAgentStateConfigMap.Data = map[string]string{}
 		}

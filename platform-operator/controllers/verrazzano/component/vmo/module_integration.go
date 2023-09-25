@@ -11,5 +11,12 @@ import (
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c vmoComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{
+			nginx.ComponentName,
+		}),
+		watch.GetModuleUpdatedWatches([]string{
+			nginx.ComponentName,
+		}),
+	)
 }

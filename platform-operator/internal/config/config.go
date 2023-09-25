@@ -31,7 +31,7 @@ const (
 	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
 	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
 	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
-	catalogDirSuffix             = "/platform-operator/experimental/catalog"
+	catalogDirSuffix             = "/platform-operator/manifests/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"

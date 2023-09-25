@@ -4,9 +4,7 @@
 import groovy.transform.Field
 
 @Field def verrazzanoPrefix="verrazzano-"
-def SUSPECT_LIST = ""
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
-
 
 pipeline {
     options {
@@ -96,7 +94,6 @@ pipeline {
         stage('Build Release Distributions') {
             steps {
                 script {
-
                     try {
                         sh """
                              echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
@@ -114,6 +111,7 @@ pipeline {
                 }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
+
                     oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
                 """
             }
@@ -245,7 +243,6 @@ pipeline {
         }
     }
   }
-
 
 // Called in Stage Clean workspace and checkout steps
 @NonCPS

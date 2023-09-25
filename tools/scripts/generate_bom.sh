@@ -30,8 +30,8 @@ if [ -z "${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}" ]; then
   exit 1
 fi
 
-VERRAZZANO_AUTHPROXY_IMAGE_NAME=$5
-if [ -z "${VERRAZZANO_AUTHPROXY_IMAGE_NAME}" ]; then
+VERRAZZANO_AUTHPROXY_IMAGE=$5
+if [ -z "${VERRAZZANO_AUTHPROXY_IMAGE}" ]; then
   echo "You must specify the Auth Proxy Image Name"
   exit 1
 fi

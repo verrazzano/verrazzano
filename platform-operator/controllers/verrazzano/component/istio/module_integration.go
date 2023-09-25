@@ -15,7 +15,7 @@ import (
 
 // issuerValuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
-	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
+	Istio *v1alpha1.IstioComponent `json:"istio,omitempty"`
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON issuerValuesConfig representing the portion of the Verrazzano CR that corresponds to the module
@@ -24,11 +24,15 @@ func (i istioComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verraz
 		return nil, nil
 	}
 
-	configSnippet := valuesConfig{}
 	istio := effectiveCR.Spec.Components.Istio
-	if istio != nil {
-		configSnippet.InjectionEnabled = istio.InjectionEnabled
+	if istio == nil {
+		return nil, nil
 	}
+	configSnippet := valuesConfig{
+		Istio: istio.DeepCopy(),
+	}
+	configSnippet.Istio.InstallOverrides = v1alpha1.InstallOverrides{}
+
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 

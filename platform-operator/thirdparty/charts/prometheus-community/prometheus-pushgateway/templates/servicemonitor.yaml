@@ -2,36 +2,50 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ template "prometheus-pushgateway.fullname" .  }}
+  labels:
+    {{- include "prometheus-pushgateway.defaultLabels" . | nindent 4 }}
+    {{- if .Values.serviceMonitor.additionalLabels }}
+    {{- toYaml .Values.serviceMonitor.additionalLabels | nindent 4 }}
+    {{- end }}
+  name: {{ include "prometheus-pushgateway.fullname" .  }}
   {{- if .Values.serviceMonitor.namespace }}
   namespace: {{ .Values.serviceMonitor.namespace }}
+  {{- else }}
+  namespace: {{ template "prometheus-pushgateway.namespace" . }}
   {{- end }}
-  labels:
-{{ template "prometheus-pushgateway.defaultLabels" merge (dict "extraLabels" .Values.serviceMonitor.additionalLabels) .  }}
 spec:
   endpoints:
   - port: http
-    {{- if .Values.serviceMonitor.interval }}
-    interval: {{ .Values.serviceMonitor.interval }}
+    {{- with .Values.serviceMonitor.interval }}
+    interval: {{ . }}
     {{- end }}
-    {{- if .Values.serviceMonitor.scrapeTimeout }}
-    scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
+    {{- with .Values.serviceMonitor.scheme }}
+    scheme: {{ . }}
     {{- end }}
-    path: /metrics
+    {{- with .Values.serviceMonitor.bearerTokenFile }}
+    bearerTokenFile: {{ . }}
+    {{- end }}
+    {{- with .Values.serviceMonitor.tlsConfig }}
+    tlsConfig:
+      {{- toYaml .| nindent 6 }}
+    {{- end }}
+    {{- with .Values.serviceMonitor.scrapeTimeout }}
+    scrapeTimeout: {{ . }}
+    {{- end }}
+    path: {{ .Values.serviceMonitor.telemetryPath }}
     honorLabels: {{ .Values.serviceMonitor.honorLabels }}
-    {{- if .Values.serviceMonitor.metricRelabelings }}
+    {{- with .Values.serviceMonitor.metricRelabelings }}
     metricRelabelings:
-    {{- tpl (toYaml .Values.serviceMonitor.metricRelabelings | nindent 4) . }}
+      {{- tpl (toYaml . | nindent 6) $ }}
     {{- end }}
-    {{- if .Values.serviceMonitor.relabelings }}
+    {{- with .Values.serviceMonitor.relabelings }}
     relabelings:
-    {{ toYaml .Values.serviceMonitor.relabelings | nindent 4 }}
+      {{- toYaml . | nindent 6 }}
     {{- end }}
   namespaceSelector:
     matchNames:
-      - {{ .Release.Namespace }}
+      - {{ template "prometheus-pushgateway.namespace" . }}
   selector:
     matchLabels:
-      app: {{ template "prometheus-pushgateway.name" . }}
-      release: {{ .Release.Name }}
+      {{- include "prometheus-pushgateway.selectorLabels" . | nindent 6 }}
 {{- end -}}

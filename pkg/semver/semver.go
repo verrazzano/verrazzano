@@ -150,6 +150,11 @@ func (v *SemVersion) ToString() string {
 	}
 }
 
+// ToStringWithoutBuildAndPrerelease Convert to a valid semver string representation without the build and pre-release fields
+func (v *SemVersion) ToStringWithoutBuildAndPrerelease() string {
+	return fmt.Sprintf("%v.%v.%v", v.Major, v.Minor, v.Patch)
+}
+
 // invalidVersionError returns an invalid version error message
 func invalidVersionError(version string) error {
 	return fmt.Errorf("Invalid version string: %s (valid format is vn.n.n or n.n.n)", version)
