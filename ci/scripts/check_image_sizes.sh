@@ -65,6 +65,7 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   FILE_SIZE_OS="${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}"
   FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
+# Check if image size has increased by 0.1 MB or more
   if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+100000))" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
     echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/result.txt
@@ -72,5 +73,6 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
          echo "Image size diff found"
+         echo "IMAGE_SIZE_DIFF_FOUND=$IMAGE_SIZE_DIFF_FOUND"
          cat ${WORKSPACE}/result.txt
 fi
