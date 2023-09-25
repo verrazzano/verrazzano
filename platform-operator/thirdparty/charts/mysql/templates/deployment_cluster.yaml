@@ -40,6 +40,18 @@ spec:
     instances: {{ required "router.instances is required" $routerInstances }}
 {{- if (((.Values).router).podSpec) }}
     podSpec:  {{ toYaml (((.Values).router).podSpec) | nindent 6 }}
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: router
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
 {{- end }}
 {{ if (((.Values).router).podLabels) }}
     podLabels: {{ toYaml (((.Values).router).podLabels) | nindent 6 }}

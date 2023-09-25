@@ -216,18 +216,6 @@ spec:
               routerInstances: 1
               router:
                 podSpec:
-                  securityContext:
-                    seccompProfile:
-                      type: RuntimeDefault
-                  containers:
-                    - name: router
-                      securityContext:
-                        allowPrivilegeEscalation: false
-                        privileged: false
-                        runAsNonRoot: true
-                        capabilities:
-                          drop:
-                            - ALL
                   affinity:
                     podAntiAffinity:
                       preferredDuringSchedulingIgnoredDuringExecution:
