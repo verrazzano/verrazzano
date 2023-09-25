@@ -72,7 +72,7 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 			assert.NoError(t, err)
 			moduleVersion = module.Version
 		}
-		assert.Equalf(t, bomVersion, module.Version,
+		assert.Equalf(t, bomVersion, moduleVersion,
 			"Catalog entry for module %s out of date, BOM version: %s, catalog version %s", module.Name, bomVersion, module.Version)
 	}
 }
