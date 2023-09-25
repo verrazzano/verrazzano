@@ -8,12 +8,11 @@ import (
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/platform-operator/constants"
+	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	moduleCatalog "github.com/verrazzano/verrazzano/platform-operator/experimental/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +54,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 
 		// Get the module version from the catalog
 		version := catalog.GetVersion(comp.Name())
-		if version == nil {
+		if version == "" {
 			err = log.ErrorfThrottledNewErr("Failed to find version for module %s in the module catalog", comp.Name())
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
@@ -66,7 +65,7 @@ func (r Reconciler) createOrUpdateModules(log vzlog.VerrazzanoLogger, actualCR *
 	return result.NewResult()
 }
 
-func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, comp componentspi.Component, version *semver.SemVersion) result.Result {
+func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, comp componentspi.Component, version string) result.Result {
 	// Create or update the module
 	moduleToUpdate := moduleapi.Module{ObjectMeta: metav1.ObjectMeta{Name: comp.Name(), Namespace: vzconst.VerrazzanoInstallNamespace}}
 
@@ -78,7 +77,7 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 
 	// Create/Update the module if necessary
 	opResult, err := controllerutil.CreateOrUpdate(context.TODO(), r.Client, &moduleToUpdate, func() error {
-		return r.mutateModule(log, actualCR, effectiveCR, &moduleToUpdate, comp, version.ToString())
+		return r.mutateModule(log, actualCR, effectiveCR, &moduleToUpdate, comp, version)
 	})
 	if err != nil {
 		if !errors.IsConflict(err) {

@@ -21,7 +21,9 @@ const (
 
 func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 	isLegacyOSD, err := common.IsLegacyOSD(ctx)
-	ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OSD to be disabled: %v", err)
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OSD to be disabled: %v", err)
+	}
 	if isLegacyOSD {
 		return []types.NamespacedName{
 			{

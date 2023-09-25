@@ -482,11 +482,11 @@ type FluentbitOpensearchOutputComponent struct {
 	// If true, then the FluentbitOpensearchOutput will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/fluentbit-opensearch-output/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -556,11 +556,11 @@ type KubeStateMetricsComponent struct {
 	// If true, then kube-state-metrics will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -603,11 +603,11 @@ type PrometheusAdapterComponent struct {
 	// If true, then Prometheus Adaptor will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -617,11 +617,11 @@ type PrometheusNodeExporterComponent struct {
 	// If true, then Prometheus Node Exporter will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -631,11 +631,11 @@ type PrometheusOperatorComponent struct {
 	// If true, then Prometheus Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -645,11 +645,11 @@ type PrometheusPushgatewayComponent struct {
 	// If true, then Prometheus Pushgateway will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -662,8 +662,8 @@ type ClusterAPIComponent struct {
 
 	// Overrides are merged together, but in the event of conflicting fields, the last override in the list
 	// takes precedence over any others. You can find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/overrides/cluster-api-values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/overrides/cluster-api-values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -689,11 +689,11 @@ type CertManagerWebhookOCIComponent struct {
 	// Enabled will deploy the webhook if true, or if the LetsEncrypt issuer is configured with OCI DNS
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cert-manager-ocidns-webhook/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cert-manager-ocidns-webhook/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -707,11 +707,11 @@ type CertManagerComponent struct {
 	// If true, then cert-manager will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/cert-manager/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -721,11 +721,11 @@ type ClusterAgentComponent struct {
 	// If true, then Cluster Agent will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-agent/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-agent/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -735,11 +735,11 @@ type CoherenceOperatorComponent struct {
 	// If true, then the Coherence Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/coherence-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/coherence-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -749,11 +749,11 @@ type ApplicationOperatorComponent struct {
 	// If true, then the Application Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-application-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-application-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -763,11 +763,11 @@ type AuthProxyComponent struct {
 	// If true, then AuthProxy will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-authproxy/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-authproxy/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -777,11 +777,11 @@ type OAMComponent struct {
 	// If true, then OAM will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/oam-kubernetes-runtime/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/oam-kubernetes-runtime/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -791,11 +791,11 @@ type VerrazzanoComponent struct {
 	// If true, then Verrazzano will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -805,11 +805,11 @@ type ClusterOperatorComponent struct {
 	// If true, then the Cluster Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-cluster-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -819,11 +819,11 @@ type KialiComponent struct {
 	// If true, then Kiali will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/kiali-server/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/kiali-server/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -833,11 +833,11 @@ type ConsoleComponent struct {
 	// If true, then Verrazzano Console will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-console/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-console/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -849,11 +849,11 @@ type DNSComponent struct {
 	// External DNS configuration.
 	// +optional
 	External *External `json:"external,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/external-dns/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/external-dns/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// Oracle Cloud Infrastructure DNS configuration.
@@ -872,11 +872,11 @@ type IngressNginxComponent struct {
 	// Name of the ingress class used by the ingress controller. Defaults to `verrazzano-nginx`.
 	// +optional
 	IngressClassName *string `json:"ingressClassName,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/ingress-nginx/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/ingress-nginx/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// The list of port configurations used by the ingress.
@@ -898,7 +898,7 @@ type IstioComponent struct {
 	// Istio sidecar injection enabled for installed components.  Default is `true`.
 	// +optional
 	InjectionEnabled *bool `json:"injectionEnabled,omitempty"`
-	// List of Overrides for default IstioOperator. Overrides are merged together, but in the event of conflicting
+	// List of overrides for default IstioOperator. Overrides are merged together, but in the event of conflicting
 	// fields, the last override in the list takes precedence over any others. You can find all possible values
 	// <a href="https://istio.io/v1.13/docs/reference/config/istio.operator.v1alpha1/#IstioOperatorSpec">here</a>
 	// Passing through an invalid IstioOperator resource will result in an error.
@@ -919,11 +919,11 @@ type JaegerOperatorComponent struct {
 	// If true, then Jaeger Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/jaegertracing/jaeger-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/jaegertracing/jaeger-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -933,11 +933,11 @@ type KeycloakComponent struct {
 	// If true, then Keycloak will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/keycloak/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/keycloak/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// Contains the MySQL component configuration needed for Keycloak.
@@ -947,11 +947,11 @@ type KeycloakComponent struct {
 
 // MySQLComponent specifies the MySQL configuration.
 type MySQLComponent struct {
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/mysql/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/mysql/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// Defines the type of volume to be used for persistence for Keycloak/MySQL, and can be one of either
@@ -968,11 +968,11 @@ type MySQLOperatorComponent struct {
 	// If true, then MySQL Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/mysql-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/mysql-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -982,11 +982,11 @@ type RancherComponent struct {
 	// If true, then Rancher will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/rancher/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/rancher/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// KeycloakAuthEnabled specifies whether the Keycloak Auth provider is enabled.  Default is `false`.
@@ -999,11 +999,11 @@ type ArgoCDComponent struct {
 	// If true, then Argo CD will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/argo-cd/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/argo-cd/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1013,11 +1013,11 @@ type RancherBackupComponent struct {
 	// If true, then rancherBackup will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/rancher-backup/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/rancher-backup/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1035,11 +1035,11 @@ type FluentdComponent struct {
 	// +optional
 	// +patchStrategy=merge,retainKeys
 	ExtraVolumeMounts []VolumeMount `json:"extraVolumeMounts,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"source"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-fluentd/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/helm_config/charts/verrazzano-fluentd/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 	// The Oracle Cloud Infrastructure Logging configuration.
@@ -1064,11 +1064,11 @@ type WebLogicOperatorComponent struct {
 	// If true, then the WebLogic Kubernetes Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/weblogic-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/weblogic-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1078,11 +1078,11 @@ type FluentOperatorComponent struct {
 	// If true, then the Fluent Operator will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/fluent-operator/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1092,11 +1092,11 @@ type VeleroComponent struct {
 	// If true, then Velero will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/velero/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1106,11 +1106,11 @@ type ThanosComponent struct {
 	// If true, then Thanos will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/thanos/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }
@@ -1120,11 +1120,11 @@ type DexComponent struct {
 	// If true, then Dex will be installed.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
-	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// List of overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
 	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
 	// find all possible values
-	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/dex/values.yaml %}} )
-	// and invalid values will be ignored.
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/dex/values.yaml %}} );
+	// invalid values will be ignored.
 	// +optional
 	InstallOverrides `json:",inline"`
 }

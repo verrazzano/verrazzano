@@ -106,6 +106,15 @@ var vmoCRDs = map[string]bool{
 	"verrazzanomonitoringinstances.verrazzano.io": false,
 }
 
+var opensearchOperatorCRDs = map[string]bool{
+	"opensearchclusters.opensearch.opster.io":         false,
+	"opensearchroles.opensearch.opster.io":            false,
+	"opensearchuserrolebindings.opensearch.opster.io": false,
+	"opensearchusers.opensearch.opster.io":            false,
+	"opensearchtenants.opensearch.opster.io":          false,
+	"opensearchactiongroups.opensearch.opster.io":     false,
+}
+
 var t = framework.NewTestFramework("uninstall verify crds")
 
 // This test verifies the CRDs found after an uninstall of Verrazzano are what is expected
@@ -114,7 +123,7 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 	if err != nil {
 		Fail(err.Error())
 	}
-	if vmoEnabled {
+	if !isManagedCluster {
 		for key, value := range vmoCRDs {
 			verrazzanoiocrds[key] = value
 		}
@@ -151,10 +160,13 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 		checkCrds(crds, map[string]bool{"coherence.coherence.oracle.com": false}, "coherence.coherence.oracle.com")
 	})
 
-	if mySQLOperatorEnabled {
+	if !isManagedCluster {
 		t.It("Check for expected MySQL Operator CRDs", func() {
 			checkCrds(crds, mysqloperatorcrds, "mysql.oracle.com")
 			checkCrds(crds, mysqloperatorcrds, "zalando.org")
+		})
+		t.It("Check for expected opensearchOperator CRDs", func() {
+			checkCrds(crds, opensearchOperatorCRDs, "opensearch.opster.io")
 		})
 	}
 
@@ -174,7 +186,8 @@ var _ = t.Describe("Verify CRDs after uninstall.", Label("f:platform-lcm.unnstal
 				strings.HasSuffix(crd.Name, "zalando.org") ||
 				strings.HasSuffix(crd.Name, "metallb.io") ||
 				strings.HasSuffix(crd.Name, "weblogic.oracle") ||
-				strings.HasSuffix(crd.Name, "coherence.oracle.com") {
+				strings.HasSuffix(crd.Name, "coherence.oracle.com") ||
+				strings.HasSuffix(crd.Name, "opensearch.opster.io") {
 				continue
 			}
 			unexpectedCRDs = append(unexpectedCRDs, crd.Name)

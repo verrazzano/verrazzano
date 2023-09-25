@@ -157,7 +157,7 @@ func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 
 	// Test images
 	// TODO:- Get from BOM once BFS images are done
-	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:experimental"
+	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
 	args["osdImage"] = "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
 
 	return args, nil
@@ -214,7 +214,14 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to build ingress overrides: %v", err)
 	}
-
+	clusterResourceNamespace := constants.CertManagerNamespace
+	if ctx.EffectiveCR().Spec.Components.ClusterIssuer != nil && ctx.EffectiveCR().Spec.Components.ClusterIssuer.ClusterResourceNamespace != "" {
+		clusterResourceNamespace = ctx.EffectiveCR().Spec.Components.ClusterIssuer.ClusterResourceNamespace
+	}
+	kvs = append(kvs, bom.KeyValue{
+		Key:   "clusterResourceNamespace",
+		Value: clusterResourceNamespace,
+	})
 	return kvs, nil
 }
 

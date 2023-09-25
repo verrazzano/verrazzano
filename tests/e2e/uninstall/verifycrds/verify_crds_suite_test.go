@@ -10,12 +10,10 @@ import (
 	"github.com/onsi/ginkgo/v2"
 )
 
-var mySQLOperatorEnabled bool
-var vmoEnabled bool
+var isManagedCluster bool
 
 func init() {
-	flag.BoolVar(&mySQLOperatorEnabled, "mySQLOperatorEnabled", true, "mySQLOperatorEnabled indicates whether the mySQLOperator component is enabled")
-	flag.BoolVar(&vmoEnabled, "vmoEnabled", true, "vmoEnabled indicates whether the Verrazzano monitoring operator is enabled")
+	flag.BoolVar(&isManagedCluster, "isManagedCluster", false, "isManagedCluster indicates if it is a managed-cluster profile or not")
 }
 
 func TestVerifyCRDs(test *testing.T) {

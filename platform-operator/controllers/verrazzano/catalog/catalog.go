@@ -4,14 +4,15 @@
 package catalog
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"os"
 	"sigs.k8s.io/yaml"
 )
 
 type Catalog struct {
 	Modules    []Module `json:"modules"`
-	versionMap map[string]*semver.SemVersion
+	versionMap map[string]string
 }
 
 type Module struct {
@@ -31,7 +32,7 @@ func NewCatalog(catalogPath string) (Catalog, error) {
 // NewCatalogfromYAML Create a new Catalog instance from a yaml payload
 func NewCatalogfromYAML(yamlCatalog []byte) (Catalog, error) {
 	catalog := Catalog{
-		versionMap: make(map[string]*semver.SemVersion),
+		versionMap: make(map[string]string),
 	}
 	err := catalog.init(string(yamlCatalog))
 	if err != nil {
@@ -49,16 +50,20 @@ func (c *Catalog) init(yamlCatalog string) error {
 
 	// Build a map of modules
 	for _, module := range c.Modules {
-		version, err := semver.NewSemVersion(module.Version)
-		if err != nil {
-			return err
+		if module.Version == constants.BomVerrazzanoVersion {
+			version, err := validators.GetCurrentBomVersion()
+			if err != nil {
+				return err
+			}
+			c.versionMap[module.Name] = version.ToString()
+			module.Version = version.ToString()
 		}
-		c.versionMap[module.Name] = version
+		c.versionMap[module.Name] = module.Version
 	}
 	return nil
 }
 
 // GetVersion returns the version for the provided module
-func (c *Catalog) GetVersion(module string) *semver.SemVersion {
+func (c *Catalog) GetVersion(module string) string {
 	return c.versionMap[module]
 }

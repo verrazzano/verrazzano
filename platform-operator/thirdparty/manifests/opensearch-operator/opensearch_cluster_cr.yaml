@@ -36,14 +36,37 @@ spec:
       secret:
         name: opensearch-dashboards-cert
     version: 2.3.0
+    podSecurityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
   general:
     drainDataNodes: {{ .drainDataNodes }}
     httpPort: 9200
     image: {{ .opensearchImage }}
     serviceName: opensearch
+    serviceAccount: opensearch-operator-controller-manager
     setVMMaxMapCount: true
     vendor: opensearch
     version: 2.3.0
+    podSecurityContext:
+      seccompProfile:
+        type: RuntimeDefault
+    securityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+      privileged: false
+      runAsUser: 1000
     {{- if .osPluginsEnabled }}
     pluginsList:
 {{ multiLineIndent 6 .osPluginsList }}

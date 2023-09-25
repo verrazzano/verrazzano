@@ -32,7 +32,7 @@ const (
 	helmOpenSearchOpChartsDirSuffix = "/platform-operator/thirdparty/charts/opensearchoperator"
 	helmOverridesDirSuffix          = "/platform-operator/helm_config/overrides"
 	integrationChartsDirSuffix      = "/platform-operator/experimental/manifests/integration-charts"
-	catalogDirSuffix                = "/platform-operator/experimental/catalog"
+	catalogDirSuffix                = "/platform-operator/manifests/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -126,7 +126,7 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ModuleIntegration:              false,
+	ModuleIntegration:              true,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests

@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -51,7 +52,7 @@ func CleanupMysqlBackupJob(log vzlog.VerrazzanoLogger, cli client.Client) error 
 				// persist the job logs
 				persisted := persistJobLog(backupJob, jobPod, log)
 				if !persisted {
-					log.Infof("Unable to persist job log for %s", backupJob.Name)
+					log.Oncef("Unable to persist job log for %s", backupJob.Name)
 				}
 				// can delete job since pod has completed
 				log.Debugf("Deleting stale backup job %s", job.Name)
@@ -114,4 +115,40 @@ func isJobExecutionContainerCompleted(pod *corev1.Pod) bool {
 		}
 	}
 	return false
+}
+
+// IsMysqlOperatorJob returns true if this is the MySQL backup job
+func IsMysqlOperatorJob(cli client.Client, object client.Object) bool {
+	// Cast object to job
+	job := object.(*batchv1.Job)
+
+	// Filter events to only be for the MySQL namespace
+	if job.Namespace != mysql.ComponentNamespace {
+		return false
+	}
+
+	// see if the job ownerReferences point to a cron job owned by the mysql operato
+	for _, owner := range job.GetOwnerReferences() {
+		if owner.Kind == "CronJob" {
+			// get the cronjob reference
+			cronJob := &batchv1.CronJob{}
+			err := cli.Get(context.TODO(), client.ObjectKey{Name: owner.Name, Namespace: job.Namespace}, cronJob)
+			if err != nil {
+				return false
+			}
+			return isResourceCreatedByMysqlOperator(cronJob.Labels)
+		}
+	}
+
+	// see if the job has been directly created by the mysql operator
+	return isResourceCreatedByMysqlOperator(job.Labels)
+}
+
+// isResourceCreatedByMysqlOperator checks whether the created-by label is set to "mysql-operator"
+func isResourceCreatedByMysqlOperator(labels map[string]string) bool {
+	createdBy, ok := labels["app.kubernetes.io/created-by"]
+	if !ok || createdBy != constants.MySQLOperator {
+		return false
+	}
+	return true
 }

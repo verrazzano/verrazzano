@@ -73,10 +73,9 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 
 	// Environment name
 	overrides.Config = &configValues{
-		EnvName:                   vzconfig.GetEnvName(effectiveCR),
-		PrometheusOperatorEnabled: vzcr.IsPrometheusOperatorEnabled(effectiveCR),
-		IngressClassName:          vzconfig.GetIngressClassName(effectiveCR),
-		OpenSearch:                &opensearchConfig,
+		EnvName:          vzconfig.GetEnvName(effectiveCR),
+		IngressClassName: vzconfig.GetIngressClassName(effectiveCR),
+		OpenSearch:       &opensearchConfig,
 	}
 
 	isLegacyOS, err := common.IsLegacyOS(ctx)

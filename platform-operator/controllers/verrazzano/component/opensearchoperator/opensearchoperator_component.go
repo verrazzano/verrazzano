@@ -6,6 +6,7 @@ package opensearchoperator
 import (
 	"context"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path"
 	"path/filepath"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
@@ -54,6 +54,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    "manager.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, nginx.ComponentName},
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
@@ -106,15 +107,27 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	}
 
 	log.Debugf("Applying opensearch-oeprator crds")
-	if err := common.ApplyCRDYaml(ctx, config.GetHelmOpenSearchOpChartsDir()); err != nil {
+	if err := common.ApplyCRDYamlWithDirectoryName(ctx, config.GetHelmOpenSearchOpChartsDir(), "files"); err != nil {
 		return err
 	}
 
 	if err := handleLegacyOpenSearch(ctx); err != nil {
 		return err
 	}
-
+	log.Debugf("Merging security configs")
+	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+		return err
+	}
 	return o.HelmComponent.PreInstall(ctx)
+}
+
+func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	log.Debugf("Merging security configs")
+	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+		return err
+	}
+	return o.HelmComponent.PreUpgrade(ctx)
 }
 
 func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {

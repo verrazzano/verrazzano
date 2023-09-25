@@ -330,7 +330,6 @@ func TestPreInstall(t *testing.T) {
 	GetControllerRuntimeClient = func() (client.Client, error) {
 		return fakeClient, nil
 	}
-
 	err := NewComponent().PreInstall(fakeCtx)
 	assert.NoError(t, err)
 }

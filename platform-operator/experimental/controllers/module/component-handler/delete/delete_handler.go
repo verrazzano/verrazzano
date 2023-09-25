@@ -115,12 +115,12 @@ func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, resul
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	installed, err := comp.IsInstalled(compCtx)
+	exists, err := comp.Exists(compCtx)
 	if err != nil {
-		ctx.Log.ErrorfThrottled("Error checking if Helm release installed for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
-		return true, result.NewResult()
+		ctx.Log.ErrorfThrottled("Error checking if Helm release exists for %s/%s", ctx.HelmRelease.Namespace, ctx.HelmRelease.Name)
+		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
-	return !installed, result.NewResult()
+	return !exists, result.NewResult()
 }
 
 // PostWorkUpdateStatus does the post-work status update

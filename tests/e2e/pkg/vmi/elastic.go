@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmi
@@ -16,10 +16,13 @@ import (
 
 // Opensearch contains information about the Opensearch instance
 type Opensearch struct {
-	ClusterName   string            `json:"cluster_name"`
-	EsVersion     OpensearchVersion `json:"version"`
-	binding       string
-	vmiHTTPClient *retryablehttp.Client
+	ClusterName       string            `json:"cluster_name"`
+	EsVersion         OpensearchVersion `json:"version"`
+	binding           string
+	vmiHTTPClient     *retryablehttp.Client
+	OperatorManaged   bool
+	opensearchIngress string
+	osdIngress        string
 }
 
 // OpensearchVersion contains information about the version of Opensearch instance
@@ -29,9 +32,18 @@ type OpensearchVersion struct {
 }
 
 // GetOpensearch gets Opensearch representing the opensearch cluster with the binding name
-func GetOpensearch(binding string) *Opensearch {
+func GetOpensearch(binding string, operatorManaged bool) *Opensearch {
+	opensearchIngress := fmt.Sprintf("vmi-%v-os-ingest", binding)
+	osdIngress := fmt.Sprintf("vmi-%v-osd", binding)
+	if operatorManaged {
+		opensearchIngress = "opensearch"
+		osdIngress = "opensearch-dashboards"
+	}
 	return &Opensearch{
-		binding: binding,
+		binding:           binding,
+		OperatorManaged:   operatorManaged,
+		opensearchIngress: opensearchIngress,
+		osdIngress:        osdIngress,
 	}
 }
 
@@ -118,6 +130,14 @@ func (e *Opensearch) retryGet(url, username, password string, kubeconfigPath str
 		return nil, err
 	}
 	return httpResp.Body, nil
+}
+
+func (e *Opensearch) GetOSIngressName() string {
+	return e.opensearchIngress
+}
+
+func (e *Opensearch) GetOSDIngressName() string {
+	return e.osdIngress
 }
 
 func (e *Opensearch) GetVmiHTTPClient(kubeconfigPath string) (*retryablehttp.Client, error) {
@@ -258,7 +278,7 @@ func (e *Opensearch) CheckIngress() bool {
 		return false
 	}
 	for _, ingress := range ingressList.Items {
-		if ingress.Name == fmt.Sprintf("vmi-%v-os-ingest", e.binding) {
+		if ingress.Name == e.opensearchIngress {
 			pkg.Log(pkg.Info, fmt.Sprintf("Found Ingress %v for binding %v", ingress.Name, e.binding))
 			return true
 		}

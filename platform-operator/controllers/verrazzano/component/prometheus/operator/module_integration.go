@@ -7,7 +7,10 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -18,17 +21,9 @@ import (
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
-	EnvironmentName string                       `json:"environmentName,omitempty"`
-	Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
-	DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
-	Thanos          *vzapi.ThanosComponent       `json:"thanos,omitempty"`
+	Thanos *vzapi.ThanosComponent `json:"thanos,omitempty"`
 
-	PrometheusEnabled          bool `json:"prometheusEnabled"`
-	ClusterIssuerEnabled       bool `json:"clusterIssuerEnabled"`
-	ApplicationOperatorEnabled bool `json:"applicationOperatorEnabled"`
-	ClusterOperatorEnabled     bool `json:"clusterOperatorEnabled"`
-	IstioEnabled               bool `json:"istioEnabled"`
-	VMOEnabled                 bool `json:"vmoEnabled"`
+	PrometheusEnabled bool `json:"prometheusEnabled"`
 
 	DefaultVolumeSource      *corev1.VolumeSource            `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 	VolumeClaimSpecTemplates []vzapi.VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
@@ -41,14 +36,9 @@ func (c prometheusComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verr
 	}
 
 	configSnippet := valuesConfig{
-		DefaultVolumeSource:        effectiveCR.Spec.DefaultVolumeSource,
-		VolumeClaimSpecTemplates:   effectiveCR.Spec.VolumeClaimSpecTemplates,
-		PrometheusEnabled:          vzcr.IsPrometheusEnabled(effectiveCR),
-		ClusterIssuerEnabled:       vzcr.IsClusterIssuerEnabled(effectiveCR),
-		ApplicationOperatorEnabled: vzcr.IsApplicationOperatorEnabled(effectiveCR),
-		ClusterOperatorEnabled:     vzcr.IsClusterOperatorEnabled(effectiveCR),
-		IstioEnabled:               vzcr.IsIstioEnabled(effectiveCR),
-		VMOEnabled:                 vzcr.IsVMOEnabled(effectiveCR),
+		DefaultVolumeSource:      effectiveCR.Spec.DefaultVolumeSource,
+		VolumeClaimSpecTemplates: effectiveCR.Spec.VolumeClaimSpecTemplates,
+		PrometheusEnabled:        vzcr.IsPrometheusEnabled(effectiveCR),
 	}
 
 	thanos := effectiveCR.Spec.Components.Thanos
@@ -57,26 +47,13 @@ func (c prometheusComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verr
 		configSnippet.Thanos = thanos.DeepCopy()
 	}
 
-	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil {
-		configSnippet.DNS = dns.DeepCopy()
-		configSnippet.DNS.InstallOverrides = vzapi.InstallOverrides{}
-	}
-
-	nginx := effectiveCR.Spec.Components.Ingress
-	if nginx != nil {
-		configSnippet.Ingress = nginx.DeepCopy()
-		configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
-	}
-
-	if len(effectiveCR.Spec.EnvironmentName) > 0 {
-		configSnippet.EnvironmentName = effectiveCR.Spec.EnvironmentName
-	}
-
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c prometheusComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, vmo.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, common.IstioComponentName, appoper.ComponentName, clusteroperator.ComponentName, cmconstants.ClusterIssuerComponentName, vmo.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{nginx.ComponentName, cmconstants.ClusterIssuerComponentName, vmo.ComponentName}),
+	)
 }

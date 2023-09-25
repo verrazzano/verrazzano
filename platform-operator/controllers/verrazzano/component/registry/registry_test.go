@@ -4,27 +4,11 @@
 package registry
 
 import (
-	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
-	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
+	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -41,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusterapi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/clusteroperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/coherence"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
@@ -50,7 +35,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafana"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/grafanadashboards"
 	helm2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	jaegeroperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/jaeger/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/kiali"
@@ -65,7 +49,6 @@ import (
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
-	promoperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/pushgateway"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancherbackup"
@@ -76,6 +59,21 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
+	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
@@ -133,7 +131,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), appoper.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), istio.ComponentName)
+	a.Equal(comps[i].Name(), common.IstioComponentName)
 	i++
 	a.Equal(comps[i].Name(), weblogic.ComponentName)
 	i++
@@ -179,7 +177,7 @@ func TestGetComponents(t *testing.T) {
 	i++
 	a.Equal(comps[i].Name(), kiali.ComponentName)
 	i++
-	a.Equal(comps[i].Name(), promoperator.ComponentName)
+	a.Equal(comps[i].Name(), common.PrometheusOperatorComponentName)
 	i++
 	a.Equal(comps[i].Name(), promadapter.ComponentName)
 	i++
@@ -233,10 +231,10 @@ func TestGetComponentsForUninstall(t *testing.T) {
 //	WHEN I call FindComponent
 //	THEN the true and the component are returned, false and an empty comp otherwise
 func TestFindComponent(t *testing.T) {
-	found, comp := FindComponent(istio.ComponentName)
+	found, comp := FindComponent(common.IstioComponentName)
 	assert.True(t, found)
 	assert.NotNil(t, comp)
-	assert.Equal(t, istio.ComponentName, comp.Name())
+	assert.Equal(t, common.IstioComponentName, comp.Name())
 }
 
 // TestComponentDependenciesMet tests ComponentDependenciesMet
@@ -301,7 +299,7 @@ func TestComponentDependenciesNotMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{common.IstioComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -328,7 +326,7 @@ func TestComponentOptionalDependenciesMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{common.IstioComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	enabled := false
@@ -357,7 +355,7 @@ func TestComponentDependenciesDependencyChartNotInstalled(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName},
+		Dependencies:   []string{common.IstioComponentName},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).Build()
 	ready := ComponentDependenciesMet(comp, spi.NewFakeContext(client, &v1alpha1.Verrazzano{ObjectMeta: metav1.ObjectMeta{Namespace: "foo"}}, nil, false))
@@ -374,7 +372,7 @@ func TestComponentMultipleDependenciesPartiallyMet(t *testing.T) {
 		ReleaseName:    "foo",
 		ChartDir:       "chartDir",
 		ChartNamespace: "bar",
-		Dependencies:   []string{istio.ComponentName, "cert-manager"},
+		Dependencies:   []string{common.IstioComponentName, "cert-manager"},
 	}
 	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(&appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
