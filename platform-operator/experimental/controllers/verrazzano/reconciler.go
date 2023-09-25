@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
+	restart2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -221,7 +221,7 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 	common.CreateAndLabelNamespaces(componentCtx)
 
 	log.Once("Global post-upgrade: restarting all components that have an old Istio proxy sidecar")
-	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), componentCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+	if err := restart2.RestartComponents(log, config.GetInjectedSystemNamespaces(), componentCtx.ActualCR().Generation, &restart2.OutdatedSidecarPodMatcher{}); err != nil {
 		log.ErrorfThrottled("Failed Verrazzano post-upgrade restart components: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -239,7 +239,7 @@ func (r Reconciler) postUpgrade(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1
 
 	if vzcr.IsApplicationOperatorEnabled(componentCtx.EffectiveCR()) && vzcr.IsIstioEnabled(componentCtx.EffectiveCR()) {
 		log.Once("Global post-upgrade: restarting all applications that have an old Istio proxy sidecar")
-		err := restart.RestartApps(log, r.Client, actualCR.Generation)
+		err := restart2.RestartApps(log, r.Client, actualCR.Generation)
 		if err != nil {
 			log.ErrorfThrottled("Failed Verrazzano post-upgrade application restarts: %v", err)
 			return result.NewResultShortRequeueDelayWithError(err)

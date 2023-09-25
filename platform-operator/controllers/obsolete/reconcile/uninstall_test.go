@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	rbac2 "github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	apiextv1fake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	apiextv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
@@ -47,7 +48,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/weblogic"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 
@@ -128,8 +128,8 @@ func TestReconcileUninstalling(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		vzcr,
-		rbac.NewServiceAccount(namespace, name, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: keycloak.ComponentNamespace,
@@ -228,8 +228,8 @@ func TestReconcileUninstall(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		vzcr,
-		rbac.NewServiceAccount(namespace, name, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: keycloak.ComponentNamespace,
@@ -457,8 +457,8 @@ func buildFakeClientAndObjects(createMCNamespace bool, createProject bool, secre
 	// Add core resources
 	cb := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		vzcr,
-		rbac.NewServiceAccount(namespace, name, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: keycloak.ComponentNamespace,

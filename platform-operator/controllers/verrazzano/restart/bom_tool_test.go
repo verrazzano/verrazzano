@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	testBomFilePath = "../../testdata/test_bom.json"
+	testBomFilePath = "../testdata/test_bom.json"
 )
 
 func TestBomTool(t *testing.T) {

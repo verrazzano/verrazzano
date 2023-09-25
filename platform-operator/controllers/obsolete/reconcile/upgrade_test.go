@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"fmt"
+	rbac2 "github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
 	"k8s.io/apimachinery/pkg/runtime"
 	"math/big"
 	"path/filepath"
@@ -34,7 +35,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/rbac"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/vzinstance"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
@@ -120,8 +120,8 @@ func TestUpgradeNoVersion(t *testing.T) {
 				}(),
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	// Sample bom file for version validation functions
@@ -222,8 +222,8 @@ func TestUpgradeSameVersion(t *testing.T) {
 				}(),
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	// Sample bom file for version validation functions
@@ -312,8 +312,8 @@ func TestUpgradeInitComponents(t *testing.T) {
 				},
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	// Create and make the request
@@ -364,8 +364,8 @@ func TestUpgradeStarted(t *testing.T) {
 				Version:    "0.1.0",
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -528,8 +528,8 @@ func TestUpgradeStartedWhenPrevFailures(t *testing.T) {
 				},
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	config.TestProfilesDir = relativeProfilesDir
@@ -615,8 +615,8 @@ func TestUpgradeCompleted(t *testing.T) {
 					},
 				},
 			}},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
 		&authConfig, kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, keycloakPod,
@@ -720,8 +720,8 @@ func TestUpgradeCompletedMultipleReconcile(t *testing.T) {
 					},
 				},
 			}},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 		&rancherIngress, &kcIngress, &argocdIngress, &argoCASecret, &argoCDConfigMap, &argoCDRbacConfigMap, &argoCDServerDeploy,
 		&authConfig, kcSecret, &localAuthConfig, &firstLoginSetting,
 		&verrazzanoAdminClusterRole, &verrazzanoMonitorClusterRole, &verrazzanoClusterUserRole, keycloakPod,
@@ -783,8 +783,8 @@ func TestUpgradeIsCompInstalledFailure(t *testing.T) {
 	_ = vzapi.AddToScheme(k8scheme.Scheme)
 	c := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
 		&vz,
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&vzapi.Verrazzano{}, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&vzapi.Verrazzano{}, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	registry.OverrideGetComponentsFn(func() []spi.Component {
@@ -1165,8 +1165,8 @@ func TestRetryUpgrade(t *testing.T) {
 				Components: makeVerrazzanoComponentStatusMap(),
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	defer config.Set(config.Get())
@@ -1224,8 +1224,8 @@ func TestDontRetryUpgrade(t *testing.T) {
 				Components: makeVerrazzanoComponentStatusMap(),
 			},
 		},
-		rbac.NewServiceAccount(namespace, name, []string{}, nil),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(namespace, name, []string{}, nil),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	config.SetDefaultBomFilePath(unitTestBomFile)
@@ -1408,8 +1408,8 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 				},
 			},
 		},
-		rbac.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
-		rbac.NewClusterRoleBinding(
+		rbac2.NewServiceAccount(getInstallNamespace(), buildServiceAccountName(name), []string{}, labels),
+		rbac2.NewClusterRoleBinding(
 			&verrazzanoToUse,
 			buildClusterRoleBindingName(namespace, name),
 			getInstallNamespace(),
@@ -1589,8 +1589,8 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 				},
 			},
 		},
-		rbac.NewServiceAccount(name, namespace, []string{}, labels),
-		rbac.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
+		rbac2.NewServiceAccount(name, namespace, []string{}, labels),
+		rbac2.NewClusterRoleBinding(&verrazzanoToUse, name, getInstallNamespace(), buildServiceAccountName(name)),
 	).Build()
 
 	// Sample bom file for version validation functions

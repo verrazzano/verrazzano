@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	restart2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 	"os"
 	"path/filepath"
 
@@ -29,7 +30,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
@@ -205,7 +205,7 @@ func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
 
 	// During install there is a window where the Istio envoy sidecar container is not included in a pod.
 	// Restart system components that are missing the sidecar.
-	if err := restart.RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
+	if err := restart2.RestartComponents(compContext.Log(), config.GetInjectedSystemNamespaces(), compContext.ActualCR().Generation, &restart2.OutdatedSidecarPodMatcher{}); err != nil {
 		return err
 	}
 
