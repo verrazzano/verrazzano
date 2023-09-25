@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -65,10 +66,21 @@ func MergeYAMLFiles(filenames []string, stdinReader io.Reader) (*unstructured.Un
 
 // MergeSetFlags merges yaml representing a set flag passed on the command line with a
 // verrazano install resource.  A merged verrazzano install resource is returned.
-func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, overlayYAML string) (clipkg.Object, *unstructured.Unstructured, error) {
-	baseYAML, err := yaml.Marshal(vz)
-	if err != nil {
-		return vz, nil, err
+func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, v1beta1vz *v1beta1.Verrazzano, overlayYAML string, isVerrazzanoResource bool) (clipkg.Object, *unstructured.Unstructured, error) {
+	var baseYAML []byte
+	if isVerrazzanoResource {
+		result := setAPIVersionAndKind(*v1beta1vz)
+		vzYAML, err := yaml.Marshal(result)
+		if err != nil {
+			return vz, nil, err
+		}
+		baseYAML = vzYAML
+	} else {
+		vzYAML, err := yaml.Marshal(vz)
+		if err != nil {
+			return vz, nil, err
+		}
+		baseYAML = vzYAML
 	}
 	vzYAML, err := overlayVerrazzano(gv, string(baseYAML), overlayYAML)
 	if err != nil {
@@ -129,4 +141,10 @@ func checkGroupVersion(readBytes []byte, gv *schema.GroupVersion) error {
 		}
 	}
 	return nil
+}
+
+func setAPIVersionAndKind(vz v1beta1.Verrazzano) v1beta1.Verrazzano {
+	vz.APIVersion = "install.verrazzano.io/v1beta1"
+	vz.Kind = "Verrazzano"
+	return vz
 }

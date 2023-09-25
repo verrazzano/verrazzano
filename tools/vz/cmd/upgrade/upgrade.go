@@ -4,7 +4,6 @@
 package upgrade
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
@@ -18,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 	"time"
 )
 
@@ -316,18 +316,18 @@ func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZ
 
 		// Merge the set flags passed on the command line. The set flags take precedence over
 		// the yaml files passed on the command line.
-		mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
+		mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, vz, outYAML, true)
 		if err != nil {
 			return nil, err
 		}
 
 		// Update requires a Verrazzano resource to apply changes, so here the client Object becomes a Verrazzano resource to be returned
-		vzMarshalled, err := json.Marshal(mergedVZ)
+		vzMarshalled, err := yaml.Marshal(mergedVZ)
 		if err != nil {
 			return nil, err
 		}
 		newVZ := v1beta1.Verrazzano{}
-		err = json.Unmarshal(vzMarshalled, &newVZ)
+		err = yaml.Unmarshal(vzMarshalled, &newVZ)
 		if err != nil {
 			return nil, err
 		}
