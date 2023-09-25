@@ -16,6 +16,9 @@ import (
 )
 
 func isUnauthorized(err error) bool {
+	if apierrors.IsUnauthorized(err) {
+		return true
+	}
 	groupErr := &discovery.ErrGroupDiscoveryFailed{}
 	if errors.As(err, &groupErr) {
 		for _, err := range groupErr.Groups {
