@@ -7,7 +7,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	rbac2 "github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
 	"reflect"
 	"sync"
 	"testing"
@@ -1260,7 +1260,7 @@ func expectClusterRoleBindingExists(mock *mocks.MockClient, verrazzanoToUse vzap
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: "", Name: clusterRoleBindingName}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, nsName types.NamespacedName, clusterRoleBinding *rbacv1.ClusterRoleBinding, opts ...client.GetOption) error {
-			crb := rbac2.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
+			crb := rbac.NewClusterRoleBinding(&verrazzanoToUse, nsName.Name, getInstallNamespace(), buildServiceAccountName(nsName.Name))
 			clusterRoleBinding.ObjectMeta = crb.ObjectMeta
 			clusterRoleBinding.RoleRef = crb.RoleRef
 			clusterRoleBinding.Subjects = crb.Subjects
@@ -1275,7 +1275,7 @@ func expectGetServiceAccountExists(mock *mocks.MockClient, name string, labels m
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Namespace: getInstallNamespace(), Name: buildServiceAccountName(name)}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, serviceAccount *corev1.ServiceAccount, opts ...client.GetOption) error {
-			newSA := rbac2.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
+			newSA := rbac.NewServiceAccount(name.Namespace, name.Name, []string{}, labels)
 			serviceAccount.ObjectMeta = newSA.ObjectMeta
 			return nil
 		}).AnyTimes()
