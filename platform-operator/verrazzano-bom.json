@@ -739,7 +739,7 @@
     },
     {
       "name": "prometheus-pushgateway",
-      "version": "21.4.2",
+      "version": "1.6.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
