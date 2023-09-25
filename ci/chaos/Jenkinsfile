@@ -451,7 +451,7 @@ pipeline {
                         do
                             echo "Waiting for Verrazzano to fail upgrade ..."
                             sleep 30
-                        done                        
+                        done
                         mkdir -p ${WORKSPACE}/verrazzano-platform-operator/logs
                         kubectl -n verrazzano-install logs --tail -1 --selector=app=verrazzano-platform-operator > ${WORKSPACE}/verrazzano-platform-operator/logs/verrazzano-platform-operator-before-final-upgrade-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
                         # Upgrade to the latest VPO
@@ -459,7 +459,7 @@ pipeline {
                         # ensure operator pod is up
                         kubectl -n verrazzano-install rollout status deployment/verrazzano-platform-operator
                         # need to sleep since the old operator needs to transition to terminating state
-                        sleep 45   
+                        sleep 45
                         # apply the CR
                         echo "Following is the verrazzano CR file with the updated version:"
                         cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
@@ -650,13 +650,6 @@ pipeline {
                   exit 1
                 fi
             """
-        }
-        failure {
-            script {
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME ==~ "release-*") {
-                    slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                }
-            }
         }
         cleanup {
             deleteDir()
