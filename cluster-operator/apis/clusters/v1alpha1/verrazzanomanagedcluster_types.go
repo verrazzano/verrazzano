@@ -57,9 +57,14 @@ const (
 type StateType string
 
 const (
-	StateActive   StateType = "Active"
-	StateInactive StateType = "Inactive"
-	StatePending  StateType = "Pending"
+	StateActive       StateType = "Active"
+	StateInactive     StateType = "Inactive"
+	StatePending      StateType = "Pending"
+	StateProvisioning StateType = "Provisioning"
+	StateProvisioned  StateType = "Provisioned"
+	StateDeleting     StateType = "Deleting"
+	StateUnknown      StateType = "Unknown"
+	StateFailed       StateType = "Failed"
 )
 
 // Condition describes a condition that occurred on the Verrazzano Managed Cluster.
@@ -131,6 +136,18 @@ type VerrazzanoInformation struct {
 	Version string `json:"version,omitempty"`
 }
 
+// ClusterReference identifies the underlying ClusterAPI cluster for a managed cluster.
+type ClusterReference struct {
+	// The API version of the referenced ClusterAPI cluster object.
+	APIVersion string `json:"apiVersion,omitempty"`
+	// The kind of the referenced ClusterAPI cluster object.
+	Kind       string `json:"kind,omitempty"`
+	// The name of the referenced ClusterAPI cluster object.
+	Name       string `json:"name,omitempty"`
+	// The namespace of the referenced ClusterAPI cluster object.
+	Namespace  string `json:"namespace,omitempty"`
+}
+
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
 type VerrazzanoManagedClusterStatus struct {
 	// The Verrazzano API server URL for this managed cluster.
@@ -153,6 +170,8 @@ type VerrazzanoManagedClusterStatus struct {
 	Kubernetes KubernetesInformation `json:"kubernetes,omitempty"`
 	// The state of Verrazzano information of this managed cluster.
 	Verrazzano VerrazzanoInformation `json:"verrazzano,omitempty"`
+	// The reference to this managed cluster's underlying ClusterAPI cluster.
+	ClusterRef ClusterReference `json:"clusterRef,omitempty"`
 }
 
 // +genclient
