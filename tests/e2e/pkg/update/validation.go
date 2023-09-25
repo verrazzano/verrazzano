@@ -33,18 +33,22 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 			Steps:    35,
 		}, func() (bool, error) {
 			var err error
+			pkg.Log(pkg.Info, fmt.Sprintf("validating pods with label %s=%s", labelName, deployName))
 			pods, err := pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{labelName: deployName}}, nameSpace)
 			if err != nil {
 				return false, err
 			}
+			pkg.Log(pkg.Info, fmt.Sprintf("pods found with label %s=%s: %d", labelName, deployName, len(pods)))
 			runningPods, pendingPods = getReadyPods(pods)
 			// Compare the number of running/pending pods to the expected numbers
 			if runningPods != expectedPodsRunning || pendingPods != hasPending {
+				pkg.Log(pkg.Error, fmt.Sprintf("either running pod %d != expectedpod %d or pending pods %t != exepected pending pod %t ", runningPods, expectedPodsRunning, hasPending, pendingPods))
 				return false, nil
 			}
 			return true, nil
 		})
 		if err != nil {
+			pkg.Log(pkg.Error, err.Error())
 			return err
 		}
 		if runningPods != expectedPodsRunning {
@@ -63,13 +67,17 @@ func getReadyPods(pods []v12.Pod) (uint32, bool) {
 	var runningPods uint32 = 0
 	pendingPods := false
 	for _, pod := range pods {
+		pkg.Log(pkg.Info, "checking pod: "+pod.Name)
 		var podReady = pod.ObjectMeta.DeletionTimestamp == nil
 		// Count the pod as not ready if one of its containers is not running or not ready
 		for _, container := range pod.Status.ContainerStatuses {
+			pkg.Log(pkg.Info, "checking container: "+container.Name)
+			pkg.Log(pkg.Info, fmt.Sprintf("container ready=%t, container running %s, container waiting %s", container.Ready, container.State.Running, container.State.Waiting))
 			if !container.Ready || container.State.Running == nil {
 				podReady = false
 			}
 		}
+		pkg.Log(pkg.Info, fmt.Sprintf("pod status phase: %s, pod ready: %t", pod.Status.Phase, podReady))
 		if pod.Status.Phase == v12.PodRunning && podReady {
 			runningPods++
 		}
