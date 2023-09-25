@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/console"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/dex"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/externaldns"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitocilaoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentbitosoutput"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
@@ -74,6 +75,7 @@ func InitRegistry() {
 		networkpolicies.NewComponent(), // This must be first, don't move it.  see netpol_components.go
 		fluentoperator.NewComponent(),
 		fluentbitosoutput.NewComponent(),
+		fluentbitocilaoutput.NewComponent(),
 		oam.NewComponent(),
 		appoper.NewComponent(),
 		istio.NewComponent(),

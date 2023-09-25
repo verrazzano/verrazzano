@@ -1,0 +1,38 @@
+{{- if .Values.application.logGroupId -}}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterFilter
+metadata:
+  name: oci-la-application-clusterfiler
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: '^(?!.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_|service\.|argocd)).*$'
+  filters:
+    - modify:
+        rules:
+          - set:
+              oci_la_log_group_id: {{ .Values.application.logGroupId }}
+              oci_la_log_source_name: {{ .Values.application.logSourceName }}
+              {{- if .Values.application.globalMetadata}}
+              {{- range $key, $value := .Values.application.globalMetadata }}
+              {{- printf "global_metadata.%s: %s" $key $value | nindent 12 }}
+              {{- end }}
+              {{- end }}
+              {{- if .Values.application.logEventMetadata}}
+              {{- range $key, $value := .Values.application.logEventMetadata }}
+              {{- printf "log_metadata.%s: %s" $key $value | nindent 12 }}
+              {{- end }}
+              {{- end }}
+    - nest:
+        operation: nest
+        wildcard:
+          - global_metadata.*
+        nestUnder: oci_la_global_metadata
+        removePrefix: global_metadata.
+    - nest:
+        operation: nest
+        wildcard:
+          - log_metadata.*
+        nestUnder: oci_la_metadata
+        removePrefix: log_metadata.
+{{- end }}

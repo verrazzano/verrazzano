@@ -1,0 +1,35 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+{{- if .Values.application.logGroupId }}
+apiVersion: fluentbit.fluent.io/v1alpha2
+kind: ClusterOutput
+metadata:
+  name: oci-log-analytics-application-clusteroutput
+  labels:
+    fluentbit.fluent.io/enabled: "true"
+spec:
+  matchRegex: '^(?!.*(?:_kube-|_verrazzano-|cattle-|rancher-|fleet|ingress-nginx|istio-system|keycloak|mysql-operator|_metallb-|cert-manager|_monitoring_|_local-path-storage_|_local_|service\.|argocd)).*$'
+  retry_limit: "no_limits"
+  oracleLogAnalytics:
+    {{- if .Values.auth }}
+    auth:
+      {{- if .Values.auth.type }}
+      type: {{ .Values.auth.type }}
+      {{- end }}
+      {{- if .Values.auth.apiSecret }}
+      apiSecret: {{ .Values.auth.apiSecret }}
+      {{- end }}
+      {{- if .Values.auth.region }}
+      region: {{ .Values.auth.region }}
+      {{- end }}
+      {{- if .Values.auth.profileName}}
+      profileName: {{ .Values.auth.profileName }}
+      {{- end }}
+    {{- end }}
+    {{- if .Values.objectStorageNamespace }}
+    objectStorageNamespace: {{ .Values.objectStorageNamespace }}
+    {{- end }}
+    ociConfigInRecord: true
+{{- end }}
+{{ end -}}

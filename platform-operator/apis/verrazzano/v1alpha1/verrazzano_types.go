@@ -385,6 +385,8 @@ type ComponentSpec struct {
 	// +optional
 	FluentbitOpensearchOutput *FluentbitOpensearchOutputComponent `json:"fluentbitOpensearchOutput,omitempty"`
 
+	FluentbitOCILoggingAnalyticsOutput *FluentbitOCILoggingAnalyticsOutputComponent `json:"fluentbitOCILoggingAnalyticsOutput,omitempty"`
+
 	// The Grafana component configuration.
 	// +optional
 	Grafana *GrafanaComponent `json:"grafana,omitempty"`
@@ -468,6 +470,10 @@ type ComponentSpec struct {
 	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+}
+
+type FluentbitOCILoggingAnalyticsOutputComponent struct {
+	InstallOverrides `json:",inline"`
 }
 
 type FluentbitOpensearchOutputComponent struct {

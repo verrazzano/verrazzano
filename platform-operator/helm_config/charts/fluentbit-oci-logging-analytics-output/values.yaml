@@ -1,0 +1,24 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+auth:
+  type: instance_principal
+  apiSecret: ""
+  region: ""
+objectStorageNamespace: ""
+system:
+  logGroupId: ""
+  logSourceName: "Kubernetes Container Generic Logs"
+  globalMetadata: {}
+  logEventMetadata: {}
+  logEntityId: ""
+  logEntityType: ""
+  logPath: "/var/log/containers/*.log"
+application:
+  logGroupId: ""
+  logSourceName: "Kubernetes Container Generic Logs"
+  globalMetadata: {}
+  logEventMetadata: {}
+  logEntityId: ""
+  logEntityType: ""
+  logPath: "/var/log/containers/*.log"

@@ -4,6 +4,7 @@
 package common
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/override"
 	"os"
 	"path"
 	"text/template"
@@ -14,6 +15,18 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+)
+
+const (
+	UserPrincipal              = "user_principal"
+	InstancePrincipal          = "instance_principal"
+	OKEWorkloadIdentity        = "oke_workload_identity"
+	AuthTypeKey                = "auth.type"
+	AuthApiSecretKey           = "auth.apiSecret"
+	AuthRegionKey              = "auth.region"
+	OCIObjectStoreNamespaceKey = "objectStorageNamespace"
+	systemLogGroupIdKey        = "system.logGroupId"
+	applicationLogGroupIdKey   = "application.logGroupId"
 )
 
 // CreateOrDeleteFluentbitFilterAndParser create or delete the Fluentbit Filter & Parser Resource by applying/deleting the fluentbitFilterAndParserTemplate based on the delete flag.
@@ -47,4 +60,38 @@ func RenderTemplate(templatePath string, args map[string]interface{}, outputFile
 		return err
 	}
 	return nil
+}
+
+func GetApiSecretName(ctx spi.ComponentContext) (string, error) {
+	overridesYAML, err := override.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.FluentbitOCILoggingAnalyticsOutput.ValueOverrides)
+	if err != nil {
+		return "", err
+	}
+	var apiSecretName interface{}
+	for _, ov := range overridesYAML {
+		apiSecretName, err = override.ExtractValueFromOverrideString(ov, AuthApiSecretKey)
+		if err != nil {
+			return "", err
+		}
+		if apiSecretName != nil {
+			return apiSecretName.(string), nil
+		}
+	}
+	return "", nil
+}
+
+func IsAuthTypeUserPrincipal(ctx spi.ComponentContext) (bool, error) {
+	overridesYAML, err := override.GetInstallOverridesYAML(ctx, ctx.EffectiveCR().Spec.Components.FluentbitOCILoggingAnalyticsOutput.ValueOverrides)
+	if err != nil {
+		return false, err
+	}
+	var authType interface{}
+	for _, ov := range overridesYAML {
+		authType, err = override.ExtractValueFromOverrideString(ov, AuthTypeKey)
+		if err != nil {
+			return false, err
+		}
+		break
+	}
+	return authType == UserPrincipal, nil
 }

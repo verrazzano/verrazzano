@@ -103,6 +103,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		args["clusterName"] = string(registrationSecret.Data[constants.ClusterNameData])
 		args["secretName"] = constants.MCRegistrationSecret
 	}
+
 	overridesFileName, err := generateOverrideFile(filepath.Join(config.GetHelmOverridesDir(), fluentOperatorOverrideFile), args)
 	if err != nil {
 		return kvs, ctx.Log().ErrorfNewErr("Failed to create override file for FluentOperator")
