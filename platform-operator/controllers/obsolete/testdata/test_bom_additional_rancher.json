@@ -1,0 +1,73 @@
+{
+  "registry": "ghcr.io",
+  "version": "1.1.0",
+  "components": [
+    {
+      "name": "verrazzano-platform-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-platform-operator",
+          "images": [
+            {
+              "image": "VERRAZZANO_PLATFORM_OPERATOR_IMAGE",
+              "tag": "VERRAZZANO_PLATFORM_OPERATOR_TAG",
+              "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rancher",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "rancher",
+          "images": [
+            {
+              "image": "rancher",
+              "tag": "v2.5.7-20210407205410-1c7b39d0c",
+              "helmFullImageKey": "rancherImage",
+              "helmTagKey": "rancherImageTag"
+            },
+            {
+              "image": "rancher-agent",
+              "tag": "v2.5.7-20210407205410-1c7b39d0c"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "additional-rancher",
+          "images": [
+            {
+              "image": "rancher-shell-test",
+              "tag": "v0.1.18-20221005202314-33ac76c"
+            },
+            {
+              "image": "rancher-kubectl",
+              "tag": "v1.20.2-20220930193658-a830250"
+            },
+            {
+              "image": "rancher-webhook-test",
+              "tag": "v0.2.6-20221005161115-fee4a23"
+            },
+            {
+              "image": "rancher-fleet-agent-test",
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
+            },
+            {
+              "image": "rancher-fleet-test",
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
+            },
+            {
+              "image": "rancher-gitjob-test",
+              "tag": "v0.1.30-20221005155218-6e7ba2d"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
