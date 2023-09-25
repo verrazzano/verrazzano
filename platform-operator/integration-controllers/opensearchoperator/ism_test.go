@@ -119,11 +119,11 @@ const (
 }`
 )
 
-var testPolicyList = fmt.Sprintf(`{
-	"policies": [
-      %s
-    ]
-}`, testSystemPolicy)
+//var testPolicyList = fmt.Sprintf(`{
+//	"policies": [
+//      %s
+//    ]
+//}`, testSystemPolicy)
 
 func createTestPolicy(age, rolloverAge, indexPattern, minSize string, minDocCount int) *vmcontrollerv1.IndexManagementPolicy {
 	return &vmcontrollerv1.IndexManagementPolicy{
