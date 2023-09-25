@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// OSOperatorOverrides are overrides to the opensearchoperator helm
+// OSOperatorOverrides are overrides to the opensearch-operator helm
 type OSOperatorOverrides struct {
 	EnvironmentName string
 	DNSSuffix       string
