@@ -150,7 +150,6 @@ pipeline {
               script {
                     sh """
                         ci/scripts/check_image_sizes.sh
-                        echo "$IMAGE_SIZE_DIFF_FOUND"
                     """
                      if ( fileExists("${WORKSPACE}/result.txt") ){
                         sh """
