@@ -219,14 +219,26 @@ helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
 
 ### Prometheus Node Exporter
 
-The `prometheus-community/prometheus-node-exporter` folder was created by running the followiong commands:
+The `prometheus-community/prometheus-node-exporter` folder was created by running the following commands:
 
 ```shell
 export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 rm -rf prometheus-community/prometheus-node-exporter 
-helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+helm fetch prometheus-community/prometheus-node-exporter --untar=true --untardir=prometheus-community/prometheus-node-exporter --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+```
+
+### Prometheus Pushgateway
+
+The `prometheus-community/prometheus-pushgateway` folder was created by running the following commands:
+
+```shell
+export PROMETHEUS_PUSHGATEWAY_CHART_VERSION=2.4.1
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+rm -rf prometheus-community/prometheus-pushgateway
+helm fetch prometheus-community/prometheus-pushgateway --untar=true --untardir=prometheus-community/prometheus-pushgateway --version=${PROMETHEUS_PUSHGATEWAY_CHART_VERSION}
 ```
 
 ### OpenSearch Operator
