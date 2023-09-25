@@ -6,6 +6,7 @@ package capi
 import (
 	"context"
 	"fmt"
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"go.uber.org/zap"
@@ -23,6 +24,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -80,13 +82,6 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// only process CAPI cluster instances not managed by Rancher/container driver
-	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
-	if ok {
-		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
-		return ctrl.Result{}, nil
-	}
-
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
@@ -122,14 +117,78 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	// obtain and persist the API endpoint IP address for the admin cluster
+	err = r.createAdminAccessConfigMap(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// ensure a base VMC
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName(),
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	if _, err = r.createOrUpdateWorkloadClusterVMC(ctx, cluster, vmc, func() error {
+		vmc.Spec = clustersv1alpha1.VerrazzanoManagedClusterSpec{
+			Description: fmt.Sprintf("%s VerrazzanoManagedCluster Resource", cluster.GetName()),
+		}
+		return nil
+	}); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
 		r.Log.Debugf("Attempting cluster regisration with Rancher")
-		return r.RancherRegistrar.doReconcile(ctx, cluster)
+		result, err := r.RancherRegistrar.doReconcile(ctx, cluster)
+		if err != nil {
+			return result, err
+		}
 	}
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	return r.VerrazzanoRegistrar.doReconcile(ctx, cluster)
+	return r.VerrazzanoRegistrar.doReconcile(ctx, cluster, r)
+}
+
+// createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
+func (r *CAPIClusterReconciler) createOrUpdateWorkloadClusterVMC(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster, f controllerutil.MutateFn) (*clustersv1alpha1.VerrazzanoManagedCluster, error) {
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, vmc, f); err != nil {
+		r.Log.Errorf("Failed to create or update the VMC for cluster %s: %v", cluster.GetName(), err)
+		return nil, err
+	}
+
+	return vmc, nil
+}
+
+// createAdminAccessConfigMap creates the config map required for the creation of the admin accessing kubeconfig
+func (r *CAPIClusterReconciler) createAdminAccessConfigMap(ctx context.Context) error {
+	ep := &v1.Endpoints{}
+	if err := r.Get(ctx, types.NamespacedName{Name: "kubernetes", Namespace: "default"}, ep); err != nil {
+		return err
+	}
+	apiServerIP := ep.Subsets[0].Addresses[0].IP
+
+	// create the admin server IP config map
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-admin-cluster",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, cm, func() error {
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
+		}
+		cm.Data["server"] = fmt.Sprintf("https://%s:6443", apiServerIP)
+
+		return nil
+	}); err != nil {
+		r.Log.Errorf("Failed to create the Verrazzano admin cluster config map: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (r *CAPIClusterReconciler) unregisterCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
@@ -139,7 +198,27 @@ func (r *CAPIClusterReconciler) unregisterCluster(ctx context.Context, cluster *
 	} else {
 		err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+
+	// remove the VMC
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName(),
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	err = r.Delete(ctx, vmc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Infof("VMC for cluster %s not found - nothing to do", cluster.GetName())
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // ensureFinalizer adds a finalizer to the CAPI cluster if the finalizer is not already present

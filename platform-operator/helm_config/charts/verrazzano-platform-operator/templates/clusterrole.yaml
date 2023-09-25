@@ -94,6 +94,7 @@ rules:
       - ""
     resources:
       - secrets
+      - namespaces
     verbs:
       - create
       - update

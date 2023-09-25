@@ -62,14 +62,8 @@ func (r *RancherRegistration) doReconcile(ctx context.Context, cluster *unstruct
 		return vzctrl.LongRequeue(), nil
 	}
 
-	if registrationInitiated != getClusterRegistrationStatus(ctx, r.Client, cluster) {
-		// wait for kubeconfig and complete registration on workload cluster
-		if result, err := clusterRancherRegistrationFn(ctx, r, cluster); err != nil {
-			return result, err
-		}
-	}
-
-	return ctrl.Result{}, nil
+	// wait for kubeconfig and complete registration on workload cluster
+	return clusterRancherRegistrationFn(ctx, r, cluster)
 }
 
 // GetRancherAPIResources returns the set of resources required for interacting with Rancher
@@ -130,12 +124,9 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 	}
 
 	clusterID := getClusterID(ctx, r.Client, cluster)
+
+	// register with Rancher
 	registryYaml, clusterID, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterID, log)
-	// persist the cluster ID, if present, even if the registry yaml was not returned
-	err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationRetrieved)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 	// handle registry failure error
 	if registryErr != nil {
 		r.Log.Error(err, "failed to obtain registration manifest from Rancher")
@@ -146,12 +137,19 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 		return vzctrl.ShortRequeue(), nil
 	}
 
-	// apply registration yaml to managed cluster
-	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
-	err = yamlApplier.ApplyS(registryYaml)
-	if err != nil {
-		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
-		return ctrl.Result{}, err
+	if registrationInitiated != getClusterRegistrationStatus(ctx, r.Client, cluster) {
+		// apply registration yaml to managed cluster
+		yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
+		err = yamlApplier.ApplyS(registryYaml)
+		if err != nil {
+			r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
+			return ctrl.Result{}, err
+		}
+		err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationInitiated)
+		if err != nil {
+			r.Log.Infof("Failed to perist cluster status")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// get and label the cattle-system namespace
@@ -166,11 +164,42 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 		return ctrl.Result{}, err
 	}
 
-	err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationInitiated)
-	if err != nil {
-		r.Log.Infof("Failed to perist cluster status")
-		return ctrl.Result{}, err
-	}
+	//// setup the Rancher CA secret for VMC processing
+	//caCert, err := r.getWorkloadClusterRancherCACert(workloadClient)
+	//if err != nil {
+	//	return ctrl.Result{}, err
+	//}
+	//
+	//adminWorkloadCertSecret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{
+	//	Name:      fmt.Sprintf("ca-secret-%s", cluster.GetName()),
+	//	Namespace: constants.VerrazzanoMultiClusterNamespace}}
+	//if _, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, adminWorkloadCertSecret, func() error {
+	//	if len(adminWorkloadCertSecret.Data) == 0 {
+	//		adminWorkloadCertSecret.Data = make(map[string][]byte)
+	//	}
+	//	adminWorkloadCertSecret.Data["cacrt"] = []byte(caCert)
+	//
+	//	return nil
+	//}); err != nil {
+	//	return ctrl.Result{}, err
+	//}
 
 	return ctrl.Result{}, nil
+}
+
+// getWorkloadClusterRancherCACert retrieves the Rancher API endpoint CA certificate from the workload cluster
+func (r *RancherRegistration) getWorkloadClusterRancherCACert(workloadClient client.Client) ([]byte, error) {
+	caCrtSecret := &v1.Secret{}
+	err := workloadClient.Get(context.TODO(), types.NamespacedName{
+		Name:      "tls-ca",
+		Namespace: common.CattleSystem},
+		caCrtSecret)
+	if err != nil {
+		return nil, err
+	}
+	caCrt, ok := caCrtSecret.Data["tls.crt"]
+	if !ok {
+		return nil, fmt.Errorf("Workload cluster Rancher CA certificate not found in %s secret", constants.RancherTLSCAKey)
+	}
+	return caCrt, nil
 }
