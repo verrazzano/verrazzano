@@ -24,7 +24,7 @@ import (
 
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
 	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
-	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/integration-controllers/opensearch-operator"
+	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/integration-controllers/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"

@@ -4,7 +4,7 @@
 manager:
 
   image:
-    repository: public.ecr.aws/opsterio/opensearch-operator
+    repository: public.ecr.aws/opsterio/opensearchoperator
     ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
     tag: "2.3.0"
     pullPolicy: "IfNotPresent"

@@ -72,7 +72,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return pkg.CreateNamespace(loggingNamespace, nsLabels)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
-	t.Logs.Info("Installing opensearch-operator and cluster")
+	t.Logs.Info("Installing opensearchoperator and cluster")
 	err := pkg.InstallOrUpdateOpenSearchOperator(t.Logs, 3, 3, 1)
 	Expect(err).NotTo(HaveOccurred())
 })

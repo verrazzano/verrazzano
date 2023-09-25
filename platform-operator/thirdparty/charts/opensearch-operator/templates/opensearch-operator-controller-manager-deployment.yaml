@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   labels:
     control-plane: controller-manager
-  name: opensearch-operator-controller-manager
+  name: opensearchoperator-controller-manager
 spec:
   replicas: 1
   selector:
@@ -60,5 +60,5 @@ spec:
 {{- toYaml .Values.tolerations | nindent 8 }}
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: opensearch-operator-controller-manager
+      serviceAccountName: opensearchoperator-controller-manager
       terminationGracePeriodSeconds: 10

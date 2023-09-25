@@ -86,12 +86,11 @@ const (
 	defaultMinIndexAge = "7d"
 	// Default amount of time before a policy-managed index is rolled over
 	defaultRolloverIndexAge = "1d"
-	// Descriptor to identify policies as being managed by the VMI
-	vmiManagedPolicy = "__operator-managed__"
-
+	// Descriptor to identify policies as being managed by the integration controller
+	operatorManagedPolicy       = "__operator-managed__"
 	systemDefaultPolicyFileName = "vz-system-default-ISM-policy.json"
 	appDefaultPolicyFileName    = "vz-application-default-ISM-policy.json"
-	defaultPolicyPath           = "opensearch-operator"
+	defaultPolicyPath           = "opensearchoperator"
 	systemDefaultPolicy         = "vz-system"
 	applicationDefaultPolicy    = "vz-application"
 )
@@ -101,7 +100,7 @@ var (
 )
 
 // createISMPolicy creates an ISM policy if it does not exist, else the policy will be updated.
-// If the policy already exsts and its spec matches the VMO policy spec, no update will be issued
+// If the policy already exists and its spec matches the VZ policy spec, no update will be issued
 func (o *OSClient) createISMPolicy(opensearchEndpoint string, policy vmcontrollerv1.IndexManagementPolicy) error {
 	policyURL := fmt.Sprintf("%s/_plugins/_ism/policies/%s", opensearchEndpoint, policy.PolicyName)
 	existingPolicy, err := o.getPolicyByName(policyURL)
@@ -221,7 +220,7 @@ func (o *OSClient) cleanupPolicies(opensearchEndpoint string, policies []vmcontr
 		expectedPolicyMap[policy.PolicyName] = true
 	}
 
-	// A policy is eligible for deletion if it is marked as VMI managed, but the VMI no longer
+	// A policy is eligible for deletion if it is marked as operator managed, but the VZ no longer
 	// has a policy entry for it
 	for _, policy := range policyList.Policies {
 		if isEligibleForDeletion(policy, expectedPolicyMap) {
@@ -471,7 +470,7 @@ func (o *OSClient) getWriteIndexForDataStream(log vzlog.VerrazzanoLogger, openSe
 }
 
 func isEligibleForDeletion(policy ISMPolicy, expectedPolicyMap map[string]bool) bool {
-	return policy.Policy.Description == vmiManagedPolicy &&
+	return policy.Policy.Description == operatorManagedPolicy &&
 		!expectedPolicyMap[*policy.ID]
 }
 
@@ -517,7 +516,7 @@ func toISMPolicy(policy *vmcontrollerv1.IndexManagementPolicy) *ISMPolicy {
 	return &ISMPolicy{
 		Policy: InlinePolicy{
 			DefaultState: "ingest",
-			Description:  vmiManagedPolicy,
+			Description:  operatorManagedPolicy,
 			ISMTemplate: []ISMTemplate{
 				{
 					Priority: 1,
@@ -560,13 +559,11 @@ func getISMPolicyFromFile(policyFileName string) (*ISMPolicy, error) {
 	policypath := filepath.Join(config.GetThirdPartyManifestsDir(), defaultPolicyPath)
 	policyBytes, err := os.ReadFile(policypath + "/" + policyFileName)
 	if err != nil {
-		zap.S().Infof("ReadFile error", err)
 		return nil, err
 	}
 	var policy ISMPolicy
 	err = json.Unmarshal(policyBytes, &policy)
 	if err != nil {
-		zap.S().Infof("Unmarshal error", err)
 		return nil, err
 	}
 	return &policy, nil

@@ -30,12 +30,12 @@ import (
 
 const (
 	// ComponentName is the name of the component
-	ComponentName = "opensearch-operator"
+	ComponentName = "opensearchoperator"
 
 	// ComponentNamespace is the namespace of the component
 	ComponentNamespace = constants.VerrazzanoLoggingNamespace
 
-	// ComponentJSONName is the json name of the opensearch-operator component in CRD
+	// ComponentJSONName is the json name of the opensearchoperator component in CRD
 	ComponentJSONName = "opensearchOperator"
 )
 
@@ -50,7 +50,7 @@ func NewComponent() spi.Component {
 			JSONName:                  ComponentJSONName,
 			ChartDir:                  filepath.Join(config.GetThirdPartyDir(), ComponentName),
 			ChartNamespace:            ComponentNamespace,
-			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "opensearch-operator-values.yaml"),
+			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "opensearchoperator-values.yaml"),
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
@@ -130,7 +130,7 @@ func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 			return err
 		}
 		// substitute template values to all files in the directory and apply the resulting YAML
-		filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+		filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearchoperator/opensearch_cluster_cr.yaml")
 		yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
 		err = yamlApplier.ApplyFT(filePath, args)
 

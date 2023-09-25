@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-// OSOperatorOverrides are overrides to the opensearch-operator helm
+// OSOperatorOverrides are overrides to the opensearchoperator helm
 type OSOperatorOverrides struct {
 	EnvironmentName string
 	DNSSuffix       string
@@ -27,8 +27,8 @@ type OSOperatorOverrides struct {
 
 var openSearchCMTemplate = `apiVersion: v1
 data:
-  name: opensearch-operator
-  chartPath: opensearch-operator
+  name: opensearchoperator
+  chartPath: opensearchoperator
   namespace: verrazzano-logging
   overrides: |-
     ingress:
@@ -155,7 +155,7 @@ metadata:
   namespace: default`
 
 // InstallOrUpdateOpenSearchOperator creates or updates the CM for the dev-controller
-// to install or upgrade the opensearch-operator helm chart
+// to install or upgrade the opensearchoperator helm chart
 func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ingest int) error {
 	cr, err := GetVerrazzano()
 	if err != nil {
@@ -188,7 +188,7 @@ func InstallOrUpdateOpenSearchOperator(log *zap.SugaredLogger, master, data, ing
 }
 
 // UninstallOpenSearchOperator delete the CM so that the dev-controller
-// can uninstall opensearch-operator helm
+// can uninstall opensearchoperator helm
 func UninstallOpenSearchOperator() error {
 	err := DeleteConfigMap("default", "dev-opensearch")
 	if err != nil {

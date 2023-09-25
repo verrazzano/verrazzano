@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,12 +18,11 @@ import (
 var _ controllerspi.Reconciler = Reconciler{}
 
 type Reconciler struct {
-	Client        client.Client
-	log           vzlog.VerrazzanoLogger
-	Scheme        *runtime.Scheme
-	ModuleClass   moduleapi.ModuleClassType
-	DryRun        bool
-	StatusUpdater *healthcheck.VerrazzanoStatusUpdater
+	Client      client.Client
+	log         vzlog.VerrazzanoLogger
+	Scheme      *runtime.Scheme
+	ModuleClass moduleapi.ModuleClassType
+	DryRun      bool
 }
 
 // InitController start the  controller
@@ -43,8 +41,6 @@ func InitController(mgr ctrlruntime.Manager) error {
 	// init other controller fields
 	controller.Client = baseController.Client
 	controller.Scheme = baseController.Scheme
-	controller.StatusUpdater = healthcheck.NewStatusUpdater(mgr.GetClient())
-
 	return nil
 }
 

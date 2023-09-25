@@ -16,11 +16,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Reconcile reconciles the IntegrateSingleRequestEvent (in the form of a configmap)
-// to perform integration for a single module. Certain modules, such as prometheus-operator,
-// require that all integration charts for other modules be installed/upgraded. So in addition
-// to applying the chart for a single module, this reconciler may create second event,
-// the IntegrateCascadeRequestEvent which processed by the cascade integration controller.
+// Reconcile reconciles the Verrazzano CR
+// to perform index pattern creation, ISM Policy creation and configuration
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
@@ -35,10 +32,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		Namespace:      actualCR.Namespace,
 		ID:             string(actualCR.UID),
 		Generation:     actualCR.Generation,
-		ControllerName: "opensearch",
+		ControllerName: "opensearchoperator",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for opensearch controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for opensearchoperator controller: %v", err)
 	}
 	r.log = log
 
@@ -88,31 +85,37 @@ func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileCo
 }
 
 func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := GetVerrazzanoPassword(r.Client)
+	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
 	}
-	osClient := NewOSClient(pas)
 	err = osClient.SyncDefaultISMPolicy(r.log, r.Client, vz)
 	return err
 }
 
 func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := GetVerrazzanoPassword(r.Client)
+	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
 	}
-	osClient := NewOSClient(pas)
 	err = osClient.DeleteDefaultISMPolicy(r.log, r.Client, vz)
 	return err
 }
 
 func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := GetVerrazzanoPassword(r.Client)
+	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
 	}
-	osClient := NewOSClient(pas)
 	err = osClient.ConfigureISM(r.log, r.Client, vz)
 	return err
+}
+
+func (r *Reconciler) getOSClient() (*OSClient, error) {
+	pas, err := GetVerrazzanoPassword(r.Client)
+	if err != nil {
+		return nil, err
+	}
+	osClient := NewOSClient(pas)
+	return osClient, nil
 }

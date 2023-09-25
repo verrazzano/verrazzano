@@ -4,11 +4,9 @@
 package opensearchoperator
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"go.uber.org/zap"
 	"net/http"
 	"strings"
 )
@@ -22,30 +20,6 @@ const (
 	// TimeStamp used to add timestamp as TimeFieldName in the index pattern
 	TimeStampField = "@timestamp"
 )
-
-type (
-	OSDashboardsClient struct {
-		httpClient *http.Client
-		DoHTTP     func(request *http.Request) (*http.Response, error)
-	}
-)
-
-func NewOSDashboardsClient(pas string) *OSDashboardsClient {
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec //#gosec G402
-	}
-	od := &OSDashboardsClient{
-
-		httpClient: &http.Client{Transport: tr},
-	}
-	od.DoHTTP = func(request *http.Request) (*http.Response, error) {
-		request.SetBasicAuth("verrazzano", pas)
-		return od.httpClient.Do(request)
-	}
-	return od
-}
-
-var defaultIndexPatterns = [...]string{VZSystemIndexPattern, VZAppIndexPattern}
 
 type (
 	IndexPatterns struct {
@@ -69,37 +43,6 @@ type (
 type SavedObjectType struct {
 	Type       string `json:"type"`
 	Attributes `json:"attributes"`
-}
-
-// CreateDefaultIndexPatterns creates the defaultIndexPatterns in the OpenSearchDashboards if not existed
-func (od *OSDashboardsClient) CreateDefaultIndexPatterns(log vzlog.VerrazzanoLogger, openSearchDashboardsEndpoint string) error {
-	existingIndexPatterns, err := od.getDefaultIndexPatterns(openSearchDashboardsEndpoint, 50, fmt.Sprintf("%s+or+%s", strings.Replace(VZSystemIndexPattern, "*", "\\*", -1), strings.Replace(VZAppIndexPattern, "*", "\\*", -1)))
-	if err != nil {
-		zap.S().Infof("error getting default index pattern", err)
-		return err
-	}
-	var savedObjectPayloads []SavedObjectType
-	for _, indexPattern := range defaultIndexPatterns {
-		if existingIndexPatterns[indexPattern] {
-			continue
-		}
-		savedObject := SavedObjectType{
-			Type: IndexPattern,
-			Attributes: Attributes{
-				Title:         indexPattern,
-				TimeFieldName: TimeStampField,
-			},
-		}
-		savedObjectPayloads = append(savedObjectPayloads, savedObject)
-	}
-	if len(savedObjectPayloads) > 0 {
-		log.Progressf("Creating default index patterns")
-		err = od.creatIndexPatterns(log, savedObjectPayloads, openSearchDashboardsEndpoint)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 // creatIndexPatterns creates the given IndexPattern in the OpenSearch-Dashboards by calling bulk API.

@@ -27,7 +27,6 @@ type (
 )
 
 const (
-	indexSettings     = `{"index_patterns": [".opendistro*"],"priority": 0,"template": {"settings": {"auto_expand_replicas": "0-1"}}}`
 	applicationJSON   = "application/json"
 	contentTypeHeader = "Content-Type"
 )

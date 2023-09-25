@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	opensearchOperatorDeploymentName = "opensearch-operator-controller-manager"
+	opensearchOperatorDeploymentName = "opensearchoperator-controller-manager"
 	opensearchHostName               = "opensearch.vmi.system"
 	osdHostName                      = "osd.vmi.system"
 	// Certificate names
