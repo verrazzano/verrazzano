@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1",
+      "version": "1.9.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
