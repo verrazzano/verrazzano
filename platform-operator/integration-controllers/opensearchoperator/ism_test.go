@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io"
 	"net/http"
 	"reflect"
@@ -28,7 +29,7 @@ const (
     "_primary_term" : 1,
     "policy" : {
     "policy_id" : "verrazzano-system",
-    "description" : "__vmi-managed__",
+    "description" : "__operator-managed__",
     "last_updated_time" : 1647551644420,
     "schema_version" : 12,
     "error_notification" : null,
@@ -512,6 +513,7 @@ func TestGetISMPolicyFromFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			config.TestThirdPartyManifestDir = "../../thirdparty/manifests"
 			_, err := getISMPolicyFromFile(tt.args.policyFileName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getISMPolicyFromFile() error = %v, wantErr %v", err, tt.wantErr)

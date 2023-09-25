@@ -90,7 +90,7 @@ const (
 	operatorManagedPolicy       = "__operator-managed__"
 	systemDefaultPolicyFileName = "vz-system-default-ISM-policy.json"
 	appDefaultPolicyFileName    = "vz-application-default-ISM-policy.json"
-	defaultPolicyPath           = "opensearchoperator"
+	defaultPolicyPath           = "opensearch-operator"
 	systemDefaultPolicy         = "vz-system"
 	applicationDefaultPolicy    = "vz-application"
 )
