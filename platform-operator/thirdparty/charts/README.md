@@ -210,7 +210,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 The `argo-cd` folder was created by running the following commands:
 
 ```shell
-export ARGOCD_CHART_VERSION=5.34.3
+export ARGOCD_CHART_VERSION=5.45.3
 helm repo add argocd https://argoproj.github.io/argo-helm
 helm repo update
 rm -rf argo-cd
