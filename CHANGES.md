@@ -1,6 +1,7 @@
 ### v1.6.7
 Component version updates:
 
+- Rancher 2.7.6
 - WebLogic Kubernetes Operator v4.1.2
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
