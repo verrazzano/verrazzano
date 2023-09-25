@@ -43,6 +43,7 @@ declare -A IMAGENAME_SIZES_FILE_GENERATED
 IMAGE_DATA_OS=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
 IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
 IMAGE_SIZE_DIFF_FOUND="false"
+
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do
   IMAGENAME_SIZES_FILE_OS["$IMAGENAME"]=$IMAGESIZE
@@ -72,7 +73,7 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
-         echo "Image size diff found"
-         echo "IMAGE_SIZE_DIFF_FOUND=$IMAGE_SIZE_DIFF_FOUND"
+         echo "Image size difference found"
          cat ${WORKSPACE}/result.txt
+         export IMAGE_SIZE_DIFF_FOUND
 fi

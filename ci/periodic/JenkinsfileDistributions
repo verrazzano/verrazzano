@@ -150,13 +150,19 @@ pipeline {
               script {
                     sh """
                         ci/scripts/check_image_sizes.sh
+                        echo "$IMAGE_SIZE_DIFF_FOUND"
                     """
-                     //if ( fileExists('${WORKSPACE}/result.txt') ){
-                     //   slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
-                     //}
-                     def imageSizeDiffFound = sh(script: 'ci/scripts/check_image_sizes.sh && echo $IMAGE_SIZE_DIFF_FOUND', returnStdout: true).trim()
+                     if ( fileExists("${WORKSPACE}/result.txt") ){
+                        sh """
+                            echo "result text file found"
+                        """
+                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                     }
 
-                     if (imageSizeDiffFound == 'true') {
+                     if (IMAGE_SIZE_DIFF_FOUND == 'true') {
+                     sh """
+                         echo "exported variable found"
+                     """
                          slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
                      }
 
