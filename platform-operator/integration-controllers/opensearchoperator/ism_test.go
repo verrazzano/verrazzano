@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -138,23 +137,23 @@ func createTestPolicy(age, rolloverAge, indexPattern, minSize string, minDocCoun
 	}
 }
 
-func createISMVMI(age string, enabled bool) *vmcontrollerv1.VerrazzanoMonitoringInstance {
-	v := &vmcontrollerv1.VerrazzanoMonitoringInstance{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "test",
-		},
-		Spec: vmcontrollerv1.VerrazzanoMonitoringInstanceSpec{
-			Opensearch: vmcontrollerv1.Opensearch{
-				Enabled: enabled,
-				Policies: []vmcontrollerv1.IndexManagementPolicy{
-					*createTestPolicy(age, age, "*", "1gb", 1),
-				},
-			},
-		},
-	}
-
-	return v
-}
+//func createISMVMI(age string, enabled bool) *vmcontrollerv1.VerrazzanoMonitoringInstance {
+//	v := &vmcontrollerv1.VerrazzanoMonitoringInstance{
+//		ObjectMeta: metav1.ObjectMeta{
+//			Name: "test",
+//		},
+//		Spec: vmcontrollerv1.VerrazzanoMonitoringInstanceSpec{
+//			Opensearch: vmcontrollerv1.Opensearch{
+//				Enabled: enabled,
+//				Policies: []vmcontrollerv1.IndexManagementPolicy{
+//					*createTestPolicy(age, age, "*", "1gb", 1),
+//				},
+//			},
+//		},
+//	}
+//
+//	return v
+//}
 
 //// TestConfigureIndexManagementPluginHappyPath Tests configuration of the ISM plugin
 //// GIVEN a VMI instance with an ISM Policy
