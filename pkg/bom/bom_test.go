@@ -284,13 +284,10 @@ func TestBomFindImage(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(t, err)
 
-	sc, err := bom.GetSubcomponent(ingressControllerComponent)
+	_, err = bom.FindImage(ingressControllerComponent, ingressControllerImageName)
 	assert.NoError(t, err)
 
-	_, err = bom.FindImage(sc, ingressControllerImageName)
-	assert.NoError(t, err)
-
-	_, err = bom.FindImage(sc, "foo")
+	_, err = bom.FindImage(ingressControllerComponent, "foo")
 	assert.Error(t, err)
 }
 
