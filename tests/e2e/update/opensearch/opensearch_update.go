@@ -82,7 +82,6 @@ func (u OpenSearchPlugins) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.Elasticsearch.Plugins = vmov1.OpenSearchPlugins{}
 	cr.Spec.Components.Elasticsearch.Plugins =
 		vmov1.OpenSearchPlugins{
