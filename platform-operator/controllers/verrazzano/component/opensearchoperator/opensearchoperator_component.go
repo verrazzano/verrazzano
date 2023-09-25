@@ -54,6 +54,7 @@ func NewComponent() spi.Component {
 			IgnoreNamespaceOverride:   true,
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
+			ImagePullSecretKeyname:    "manager.imagePullSecrets[0]",
 			Dependencies:              []string{networkpolicies.ComponentName, certmanager.ComponentName, nginx.ComponentName},
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
