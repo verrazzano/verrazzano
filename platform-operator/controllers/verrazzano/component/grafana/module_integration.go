@@ -53,7 +53,7 @@ func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 	if reflect.DeepEqual(configSnippet, emptyConfig) {
 		return nil, nil
 	}
-	
+
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 
