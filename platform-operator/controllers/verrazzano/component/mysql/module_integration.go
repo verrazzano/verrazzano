@@ -6,9 +6,9 @@ package mysql
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -42,5 +42,5 @@ func (c mysqlComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzan
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c mysqlComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{common.IstioComponentName, MySQLOperatorComponentName, fluentoperator.ComponentName})
 }

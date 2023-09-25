@@ -30,6 +30,7 @@ import (
 )
 
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
+// NOTE: full uninstalls are done by the finalizer.go code
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
@@ -71,9 +72,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 	effectiveCR.Status = actualCR.Status
 
-	// Note: updating the VZ state to reconciling is done by the module shim to
-	// avoid a long delay before the user sees any CR action.
-	// See vzcomponent_status.go, UpdateVerrazzanoComponentStatus
+	// Update the status if this is an upgrade. If this is not an upgrade,
+	// then we don't know, at this point, if install, update, or partial uninstall is
+	// needed, so the status update is deferred.  See vzstatus.updateStatusIfNeeded,
+	// where the status is updated in those cases.
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -143,7 +145,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	return result.NewResult()
 }
 
-// doWork performs the verrazzano install, update, upgrade by creating, updating, or deleting modules
+// doWork performs the verrazzano install, update, upgrade, or partial uninstall by creating, updating, or deleting modules
 // Any combination of modules install, update, upgrade, and uninstall (delete) can be done at the same time.
 // Return a requeue true until all modules are done doing work
 func (r Reconciler) doWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
