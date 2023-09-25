@@ -623,19 +623,8 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	if vmc.Status.LastAgentConnectTime != nil {
-		currentTime := metav1.Now()
-		// Using the current plus added time to find the difference with lastAgentConnectTime to validate
-		// if it exceeds the max allowed time before changing the state of the vmc resource.
-		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
-		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
-		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
-			vmc.Status.State = clustersv1alpha1.StateInactive
-		} else if vmc.Status.State == "" {
-			vmc.Status.State = clustersv1alpha1.StatePending
-		} else {
-			vmc.Status.State = clustersv1alpha1.StateActive
-		}
+	if err := r.updateState(vmc); err != nil {
+		return err
 	}
 
 	// Fetch the existing VMC to avoid conflicts in the status update
@@ -654,6 +643,45 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
+}
+
+// updateState sets the vmc.Status.State for the given VMC.
+// The state field functions differently according to whether this VMC references an underlying ClusterAPI cluster.
+func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// If there is no underlying CAPI cluster, set the state field based on the lastAgentConnectTime
+	if vmc.Status.ClusterRef == nil {
+		if vmc.Status.LastAgentConnectTime != nil {
+			currentTime := metav1.Now()
+			// Using the current plus added time to find the difference with lastAgentConnectTime to validate
+			// if it exceeds the max allowed time before changing the state of the vmc resource.
+			maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
+			timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
+			if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
+				vmc.Status.State = clustersv1alpha1.StateInactive
+			} else if vmc.Status.State == "" {
+				vmc.Status.State = clustersv1alpha1.StatePending
+			} else {
+				vmc.Status.State = clustersv1alpha1.StateActive
+			}
+		}
+		return nil
+	}
+
+	// If there is an underlying CAPI cluster, set the state field according to the phase of the CAPI cluster.
+	// FIXME: remove print
+	fmt.Println("++++ inside updateState's CAPI cluster case")
+	capiClusterPhase, err := getCAPIClusterPhase(vmc.Status.ClusterRef)
+	if err != nil {
+		return err
+	}
+	vmc.Status.State = capiClusterPhase
+	return nil
+}
+
+// getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
+func getCAPIClusterPhase(clusterRef *clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
+	// TODO: implement this
+	return clustersv1alpha1.StateUnknown, nil
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
