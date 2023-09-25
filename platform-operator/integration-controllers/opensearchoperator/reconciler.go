@@ -6,6 +6,8 @@ package opensearchoperator
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"time"
 
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
@@ -39,38 +41,45 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 	r.log = log
 
-	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
-	// Always use actualCR when updating status
+	// Get effective CR.
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-
-	/*********************
-	* Add default index patterns and ISM policies
-	**********************/
-
-	if *effectiveCR.Spec.Components.Kibana.Enabled && *effectiveCR.Spec.Components.Elasticsearch.Enabled {
-		if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
-			err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
+	componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, false)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	isLegacyOS, err := common.IsLegacyOS(componentCtx)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+	// Handle only if its opensearch-operator managed OS
+	if !isLegacyOS {
+		// Add default index patterns and ISM policies
+		if *effectiveCR.Spec.Components.Kibana.Enabled && *effectiveCR.Spec.Components.Elasticsearch.Enabled {
+			if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
+				err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
+				if err != nil {
+					return result.NewResultShortRequeueDelayWithError(err)
+				}
+			} else {
+				err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
+				if err != nil {
+					return result.NewResultShortRequeueDelayWithError(err)
+				}
+			}
+			err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
 			if err != nil {
 				return result.NewResultShortRequeueDelayWithError(err)
 			}
-		} else {
-			err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
-			if err != nil {
-				return result.NewResultShortRequeueDelayWithError(err)
-			}
+			return result.NewResultRequeueDelay(5, 6, time.Minute)
 		}
-		err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
-		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
-		return result.NewResultRequeueDelay(5, 6, time.Minute)
 	}
 	return result.NewResult()
 }
 
+// CreateIndexPatterns creates the required index patterns using osd client
 func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	pas, err := GetVerrazzanoPassword(r.Client)
 	if err != nil {
@@ -84,6 +93,7 @@ func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileCo
 	return osDashboardsClient.CreateDefaultIndexPatterns(r.log, osdURL)
 }
 
+// CreateDefaultISMPolicies creates default ISM policies in OpenSearch
 func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
@@ -93,6 +103,7 @@ func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.Reconc
 	return err
 }
 
+// DeleteDefaultISMPolicies deletes default ISM polcies from OpenSearch
 func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
@@ -102,6 +113,7 @@ func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.Reconc
 	return err
 }
 
+// ConfigureISMPolicies configures ISM policies added by user in Vz cr
 func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
@@ -111,6 +123,7 @@ func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileC
 	return err
 }
 
+// getOSClient gets tbe OS client
 func (r *Reconciler) getOSClient() (*OSClient, error) {
 	pas, err := GetVerrazzanoPassword(r.Client)
 	if err != nil {

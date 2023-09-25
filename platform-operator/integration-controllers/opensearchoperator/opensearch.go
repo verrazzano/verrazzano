@@ -46,7 +46,6 @@ func NewOSClient(pas string) *OSClient {
 }
 
 // ConfigureISM sets up the ISM Policies
-// The returned channel should be read for exactly one response, which tells whether ISM configuration succeeded.
 func (o *OSClient) ConfigureISM(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
 	if !*vz.Spec.Components.Elasticsearch.Enabled {
 		return nil
@@ -84,7 +83,7 @@ func (o *OSClient) DeleteDefaultISMPolicy(log vzlog.VerrazzanoLogger, client cli
 	}
 	for policyName := range defaultISMPoliciesMap {
 		resp, err := o.deletePolicy(openSearchEndpoint, policyName)
-		// If policy doesn't exist, ignore the error, otherwise pass the error to channel.
+		// If policy doesn't exist, ignore the error, otherwise return error.
 		if (err != nil && resp == nil) || (err != nil && resp != nil && resp.StatusCode != http.StatusNotFound) {
 			return err
 		}
@@ -116,7 +115,6 @@ func (o *OSClient) DeleteDefaultISMPolicy(log vzlog.VerrazzanoLogger, client cli
 }
 
 // SyncDefaultISMPolicy set up the default ISM Policies.
-// The returned channel should be read for exactly one response, which tells whether default ISM policies are synced.
 func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
 
 	if !*vz.Spec.Components.Elasticsearch.Enabled || vz.Spec.Components.Elasticsearch.DisableDefaultPolicy {
