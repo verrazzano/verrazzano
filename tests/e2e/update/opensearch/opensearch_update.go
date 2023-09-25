@@ -117,7 +117,7 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.DataRole),
 				Replicas:  &u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole},
+				Roles:     []vmov1.NodeRole{vmov1.DataRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
 			},
