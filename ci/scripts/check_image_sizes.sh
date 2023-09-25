@@ -75,5 +75,4 @@ done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
          echo "Image size difference found"
          cat ${WORKSPACE}/result.txt
-         export IMAGE_SIZE_DIFF_FOUND
 fi
