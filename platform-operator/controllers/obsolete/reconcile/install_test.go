@@ -6,7 +6,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	rbac2 "github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/rbac"
 	"net/url"
 	"strings"
 	"testing"
@@ -413,8 +413,8 @@ func testUpdate(t *testing.T,
 	}
 
 	ingressList := networkingv1.IngressList{Items: []networkingv1.Ingress{}}
-	sa := rbac2.NewServiceAccount(namespace, name, []string{}, map[string]string{})
-	crb := rbac2.NewClusterRoleBinding(vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
+	sa := rbac.NewServiceAccount(namespace, name, []string{}, map[string]string{})
+	crb := rbac.NewClusterRoleBinding(vz, buildClusterRoleBindingName(namespace, name), getInstallNamespace(), buildServiceAccountName(name))
 	authConfig := createKeycloakAuthConfig()
 	localAuthConfig := createLocalAuthConfig()
 	kcSecret := keycloakutil.CreateTestKeycloakLoginSecret()
