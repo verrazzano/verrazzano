@@ -3,6 +3,8 @@
 
 serviceMonitor:
   namespace: verrazzano-monitoring
+  additionalLabels:
+    release: prometheus-operator
 persistentVolume:
   enabled: false
 podLabels:
