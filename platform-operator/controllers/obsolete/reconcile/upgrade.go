@@ -6,7 +6,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	restart2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -132,7 +132,7 @@ func (r *Reconciler) reconcileUpgrade(log vzlog.VerrazzanoLogger, cr *installv1a
 		case vzStateRestartApps:
 			if vzcr.IsApplicationOperatorEnabled(spiCtx.EffectiveCR()) && vzcr.IsIstioEnabled(spiCtx.EffectiveCR()) {
 				log.Once("Doing Verrazzano post-upgrade application restarts if needed")
-				err := restart2.RestartApps(log, r.Client, cr.Generation)
+				err := restart.RestartApps(log, r.Client, cr.Generation)
 				if err != nil {
 					log.Errorf("Error running Verrazzano post-upgrade application restarts")
 					return newRequeueWithDelay(), err
@@ -229,7 +229,7 @@ func postVerrazzanoUpgrade(spiCtx spi.ComponentContext) error {
 		return err
 	}
 	log.Oncef("Checking if any pods with outdated sidecars need to be restarted to pick up new container images")
-	if err := restart2.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart2.OutdatedSidecarPodMatcher{}); err != nil {
+	if err := restart.RestartComponents(log, config.GetInjectedSystemNamespaces(), spiCtx.ActualCR().Generation, &restart.OutdatedSidecarPodMatcher{}); err != nil {
 		return err
 	}
 	log.Oncef("MySQL post-upgrade cleanup")
