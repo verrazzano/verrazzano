@@ -995,7 +995,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "v2.4.0",
+      "version": "2.4.0",
       "subcomponents": [
         {
           "repository": "verrazzano",

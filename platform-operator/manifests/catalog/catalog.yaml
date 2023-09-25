@@ -74,6 +74,8 @@ modules:
     version: 0.32.2
   - name: verrazzano-network-policies
     version: VERRAZZANO_VERSION
+  - name: opensearch-operator
+    version: 2.4.0
   - name: opensearch
     version: 2.3.0
   - name: opensearch-dashboards

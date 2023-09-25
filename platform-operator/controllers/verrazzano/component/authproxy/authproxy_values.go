@@ -42,10 +42,10 @@ type proxyValues struct {
 }
 
 type configValues struct {
-	EnvName          string `json:"envName,omitempty"`
-	DNSSuffix        string `json:"dnsSuffix,omitempty"`
-	IngressClassName string `json:"ingressClassName,omitempty"`
-	OpenSearch                *opensearchValues `json:"opensearch,omitempty"`
+	EnvName          string            `json:"envName,omitempty"`
+	DNSSuffix        string            `json:"dnsSuffix,omitempty"`
+	IngressClassName string            `json:"ingressClassName,omitempty"`
+	OpenSearch       *opensearchValues `json:"opensearch,omitempty"`
 }
 
 type opensearchValues struct {

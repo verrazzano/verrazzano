@@ -75,7 +75,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	overrides.Config = &configValues{
 		EnvName:          vzconfig.GetEnvName(effectiveCR),
 		IngressClassName: vzconfig.GetIngressClassName(effectiveCR),
-		OpenSearch:                &opensearchConfig,
+		OpenSearch:       &opensearchConfig,
 	}
 
 	isLegacyOS, err := common.IsLegacyOS(ctx)
