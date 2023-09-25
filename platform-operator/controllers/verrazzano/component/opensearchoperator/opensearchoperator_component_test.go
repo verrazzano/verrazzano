@@ -117,7 +117,7 @@ func TestGetDependencies(t *testing.T) {
 	dependencies := NewComponent().GetDependencies()
 	assert.Len(t, dependencies, 3)
 	assert.Equal(t, networkpolicies.ComponentName, dependencies[0])
-	assert.Equal(t, cmconst.ClusterIssuerComponentName, dependencies[1])
+	assert.Equal(t, cmconst.CertManagerComponentName, dependencies[1])
 	assert.Equal(t, nginx.ComponentName, dependencies[2])
 }
 
