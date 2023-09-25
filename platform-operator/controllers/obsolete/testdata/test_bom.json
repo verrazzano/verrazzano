@@ -1,6 +1,6 @@
 {
   "registry": "ghcr.io",
-  "version": "VERRAZZANO_VERSION",
+  "version": "1.1.0",
   "components": [
     {
       "name": "verrazzano-platform-operator",
@@ -19,8 +19,7 @@
       ]
     },
     {
-      "name": "ingress-controller",
-      "version": "1.7.1",
+      "name": "ingress-nginx",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +27,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230817215350-c8315d559",
+              "tag": "0.46.0-20210510134749-abc2d2088",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.7.1-20230817215350-c8315d559",
+              "tag": "0.46.0-20210510134749-abc2d2088",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -44,7 +43,6 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -52,50 +50,26 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "0.13.1-20201016205232-4c8f3fe38",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
-              "helmFullImageKey": "extraArgs[0]"
+              "tag": "0.13.1-20201016205234-4c8f3fe38",
+              "helmFullImageKey": "extraArgs[0]=--acme-http01-solver-image"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "1.2.0-20210602163405-aac6bdf62",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "1.2.0-20210602163405-aac6bdf62",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
-            },
-            {
-              "image": "cert-manager-ctl",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
-              "helmFullImageKey": "startupapicheck.image.repository",
-              "helmTagKey": "startupapicheck.image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "cert-manager-webhook-oci",
-      "version": "0.1.0",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "cert-manager-webhook-oci",
-          "images": [
-            {
-              "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230526160243-7a73e30",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
             }
           ]
         }
@@ -103,7 +77,6 @@
     },
     {
       "name": "external-dns",
-      "version": "0.12.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -111,7 +84,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20230922083811-49b4f66e",
+              "tag": "v0.7.1-20201016205338-516bc8b2",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -122,7 +95,6 @@
     },
     {
       "name": "istio",
-      "version": "1.17.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,12 +102,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.10.4",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.10.4",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -146,7 +118,6 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -154,17 +125,13 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230921192928-7c49553c6",
-              "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.24.0",
-              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230921193355-4a359105b",
+              "tag": "v2.5.7-20210407205410-1c7b39d0c",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230921193355-4a359105b"
+              "tag": "v2.5.7-20210407205410-1c7b39d0c"
             }
           ]
         },
@@ -174,27 +141,27 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.20-20230908151457-b1ce5ae"
+              "tag": "v0.1.18-20221005202314-33ac76c"
+            },
+            {
+              "image": "rancher-kubectl",
+              "tag": "v1.20.2-20220930193658-a830250"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.5-20230922100255-1a77563"
+              "tag": "v0.2.6-20221005161115-fee4a23"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.1-20230913140901-c69add6c"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.1-20230913140901-c69add6c"
+              "tag": "v0.3.11-20221005160548-f5e4fc9"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20230925114322-53ac350"
-            },
-            {
-              "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230922083921-15c72a6"
+              "tag": "v0.1.30-20221005155218-6e7ba2d"
             }
           ]
         }
@@ -202,7 +169,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.4.6",
+      "version": "v1.3.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -210,7 +177,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.4.6-20230919163417-54657bc14"
+              "tag": "v1.3.3-20230427222746-876fe3dc9"
             }
           ]
         }
@@ -218,7 +185,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.1",
+      "version": "v0.8.1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -226,7 +193,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.1"
+              "tag": "v0.8.1"
             }
           ]
         }
@@ -234,7 +201,7 @@
     },
     {
       "name": "capi-ocne",
-      "version": "v1.7.0",
+      "version": "v0.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -242,11 +209,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.7.0-20230815141941-9a36ded"
+              "tag": "v0.1.0-20230427222244-4ef1141"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.7.0-20230815141941-9a36ded"
+              "tag": "v0.1.0-20230427222244-4ef1141"
             }
           ]
         }
@@ -254,26 +221,52 @@
     },
     {
       "name": "verrazzano",
-      "version": "VERRAZZANO_VERSION",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "verrazzano",
           "images": [
             {
+              "image": "verrazzano-monitoring-operator",
+              "tag": "0.15.0-20210521020822-9b87485",
+              "helmFullImageKey": "monitoringOperator.imageName",
+              "helmTagKey": "monitoringOperator.imageVersion"
+            },
+            {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.7.3",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
+              "image": "grafana",
+              "tag": "v6.4.4",
+              "helmFullImageKey": "monitoringOperator.grafanaImage"
+            },
+            {
+              "image": "opensearch",
+              "tag": "1.2.3-20220715164419-c1dbc115d8a",
+              "helmFullImageKey": "monitoringOperator.osImage"
+            },
+            {
+              "image": "opensearch-dashboards",
+              "tag": "2.3.0-20230124171546-f9e6353395",
+              "helmFullImageKey": "monitoringOperator.osdImage"
+            },
+            {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230817215350-c8315d559",
+              "tag": "0.46.0-20210510134749-abc2d2088",
+              "helmFullImageKey": "monitoringOperator.oidcProxyImage"
+            },
+            {
+              "image": "nginx-ingress-controller",
+              "tag": "0.46.0-20210510134749-abc2d2088",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "v0.11.0-20230925134800-53d30b7f",
+              "tag": "0.10.0",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
@@ -291,7 +284,7 @@
           "images": [
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230922100900-8777b84",
+              "tag": "v1.14.5-20230810212038-8777b84",
               "helmFullImageKey": "logging.fluentdImage"
             }
           ]
@@ -300,7 +293,7 @@
     },
     {
       "name": "verrazzano-console",
-      "version": "VERRAZZANO_VERSION",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -317,54 +310,6 @@
       ]
     },
     {
-      "name": "verrazzano-monitoring-operator",
-      "version": "VERRAZZANO_VERSION",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "verrazzano-monitoring-operator",
-          "images": [
-            {
-              "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230913103358-6033fa2",
-              "helmFullImageKey": "monitoringOperator.imageName",
-              "helmTagKey": "monitoringOperator.imageVersion"
-            },
-            {
-              "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
-              "helmFullImageKey": "monitoringOperator.istioProxyImage"
-            },
-            {
-              "image": "grafana",
-              "tag": "v7.5.17-20230922085309-7afbf50a",
-              "helmFullImageKey": "monitoringOperator.grafanaImage"
-            },
-            {
-              "image": "k8s-sidecar",
-              "tag": "v1.15.0-20230922083013-7adaf012",
-              "helmFullImageKey": "monitoringOperator.k8sSidecarImage"
-            },
-            {
-              "image": "opensearch",
-              "tag": "2.3.0-20230914055551-b6247ad8ac8",
-              "helmFullImageKey": "monitoringOperator.osImage"
-            },
-            {
-              "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230918052256-cc04b43c2b",
-              "helmFullImageKey": "monitoringOperator.osdImage"
-            },
-            {
-              "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20230817215350-c8315d559",
-              "helmFullImageKey": "monitoringOperator.oidcProxyImage"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "monitoring-init-images",
       "subcomponents": [
         {
@@ -373,7 +318,7 @@
           "images": [
             {
               "image": "oraclelinux",
-              "tag": "8",
+              "tag": "7.8",
               "helmFullImageKey": "monitoringOperator.osInitImage"
             }
           ]
@@ -382,7 +327,6 @@
     },
     {
       "name": "oam-kubernetes-runtime",
-      "version": "0.3.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -390,7 +334,7 @@
           "images": [
             {
               "image": "oam-kubernetes-runtime",
-              "tag": "v0.3.3-20230922080726-c8b5d4a",
+              "tag": "v0.3.0-20210222205541-9e8d4fb",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -400,7 +344,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "VERRAZZANO_VERSION",
+      "version": "1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -416,25 +360,7 @@
       ]
     },
     {
-      "name": "verrazzano-cluster-agent",
-      "version": "VERRAZZANO_VERSION",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "verrazzano-cluster-agent",
-          "images": [
-            {
-              "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
-              "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
-              "helmFullImageKey": "image"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "verrazzano-application-operator",
-      "version": "VERRAZZANO_VERSION",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -451,7 +377,7 @@
     },
     {
       "name": "verrazzano-authproxy",
-      "version": "VERRAZZANO_VERSION",
+      "version": "2.0.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -468,7 +394,6 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.1.2",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -476,12 +401,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.2",
+              "tag": "3.2.2",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.5",
+              "tag": "2.0.4",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -490,7 +415,6 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.11",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -498,8 +422,367 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.11",
+              "tag": "3.1.3",
               "helmFullImageKey": "image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mysql",
+      "version": "8.0.30",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-upgrade",
+          "images": [
+            {
+              "image": "mysql-server",
+              "tag": "8.0.30",
+              "helmFullImageKey": "legacyUpgrade.container.image"
+            },
+            {
+              "image": "oraclelinux",
+              "tag": "7-slim",
+              "helmFullImageKey": "legacyUpgrade.initContainer.image"
+            }
+          ]
+        },
+        {
+          "registry": "ghcr.io",
+          "repository": "verrazzano",
+          "name": "additional-mysql",
+          "images": [
+            {
+              "image": "mysql-router",
+              "tag": "8.0.30"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "mysql-operator",
+      "version": "8.0.30",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "mysql-operator",
+          "images": [
+            {
+              "image": "mysql-operator",
+              "tag": "8.0.30-2.0.6",
+              "helmRegKey": "image.registry",
+              "helmRepoKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "keycloak",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "keycloak",
+          "images": [
+            {
+              "image": "keycloak",
+              "tag": "10.0.1-20201016212759-30d98b0",
+              "helmFullImageKey": "keycloak.image.repository",
+              "helmTagKey": "keycloak.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "keycloak-oracle-theme",
+          "images": [
+            {
+              "image": "keycloak-oracle-theme",
+              "tag": "0.15.0-20210510085250-01638c7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-operator",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-operator",
+          "images": [
+            {
+              "image": "prometheus-operator",
+              "tag": "v0.55.1",
+              "helmFullImageKey": "prometheusOperator.image.repository",
+              "helmTagKey": "prometheusOperator.image.tag"
+            },
+            {
+              "image": "kube-webhook-certgen",
+              "tag": "1.1.1-20220414195226-864e56292",
+              "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
+              "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-config-reloader",
+          "images": [
+            {
+              "image": "prometheus-config-reloader",
+              "tag": "v0.55.1",
+              "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
+              "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "alertmanager",
+          "images": [
+            {
+              "image": "alertmanager",
+              "tag": "v0.24.0",
+              "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
+              "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "prometheus",
+          "images": [
+            {
+              "image": "prometheus",
+              "tag": "v2.34.0",
+              "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
+              "helmTagKey": "prometheus.prometheusSpec.image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-adapter",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-adapter",
+          "images": [
+            {
+              "image": "prometheus-adapter",
+              "tag": "v0.9.1-3",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "kube-state-metrics",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "kube-state-metrics",
+          "images": [
+            {
+              "image": "kube-state-metrics",
+              "tag": "v2.6.0",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "prometheus-pushgateway",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "prometheus-pushgateway",
+          "images": [
+            {
+              "image": "prometheus-pushgateway",
+              "tag": "v1.4.2",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "jaeger",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-operator",
+          "images": [
+            {
+              "image": "jaeger-operator",
+              "tag": "1.34.1-20220705001411-cfb06635",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-agent",
+          "images": [
+            {
+              "image": "jaeger-agent",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerAgentImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-collector",
+          "images": [
+            {
+              "image": "jaeger-collector",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerCollectorImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-query",
+          "images": [
+            {
+              "image": "jaeger-query",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerQueryImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-ingester",
+          "images": [
+            {
+              "image": "jaeger-ingester",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerIngesterImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-index-cleaner",
+          "images": [
+            {
+              "image": "jaeger-es-index-cleaner",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESIndexCleanerImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-es-rollover",
+          "images": [
+            {
+              "image": "jaeger-es-rollover",
+              "tag": "1.34.1-20220714175451-1fdab0ff",
+              "helmFullImageKey": "jaegerESRolloverImage"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "jaeger-all-in-one",
+          "images": [
+            {
+              "image": "jaeger-all-in-one",
+              "tag": "1.34.1-20220718052137-ae4bd702",
+              "helmFullImageKey": "jaegerAllInOneImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "velero",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "velero",
+          "images": [
+            {
+              "image": "velero",
+              "tag": "v1.8.1",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            },
+            {
+              "image": "velero-plugin-for-aws",
+              "tag": "v1.4.1",
+              "helmFullImageKey": "initContainers[0].image"
+            },
+            {
+              "image": "velero-restic-restore-helper",
+              "tag": "v1.8.1",
+              "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "argocd",
+      "version": "latest",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "argocd",
+          "images": [
+            {
+              "image": "argocd",
+              "tag": "latest",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        },
+        {
+          "repository": "verrazzano",
+          "name": "redis",
+          "images": [
+            {
+              "image": "redis",
+              "tag": "v7.0.5",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "thanos",
+      "version": "v0.28.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "thanos",
+          "images": [
+            {
+              "image": "thanos",
+              "tag": "v0.28.0-20230306212904-40834118",
+              "helmRegKey": "image.registry",
+              "helmFullImageKey": "image.repository",
+              "helmTagKey": "image.tag"
             }
           ]
         }
@@ -515,13 +798,13 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230922080640-052953d",
+              "tag": "v2.2.0-20230526122409-3662eb4",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
             {
               "image": "fluent-bit",
-              "tag": "v2.0.11-20230922080458-cc5f50963",
+              "tag": "v2.0.11-20230526122435-3bff26487",
               "helmFullImageKey": "fluentbit.image.repository",
               "helmTagKey": "fluentbit.image.tag"
             },
@@ -537,447 +820,8 @@
       ]
     },
     {
-      "name": "kiali-server",
-      "version": "1.66.1",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "kiali-server",
-          "images": [
-            {
-              "image": "kiali",
-              "tag": "v1.66.1-20230922084106-c7e9a3fe",
-              "helmFullImageKey": "deployment.image_name",
-              "helmTagKey": "deployment.image_version"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "mysql",
-      "version": "8.0.32",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "mysql-upgrade",
-          "images": [
-            {
-              "image": "mysql-server",
-              "tag": "8.0.32",
-              "helmFullImageKey": "legacyUpgrade.container.image"
-            },
-            {
-              "repository": "oracle",
-              "image": "oraclelinux",
-              "tag": "8-slim",
-              "helmFullImageKey": "legacyUpgrade.initContainer.image"
-            }
-          ]
-        },
-        {
-          "registry": "ghcr.io",
-          "repository": "verrazzano",
-          "name": "additional-mysql",
-          "images": [
-            {
-              "image": "mysql-router",
-              "tag": "8.0.32"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "mysql-operator",
-      "version": "8.0.32",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "mysql-operator",
-          "images": [
-            {
-              "image": "mysql-operator",
-              "tag": "8.0.32-2.0.8",
-              "helmRegKey": "image.registry",
-              "helmRepoKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "keycloak",
-      "version": "20.0.1",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "keycloak",
-          "images": [
-            {
-              "image": "keycloak",
-              "tag": "v20.0.1-20230923031034-a5c064d9f2",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "keycloak-oracle-theme",
-          "images": [
-            {
-              "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "prometheus-operator",
-      "version": "0.64.1",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "prometheus-operator",
-          "images": [
-            {
-              "image": "prometheus-operator",
-              "tag": "v0.64.1-20230922083452-0d565bbd",
-              "helmRegKey": "prometheusOperator.image.registry",
-              "helmFullImageKey": "prometheusOperator.image.repository",
-              "helmTagKey": "prometheusOperator.image.tag"
-            },
-            {
-              "image": "kube-webhook-certgen",
-              "tag": "v1.7.1-20230817215350-c8315d559",
-              "helmRegKey": "prometheusOperator.admissionWebhooks.patch.image.registry",
-              "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
-              "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "prometheus-config-reloader",
-          "images": [
-            {
-              "image": "prometheus-config-reloader",
-              "tag": "v0.64.1-20230922083452-0d565bbd",
-              "helmRegKey": "prometheusOperator.prometheusConfigReloader.image.registry",
-              "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
-              "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "alertmanager",
-          "images": [
-            {
-              "image": "alertmanager",
-              "tag": "v0.25.0-20230922084030-660afb41",
-              "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
-              "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
-              "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "prometheus",
-          "images": [
-            {
-              "image": "prometheus",
-              "tag": "v2.44.0-20230922084259-74087370",
-              "helmRegKey": "prometheus.prometheusSpec.image.registry",
-              "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
-              "helmTagKey": "prometheus.prometheusSpec.image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "prometheus-adapter",
-      "version": "0.10.0",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "prometheus-adapter",
-          "images": [
-            {
-              "image": "prometheus-adapter",
-              "tag": "v0.10.0-20230922082621-9313ff7b",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "kube-state-metrics",
-      "version": "2.10.0",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "kube-state-metrics",
-          "images": [
-            {
-              "image": "kube-state-metrics",
-              "tag": "v2.10.0-20230925145429-85dfe41a",
-              "helmRegKey": "image.registry",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "prometheus-pushgateway",
-      "version": "1.6.2",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "prometheus-pushgateway",
-          "images": [
-            {
-              "image": "prometheus-pushgateway",
-              "tag": "v1.6.2-20230925134721-9944fc39",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "prometheus-node-exporter",
-      "version": "1.3.1",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "prometheus-node-exporter",
-          "images": [
-            {
-              "image": "node-exporter",
-              "tag": "v1.3.1-20230605074155-b7f69924",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "jaeger-operator",
-      "version": "1.42.0",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-operator",
-          "images": [
-            {
-              "image": "jaeger-operator",
-              "tag": "1.42.0-20230922084214-9970d003",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-agent",
-          "images": [
-            {
-              "image": "jaeger-agent",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerAgentImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-collector",
-          "images": [
-            {
-              "image": "jaeger-collector",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerCollectorImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-query",
-          "images": [
-            {
-              "image": "jaeger-query",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerQueryImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-ingester",
-          "images": [
-            {
-              "image": "jaeger-ingester",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerIngesterImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-es-index-cleaner",
-          "images": [
-            {
-              "image": "jaeger-es-index-cleaner",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerESIndexCleanerImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-es-rollover",
-          "images": [
-            {
-              "image": "jaeger-es-rollover",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerESRolloverImage"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "jaeger-all-in-one",
-          "images": [
-            {
-              "image": "jaeger-all-in-one",
-              "tag": "1.42.0-20230925061552-cd357656",
-              "helmFullImageKey": "jaegerAllInOneImage"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "velero",
-      "version": "1.9.1",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "velero",
-          "images": [
-            {
-              "image": "velero",
-              "tag": "v1.9.1-20230922085006-edba946d",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            },
-            {
-              "image": "velero-plugin-for-aws",
-              "tag": "v1.5.0-20230922084241-9b26984f",
-              "helmFullImageKey": "initContainers[0].image"
-            },
-            {
-              "image": "velero-restic-restore-helper",
-              "tag": "v1.9.1-20230922085006-edba946d",
-              "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "rancher-backup",
-      "version": "3.1.0",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "rancher-backup",
-          "images": [
-            {
-              "image": "rancher-backup-restore-operator",
-              "tag": "v3.1.0-20230922084053-385811a",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "rancher-backup-kubectl",
-          "images": [
-            {
-              "image": "rancher-kubectl",
-              "tag": "v1.20.2-20230922084020-2f0ea54",
-              "helmFullImageKey": "global.kubectl.repository",
-              "helmTagKey": "global.kubectl.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "argocd",
-      "version": "2.7.2",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "argocd",
-          "images": [
-            {
-              "image": "argocd",
-              "tag": "v2.7.2-20230919043605-fc41216e",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        },
-        {
-          "repository": "verrazzano",
-          "name": "redis",
-          "images": [
-            {
-              "image": "redis",
-              "tag": "v7.0.12-20230921093854-848a7e94",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "thanos",
-      "version": "0.32.2",
-      "subcomponents": [
-        {
-          "repository": "verrazzano",
-          "name": "thanos",
-          "images": [
-            {
-              "image": "thanos",
-              "tag": "v0.32.2-20230911193410-1e27f1f9",
-              "helmRegKey": "image.registry",
-              "helmFullImageKey": "image.repository",
-              "helmTagKey": "image.tag"
-            }
-          ]
-        }
-      ]
-    },
-    {
       "name": "dex",
-      "version": "2.37.0",
+      "version": "v2.37.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -985,7 +829,7 @@
           "images": [
             {
               "image": "dex",
-              "tag": "v2.37.0-20230911122845-caabc629",
+              "tag": "v2.37.0-20230817041111-f7ab1c7c",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -993,6 +837,5 @@
         }
       ]
     }
-  ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
+  ]
 }

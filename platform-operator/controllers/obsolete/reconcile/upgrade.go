@@ -6,7 +6,7 @@ package reconcile
 import (
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
