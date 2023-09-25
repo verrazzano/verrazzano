@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	unitTestBomFile           = "../../../../verrazzano-bom.json"
-	appRestartUnitTestBomFile = "../../../../../pkg/bom/testdata/verrazzano-bom.json"
+	unitTestBomFile           = "../../../verrazzano-bom.json"
+	appRestartUnitTestBomFile = "../../../../pkg/bom/testdata/verrazzano-bom.json"
 	oldIstioImage             = "proxyv2:1.4.3"
 )
 
