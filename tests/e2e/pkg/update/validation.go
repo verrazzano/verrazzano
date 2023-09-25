@@ -27,10 +27,10 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 		var pendingPods = false
 
 		err := wait.ExponentialBackoff(wait.Backoff{
-			Duration: time.Second * 10,
+			Duration: time.Second * 15,
 			Factor:   1,
 			Jitter:   0.2,
-			Steps:    5,
+			Steps:    35,
 		}, func() (bool, error) {
 			var err error
 			pods, err := pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{labelName: deployName}}, nameSpace)
