@@ -29,7 +29,6 @@ RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs ope
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano \
     && curl --proto "=https" -L https://github.com/verrazzano/cluster-api/releases/download/v1.4.6/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl \
-    && chown verrazzano:verrazzano /usr/local/bin/clusterctl \
     && chmod 500 /usr/local/bin/clusterctl
 
 # Copy the operator binary
