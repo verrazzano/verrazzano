@@ -6,9 +6,9 @@ package nginx
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
@@ -53,5 +53,5 @@ func (c nginxComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verraz
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c nginxComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{istio.ComponentName, fluentoperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{common.IstioComponentName, fluentoperator.ComponentName})
 }

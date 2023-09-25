@@ -8,12 +8,15 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"testing"
 )
 
-const catalogPath = "../../platform-operator/manifests/catalog/catalog.yaml"
-const bomPath = "../../platform-operator/verrazzano-bom.json"
+const catalogPath = "../../../manifests/catalog/catalog.yaml"
+const bomPath = "../../../verrazzano-bom.json"
+const testBOMPath = "../testdata/test_bom.json"
 
 type bomSubcomponentOverrides struct {
 	subcomponentName string
@@ -36,6 +39,8 @@ var subcomponentOverrides = map[string]bomSubcomponentOverrides{
 
 // TestCatalogModuleVersions makes sure the module versions in the catalog are up-to-date with the Bom
 func TestNewCatalogModuleVersions(t *testing.T) {
+	config.SetDefaultBomFilePath(bomPath)
+
 	catalog, err := NewCatalog(catalogPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, catalog)
@@ -68,7 +73,21 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 	}
 }
 
+// TestNewCatalogModuleVersionsTestBOM makes sure the internal components are being set properly from the BOM
+func TestNewCatalogModuleVersionsTestBOM(t *testing.T) {
+	config.SetDefaultBomFilePath(testBOMPath)
+
+	catalog, err := NewCatalog(catalogPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, catalog)
+
+	assert.Equalf(t, "1.1.0", catalog.GetVersion(appoper.ComponentName),
+		"Catalog entry for module verrazzno-application-operator is incorrect")
+}
+
 func TestGetVersionForAllRegistryComponents(t *testing.T) {
+	config.SetDefaultBomFilePath(bomPath)
+
 	catalog, err := NewCatalog(catalogPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, catalog)
