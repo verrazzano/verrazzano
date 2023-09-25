@@ -250,13 +250,13 @@ func addTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 	return httpMock
 }
 
-func addVerrazzanoSystemNamespaceMock(httpMock *mocks.MockRequestSender, clusterId string, exists bool) *mocks.MockRequestSender {
+func addVerrazzanoSystemNamespaceMock(httpMock *mocks.MockRequestSender, clusterID string, exists bool) *mocks.MockRequestSender {
 	status := http.StatusOK
 	if !exists {
 		status = http.StatusNotFound
 	}
 	httpMock.EXPECT().
-		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(k8sClustersPath+clusterId+"/api/v1/namespaces/verrazzano-system")).
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(k8sClustersPath+clusterID+"/api/v1/namespaces/verrazzano-system")).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
 			var resp *http.Response
 			r := io.NopCloser(bytes.NewReader([]byte(`{"kind":"table", "apiVersion":"meta.k8s.io/v1"}`)))

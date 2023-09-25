@@ -188,18 +188,18 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 }
 
 // getWorkloadClusterRancherCACert retrieves the Rancher API endpoint CA certificate from the workload cluster
-func (r *RancherRegistration) getWorkloadClusterRancherCACert(workloadClient client.Client) ([]byte, error) {
-	caCrtSecret := &v1.Secret{}
-	err := workloadClient.Get(context.TODO(), types.NamespacedName{
-		Name:      "tls-ca",
-		Namespace: common.CattleSystem},
-		caCrtSecret)
-	if err != nil {
-		return nil, err
-	}
-	caCrt, ok := caCrtSecret.Data["tls.crt"]
-	if !ok {
-		return nil, fmt.Errorf("Workload cluster Rancher CA certificate not found in %s secret", constants.RancherTLSCAKey)
-	}
-	return caCrt, nil
-}
+//func (r *RancherRegistration) getWorkloadClusterRancherCACert(workloadClient client.Client) ([]byte, error) {
+//	caCrtSecret := &v1.Secret{}
+//	err := workloadClient.Get(context.TODO(), types.NamespacedName{
+//		Name:      "tls-ca",
+//		Namespace: common.CattleSystem},
+//		caCrtSecret)
+//	if err != nil {
+//		return nil, err
+//	}
+//	caCrt, ok := caCrtSecret.Data["tls.crt"]
+//	if !ok {
+//		return nil, fmt.Errorf("Workload cluster Rancher CA certificate not found in %s secret", constants.RancherTLSCAKey)
+//	}
+//	return caCrt, nil
+//}
