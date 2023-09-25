@@ -6,6 +6,7 @@ package mcagent
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
@@ -56,7 +57,7 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 		return true, nil
 	}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
-	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
+	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) && !strings.Contains(err.Error(), "clusters.verrazzano.io/v1alpha1: Unauthorized") {
 		reason, code := reasonAndCodeForError(err)
 		s.Log.Infof("unwrap: %v, err: %v, reason: %v, code: %d", errors.Unwrap(err), err, reason, code)
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
