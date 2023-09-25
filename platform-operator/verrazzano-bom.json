@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1",
+      "version": "1.9.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5",
+      "version": "2.7.5-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -273,7 +273,7 @@
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "v0.10.0-20230922082301-7cf62c11",
+              "tag": "v0.11.0-20230925134800-53d30b7f",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }

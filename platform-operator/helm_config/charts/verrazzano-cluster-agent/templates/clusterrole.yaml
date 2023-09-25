@@ -119,3 +119,10 @@ rules:
       - patch
       - update
       - watch
+  - apiGroups:
+      - install.verrazzano.io
+    resources:
+      - verrazzanos
+    verbs:
+      - list
+      - watch
