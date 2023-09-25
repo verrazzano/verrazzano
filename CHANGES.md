@@ -5,6 +5,7 @@ Component version updates:
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
 - NGINX Prometheus Exporter v0.11.0
+- Prometheus Pushgateway v1.6.2
 
 Features:
 
