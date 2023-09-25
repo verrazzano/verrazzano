@@ -11,7 +11,7 @@ import (
 	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
 )
 
 type ComponentHandler struct{}
@@ -46,18 +46,18 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	module := ctx.CR.(*moduleapi.Module)
 
 	// Update the Verrazzano component status
-	nsn, err := common2.GetVerrazzanoNSN(ctx)
+	nsn, err := common.GetVerrazzanoNSN(ctx)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	sd := common2.StatusData{
+	sd := common.StatusData{
 		Vznsn:    *nsn,
 		CondType: vzapi.CondUninstallStarted,
 		CompName: module.Spec.ModuleName,
 		Msg:      string(vzapi.CondUninstallStarted),
 		Ready:    false,
 	}
-	res := common2.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
 	if res.ShouldRequeue() {
 		return res
 	}
@@ -70,7 +70,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, constants.UninstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -94,7 +94,7 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, constants.UninstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -110,7 +110,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 // IsWorkDone Indicates whether a module is uninstalled
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, constants.UninstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -132,7 +132,7 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, constants.UninstallOperation)
+	compCtx, comp, err := common.GetComponentAndContext(ctx, constants.UninstallOperation)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -150,12 +150,12 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	module := ctx.CR.(*moduleapi.Module)
 
 	// Update the Verrazzano component status to disabled
-	vzNSN, err := common2.GetVerrazzanoNSN(ctx)
+	vzNSN, err := common.GetVerrazzanoNSN(ctx)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	res := common2.UpdateVerrazzanoComponentStatusToDisabled(ctx, *vzNSN, module.Spec.ModuleName)
+	res := common.UpdateVerrazzanoComponentStatusToDisabled(ctx, *vzNSN, module.Spec.ModuleName)
 	if res.ShouldRequeue() {
 		return res
 	}
