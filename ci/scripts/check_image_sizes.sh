@@ -43,6 +43,7 @@ declare -A IMAGENAME_SIZES_FILE_GENERATED
 IMAGE_DATA_OS=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
 IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
 IMAGE_SIZE_DIFF_FOUND="false"
+NEW_IMAGE_FOUND="false"
 
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do
@@ -56,7 +57,8 @@ done <<< "$IMAGE_DATA_GENERATED"
 # Check if imagenames in generated file are not in object store
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
   if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
-    echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt."
+    NEW_IMAGE_FOUND="true"
+    echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt." >> ${WORKSPACE}/newimagefound.txt
   fi
 done
 
@@ -67,12 +69,16 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
 # Check if image size has increased by 0.1 MB or more
-  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$((FILE_SIZE_GENERATED+1000000))" -gt "$((FILE_SIZE_OS+100000))" ]; then
+  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+100000))" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
     echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/result.txt
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
-         echo "Image size difference found"
+         echo "Image size difference found: "
          cat ${WORKSPACE}/result.txt
+fi
+
+if [ $NEW_IMAGE_FOUND == "true" ]; then
+         cat ${WORKSPACE}/newimagefound.txt
 fi
