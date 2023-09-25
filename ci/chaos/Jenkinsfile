@@ -463,6 +463,7 @@ pipeline {
                         # apply the CR
                         echo "Following is the verrazzano CR file with the updated version:"
                         cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                        kubectl get vz -A
                         kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                     fi
 
@@ -494,6 +495,7 @@ pipeline {
                             # apply the CR
                             echo "Following is the verrazzano CR file with the updated version:"
                             cat ${WORKSPACE}/verrazzano-upgrade-cr.yaml
+                            kubectl get vz -A
                             kubectl apply -f ${WORKSPACE}/verrazzano-upgrade-cr.yaml
                         fi
                     fi
