@@ -31,11 +31,12 @@ import (
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient        client.Client
-	LocalClient        client.Client
-	Log                *zap.SugaredLogger
-	ManagedClusterName string
-	Context            context.Context
+	AdminClient          client.Client
+	LocalClient          client.Client
+	LocalDiscoveryClient discovery.DiscoveryInterface
+	Log                  *zap.SugaredLogger
+	ManagedClusterName   string
+	Context              context.Context
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string
@@ -215,12 +216,7 @@ func (s *Syncer) updateVMCStatus() error {
 
 // getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
 func (s *Syncer) getWorkloadK8sVersion() (string, error) {
-	discoveryClient, err := getDiscoveryClientFunc()
-	if err != nil {
-		return "", fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
-	}
-
-	k8sVersion, err := discoveryClient.ServerVersion()
+	k8sVersion, err := s.LocalDiscoveryClient.ServerVersion()
 	if err != nil {
 		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster: %v", err)
 	}
@@ -234,9 +230,14 @@ func (s *Syncer) getWorkloadVZVersion() (string, error) {
 	if err := s.LocalClient.List(s.Context, vzList, &client.ListOptions{}); err != nil {
 		return "", fmt.Errorf("error listing Verrazzanos: %v", err)
 	}
-	if len(vzList.Items) != 1 {
-		return "", fmt.Errorf("number of Verrazzano installations should be 1, but was %d", len(vzList.Items))
+	if len(vzList.Items) > 1 {
+		return "", fmt.Errorf("cannot have more than 1 Verrazzano installation, found %d", len(vzList.Items))
 	}
+	if len(vzList.Items) == 0 {
+		// If there is no Verrazzano installed on this workload cluster, leave version empty but do not error
+		return "", nil
+	}
+	// Verrazzano is on this cluster, so get the version
 	vzState := string(vzList.Items[0].Status.Version)
 	return vzState, nil
 }
