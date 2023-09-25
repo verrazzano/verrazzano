@@ -141,6 +141,7 @@ docker-build-common:
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	@echo using verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
 	@echo using verrazzano-authproxy image ${VERRAZZANO_AUTHPROXY_IMAGE}
+	@echo using istio-istioctl image ${ISTIO_ISTIOCTL_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
