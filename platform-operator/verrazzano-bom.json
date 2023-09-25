@@ -1003,7 +1003,7 @@
           "images": [
             {
               "image": "opensearch-operator-jenkins",
-              "tag": "20230920054606-44fb6ff",
+              "tag": "20230925114537-e098b33",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
