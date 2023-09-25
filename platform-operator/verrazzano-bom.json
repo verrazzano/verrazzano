@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230818161107-07044c506",
+              "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.24.0",
               "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
@@ -171,7 +171,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.5-20230803175843-1a77563"
+              "tag": "v0.3.5-20230922100255-1a77563"
             },
             {
               "image": "rancher-fleet-agent",
@@ -183,11 +183,11 @@
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20230804152729-58582b0"
+              "tag": "v0.1.32-20230922083827-58582b0"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230626123339-15c72a6"
+              "tag": "v1.0.0-20230922083921-15c72a6"
             }
           ]
         }
