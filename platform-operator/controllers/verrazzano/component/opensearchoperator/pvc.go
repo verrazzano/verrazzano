@@ -111,7 +111,7 @@ func setPVsToRetain(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) erro
 }
 
 // createNewPVCs creates new PersistentVolumeClaims for older PersistentVolumes
-// based on the opensearchoperator naming convention
+// based on the opensearch-operator naming convention
 func createNewPVCs(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) error {
 	for _, node := range nodes {
 		nodePool := node.Name
@@ -152,7 +152,7 @@ func createNewPVCs(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) error
 					return err
 				}
 
-				// As per opensearchoperator naming convention
+				// As per opensearch-operator naming convention
 				newPVCName := fmt.Sprintf("data-%s-%s-%d", clusterName, nodePool, replicaCount)
 
 				err := createPVCFromPV(ctx, pv, types.NamespacedName{Namespace: constants.VerrazzanoLoggingNamespace, Name: newPVCName}, nodePool)
@@ -187,7 +187,7 @@ func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newCl
 			},
 		}
 
-		// Add labels required by opensearchoperator
+		// Add labels required by opensearch-operator
 		labels := make(map[string]string)
 		labels[clusterLabel] = clusterName
 		labels[nodePoolLabel] = nodePool

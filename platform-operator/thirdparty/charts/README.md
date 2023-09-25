@@ -234,10 +234,10 @@ The `opensearch-operator` folder was created by running the following commands:
 
 ```shell
 export OPENSEARCH_OPERATOR_CHART_VERSION=2.2.0
-helm repo add opensearchoperator https://opster.github.io/opensearch-k8s-operator/
+helm repo add opensearch-operator https://opster.github.io/opensearch-k8s-operator/
 helm repo update
-rm -rf opensearchoperator
-helm fetch opensearchoperator/opensearchoperator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
+rm -rf opensearch-operator
+helm fetch opensearch-operator/opensearch-operator --untar=true --version=${OPENSEARCH_OPERATOR_CHART_VERSION}
 ```
 
 ### Fluent Operator
