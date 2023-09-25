@@ -1,41 +1,9 @@
-# Verrazzano Specific
-# Create the securityconfig secret and admin-credential secret for OpenSearch
-# Required for Verrazzano Keycloak and cert authentication as well as the operator to connect to OpenSearch
-
-
-# Create the admin-credential secret
-# Use existing password if it exists, otherwise generate a new password
-{{- $secretObj := (lookup "v1" "Secret" .Release.Namespace "admin-credentials-secret") | default dict }}
-{{- $secretData := (get $secretObj "data") | default dict }}
-{{- $password := (get $secretData "password" | b64dec) | default (randAlphaNum 15) }}
-{{- $hash :=  (get $secretData "hash" | b64dec) | default ((splitList ":" (htpasswd "" $password)) | last | quote) }}
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: admin-credentials-secret
-  namespace: {{ .Release.Namespace }}
-type: Opaque
-data:
-  password: {{ $password | b64enc }}
-  username: {{ "admin" | b64enc }}
-  hash: {{ $hash | b64enc }}
----
-{{- $securityConfigSecret := (lookup "v1" "Secret" .Release.Namespace "securityconfig-secret") }}
-{{- $securityConfigSecretData := (get $securityConfigSecret "data") }}
-
 apiVersion: v1
 kind: Secret
 metadata:
   name: securityconfig-secret
-  namespace: {{ .Release.Namespace }}
+  namespace: verrazzano-logging
 type: Opaque
-{{- if $securityConfigSecretData }}
-data:
-  {{- range $k, $v := $securityConfigSecretData }}
-  {{ $k }}: {{ $v }}
-  {{- end }}
-{{- else }}
 stringData:
   action_groups.yml: |-
     _meta:
@@ -46,7 +14,7 @@ stringData:
       type: "internalusers"
       config_version: 2
     admin:
-      hash: {{ $hash }}
+      hash: 
       reserved: true
       backend_roles:
       - "admin"
@@ -116,12 +84,6 @@ stringData:
             - "*verrazzano*"
           allowed_actions:
             - indices_all
-  audit.yml: |-
-    _meta:
-      type: "audit"
-      config_version: "2"
-    config:
-      enabled: false
   config.yml: |-
     _meta:
       type: "config"
@@ -173,4 +135,3 @@ stringData:
                challenge: false
              authentication_backend:
                  type: noop
-{{- end }}
