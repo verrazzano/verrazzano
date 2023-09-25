@@ -231,7 +231,7 @@ func (s *Syncer) getWorkloadVZVersion() (string, error) {
 		return "", fmt.Errorf("error listing Verrazzanos: %v", err)
 	}
 	if len(vzList.Items) > 1 {
-		return "", fmt.Errorf("cannot have more than 1 Verrazzano installations, found %d", len(vzList.Items))
+		return "", fmt.Errorf("cannot have more than 1 Verrazzano installation, found %d", len(vzList.Items))
 	}
 	if len(vzList.Items) == 0 {
 		// If there is no Verrazzano installed on this workload cluster, leave version empty but do not error
