@@ -13,12 +13,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
 	Kubernetes *v1alpha1.AuthProxyKubernetesSection `json:"kubernetes,omitempty"`
 }
+
+var emptyConfig = valuesConfig{}
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
 func (c authProxyComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
@@ -31,6 +34,10 @@ func (c authProxyComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Ve
 	authProxy := effectiveCR.Spec.Components.AuthProxy
 	if authProxy.Kubernetes != nil {
 		configSnippet.Kubernetes = authProxy.Kubernetes.DeepCopy()
+	}
+
+	if reflect.DeepEqual(emptyConfig, configSnippet) {
+		return nil, nil
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
