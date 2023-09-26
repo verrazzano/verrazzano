@@ -431,20 +431,21 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.30",
+      "version": "8.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
-              "tag": "8.0.30",
+              "image": "community-server",
+              "tag": "8.1.0",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
+              "repository": "oracle",
               "image": "oraclelinux",
-              "tag": "7-slim",
+              "tag": "8-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
@@ -455,8 +456,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
-              "tag": "8.0.30"
+              "image": "community-router",
+              "tag": "8.1.0"
             }
           ]
         }

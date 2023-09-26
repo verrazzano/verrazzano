@@ -10,7 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
 	"time"
 )
 

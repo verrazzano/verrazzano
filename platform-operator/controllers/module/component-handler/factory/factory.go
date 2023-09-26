@@ -5,10 +5,10 @@ package factory
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
-	delete2 "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/delete"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/installupdate"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/migration"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/upgrade"
+	delete2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/delete"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/installupdate"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/migration"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/upgrade"
 )
 
 // NewModuleHandlerInfo creates a new ModuleHandlerInfo
