@@ -10,9 +10,6 @@ import (
 	"testing"
 	"time"
 
-	rbac "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -22,6 +19,8 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
@@ -525,6 +524,7 @@ func TestUpgrade(t *testing.T) {
 				Name:       "test-role",
 				Namespace:  ComponentNamespace,
 				Finalizers: []string{"test-finalizer"},
+				Labels:     map[string]string{providerLabel: controlPlaneOcneProvider},
 			},
 		},
 	).Build()

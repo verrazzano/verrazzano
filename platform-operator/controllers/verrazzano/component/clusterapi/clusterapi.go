@@ -21,8 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const rbacGroup = "rbac.authorization.k8s.io"
-
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
 images:
@@ -307,6 +305,7 @@ func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]clie
 	return componentObjects, nil
 }
 
+// getComponentsForProviderType - return a list of ClusterRoles, ClusterRoleBindings, Roles and RoleBindings that are associated with provider specified.
 func getComponentsForProviderType(c client.Client, providerName string, namespace string) ([]client.Object, error) {
 	var objs []client.Object
 
