@@ -44,7 +44,11 @@ func getOSDDeployments(ctx spi.ComponentContext) []types.NamespacedName {
 func isOSDReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
 	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
-		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(ctx), 1, prefix) {
+		replicas := int32(1)
+		if ctx.EffectiveCR().Spec.Components.Kibana != nil && ctx.EffectiveCR().Spec.Components.Kibana.Replicas != nil {
+			replicas = *ctx.EffectiveCR().Spec.Components.Kibana.Replicas
+		}
+		if !ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), getOSDDeployments(ctx), replicas, prefix) {
 			return false
 		}
 	}

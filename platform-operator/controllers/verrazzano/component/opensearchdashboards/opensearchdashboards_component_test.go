@@ -631,11 +631,12 @@ func TestPreInstall(t *testing.T) {
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -761,13 +762,14 @@ func TestGetCertificateNames(t *testing.T) {
 //	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

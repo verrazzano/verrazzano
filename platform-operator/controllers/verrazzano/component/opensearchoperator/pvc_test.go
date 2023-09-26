@@ -4,6 +4,7 @@
 package opensearchoperator
 
 import (
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"testing"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -46,7 +47,7 @@ func TestSetPVsToRetain(t *testing.T) {
 	err := setPVsToRetain(fakeCtx, nodePools)
 	assert.NoError(t, err)
 	// When retaining the PVs, the old reclaim policy label is set
-	pvList, err := getPVsBasedOnLabel(fakeCtx, constants.OldReclaimPolicyLabel, "Delete")
+	pvList, err := common.GetPVsBasedOnLabel(fakeCtx, constants.OldReclaimPolicyLabel, "Delete")
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(pvList))
 	for _, pv := range pvList {
@@ -64,7 +65,7 @@ func TestCreateNewPVCs(t *testing.T) {
 	err := createNewPVCs(fakeCtx, nodePools)
 	assert.NoError(t, err)
 
-	pvcList, err := getPVCsBasedOnLabel(fakeCtx, clusterLabel, clusterName)
+	pvcList, err := common.GetPVCsBasedOnLabel(fakeCtx, clusterLabel, clusterName)
 	assert.NoError(t, err)
 	assert.Equal(t, 4, len(pvcList))
 	for _, pvc := range pvcList {

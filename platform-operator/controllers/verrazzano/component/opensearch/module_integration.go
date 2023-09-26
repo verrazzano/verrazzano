@@ -67,6 +67,6 @@ func (o opensearchComponent) ShouldUseModule() bool {
 func (o opensearchComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{fluentoperator.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName}),
 	)
 }
