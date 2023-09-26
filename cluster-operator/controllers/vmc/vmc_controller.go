@@ -670,8 +670,6 @@ func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.V
 	}
 
 	// If there is an underlying CAPI cluster, set the state field according to the phase of the CAPI cluster.
-	// FIXME: remove print
-	fmt.Println("++++ inside updateState's CAPI cluster case")
 	capiClusterPhase, err := r.getCAPIClusterPhase(vmc.Status.ClusterRef)
 	if err != nil {
 		return err
@@ -701,7 +699,6 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef clus
 
 	// Get the state
 	phase, found, err := unstructured.NestedString(cluster.Object, "status", "phase")
-	fmt.Printf("++++ got a phase of %s", phase) // FIXME: remove print
 	if !found {
 		return "", err // FIXME: what to return
 	}
