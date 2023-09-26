@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
 	"os"
 	"os/exec"
@@ -52,6 +53,8 @@ var subcomponentOverrides = map[string][]bomSubcomponentOverrides{
 		{subcomponentName: "capi-ocne", imageName: "cluster-api-ocne-control-plane-controller"},
 	},
 }
+
+var runner vzos.CmdRunner = vzos.DefaultRunner{}
 
 // TestNewCatalogModuleVersions makes sure the module versions in the catalog are up-to-date with the Bom
 // GIVEN the module catalog
@@ -216,7 +219,12 @@ func TestCompareBOMWithRemote(t *testing.T) {
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
 	var out []byte
-	out, err := exec.Command("git", "diff", "--name-only", "remotes/origin/master...remotes/origin/"+os.Getenv("BRANCH_NAME")).Output()
+	_, err := exec.Command("git", "fetch", "origin").Output()
 	assert.NoError(t, err)
+
+	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...remotes/origin/"+os.Getenv("BRANCH_NAME"))
+	assert.NoError(t, err)
+	stdout, stderr, err := runner.Run(cmd)
+	assert.NoErrorf(t, err, "error: %s, %s", string(stdout), string(stderr))
 	return strings.Contains(string(out), "platform-operator/verrazzano-bom.json")
 }
