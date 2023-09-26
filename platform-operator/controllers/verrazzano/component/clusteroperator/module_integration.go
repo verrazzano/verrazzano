@@ -14,6 +14,5 @@ import (
 func (c clusterOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
 		watch.GetModuleInstalledWatches([]string{rancher.ComponentName, argocd.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{argocd.ComponentName}),
 	)
 }
