@@ -4,7 +4,6 @@
 package catalog
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
 	"os/exec"
@@ -218,21 +217,14 @@ func TestCompareBOMWithRemote(t *testing.T) {
 }
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
-	out0, err := exec.Command("git", "config", "--add", "remote.origin.fetch", "+refs/heads/master:refs/remotes/origin/master").Output()
-	assert.Empty(t, string(out0))
+	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", "+refs/heads/master:refs/remotes/origin/master").Output()
 	assert.NoError(t, err)
-	out, err := exec.Command("git", "fetch").Output()
-	assert.Empty(t, string(out))
+	_, err = exec.Command("git", "fetch").Output()
 	assert.NoError(t, err)
-	vzlog.DefaultLogger().Infof("test")
-	out1, err := exec.Command("git", "branch", "-a").Output()
-	assert.Empty(t, string(out1))
-	assert.NoError(t, err)
-
 	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...") // #nosec G204
-
 	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
-	assert.NoErrorf(t, err, "error: %s, %s", string(stdout), string(stderr))
+	assert.NoError(t, err)
+	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
 	return strings.Contains(string(stdout), "platform-operator/verrazzano-bom.json")
 }
