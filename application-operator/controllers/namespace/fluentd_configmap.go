@@ -11,8 +11,8 @@ import (
 	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	k8serrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"

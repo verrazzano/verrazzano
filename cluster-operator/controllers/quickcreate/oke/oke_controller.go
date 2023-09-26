@@ -9,8 +9,8 @@ import (
 	vmcv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/oci"
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 )

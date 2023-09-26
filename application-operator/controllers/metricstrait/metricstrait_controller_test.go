@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 

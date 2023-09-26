@@ -6,29 +6,14 @@ package mcagent
 import (
 	"context"
 	"errors"
+
 	"github.com/verrazzano/verrazzano/application-operator/constants"
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-func isUnauthorized(err error) bool {
-	if apierrors.IsUnauthorized(err) {
-		return true
-	}
-	groupErr := &discovery.ErrGroupDiscoveryFailed{}
-	if errors.As(err, &groupErr) {
-		for _, err := range groupErr.Groups {
-			if apierrors.IsUnauthorized(err) {
-				return true
-			}
-		}
-	}
-	return false
-}
 
 // syncMCAgentDeleteResources deletes the managed cluster resources if the correlating admin VMC gets deleted
 func (s *Syncer) syncDeregistration() error {
@@ -72,7 +57,7 @@ func (s *Syncer) verifyDeregister() (bool, error) {
 	}
 	err := s.AdminClient.Get(s.Context, vmcName, &vmc)
 	//	if client.IgnoreNotFound(err) != nil && !strings.Contains(err.Error(), "clusters.verrazzano.io/v1alpha1: Unauthorized") {
-	if client.IgnoreNotFound(err) != nil && !isUnauthorized(err) {
+	if client.IgnoreNotFound(err) != nil && !apierrors.IsUnauthorized(err) {
 		reason, code := reasonAndCodeForError(err)
 		s.Log.Infof("unwrap: %v, err: %v, reason: %v, code: %d", errors.Unwrap(err), err, reason, code)
 		s.Log.Errorf("Failed to get the VMC resources %s/%s from the admin cluster: %v", constants.VerrazzanoMultiClusterNamespace, s.ManagedClusterName, err)
