@@ -5,6 +5,7 @@ package weblogic
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"path/filepath"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -25,7 +26,6 @@ import (
 
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -58,7 +58,7 @@ func NewComponent() spi.Component {
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), "weblogic-values.yaml"),
 			PreInstallFunc:            WeblogicOperatorPreInstall,
 			AppendOverridesFunc:       AppendWeblogicOperatorOverrides,
-			Dependencies:              []string{networkpolicies.ComponentName, istio.ComponentName, fluentoperator.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, common.IstioComponentName, fluentoperator.ComponentName},
 			GetInstallOverridesFunc:   GetOverrides,
 			AvailabilityObjects: &ready.AvailabilityObjects{
 				DeploymentNames: []types.NamespacedName{

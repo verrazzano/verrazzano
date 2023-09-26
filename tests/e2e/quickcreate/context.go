@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	Ocneoci = "ocneoci"
-	Oke     = "oke"
+	Ocneoci   = "ocneoci"
+	Oke       = "oke"
+	Namespace = "NAMESPACE"
 )
 
 var (
@@ -74,6 +75,7 @@ func (qc *QCContext) setDynamicValues() error {
 	}
 	qc.Parameters = parameters
 	qc.RawObjects = rawObjects
+	qc.Parameters[Namespace] = qc.Namespace
 
 	if qc.isOCICluster() {
 		err = qc.Parameters.prepareOCI(qc.ClusterType)
@@ -97,11 +99,11 @@ func (qc *QCContext) setup() error {
 }
 
 func (qc *QCContext) applyOCIClusterIdentity() error {
-	return k8sutil.NewYAMLApplier(qc.Client, qc.Namespace).ApplyBT(ociClusterIdentity, qc.Parameters)
+	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(ociClusterIdentity, qc.Parameters)
 }
 
 func (qc *QCContext) applyCluster() error {
-	return k8sutil.NewYAMLApplier(qc.Client, qc.Namespace).ApplyBT(qc.RawObjects, qc.Parameters)
+	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(qc.RawObjects, qc.Parameters)
 }
 
 func (qc *QCContext) getInputValues() ([]byte, input, error) {

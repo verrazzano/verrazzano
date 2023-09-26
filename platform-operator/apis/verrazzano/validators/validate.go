@@ -121,7 +121,7 @@ func GetCurrentBomVersion() (*semver.SemVersion, error) {
 		if len(os.Getenv("VZ_INSTALL_VERSION")) > 0 {
 			v = os.Getenv("VZ_INSTALL_VERSION")
 		} else {
-			v = "1.0.1"
+			v = "0.0.0"
 		}
 	}
 	return semver.NewSemVersion(fmt.Sprintf("v%s", v))

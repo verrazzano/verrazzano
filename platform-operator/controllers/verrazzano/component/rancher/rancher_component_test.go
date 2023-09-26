@@ -1354,11 +1354,14 @@ func prepareContexts() (spi.ComponentContext, spi.ComponentContext) {
 		Build()
 	ctxWithIngress := spi.NewFakeContext(clientWithIngress, &vzDefaultCA, nil, false, profilesRelativePath)
 
-	// Setup OCI KontainerDriver with fake client and context
-	driverName := common.KontainerDriverOCIName
-	driverObj := createKontainerDriver(driverName)
-	driverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), driverObj)
+	// Setup OCI KontainerDrivers with fake client and context
+	ocneDriverName := common.KontainerDriverOCIName
+	ocneDriverObj := createKontainerDriver(ocneDriverName)
+	ocneDriverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
+	okeCapiDriverName := common.KontainerDriverOKECAPIName
+	okeCapiDriverObj := createKontainerDriver(okeCapiDriverName)
+	okeCapiDriverObj.UnstructuredContent()["spec"].(map[string]interface{})["active"] = false
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(getScheme(), ocneDriverObj, okeCapiDriverObj)
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 
 	// mock the pod executor when resetting the Rancher admin password

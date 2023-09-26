@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
 // webhookOCIValuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
@@ -19,6 +20,8 @@ type webhookOCIValuesConfig struct {
 	ClusterResourceNamespace string                `json:"clusterResourceNamespace,omitempty"`
 	IssuerConfig             v1alpha1.IssuerConfig `json:"issuerConfig"`
 }
+
+var emptyConfig = webhookOCIValuesConfig{}
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON webhookOCIValuesConfig representing the portion of the Verrazzano CR that corresponds to the module
 func (c certManagerWebhookOCIComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
@@ -43,6 +46,10 @@ func (c certManagerWebhookOCIComponent) GetModuleConfigAsHelmValues(effectiveCR 
 		OCIConfigSecret:          ociConfigSecret,
 		ClusterResourceNamespace: clusterResourceNamespace,
 		IssuerConfig:             clusterIssuer.IssuerConfig,
+	}
+
+	if reflect.DeepEqual(emptyConfig, configSnippet) {
+		return nil, nil
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)

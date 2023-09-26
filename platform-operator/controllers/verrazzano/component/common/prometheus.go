@@ -21,12 +21,6 @@ import (
 
 const keycloakHTTPService = "keycloak-http"
 
-// PrometheusOperatorComponentName is the name of the Prometheus Operator component
-const PrometheusOperatorComponentName = "prometheus-operator"
-
-// PrometheusOperatorComponentNamespace is the namespace of the component
-const PrometheusOperatorComponentNamespace = constants.VerrazzanoMonitoringNamespace
-
 // UpdatePrometheusAnnotations updates annotations on the Prometheus CR to include the outbound IP for Keycloak
 func UpdatePrometheusAnnotations(ctx spi.ComponentContext, prometheusNamespace string, promOperComponentName string) error {
 	// Get a list of Prometheus in the verrazzano-monitoring namespace

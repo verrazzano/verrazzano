@@ -13,7 +13,7 @@ import (
 const (
 	OciUserID      = "OCI_USER_ID"
 	OciFingerprint = "OCI_CREDENTIALS_FINGERPRINT"
-	OciRegion      = "OCI_REGION"
+	OciRegion      = "CAPI_CLUSTER_REGION"
 	OciCompartment = "OCI_COMPARTMENT_ID"
 	OciTenancyID   = "OCI_TENANCY_ID"
 	PubKey         = "CAPI_NODE_SSH_KEY_PATH"
