@@ -757,7 +757,7 @@
     },
     {
       "name": "prometheus-node-exporter",
-      "version": "1.3.1",
+      "version": "1.6.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -765,7 +765,8 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230925070337-b7f69924",
+              "tag": "v1.6.1-20230925193620-d2d52786",
+              "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

@@ -9,6 +9,7 @@ Component version updates:
 - Kube State Metrics v2.10.0
 - NGINX Prometheus Exporter v0.11.0
 - Prometheus Pushgateway v1.6.2
+- Prometheus Node Exporter v1.6.1
 
 
 Features:
