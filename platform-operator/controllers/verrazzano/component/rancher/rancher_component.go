@@ -591,7 +591,7 @@ func (r rancherComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
 		return err
 	}
-	return common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName)
+	return activateKontainerDrivers(ctx, dynClient)
 }
 
 // PreUninstall - prepare for Rancher uninstall
@@ -647,7 +647,7 @@ func (r rancherComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err = common.UpdateKontainerDriverURLs(ctx, dynClient); err != nil {
 		return err
 	}
-	if err := common.ActivateKontainerDriver(ctx, dynClient, common.KontainerDriverOCIName); err != nil {
+	if err := activateKontainerDrivers(ctx, dynClient); err != nil {
 		return log.ErrorfThrottledNewErr("Failed to activate kontainerdriver post upgrade: %s", err.Error())
 	}
 	return cleanupRancherResources(context.TODO(), ctx.Client())
@@ -1034,4 +1034,14 @@ func getSecret(namespace string, name string) (*v1.Secret, error) {
 		return nil, err
 	}
 	return v1Client.Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+// activateKontainerDrivers - activate OCI OCNE and OKE CAPI kontainerdrivers
+func activateKontainerDrivers(ctx spi.ComponentContext, dynClient dynamic.Interface) error {
+	for _, name := range []string{common.KontainerDriverOCIName, common.KontainerDriverOKECAPIName} {
+		if err := common.ActivateKontainerDriver(ctx, dynClient, name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
