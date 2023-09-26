@@ -114,7 +114,7 @@
               "tag": "v0.12.2-20230922083811-49b4f66e",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
-              "helmTagKey": "image.tag"
+              "helmTagKey": "image.tag1"
             }
           ]
         }
@@ -226,7 +226,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.1"
+              "tag": "v0.12.11"
             }
           ]
         }
