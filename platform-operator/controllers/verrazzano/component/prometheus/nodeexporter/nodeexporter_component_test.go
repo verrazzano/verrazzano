@@ -4,12 +4,17 @@
 package nodeexporter
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -251,4 +256,25 @@ func TestPreInstallcomponent(t *testing.T) {
 	c := fake.NewClientBuilder().Build()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
 	assert.Nil(t, NewComponent().PreInstall(ctx))
+}
+
+// TestPreUpgrade tests the component PreUpgrade function
+func TestPreUpgrade(t *testing.T) {
+	// GIVEN a previous installation of node-exporter and the node-exporter daemonset exists
+	// WHEN the component PreUpgrade function is called
+	// THEN the daemonset is deleted and PreUpgrade does not return an error
+	ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: daemonsetName}}
+
+	c := fake.NewClientBuilder().WithObjects(ds).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, NewComponent().PreUpgrade(ctx))
+
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: daemonsetName}, ds)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// GIVEN a previous installation of node-exporter and the node-exporter daemonset does not exist
+	// WHEN the component PreUpgrade function is called
+	// THEN PreUpgrade does not return an error
+	assert.Nil(t, NewComponent().PreUpgrade(ctx))
 }
