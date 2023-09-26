@@ -103,7 +103,7 @@ func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
 }
 
 // CreateIndexPatterns creates the required index patterns using osd client
-func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	pas, err := GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (r *Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileCo
 }
 
 // CreateDefaultISMPolicies creates default ISM policies in OpenSearch
-func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func (r *Reconciler) CreateDefaultISMPolicies(controllerCtx controllerspi.Reconc
 }
 
 // DeleteDefaultISMPolicies deletes default ISM polcies from OpenSearch
-func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
@@ -137,7 +137,7 @@ func (r *Reconciler) DeleteDefaultISMPolicies(controllerCtx controllerspi.Reconc
 }
 
 // ConfigureISMPolicies configures ISM policies added by user in Vz cr
-func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+func (r Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
 	osClient, err := r.getOSClient()
 	if err != nil {
 		return err
@@ -147,7 +147,7 @@ func (r *Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileC
 }
 
 // getOSClient gets tbe OS client
-func (r *Reconciler) getOSClient() (*OSClient, error) {
+func (r Reconciler) getOSClient() (*OSClient, error) {
 	pas, err := GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return nil, err
@@ -156,7 +156,7 @@ func (r *Reconciler) getOSClient() (*OSClient, error) {
 	return osClient, nil
 }
 
-func (r *Reconciler) GetVerrazzanoCR() (*vzv1alpha1.Verrazzano, error) {
+func (r Reconciler) GetVerrazzanoCR() (*vzv1alpha1.Verrazzano, error) {
 	nsn, err := r.GetVerrazzanoNSN()
 	if err != nil {
 		return nil, err
@@ -169,7 +169,7 @@ func (r *Reconciler) GetVerrazzanoCR() (*vzv1alpha1.Verrazzano, error) {
 	return vz, nil
 }
 
-func (r *Reconciler) GetVerrazzanoNSN() (*types.NamespacedName, error) {
+func (r Reconciler) GetVerrazzanoNSN() (*types.NamespacedName, error) {
 	vzlist := &vzv1alpha1.VerrazzanoList{}
 	if err := r.Client.List(context.TODO(), vzlist); err != nil {
 		return nil, err

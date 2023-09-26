@@ -32,7 +32,7 @@ func InitController(mgr ctrlruntime.Manager) error {
 
 	// The config MUST contain at least the Reconciler.  Other spi interfaces are optional.
 	config := basecontroller.ControllerConfig{
-		Reconciler: &controller,
+		Reconciler:  &controller,
 		EventFilter: &controller,
 	}
 	baseController, err := basecontroller.CreateControllerAndAddItToManager(mgr, config)
