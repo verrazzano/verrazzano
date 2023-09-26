@@ -154,9 +154,3 @@ func checkGroupVersion(readBytes []byte, gv *schema.GroupVersion) error {
 	}
 	return nil
 }
-
-func setAPIVersionAndKind(vz v1beta1.Verrazzano) v1beta1.Verrazzano {
-	vz.APIVersion = "install.verrazzano.io/v1beta1"
-	vz.Kind = "Verrazzano"
-	return vz
-}
