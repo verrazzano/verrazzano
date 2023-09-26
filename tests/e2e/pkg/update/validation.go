@@ -30,19 +30,16 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 			Duration: time.Second * 15,
 			Factor:   1,
 			Jitter:   0.2,
-			Steps:    35,
+			Steps:    15,
 		}, func() (bool, error) {
 			var err error
-			pkg.Log(pkg.Info, fmt.Sprintf("validating pods with label %s=%s", labelName, deployName))
 			pods, err := pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{labelName: deployName}}, nameSpace)
 			if err != nil {
 				return false, err
 			}
-			pkg.Log(pkg.Info, fmt.Sprintf("pods found with label %s=%s: %d", labelName, deployName, len(pods)))
 			runningPods, pendingPods = getReadyPods(pods)
 			// Compare the number of running/pending pods to the expected numbers
 			if runningPods != expectedPodsRunning || pendingPods != hasPending {
-				pkg.Log(pkg.Error, fmt.Sprintf("either running pod %d != expectedpod %d or pending pods %t != exepected pending pod %t ", runningPods, expectedPodsRunning, hasPending, pendingPods))
 				return false, nil
 			}
 			return true, nil

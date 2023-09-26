@@ -228,7 +228,6 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 			pkg.Log(pkg.Error, err.Error())
 			return false
 		}
-		pkg.Log(pkg.Info, fmt.Sprintf("update CR plugins enabled %t with plugins: %s", cr.Spec.Components.Elasticsearch.Plugins.Enabled, cr.Spec.Components.Elasticsearch.Plugins.InstallList))
 		if err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr); err != nil {
 			pkg.Log(pkg.Error, err.Error())
 			return false
