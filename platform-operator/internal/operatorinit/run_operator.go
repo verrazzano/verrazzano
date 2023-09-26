@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearchoperator"
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/factory"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/reconcile"
@@ -24,7 +25,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/integration-controllers/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"

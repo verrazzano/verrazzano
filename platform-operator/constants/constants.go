@@ -303,3 +303,6 @@ const DexIngress = "dex"
 
 // DexHostPrefix - the prefix of the Dex host
 const DexHostPrefix = "auth"
+
+// OpenSearchIntegrationConfigMap - the name of the OpenSearch integration configmap
+const OpenSearchIntegrationConfigMapName = "opensearch-integration"
