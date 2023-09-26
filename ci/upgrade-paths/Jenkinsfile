@@ -1684,6 +1684,8 @@ def dumpVerrazzanoPlatformOperatorLogs(count) {
                 kubectl -n verrazzano-install describe pod --selector=app=verrazzano-platform-operator > ${LOG_DIR}/verrazzano-platform-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
                 echo "verrazzano-platform-operator logs dumped to verrazzano-platform-operator-pod.log"
                 echo "verrazzano-platform-operator pod description dumped to verrazzano-platform-operator-pod.out"
+                kubectl -n keycloak logs keycloak-0 > ${LOG_DIR}/keycloakprev.log -p --tail -1 || echo "failed dumping keycloak prev log for cluster $count "
+                kubectl -n keycloak logs keycloak-0 > ${LOG_DIR}/keycloak.log --tail -1 || echo "failed dumping keycloak current log for cluster $count "
                 echo "------------------------------------------"
             """
         }
