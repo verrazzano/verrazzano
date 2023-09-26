@@ -50,7 +50,9 @@ var subcomponentOverrides = map[string][]bomSubcomponentOverrides{
 	},
 }
 
-// TestCatalogModuleVersions makes sure the module versions in the catalog are up-to-date with the Bom
+// TestNewCatalogModuleVersions makes sure the module versions in the catalog are up-to-date with the Bom
+// GIVEN the module catalog
+// ENSURE that each module's version is up to date with the bom version
 func TestNewCatalogModuleVersions(t *testing.T) {
 	config.SetDefaultBomFilePath(bomPath)
 
@@ -89,6 +91,8 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 }
 
 // TestNewCatalogModuleVersionsTestBOM makes sure the internal components are being set properly from the BOM
+// GIVEN a fake BOM
+// ENSURE the app operator has the expected version
 func TestNewCatalogModuleVersionsTestBOM(t *testing.T) {
 	config.SetDefaultBomFilePath(testBOMPath)
 
@@ -100,6 +104,9 @@ func TestNewCatalogModuleVersionsTestBOM(t *testing.T) {
 		"Catalog entry for module verrazzno-application-operator is incorrect")
 }
 
+// TestGetVersionForAllRegistryComponents compares the catalog and the component registry
+// GIVEN the module catalog
+// ENSURE that each module has a corresponding registry component
 func TestGetVersionForAllRegistryComponents(t *testing.T) {
 	config.SetDefaultBomFilePath(bomPath)
 
@@ -112,6 +119,7 @@ func TestGetVersionForAllRegistryComponents(t *testing.T) {
 	}
 }
 
+// TestCompareBOMWithRemote
 func TestCompareBOMWithRemote(t *testing.T) {
 	if checkBOMModifiedInBranch(t) {
 		config.SetDefaultBomFilePath(bomPath)
