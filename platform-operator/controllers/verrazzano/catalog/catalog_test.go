@@ -218,8 +218,10 @@ func TestCompareBOMWithRemote(t *testing.T) {
 }
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
-	var out []byte
-	out, err := exec.Command("git", "fetch", "--all").Output()
+	out0, err := exec.Command("git", "config", "--add", "remote.origin.fetch", "+refs/heads/master:refs/remotes/origin/master").Output()
+	assert.Empty(t, string(out0))
+	assert.NoError(t, err)
+	out, err := exec.Command("git", "fetch").Output()
 	assert.Empty(t, string(out))
 	assert.NoError(t, err)
 	vzlog.DefaultLogger().Infof("test")
@@ -232,5 +234,5 @@ func checkBOMModifiedInBranch(t *testing.T) bool {
 	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoErrorf(t, err, "error: %s, %s", string(stdout), string(stderr))
-	return strings.Contains(string(out), "platform-operator/verrazzano-bom.json")
+	return strings.Contains(string(stdout), "platform-operator/verrazzano-bom.json")
 }
