@@ -171,7 +171,8 @@ type VerrazzanoManagedClusterStatus struct {
 	// The state of Verrazzano information of this managed cluster.
 	Verrazzano VerrazzanoInformation `json:"verrazzano,omitempty"`
 	// The reference to this managed cluster's underlying ClusterAPI cluster.
-	ClusterRef ClusterReference `json:"clusterRef,omitempty"`
+	// +optional
+	ClusterRef *ClusterReference `json:"clusterRef,omitempty"`
 }
 
 // +genclient
