@@ -4,6 +4,7 @@
 package opensearch
 
 import (
+	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	corev1 "k8s.io/api/core/v1"
@@ -144,6 +145,11 @@ func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
+
+	if err := o.deleteIntegrationConfigmap(context); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -173,6 +179,11 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return common.CheckIngressesAndCerts(ctx, o)
 }
 
@@ -182,6 +193,11 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
