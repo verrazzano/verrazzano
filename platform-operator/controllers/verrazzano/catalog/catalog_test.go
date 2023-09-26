@@ -4,11 +4,9 @@
 package catalog
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
-	"os"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -229,7 +227,7 @@ func checkBOMModifiedInBranch(t *testing.T) bool {
 	assert.Empty(t, string(out1))
 	assert.NoError(t, err)
 
-	cmd := exec.Command("git", "diff", "--name-only", fmt.Sprintf("remotes/origin/master...remotes/origin/%s", os.Getenv("BRANCH_NAME"))) // #nosec G204
+	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...") // #nosec G204
 
 	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
