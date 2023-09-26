@@ -286,15 +286,6 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
-// VerrazzanoCRNameAnnotation is the annotation for the verrazzano CR name
-const VerrazzanoCRNameAnnotation = "module.verrazzano.io/vz-cr-name"
-
-// VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
-const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
-
-// VerrazzanoOwnerLabel is the label for the verrazzano CR that owns the module resource
-const VerrazzanoOwnerLabel = "module.verrazzano.io/vz-owner"
-
 // VerrazzanoModuleOwnerLabel is the label for the module CR that owns the secret or configmap resource
 const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
 

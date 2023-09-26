@@ -67,7 +67,7 @@ func ShouldLogKubernetesAPIError(err error) bool {
 	if err == nil {
 		return false
 	}
-	if IsUpdateConflict(err) {
+	if IsUpdateConflict(err) || IsRetryableError(err) {
 		return false
 	}
 	return true
