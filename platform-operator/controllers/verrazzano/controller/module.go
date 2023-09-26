@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package controller
 
 import (
 	"context"
@@ -112,17 +112,6 @@ func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Modu
 
 // mutateModule mutates the module for the create or update callback
 func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
-	if module.Annotations == nil {
-		module.Annotations = make(map[string]string)
-	}
-	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
-	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
-
-	if module.Labels == nil {
-		module.Labels = make(map[string]string)
-	}
-	module.Labels[vzconst.VerrazzanoOwnerLabel] = string(effectiveCR.UID)
-
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion

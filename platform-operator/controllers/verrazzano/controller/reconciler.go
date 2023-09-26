@@ -1,13 +1,14 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package controller
 
 import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -19,11 +20,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	custom2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,10 +34,34 @@ import (
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
 // NOTE: full uninstalls are done by the finalizer.go code
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	// Initialize metrics
+	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
+	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+	counterMetricObject.Inc()
+	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+
+	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		controllerCtx.Log.ErrorfThrottled(err.Error())
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
@@ -49,6 +75,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
@@ -60,6 +89,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
@@ -68,6 +100,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// Always use actualCR when updating status
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
@@ -78,6 +113,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// where the status is updated in those cases.
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
+			if metricsexporter.IsMetricError(err) {
+				errorCounterMetricObject.Inc()
+			}
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -100,6 +138,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
 	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
@@ -116,13 +157,13 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	}
 
 	// Delete leftover MySQL backup job if we find one.
-	if err := custom.CleanupMysqlBackupJob(log, r.Client); err != nil {
+	if err := custom2.CleanupMysqlBackupJob(log, r.Client); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
-		err := custom.DoesOCIDNSConfigSecretExist(r.Client, actualCR)
+		err := custom2.DoesOCIDNSConfigSecretExist(r.Client, actualCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
@@ -130,7 +171,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 
 	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
 	// admin cluster without needing a VMC.
-	if err := custom.SyncLocalRegistrationSecret(r.Client); err != nil {
+	if err := custom2.SyncLocalRegistrationSecret(r.Client); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -140,7 +181,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	custom.CreateRancherIngressAndCertCopies(componentCtx)
+	custom2.CreateRancherIngressAndCertCopies(componentCtx)
 
 	return result.NewResult()
 }

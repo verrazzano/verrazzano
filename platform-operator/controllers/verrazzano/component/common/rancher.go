@@ -42,6 +42,7 @@ const (
 	SettingFirstLogin                       = "first-login"
 	KontainerDriverOCIName                  = "ociocneengine"
 	KontainerDriverOKEName                  = "oraclecontainerengine"
+	KontainerDriverOKECAPIName              = "okecapi"
 	KontainerDriversResourceName            = "kontainerdrivers"
 	KontainerDriverKind                     = "KontainerDriver"
 )
@@ -214,6 +215,9 @@ func UpdateKontainerDriverURLs(ctx spi.ComponentContext, dynClient dynamic.Inter
 			return err
 		}
 		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOKEName, commonName); err != nil {
+			return err
+		}
+		if err = updateKontainerDriverURL(ctx, dynClient, KontainerDriverOKECAPIName, commonName); err != nil {
 			return err
 		}
 	}

@@ -113,14 +113,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) doReconcile(ctx context.Context, agentSecret corev1.Secret) error {
 	managedClusterName := string(agentSecret.Data[constants.ClusterNameData])
 
+	// Create the discovery client for the managed cluster
+	localDiscoveryClient, err := getDiscoveryClientFunc()
+	if err != nil {
+		return fmt.Errorf("failed to get discovery client for this workload cluster: %v", err)
+	}
+
 	// Initialize the syncer object
 	s := &Syncer{
-		LocalClient:         r.Client,
-		Log:                 r.Log,
-		Context:             ctx,
-		ProjectNamespaces:   []string{},
-		StatusUpdateChannel: r.AgentChannel,
-		ManagedClusterName:  managedClusterName,
+		LocalClient:          r.Client,
+		LocalDiscoveryClient: localDiscoveryClient,
+		Log:                  r.Log,
+		Context:              ctx,
+		ProjectNamespaces:    []string{},
+		StatusUpdateChannel:  r.AgentChannel,
+		ManagedClusterName:   managedClusterName,
 	}
 
 	// Read current agent state from config map

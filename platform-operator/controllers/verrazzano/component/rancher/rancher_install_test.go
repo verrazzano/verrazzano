@@ -283,6 +283,10 @@ func TestUpdateKontainerDriverURLs(t *testing.T) {
 	driverObj2 := createKontainerDriver(driverObj2Name)
 	driverObj2.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
 
+	driverObj3Name := common.KontainerDriverOKECAPIName
+	driverObj3 := createKontainerDriver(driverObj3Name)
+	driverObj3.UnstructuredContent()["spec"].(map[string]interface{})["url"] = initialURL
+
 	ingress := &networking.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:   common.CattleSystem,
@@ -294,7 +298,7 @@ func TestUpdateKontainerDriverURLs(t *testing.T) {
 	// Setup clients and context
 	scheme := getScheme()
 	scheme.AddKnownTypeWithName(common.GetRancherMgmtAPIGVKForKind(common.KontainerDriverKind), &unstructured.Unstructured{})
-	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj1, driverObj2)
+	fakeDynamicClient := dynfake.NewSimpleDynamicClient(scheme, driverObj1, driverObj2, driverObj3)
 	setDynamicClientFunc(func() (dynamic.Interface, error) { return fakeDynamicClient, nil })
 	defer func() {
 		resetDynamicClientFunc()
@@ -317,4 +321,8 @@ func TestUpdateKontainerDriverURLs(t *testing.T) {
 	kdObj2, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), driverObj2Name, metav1.GetOptions{})
 	assert.NoError(t, err)
 	assert.Equal(t, expectedURL, kdObj2.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
+
+	kdObj3, err := fakeDynamicClient.Resource(gvr).Get(context.TODO(), driverObj3Name, metav1.GetOptions{})
+	assert.NoError(t, err)
+	assert.Equal(t, expectedURL, kdObj3.UnstructuredContent()["spec"].(map[string]interface{})["url"].(string))
 }

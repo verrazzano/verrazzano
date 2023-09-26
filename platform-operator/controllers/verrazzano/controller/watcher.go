@@ -1,13 +1,13 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package verrazzano
+package controller
 
 import (
 	"context"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano/custom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
