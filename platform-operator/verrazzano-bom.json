@@ -147,7 +147,7 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230403204343-4124528"
+              "tag": "v0.1.18-20230926061127-4124528"
             },
             {
               "image": "rancher-webhook",
@@ -188,7 +188,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230810212038-8777b84",
+              "tag": "v1.14.5-20230922100900-8777b84",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -249,7 +249,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -591,7 +591,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230524142053-b7f69924",
+              "tag": "v1.3.1-20230925070337-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
