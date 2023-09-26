@@ -156,9 +156,9 @@
               "image": "rancher",
               "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.24.0",
-              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230925135032-680d85acc",
+              "ocneDriverVersion": "v0.25.0",
+              "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
+              "tag": "v2.7.6-20230925154904-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
@@ -556,15 +556,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.32",
+      "version": "8.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
-              "tag": "8.0.32",
+              "image": "community-server",
+              "tag": "8.1.0",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -581,8 +581,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
-              "tag": "8.0.32"
+              "image": "community-router",
+              "tag": "8.1.0"
             }
           ]
         }
@@ -590,15 +590,15 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.32",
+      "version": "8.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.32-2.0.8",
+              "image": "community-operator",
+              "tag": "8.1.0-2.1.0",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
