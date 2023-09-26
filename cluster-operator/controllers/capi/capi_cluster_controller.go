@@ -82,6 +82,13 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
+	// only process CAPI cluster instances not managed by Rancher/container driver
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
+		return ctrl.Result{}, nil
+	}
+
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
@@ -149,7 +156,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	return r.VerrazzanoRegistrar.doReconcile(ctx, cluster, r)
+	return verrazzanoReconcileFn(ctx, cluster, r)
 }
 
 // createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
@@ -250,6 +257,8 @@ func getClusterClient(restConfig *rest.Config) (client.Client, error) {
 	_ = v1.AddToScheme(scheme)
 	_ = netv1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }
 

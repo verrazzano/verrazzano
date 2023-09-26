@@ -26,8 +26,21 @@ type VerrazzanoRegistration struct {
 	Log *zap.SugaredLogger
 }
 
-// doReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
-func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error) {
+type VerrazzanoReconcileFnType func(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error)
+
+var verrazzanoReconcileFn VerrazzanoReconcileFnType = doVerrazzanoReconcile
+
+func SetVerrazzanoReconcileFunction(f VerrazzanoReconcileFnType) {
+	verrazzanoReconcileFn = f
+}
+
+func SetDefaultVerrazzanoReconcileFunction() {
+	verrazzanoReconcileFn = doVerrazzanoReconcile
+}
+
+// doVerrazzanoReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
+func doVerrazzanoReconcile(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error) {
+	v := r.VerrazzanoRegistrar
 	v.Log.Debugf("Registering cluster %s with Verrazzano", cluster.GetName())
 
 	// register the cluster if Verrazzano installed on workload cluster
