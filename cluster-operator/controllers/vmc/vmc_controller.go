@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -30,7 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -680,20 +680,13 @@ func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.V
 
 // getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
 func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
-	// FIXME: better ways to do this?
 	// Get the CAPI Cluster CR
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(schema.GroupVersionKind{
-		Group:   "cluster.x-k8s.io",
-		Version: "v1beta1",
-		Kind:    "Cluster",
-	})
+	cluster := capi.CAPIClusterClientObject()
 	clusterNamespacedName := types.NamespacedName{
 		Name:      clusterRef.Name,
 		Namespace: clusterRef.Namespace,
 	}
-	err := r.Get(context.TODO(), clusterNamespacedName, cluster)
-	if err != nil {
+	if err := r.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
 		return "", err
 	}
 
