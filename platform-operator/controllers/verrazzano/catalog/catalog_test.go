@@ -5,6 +5,7 @@ package catalog
 
 import (
 	"io"
+	"os"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -214,7 +215,8 @@ func TestCompareBOMWithRemote(t *testing.T) {
 }
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
-	out, err := exec.Command("git", "diff", "--name-only", "origin/master...").Output()
+	var out []byte
+	out, err := exec.Command("git", "diff", "--name-only", "remotes/origin/master...remotes/origin/"+os.Getenv("BRANCH_NAME")).Output()
 	assert.NoError(t, err)
 	return strings.Contains(string(out), "platform-operator/verrazzano-bom.json")
 }
