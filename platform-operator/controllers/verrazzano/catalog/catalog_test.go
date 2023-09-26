@@ -5,6 +5,7 @@ package catalog
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
 	"os"
@@ -220,7 +221,12 @@ func TestCompareBOMWithRemote(t *testing.T) {
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
 	var out []byte
-	_, err := exec.Command("git", "fetch", "origin").Output()
+	out, err := exec.Command("git", "fetch", "origin, -v").Output()
+	assert.Empty(t, string(out))
+	assert.NoError(t, err)
+	vzlog.DefaultLogger().Infof("test")
+	out1, err := exec.Command("git", "branch", "-a").Output()
+	assert.Empty(t, string(out1))
 	assert.NoError(t, err)
 
 	cmd := exec.Command("git", "diff", "--name-only", fmt.Sprintf("remotes/origin/master...remotes/origin/%s", os.Getenv("BRANCH_NAME"))) // #nosec G204
