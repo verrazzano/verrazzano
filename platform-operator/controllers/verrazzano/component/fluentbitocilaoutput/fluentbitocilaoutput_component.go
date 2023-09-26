@@ -6,6 +6,7 @@ package fluentbitocilaoutput
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -74,6 +75,10 @@ func (c fluentbitOCILoggingAnalyticsOutput) Reconcile(ctx spi.ComponentContext) 
 		err = c.Install(ctx)
 	}
 	return err
+}
+
+func (c fluentbitOCILoggingAnalyticsOutput) IsEnabled(effectiveCR runtime.Object) bool {
+	return vzcr.IsFluentbitOCILoggingAnalyticsOutputEnabled(effectiveCR)
 }
 
 // GetOverrides returns install overrides for a component

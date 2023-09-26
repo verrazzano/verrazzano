@@ -293,6 +293,20 @@ func IsFluentbitOpensearchOutputEnabled(cr runtime.Object) bool {
 
 }
 
+func IsFluentbitOCILoggingAnalyticsOutputEnabled(cr runtime.Object) bool {
+	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {
+		if vzv1alpha1 != nil && vzv1alpha1.Spec.Components.FluentbitOCILoggingAnalyticsOutput != nil && vzv1alpha1.Spec.Components.FluentbitOCILoggingAnalyticsOutput.Enabled != nil {
+			return *vzv1alpha1.Spec.Components.FluentbitOCILoggingAnalyticsOutput.Enabled
+		}
+	} else if vzv1beta1, ok := cr.(*installv1beta1.Verrazzano); ok {
+		if vzv1beta1 != nil && vzv1beta1.Spec.Components.FluentbitOCILoggingAnalyticsOutput != nil && vzv1beta1.Spec.Components.FluentbitOCILoggingAnalyticsOutput.Enabled != nil {
+			return *vzv1beta1.Spec.Components.FluentbitOCILoggingAnalyticsOutput.Enabled
+		}
+	}
+	return false
+
+}
+
 // IsConsoleEnabled - Returns false only if explicitly disabled in the CR
 func IsConsoleEnabled(cr runtime.Object) bool {
 	if vzv1alpha1, ok := cr.(*installv1alpha1.Verrazzano); ok {

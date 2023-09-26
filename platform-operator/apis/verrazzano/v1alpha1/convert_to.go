@@ -881,6 +881,7 @@ func convertFluentbitOCILoggingAnalyticsOutputToV1Beta1(src *FluentbitOCILogging
 		return nil
 	}
 	return &v1beta1.FluentbitOCILoggingAnalyticsOutputComponent{
+		Enabled:          src.Enabled,
 		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
 	}
 }

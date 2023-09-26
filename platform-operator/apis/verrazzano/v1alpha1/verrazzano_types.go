@@ -473,6 +473,7 @@ type ComponentSpec struct {
 }
 
 type FluentbitOCILoggingAnalyticsOutputComponent struct {
+	Enabled          *bool `json:"enabled,omitempty"`
 	InstallOverrides `json:",inline"`
 }
 

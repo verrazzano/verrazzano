@@ -1097,6 +1097,8 @@ spec:
                     type: object
                   fluentbitOCILoggingAnalyticsOutput:
                     properties:
+                      enabled:
+                        type: boolean
                       monitorChanges:
                         type: boolean
                       overrides:
@@ -5128,6 +5130,8 @@ spec:
                     type: object
                   fluentbitOCILoggingAnalyticsOutput:
                     properties:
+                      enabled:
+                        type: boolean
                       monitorChanges:
                         type: boolean
                       overrides:
