@@ -1,4 +1,4 @@
-### v2.0.0
+### v1.7.0
 Component version updates:
 
 - WebLogic Kubernetes Operator v4.1.2
@@ -6,8 +6,10 @@ Component version updates:
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
 - MySQL v8.1.0
 - MySQL Operator v8.1.0
+- Kube State Metrics v2.10.0
 - NGINX Prometheus Exporter v0.11.0
 - Prometheus Pushgateway v1.6.2
+
 
 Features:
 

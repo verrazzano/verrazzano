@@ -158,13 +158,13 @@
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.24.0",
               "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230921193355-4a359105b",
+              "tag": "v2.7.6-20230925135032-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230921193355-4a359105b"
+              "tag": "v2.7.6-20230925135032-680d85acc"
             }
           ]
         },
@@ -720,7 +720,7 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "2.8.2",
+      "version": "2.10.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -728,7 +728,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.8.2-20230531155057-c4a3ac95",
+              "tag": "v2.10.0-20230925145429-85dfe41a",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
