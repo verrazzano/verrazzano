@@ -330,7 +330,10 @@ func getComponentsForProviderType(c client.Client, providerName string, namespac
 
 	// Roles
 	roles := &rbac.RoleList{}
-	if err := c.List(context.TODO(), roles, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+	if err := c.List(context.TODO(), roles, &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
+	}); err != nil {
 		return objs, err
 	}
 	for i := range roles.Items {
@@ -339,7 +342,10 @@ func getComponentsForProviderType(c client.Client, providerName string, namespac
 
 	// RoleBindings
 	roleBindings := &rbac.RoleBindingList{}
-	if err := c.List(context.TODO(), roleBindings, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+	if err := c.List(context.TODO(), roleBindings, &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
+	}); err != nil {
 		return objs, err
 	}
 	for i := range roleBindings.Items {
