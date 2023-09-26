@@ -82,6 +82,8 @@ pipeline {
 
         OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
         OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
+
+        BASELINE_COMMIT_SHORT_HASH=""
     }
 
     stages {
@@ -149,8 +151,9 @@ pipeline {
                     sh """
                         ci/scripts/check_image_sizes.sh
                     """
+                    BASELINE_COMMIT_SHORT_HASH = sh(returnStdout: true, script: "cat "${WORKSPACE}/commitID.txt"")
                      if ( fileExists("${WORKSPACE}/result.txt") ){
-                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}" )
+                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}"\n\nChange comparison: https://github.com/verrazzano/verrazzano/compare/${BASELINE_COMMIT_SHORT_HASH}...${env.GIT_COMMIT} )
                      }
                }
             }

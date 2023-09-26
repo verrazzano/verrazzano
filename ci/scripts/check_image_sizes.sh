@@ -11,6 +11,8 @@ process_file() {
   local IMAGESIZE_ARRAY=()
 
   while IFS= read -r line; do
+    # Extract Commit ID
+    COMMIT_ID=$(echo "$line" | cut -d '-' -f 2 | cut -d '.' -f 2)
     # Extract image name
     IMAGENAME=$(echo "$line" | cut -d ':' -f 1)
     # Extract image size
@@ -45,6 +47,9 @@ IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
 IMAGE_SIZE_DIFF_FOUND="false"
 NEW_IMAGE_FOUND="false"
 
+# Populating commitID.txt file with Short Commit Hash
+${COMMIT_ID} >> ${WORKSPACE}/commitID.txt
+
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do
   IMAGENAME_SIZES_FILE_OS["$IMAGENAME"]=$IMAGESIZE
@@ -69,7 +74,7 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
 # Check if image size has increased by 0.1 MB or more
-  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+${IMAGE_SIZE_INCREASE_THRESHOLD}))" ]; then
+  if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$((FILE_SIZE_GENERATED+1000000))" -gt "$((FILE_SIZE_OS+${env.IMAGE_SIZE_INCREASE_THRESHOLD}))" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
     echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/result.txt
   fi
