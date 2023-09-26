@@ -4,10 +4,14 @@
 package pushgateway
 
 import (
+	"context"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -83,6 +87,20 @@ func (c prometheusPushgatewayComponent) PreInstall(ctx spi.ComponentContext) err
 		return err
 	}
 	return c.HelmComponent.PreInstall(ctx)
+}
+
+// PreUpgrade performs pre-upgrade processing for this component
+func (c prometheusPushgatewayComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	// The new Helm chart fails to upgrade because of a label selector immutable field, so we need
+	// to delete the deployment before upgrading
+	// Added in Verrazzano v1.7.0
+	ctx.Log().Infof("PreUpgrade deleting deployment %s/%s", ComponentNamespace, deploymentName)
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: deploymentName}}
+	if err := ctx.Client().Delete(context.TODO(), deployment); err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Error deleting deployment: %v", err)
+		return err
+	}
+	return nil
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not

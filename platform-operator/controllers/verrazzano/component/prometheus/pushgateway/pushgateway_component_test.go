@@ -4,9 +4,15 @@
 package pushgateway
 
 import (
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"context"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/bom"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -186,4 +192,25 @@ func TestAppendNGINXOverrides(t *testing.T) {
 	kvs, err := AppendOverrides(spi.NewFakeContext(nil, vz, nil, false), ComponentName, ComponentNamespace, "", []bom.KeyValue{})
 	assert.NoError(t, err)
 	assert.Len(t, kvs, 1)
+}
+
+// TestPreUpgrade tests the component PreUpgrade function
+func TestPreUpgrade(t *testing.T) {
+	// GIVEN a previous installation of pushgateway and the pushgateway deployment exists
+	// WHEN the component PreUpgrade function is called
+	// THEN the deployment is deleted and PreUpgrade does not return an error
+	deployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: deploymentName}}
+
+	c := fake.NewClientBuilder().WithObjects(deployment).Build()
+	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, true)
+	assert.Nil(t, NewComponent().PreUpgrade(ctx))
+
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: deploymentName}, deployment)
+	assert.Error(t, err)
+	assert.True(t, errors.IsNotFound(err))
+
+	// GIVEN a previous installation of pushgateway and the pushgateway deployment does not exist
+	// WHEN the component PreUpgrade function is called
+	// THEN PreUpgrade does not return an error
+	assert.Nil(t, NewComponent().PreUpgrade(ctx))
 }
