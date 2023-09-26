@@ -677,8 +677,8 @@
           "name": "alertmanager",
           "images": [
             {
-              "image": "alertmanager",
-              "tag": "v0.25.0-20230922084030-660afb41",
+              "image": "alertmanager-jenkins",
+              "tag": "v0.26.0-20230926165252-49a90221",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
