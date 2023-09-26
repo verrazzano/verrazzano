@@ -6,6 +6,7 @@ package certmanager
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"path/filepath"
 
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
@@ -187,10 +188,10 @@ func (c certManagerComponent) PostUninstall(compContext spi.ComponentContext) er
 		compContext.Log().Debug("cert-manager PostUninstall dry run")
 		return nil
 	}
-	if err := cleanupLeaderElectionResources(compContext); err != nil {
+	if err := resource.CleanupResources(compContext, leaderElectionSystemResources); err != nil {
 		return err
 	}
-	return verifyLeaderElectionResourcesDeleted(compContext)
+	return resource.VerifyResourcesDeleted(compContext, leaderElectionSystemResources)
 }
 
 // MonitorOverrides checks whether monitoring of install overrides is enabled or not
