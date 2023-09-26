@@ -8,10 +8,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io"
+	appv1 "k8s.io/api/apps/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"net/http"
 	"reflect"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"strings"
 	"testing"
 
@@ -119,11 +126,11 @@ const (
 }`
 )
 
-//var testPolicyList = fmt.Sprintf(`{
-//	"policies": [
-//      %s
-//    ]
-//}`, testSystemPolicy)
+var testPolicyList = fmt.Sprintf(`{
+	"policies": [
+     %s
+   ]
+}`, testSystemPolicy)
 
 func createTestPolicy(age, rolloverAge, indexPattern, minSize string, minDocCount int) *vmcontrollerv1.IndexManagementPolicy {
 	return &vmcontrollerv1.IndexManagementPolicy{
@@ -138,59 +145,74 @@ func createTestPolicy(age, rolloverAge, indexPattern, minSize string, minDocCoun
 	}
 }
 
-//func createISMVMI(age string, enabled bool) *vmcontrollerv1.VerrazzanoMonitoringInstance {
-//	v := &vmcontrollerv1.VerrazzanoMonitoringInstance{
-//		ObjectMeta: metav1.ObjectMeta{
-//			Name: "test",
-//		},
-//		Spec: vmcontrollerv1.VerrazzanoMonitoringInstanceSpec{
-//			Opensearch: vmcontrollerv1.Opensearch{
-//				Enabled: enabled,
-//				Policies: []vmcontrollerv1.IndexManagementPolicy{
-//					*createTestPolicy(age, age, "*", "1gb", 1),
-//				},
-//			},
-//		},
-//	}
-//
-//	return v
-//}
+// TestConfigureIndexManagementPluginHappyPath Tests configuration of the ISM plugin
+// WHEN I call Configure
+// THEN the ISM configuration is created in OpenSearch
+func TestConfigureIndexManagementPluginHappyPath(t *testing.T) {
+	o := NewOSClient("abc")
+	o.DoHTTP = func(request *http.Request) (*http.Response, error) {
+		switch request.Method {
+		case "GET":
+			if strings.Contains(request.URL.Path, "verrazzano-system") {
+				return &http.Response{
+					StatusCode: http.StatusNotFound,
+					Body:       io.NopCloser(strings.NewReader(testPolicyNotFound)),
+				}, nil
+			}
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader(testPolicyList)),
+			}, nil
 
-//// TestConfigureIndexManagementPluginHappyPath Tests configuration of the ISM plugin
-//// GIVEN a VMI instance with an ISM Policy
-//// WHEN I call Configure
-//// THEN the ISM configuration is created in OpenSearch
-//func TestConfigureIndexManagementPluginHappyPath(t *testing.T) {
-//	o := NewOSClient("abc")
-//	o.DoHTTP = func(request *http.Request) (*http.Response, error) {
-//		switch request.Method {
-//		case "GET":
-//			if strings.Contains(request.URL.Path, "verrazzano-system") {
-//				return &http.Response{
-//					StatusCode: http.StatusNotFound,
-//					Body:       io.NopCloser(strings.NewReader(testPolicyNotFound)),
-//				}, nil
-//			}
-//			return &http.Response{
-//				StatusCode: http.StatusOK,
-//				Body:       io.NopCloser(strings.NewReader(testPolicyList)),
-//			}, nil
-//
-//		case "PUT":
-//			return &http.Response{
-//				StatusCode: http.StatusCreated,
-//				Body:       io.NopCloser(strings.NewReader(testSystemPolicy)),
-//			}, nil
-//		default:
-//			return &http.Response{
-//				StatusCode: http.StatusOK,
-//				Body:       io.NopCloser(strings.NewReader("")),
-//			}, nil
-//		}
-//	}
-//	err := o.ConfigureISM()
-//	assert.NoError(t, err)
-//}
+		case "PUT":
+			return &http.Response{
+				StatusCode: http.StatusCreated,
+				Body:       io.NopCloser(strings.NewReader(testSystemPolicy)),
+			}, nil
+		default:
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       io.NopCloser(strings.NewReader("")),
+			}, nil
+		}
+	}
+	sts := &appv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "opensearch",
+			Namespace: constants.VerrazzanoLoggingNamespace,
+		},
+		Spec: appv1.StatefulSetSpec{
+			MinReadySeconds: 5,
+		},
+	}
+	ingress := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "verrazzano-system",
+			Name:      "opensearch",
+		},
+		Spec: networkingv1.IngressSpec{
+			Rules: []networkingv1.IngressRule{
+				{
+					Host: "test",
+				},
+			},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(sts, ingress).Build()
+	testLogger := vzlog.DefaultLogger()
+	enabled := true
+	vz := &vzv1alpha1.Verrazzano{
+		Spec: vzv1alpha1.VerrazzanoSpec{
+			Components: vzv1alpha1.ComponentSpec{Elasticsearch: &vzv1alpha1.ElasticsearchComponent{
+				Enabled: &enabled,
+				Policies: []vmcontrollerv1.IndexManagementPolicy{
+					*createTestPolicy("1d", "1d", "*", "1gb", 1),
+				}}},
+		},
+	}
+	err := o.ConfigureISM(testLogger, client, vz)
+	assert.NoError(t, err)
+}
 
 // TestGetPolicyByName Tests retrieving ISM policies by name
 // GIVEN an OpenSearch instance
