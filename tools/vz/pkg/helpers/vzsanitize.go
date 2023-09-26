@@ -7,10 +7,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"regexp"
+	"sync"
 )
 
 var regexToReplacementList = []string{}
 var KnownHostNames = make(map[string]bool)
+var knownHostNamesMutex = &sync.Mutex{}
 
 const ipv4Regex = "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"
 const userData = "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""
@@ -32,10 +34,12 @@ func SanitizeString(l string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
 	}
+	knownHostNamesMutex.Lock()
 	for knownHost := range KnownHostNames {
 		wholeOccurrenceHostPattern := "\"" + knownHost + "\""
 		l = regexp.MustCompile(wholeOccurrenceHostPattern).ReplaceAllString(l, "\""+getSha256Hash(knownHost)+"\"")
 	}
+	knownHostNamesMutex.Unlock()
 	for _, eachRegex := range regexToReplacementList {
 		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
 	}

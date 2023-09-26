@@ -346,17 +346,18 @@ func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.Certifi
 }
 
 func collectHostNames(certificateList v1.CertificateList) {
+	knownHostNamesMutex.Lock()
 	for _, cert := range certificateList.Items {
 		for _, hostname := range cert.Spec.DNSNames {
 			KnownHostNames[hostname] = true
 		}
 	}
-
 	for _, cert := range certificateList.Items {
 		for _, ipAddress := range cert.Spec.IPAddresses {
 			KnownHostNames[ipAddress] = true
 		}
 	}
+	knownHostNamesMutex.Unlock()
 }
 
 // CapturePodLog captures the log from the pod in the captureDir
