@@ -297,7 +297,7 @@ func validateCmd(cmd *cobra.Command) error {
 	return nil
 }
 
-// mergeSetFlagsIntoVerrazzanoResource - determines is any --set flags are used and merges them into the existing Verrazzano resource to be applied at upgrade
+// mergeSetFlagsIntoVerrazzanoResource - determines if any --set flags are used and merges them into the existing Verrazzano resource to be applied at upgrade
 func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano) (*v1beta1.Verrazzano, error) {
 	// Check that set flags are set. Otherwise, nothing is returned and the Verrazzano resource is left untouched
 	setFlags, _ := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
@@ -316,7 +316,7 @@ func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZ
 
 		// Merge the set flags passed on the command line. The set flags take precedence over
 		// the yaml files passed on the command line.
-		mergedVZ, _, err := cmdhelpers.MergeSetFlags(vz.GroupVersionKind().GroupVersion(), vz, vz, outYAML, true)
+		mergedVZ, _, err := cmdhelpers.MergeSetFlagsUpgrade(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
 		if err != nil {
 			return nil, err
 		}

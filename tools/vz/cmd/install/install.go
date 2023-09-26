@@ -337,7 +337,7 @@ func getVerrazzanoYAML(cmd *cobra.Command, vzHelper helpers.VZHelper, version st
 
 	// Merge the set flags passed on the command line. The set flags take precedence over
 	// the yaml files passed on the command line.
-	vz, unstructuredVZObj, err := cmdhelpers.MergeSetFlags(gv, vz, nil, outYAML, false)
+	vz, unstructuredVZObj, err := cmdhelpers.MergeSetFlags(gv, vz, outYAML)
 	if err != nil {
 		return nil, nil, err
 	}

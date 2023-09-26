@@ -142,7 +142,7 @@ func TestMergeSetFlags(t *testing.T) {
 	yamlString := "spec:\n  environmentName: test"
 	_, vz, err := helpers.NewVerrazzanoForVZVersion("1.4.0")
 	assert.NoError(t, err)
-	obj, _, err := MergeSetFlags(v1beta1.SchemeGroupVersion, vz, nil, yamlString, false)
+	obj, _, err := MergeSetFlags(v1beta1.SchemeGroupVersion, vz, yamlString)
 	assert.NoError(t, err)
 	assert.Equal(t, "test", obj.(*unstructured.Unstructured).Object["spec"].(map[string]interface{})["environmentName"])
 }
