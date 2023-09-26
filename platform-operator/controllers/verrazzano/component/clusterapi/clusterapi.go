@@ -16,7 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -269,20 +268,6 @@ func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
 		len(upgradeOptions.InfrastructureProviders) != 0
-}
-
-// Minimal definition of providers.clusterctl.cluster.x-k8s.io object
-type providerList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []provider `json:"items"`
-}
-type provider struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-	ProviderName      string `json:"providerName,omitempty"`
-	Type              string `json:"type,omitempty"`
-	Version           string `json:"version,omitempty"`
 }
 
 func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {

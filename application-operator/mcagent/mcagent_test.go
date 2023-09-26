@@ -18,6 +18,7 @@ import (
 	clustersapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/mcconstants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -26,6 +27,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/discovery"
+	fakediscovery "k8s.io/client-go/discovery/fake"
+	clientgotesting "k8s.io/client-go/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -40,6 +45,19 @@ var validSecret = corev1.Secret{
 
 const testManagedPrometheusHost = "prometheus"
 const testManagedThanosQueryStoreAPIHost = "thanos-query-store.example.com"
+const testVZVersion = "dummy-verrazzano-version"
+
+var testK8sVersion = &version.Info{
+	GitVersion: "v1.26.3",
+}
+
+func fakeDiscoveryClientFunc() (discovery.DiscoveryInterface, error) {
+	discoveryClient := fakediscovery.FakeDiscovery{
+		Fake:               &clientgotesting.Fake{},
+		FakedServerVersion: testK8sVersion,
+	}
+	return &discoveryClient, nil
+}
 
 // TestReconcileAgentSecretDeleted tests agent thread when the registration secret is deleted
 // GIVEN a request to process the agent loop
@@ -191,6 +209,8 @@ func Test_updateEnvValue(t *testing.T) {
 func TestReconcile_AgentSecretPresenceAndValidity(t *testing.T) {
 	assert := asserts.New(t)
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.MCAgentSecret}}
+	defer setDiscoveryClientFunc(getDiscoveryClientFunc)
+	setDiscoveryClientFunc(fakeDiscoveryClientFunc)
 	type fields struct {
 		AgentSecretFound         bool
 		AgentSecretValid         bool
@@ -237,6 +257,7 @@ func TestReconcile_AgentSecretPresenceAndValidity(t *testing.T) {
 				expectAgentSecretNotFound(mcMock)
 			}
 			if tt.fields.AgentSecretFound && tt.fields.AgentSecretValid {
+				expectGetMCNamespace(mcMock)
 				clusterName := string(secretToUse.Data[constants.ClusterNameData])
 				if tt.fields.AgentStateConfigMapFound {
 					// Managed Cluster - expect call to get the agent state config map at the beginning of reconcile
@@ -295,6 +316,8 @@ func expectAdminVMCStatusUpdateSuccess(adminMock *mocks.MockClient, vmcName type
 			assert.NotNil(vmc.Status.APIUrl)
 			assert.Equal(testManagedPrometheusHost, vmc.Status.PrometheusHost)
 			assert.Equal(testManagedThanosQueryStoreAPIHost, vmc.Status.ThanosQueryStore)
+			assert.Equal(testK8sVersion.String(), vmc.Status.Kubernetes.Version)
+			assert.Equal(testVZVersion, vmc.Status.Verrazzano.Version)
 			return nil
 		})
 }
@@ -374,17 +397,22 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
 	localClientMock := mocks.NewMockClient(adminMocker)
 
+	fakeDiscoveryClient, err := fakeDiscoveryClientFunc()
+	assert.Nil(err)
+
 	s := &Syncer{
-		AdminClient:        adminMock,
-		Log:                log,
-		ManagedClusterName: "my-test-cluster",
-		LocalClient:        localClientMock,
+		AdminClient:          adminMock,
+		Log:                  log,
+		ManagedClusterName:   "my-test-cluster",
+		LocalClient:          localClientMock,
+		LocalDiscoveryClient: fakeDiscoveryClient,
 	}
 	vmcName := types.NamespacedName{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
 
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)
 	expectGetThanosQueryHostCalled(localClientMock)
+	expectGetWorkloadVZVersionCalled(localClientMock)
 	// Mock the success of status updates and assert that updateVMCStatus returns nil error
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 	assert.Nil(s.updateVMCStatus())
@@ -394,6 +422,22 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	assert.NotNil(s.updateVMCStatus())
 
 	adminMocker.Finish()
+}
+
+func expectGetWorkloadVZVersionCalled(mock *mocks.MockClient) {
+	// Expect a call to list the Verrazzanos.
+	mock.EXPECT().
+		List(gomock.Any(), &v1beta1.VerrazzanoList{}, gomock.Any()).
+		DoAndReturn(func(ctx context.Context, vzList *v1beta1.VerrazzanoList, opts ...client.ListOption) error {
+			vzList.Items = []v1beta1.Verrazzano{
+				{
+					Status: v1beta1.VerrazzanoStatus{
+						Version: testVZVersion,
+					},
+				},
+			}
+			return nil
+		})
 }
 
 func expectGetAPIServerURLCalled(mock *mocks.MockClient) {
@@ -492,6 +536,16 @@ func expectAgentStateConfigMapFound(mock *mocks.MockClient, clusterName string) 
 		}).Times(2)
 }
 
+func expectGetMCNamespace(mock *mocks.MockClient) {
+	// expect a get for the verrazzano-mc namespace
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: mcAgentStateConfigMapName.Namespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, ns *corev1.Namespace, opts ...client.GetOption) error {
+			ns.Name = name.Name
+			return nil
+		})
+}
+
 func expectAgentStateConfigMapCreated(mock *mocks.MockClient, clusterName string) {
 	// expect a get where the configmap is not found
 	expectAgentStateConfigMapNotFound(mock)
@@ -557,6 +611,7 @@ func expectAllCallsNoApps(adminMock *mocks.MockClient, mcMock *mocks.MockClient,
 	expectGetAPIServerURLCalled(mcMock)
 	expectGetPrometheusHostCalled(mcMock)
 	expectGetThanosQueryHostCalled(mcMock)
+	expectGetWorkloadVZVersionCalled(mcMock)
 	expectAdminVMCStatusUpdateSuccess(adminMock, vmcName, adminStatusMock, assert)
 
 	// Managed Cluster - expect call to get MC app config CRD - return exists
