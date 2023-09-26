@@ -4,9 +4,11 @@
 package catalog
 
 import (
+	"os"
+
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"os"
+
 	"sigs.k8s.io/yaml"
 )
 

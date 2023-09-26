@@ -4,8 +4,12 @@
 package catalog
 
 import (
-	"github.com/hashicorp/go-retryablehttp"
-	"github.com/stretchr/testify/assert"
+	"io"
+	"os/exec"
+	"reflect"
+	"strings"
+	"testing"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzString "github.com/verrazzano/verrazzano/pkg/string"
@@ -13,11 +17,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"io"
-	"os/exec"
-	"reflect"
-	"strings"
-	"testing"
+
+	"github.com/hashicorp/go-retryablehttp"
+	"github.com/stretchr/testify/assert"
 )
 
 const catalogPath = "../../../manifests/catalog/catalog.yaml"
