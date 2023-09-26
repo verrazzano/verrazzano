@@ -164,42 +164,5 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 		return ctrl.Result{}, err
 	}
 
-	//// setup the Rancher CA secret for VMC processing
-	//caCert, err := r.getWorkloadClusterRancherCACert(workloadClient)
-	//if err != nil {
-	//	return ctrl.Result{}, err
-	//}
-	//
-	//adminWorkloadCertSecret := &v1.Secret{ObjectMeta: metav1.ObjectMeta{
-	//	Name:      fmt.Sprintf("ca-secret-%s", cluster.GetName()),
-	//	Namespace: constants.VerrazzanoMultiClusterNamespace}}
-	//if _, err := ctrl.CreateOrUpdate(context.TODO(), r.Client, adminWorkloadCertSecret, func() error {
-	//	if len(adminWorkloadCertSecret.Data) == 0 {
-	//		adminWorkloadCertSecret.Data = make(map[string][]byte)
-	//	}
-	//	adminWorkloadCertSecret.Data["cacrt"] = []byte(caCert)
-	//
-	//	return nil
-	//}); err != nil {
-	//	return ctrl.Result{}, err
-	//}
-
 	return ctrl.Result{}, nil
 }
-
-// getWorkloadClusterRancherCACert retrieves the Rancher API endpoint CA certificate from the workload cluster
-//func (r *RancherRegistration) getWorkloadClusterRancherCACert(workloadClient client.Client) ([]byte, error) {
-//	caCrtSecret := &v1.Secret{}
-//	err := workloadClient.Get(context.TODO(), types.NamespacedName{
-//		Name:      "tls-ca",
-//		Namespace: common.CattleSystem},
-//		caCrtSecret)
-//	if err != nil {
-//		return nil, err
-//	}
-//	caCrt, ok := caCrtSecret.Data["tls.crt"]
-//	if !ok {
-//		return nil, fmt.Errorf("Workload cluster Rancher CA certificate not found in %s secret", constants.RancherTLSCAKey)
-//	}
-//	return caCrt, nil
-//}
