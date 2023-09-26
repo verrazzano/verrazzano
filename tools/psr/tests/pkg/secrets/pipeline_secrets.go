@@ -5,7 +5,7 @@ package secrets
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"os"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"

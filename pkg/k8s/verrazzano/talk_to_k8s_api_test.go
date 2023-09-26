@@ -6,9 +6,9 @@ package verrazzano
 import (
 	"context"
 	"github.com/stretchr/testify/assert"
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

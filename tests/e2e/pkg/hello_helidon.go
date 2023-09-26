@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 const (

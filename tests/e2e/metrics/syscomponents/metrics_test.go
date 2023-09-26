@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

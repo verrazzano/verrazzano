@@ -19,9 +19,9 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 
 	helmcli "github.com/verrazzano/verrazzano/pkg/helm"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/stretchr/testify/assert"

@@ -5,8 +5,8 @@ package keycloak
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"os"
 	"os/exec"
 	"path"

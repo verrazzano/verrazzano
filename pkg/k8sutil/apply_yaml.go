@@ -16,8 +16,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	crtpkg "sigs.k8s.io/controller-runtime/pkg/client"

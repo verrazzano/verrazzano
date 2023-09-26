@@ -10,8 +10,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 
 	"github.com/onsi/gomega"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 //const SpringbootNamespace = "springboot"

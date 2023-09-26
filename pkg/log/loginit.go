@@ -8,9 +8,9 @@ import (
 	"time"
 
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
+	k8serrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/log"
 	kzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"

@@ -5,7 +5,7 @@ package webhookoci
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

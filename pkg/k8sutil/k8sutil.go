@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
+	kerrs "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	istiov1alpha3 "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioClient "istio.io/client-go/pkg/clientset/versioned"
@@ -20,7 +21,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	apiextv1Client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apiextv1 "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
-	kerrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	k8sversionutil "k8s.io/apimachinery/pkg/util/version"

@@ -8,7 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/certs"
-	errors2 "k8s.io/apimachinery/pkg/api/errors"
+	errors2 "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/mail"
 
