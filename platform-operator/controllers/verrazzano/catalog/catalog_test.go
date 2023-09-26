@@ -221,7 +221,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
 	var out []byte
-	out, err := exec.Command("git", "fetch", "origin, -v").Output()
+	out, err := exec.Command("git", "fetch", "origin", "-v").Output()
 	assert.Empty(t, string(out))
 	assert.NoError(t, err)
 	vzlog.DefaultLogger().Infof("test")
