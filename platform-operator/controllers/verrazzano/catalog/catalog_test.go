@@ -69,6 +69,7 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 		if vzString.SliceContainsString(modulesNotInBom, module.Name) {
 			continue
 		}
+		// check to see if this is a module without a top level BOM component
 		subcomponent, ok := subcomponentOverrides[module.Name]
 		if ok {
 			image, err := vzBOM.FindImage(subcomponent[0].subcomponentName, subcomponent[0].imageName)
@@ -119,8 +120,15 @@ func TestGetVersionForAllRegistryComponents(t *testing.T) {
 	}
 }
 
-// TestCompareBOMWithRemote
+// TestCompareBOMWithRemote ensures that if the BOM on the feature branch has been updated,
+// the corresponding catalog module version has also been upgraded
+// IF the BOM on this branch has been updated since the common ancestor commit with the target branch
+// GIVEN the BOM and catalog from the branch and the BOM and catalog from master
+// ENSURE that if the BOM entry for a module has been updated, the module version has also been updated
 func TestCompareBOMWithRemote(t *testing.T) {
+	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
+	// don't run check if not
+	// this is so that merges to the BOM in master don't fail this test on other feature branches
 	if checkBOMModifiedInBranch(t) {
 		config.SetDefaultBomFilePath(bomPath)
 
@@ -166,6 +174,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 				module.Version == constants.BomVerrazzanoVersion {
 				continue
 			}
+			// check to see if this is a module without a top level BOM component
 			overridedModule, ok := subcomponentOverrides[module.Name]
 			updated := false
 			if ok {
@@ -188,6 +197,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 				}
 			}
 
+			// bom entry for the module has been updated, so ensure the module version has been updated as well
 			if updated {
 				localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
 				assert.NoError(t, err)
