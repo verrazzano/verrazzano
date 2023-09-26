@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.8-20230925202047-745fe64",
+              "tag": "v1.6.8-20230926101059-c67fc00",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -316,12 +316,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230829191738-b6247ad8ac8",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
