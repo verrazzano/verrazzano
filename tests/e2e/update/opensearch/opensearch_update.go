@@ -100,7 +100,7 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 			vzapi.OpenSearchNode{
 				Name:      string(vmov1.IngestRole),
 				Replicas:  &u.NodeReplicas,
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.IngestRole},
+				Roles:     []vmov1.NodeRole{vmov1.IngestRole},
 				Storage:   newNodeStorage(u.NodeStorage),
 				Resources: newResources(u.NodeMemory),
 			},
