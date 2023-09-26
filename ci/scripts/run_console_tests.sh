@@ -21,7 +21,7 @@ console_sha=${CONSOLE_REPO_BRANCH}
 if [[ -z $console_sha ]]; then
   # Get tag of console from BOM
   # shellcheck disable=SC2002
-  console_tag=$(cat "verrazzano/platform-operator/verrazzano-bom.json" |jq -r '.components[] | select(.name == "verrazzano") | .subcomponents[] | select (.name == "verrazzano") | .images[] | select ((.image == "console") or (.image == "console-jenkins")) | .tag')
+  console_tag=$(cat "verrazzano/platform-operator/verrazzano-bom.json" |jq -r '.components[] | select(.name == "verrazzano-console") | .subcomponents[] | select (.name == "verrazzano-console") | .images[] | select ((.image == "console") or (.image == "console-jenkins")) | .tag')
   # Split tag on '-' character and get last element
   console_sha=${console_tag##*-}
 

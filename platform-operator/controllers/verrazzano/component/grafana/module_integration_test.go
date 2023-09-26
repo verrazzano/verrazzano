@@ -141,33 +141,6 @@ func TestGetModuleSpec(t *testing.T) {
 					  "fromAddress": "me@foo.com",
 					  "fromName": "Mike"
 					},
-					"ingress": {
-					  "enabled": true,
-					  "ingressClassName": "myclass",
-					  "ports": [
-						{
-						  "name": "myport",
-						  "protocol": "tcp",
-						  "port": 8000,
-						  "targetPort": 0,
-						  "nodePort": 80
-						}
-					  ],
-					  "type": "LoadBalancer"
-					},
-					"dns": {
-					  "oci": {
-						"dnsScope": "global",
-						"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-						"dnsZoneOCID": "ocid..zone.myzone",
-						"dnsZoneName": "myzone",
-						"ociConfigSecret": "oci"
-					  }
-					},
-					"environmentName": "Myenv",
-					"thanosEnabled": true,
-					"prometheusEnabled": true,
-					"prometheusOperatorEnabled": true,
 					"defaultVolumeSource": {
 					  "persistentVolumeClaim": {
 						"claimName": "vmi"

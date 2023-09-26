@@ -6,6 +6,7 @@ package istio
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 	"path/filepath"
 	"strings"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/secret"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/monitor"
@@ -42,10 +42,10 @@ import (
 )
 
 // ComponentName is the name of the component
-const ComponentName = "istio"
+const ComponentName = common.IstioComponentName
 
 // ComponentJSONName is the JSON name of the verrazzano component in CRD
-const ComponentJSONName = "istio"
+const ComponentJSONName = common.IstioComponentName
 
 // IstiodDeployment is the name of the istiod deployment
 const IstiodDeployment = "istiod"
@@ -57,7 +57,7 @@ const IstioIngressgatewayDeployment = "istio-ingressgateway"
 const IstioEgressgatewayDeployment = "istio-egressgateway"
 
 // IstioNamespace is the default Istio namespace
-const IstioNamespace = constants.IstioSystemNamespace
+const IstioNamespace = common.IstioNamespace
 
 // IstioCoreDNSReleaseName is the name of the istiocoredns release
 const IstioCoreDNSReleaseName = "istiocoredns"
