@@ -397,16 +397,17 @@ func TestSyncer_updateVMCStatus(t *testing.T) {
 	adminStatusMock := mocks.NewMockStatusWriter(adminMocker)
 	localClientMock := mocks.NewMockClient(adminMocker)
 
+	fakeDiscoveryClient, err := fakeDiscoveryClientFunc()
+	assert.Nil(err)
+
 	s := &Syncer{
-		AdminClient:        adminMock,
-		Log:                log,
-		ManagedClusterName: "my-test-cluster",
-		LocalClient:        localClientMock,
+		AdminClient:          adminMock,
+		Log:                  log,
+		ManagedClusterName:   "my-test-cluster",
+		LocalClient:          localClientMock,
+		LocalDiscoveryClient: fakeDiscoveryClient,
 	}
 	vmcName := types.NamespacedName{Name: s.ManagedClusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}
-
-	defer setDiscoveryClientFunc(getDiscoveryClientFunc)
-	setDiscoveryClientFunc(fakeDiscoveryClientFunc)
 
 	expectGetAPIServerURLCalled(localClientMock)
 	expectGetPrometheusHostCalled(localClientMock)
