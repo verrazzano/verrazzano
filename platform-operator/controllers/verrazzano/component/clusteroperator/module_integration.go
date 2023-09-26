@@ -5,11 +5,14 @@ package clusteroperator
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c clusterOperatorComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{rancher.ComponentName})
+	return watch.CombineWatchDescriptors(
+		watch.GetModuleInstalledWatches([]string{rancher.ComponentName, argocd.ComponentName}),
+	)
 }
