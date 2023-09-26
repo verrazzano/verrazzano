@@ -191,7 +191,7 @@ pipeline {
                                         string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                        string(name: 'TEST_ENV', 'kind'),
+                                        string(name: 'TEST_ENV', value: 'kind'),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
@@ -412,7 +412,7 @@ pipeline {
                                         string(name: 'CERT_ISSUER', value: "acme"),
                                         string(name: 'ACME_ENVIRONMENT', value: "staging"),
                                         booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
-                                        string(name: 'TEST_ENV', 'kind'),
+                                        string(name: 'TEST_ENV', value: 'kind'),
                                         string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
                                         string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
