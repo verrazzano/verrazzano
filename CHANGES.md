@@ -1,6 +1,7 @@
 ### v1.7.0
 Component version updates:
 
+- ArgoCD v2.8.3
 - WebLogic Kubernetes Operator v4.1.2
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)

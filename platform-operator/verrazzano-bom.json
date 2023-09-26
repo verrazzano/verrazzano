@@ -928,7 +928,7 @@
     },
     {
       "name": "argocd",
-      "version": "2.7.2",
+      "version": "2.8.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -936,7 +936,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230919043605-fc41216e",
+              "tag": "v2.8.3-20230925214414-d5a19b1d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
