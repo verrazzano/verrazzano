@@ -141,11 +141,11 @@ type ClusterReference struct {
 	// The API version of the referenced ClusterAPI cluster object.
 	APIVersion string `json:"apiVersion,omitempty"`
 	// The kind of the referenced ClusterAPI cluster object.
-	Kind       string `json:"kind,omitempty"`
+	Kind string `json:"kind,omitempty"`
 	// The name of the referenced ClusterAPI cluster object.
-	Name       string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 	// The namespace of the referenced ClusterAPI cluster object.
-	Namespace  string `json:"namespace,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
