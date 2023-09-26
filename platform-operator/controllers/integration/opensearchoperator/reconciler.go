@@ -4,10 +4,14 @@
 package opensearchoperator
 
 import (
+	"context"
+	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"k8s.io/apimachinery/pkg/types"
 	"time"
 
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
@@ -15,19 +19,18 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Reconcile reconciles the Verrazzano CR
-// to perform index pattern creation, ISM Policy creation and configuration
+// Reconcile reconciles the OpenSearch integration configmap.
+// The configmap existence is just used as a mechanism to trigger reconcile, there
+// is nothing in the configmap that is needed to do reconcile.
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	// Convert the unstructured to a Verrazzano CR
-	actualCR := &vzv1alpha1.Verrazzano{}
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
-		controllerCtx.Log.ErrorfThrottled(err.Error())
-		// This is a fatal error which should never happen, don't requeue
-		return result.NewResult()
+	actualCR, err := r.GetVerrazzanoCR()
+	if err != nil {
+		vzlog.DefaultLogger().ErrorfThrottled("Failed to get Verrazzano CR for OpenSearch integration operator: %v", err)
+		return result.NewResultRequeueDelay(30, 40, time.Second)
 	}
+
 	// Get the resource logger needed to log message using 'progress' and 'once' methods
 	log, err := vzlog.EnsureResourceLogger(&vzlog.ResourceConfig{
 		Name:           actualCR.Name,
@@ -131,4 +134,29 @@ func (r *Reconciler) getOSClient() (*OSClient, error) {
 	}
 	osClient := NewOSClient(pas)
 	return osClient, nil
+}
+
+func (r *Reconciler) GetVerrazzanoCR() (*vzv1alpha1.Verrazzano, error) {
+	nsn, err := r.GetVerrazzanoNSN()
+	if err != nil {
+		return nil, err
+	}
+
+	vz := &vzapi.Verrazzano{}
+	if err := r.Client.Get(context.TODO(), *nsn, vz); err != nil {
+		return nil, err
+	}
+	return vz, nil
+}
+
+func (r *Reconciler) GetVerrazzanoNSN() (*types.NamespacedName, error) {
+	vzlist := &vzv1alpha1.VerrazzanoList{}
+	if err := r.Client.List(context.TODO(), vzlist); err != nil {
+		return nil, err
+	}
+	if len(vzlist.Items) != 1 {
+		return nil, fmt.Errorf("Failed, found %d Verrazzano CRs in the cluster.  There must be exactly 1 Verrazzano CR", len(vzlist.Items))
+	}
+	vz := vzlist.Items[0]
+	return &types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, nil
 }

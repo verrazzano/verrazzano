@@ -8,7 +8,8 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/basecontroller"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzv1alpha1v1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlruntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,6 +33,7 @@ func InitController(mgr ctrlruntime.Manager) error {
 	// The config MUST contain at least the Reconciler.  Other spi interfaces are optional.
 	config := basecontroller.ControllerConfig{
 		Reconciler: &controller,
+		EventFilter: &controller,
 	}
 	baseController, err := basecontroller.CreateControllerAndAddItToManager(mgr, config)
 	if err != nil {
@@ -46,5 +48,11 @@ func InitController(mgr ctrlruntime.Manager) error {
 
 // GetReconcileObject returns the kind of object being reconciled
 func (r Reconciler) GetReconcileObject() client.Object {
-	return &vzv1alpha1v1beta1.Verrazzano{}
+	return &corev1.ConfigMap{}
+}
+
+// HandlePredicateEvent returns true if this is the OpenSearch integration operator configmap.
+func (r Reconciler) HandlePredicateEvent(cli client.Client, object client.Object) bool {
+	return object.GetNamespace() == constants.VerrazzanoInstallNamespace &&
+		object.GetName() == constants.OpenSearchIntegrationConfigMapName
 }
