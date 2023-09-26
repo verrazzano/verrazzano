@@ -8,8 +8,8 @@ import (
 	"io/fs"
 	"os"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	netv1 "k8s.io/api/networking/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"

@@ -110,3 +110,7 @@ func NewResourceExpired(message string) *apierrors.StatusError {
 func NewInternalError(err error) *apierrors.StatusError {
 	return apierrors.NewInternalError(err)
 }
+
+func NewConflict(qualifiedResource schema.GroupResource, name string, err error) *apierrors.StatusError {
+	return apierrors.NewConflict(qualifiedResource, name, err)
+}

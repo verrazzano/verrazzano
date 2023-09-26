@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 

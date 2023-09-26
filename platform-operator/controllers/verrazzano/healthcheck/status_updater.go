@@ -5,10 +5,10 @@ package healthcheck
 
 import (
 	"context"
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"github.com/verrazzano/verrazzano/pkg/log"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"go.uber.org/zap"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 	"sync"
 	"time"

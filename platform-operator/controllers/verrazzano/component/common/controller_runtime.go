@@ -22,8 +22,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/go-cmp/cmp"
+	apierrors "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"google.golang.org/protobuf/testing/protocmp"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )

@@ -6,7 +6,7 @@ package common
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )

@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	constants2 "github.com/verrazzano/verrazzano/pkg/mcconstants"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )

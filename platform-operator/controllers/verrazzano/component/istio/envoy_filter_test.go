@@ -6,8 +6,8 @@ package istio
 import (
 	"context"
 	"errors"
+	k8serr "github.com/verrazzano/verrazzano/pkg/k8s/errors"
 	"k8s.io/apimachinery/pkg/api/equality"
-	k8serr "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
