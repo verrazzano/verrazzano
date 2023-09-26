@@ -1,7 +1,7 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearchoperator
+package opensearch
 
 import (
 	"context"
@@ -39,7 +39,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		Namespace:      actualCR.Namespace,
 		ID:             string(actualCR.UID),
 		Generation:     actualCR.Generation,
-		ControllerName: "opensearch-operator",
+		ControllerName: "opensearch-integration",
 	})
 	if err != nil {
 		zap.S().Errorf("Failed to create controller logger for opensearch-operator controller: %v", err)

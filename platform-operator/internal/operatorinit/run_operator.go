@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
-	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearchoperator"
+	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearch"
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/factory"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/reconcile"
