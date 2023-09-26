@@ -5,6 +5,9 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"path"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
@@ -112,6 +115,19 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
+	}
 	return nil
 }
 
@@ -141,6 +157,19 @@ func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) erro
 
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Component: %s, Failed to substitute template values for OpenSearchCluster CR: %v", ComponentName, err)
+	}
 	return nil
 }
 

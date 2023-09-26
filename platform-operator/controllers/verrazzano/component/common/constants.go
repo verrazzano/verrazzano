@@ -18,4 +18,8 @@ const (
 
 	// PrometheusOperatorComponentNamespace is the namespace of the component
 	PrometheusOperatorComponentNamespace = constants.VerrazzanoMonitoringNamespace
+
+	OpenSearchComponentName = "opensearch"
+
+	OpenSearchDashboardsComponentName = "opensearch-dashboards"
 )

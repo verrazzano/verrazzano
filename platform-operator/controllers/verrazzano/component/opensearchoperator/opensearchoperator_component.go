@@ -5,9 +5,7 @@ package opensearchoperator
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"path"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -114,45 +112,24 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	if err := handleLegacyOpenSearch(ctx); err != nil {
 		return err
 	}
-	log.Debugf("Merging security configs")
-	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
-		return err
-	}
+	//log.Debugf("Merging security configs")
+	//if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+	//	return err
+	//}
 	return o.HelmComponent.PreInstall(ctx)
 }
 
-func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	log := ctx.Log()
-	log.Debugf("Merging security configs")
-	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
-		return err
-	}
-	return o.HelmComponent.PreUpgrade(ctx)
-}
+//func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+//	log := ctx.Log()
+//	log.Debugf("Merging security configs")
+//	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+//		return err
+//	}
+//	return o.HelmComponent.PreUpgrade(ctx)
+//}
 
 func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
-	if err := o.HelmComponent.Install(ctx); err != nil {
-		return err
-	}
-
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
-		ctx.Log().Infof("Applying OpensearchCluster CR")
-
-		args, err := buildArgsForOpenSearchCR(ctx)
-		if err != nil {
-			return err
-		}
-		// substitute template values to all files in the directory and apply the resulting YAML
-		filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
-		yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-		err = yamlApplier.ApplyFT(filePath, args)
-
-		if err != nil {
-			return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
-		}
-	}
-
-	return nil
+	return o.HelmComponent.Install(ctx)
 }
 
 // PostInstall runs after component is installed

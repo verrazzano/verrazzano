@@ -51,5 +51,7 @@ func (c authProxyComponent) GetWatchDescriptors() []controllerspi.WatchDescripto
 		watch.GetCreateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetUpdateSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
 		watch.GetDeleteSecretWatch(vzconst.MCRegistrationSecret, vzconst.VerrazzanoSystemNamespace),
+		watch.GetCreateNamespaceWatch(vzconst.VerrazzanoLoggingNamespace),
+		watch.GetUpdateNamespaceWatch(vzconst.VerrazzanoLoggingNamespace),
 	)
 }

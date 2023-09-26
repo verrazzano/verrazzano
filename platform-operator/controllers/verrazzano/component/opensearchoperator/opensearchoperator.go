@@ -13,20 +13,14 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -85,128 +79,6 @@ func GetOverrides(object runtime.Object) interface{} {
 	return []vzapi.Overrides{}
 }
 
-func buildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
-	args := make(map[string]interface{})
-
-	masterNode := getMasterNode(ctx)
-	if len(masterNode) <= 0 {
-		return args, fmt.Errorf("invalid cluster topology, no master node defined")
-	}
-	effectiveCR := ctx.EffectiveCR()
-
-	args["isOpenSearchEnabled"] = vzcr.IsOpenSearchEnabled(effectiveCR)
-	args["isOpenSearchDashboardsEnabled"] = vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
-
-	// Bootstrap pod overrides
-	args["bootstrapConfig"] = ""
-	if IsUpgrade(ctx) || IsSingleMasterNodeCluster(ctx) {
-		args["bootstrapConfig"] = fmt.Sprintf("cluster.initial_master_nodes: %s-%s-0", clusterName, masterNode)
-	}
-
-	// Set drainDataNodes only when the cluster has at least 2 data nodes
-	if IsSingleDataNodeCluster(ctx) {
-		args["drainDataNodes"] = false
-	} else {
-		args["drainDataNodes"] = true
-	}
-
-	// Append OSD replica count from current OSD config
-	osd := effectiveCR.Spec.Components.Kibana
-	if osd != nil {
-		osdReplica := osd.Replicas
-		if osdReplica != nil {
-			args["osdReplicas"] = osdReplica
-		}
-	}
-
-	// Append plugins list for Opensearch
-	opensearch := effectiveCR.Spec.Components.Elasticsearch
-	if opensearch != nil {
-		osPlugins := opensearch.Plugins
-		if osPlugins.Enabled && len(osPlugins.InstallList) > 0 {
-			pluginList, err := yaml.Marshal(osPlugins.InstallList)
-			if err != nil {
-				return args, nil
-			}
-			args["osPluginsEnabled"] = true
-			args["osPluginsList"] = string(pluginList)
-		} else {
-			args["osPluginsEnabled"] = false
-		}
-	}
-
-	// Append plugins list for OSD
-	if osd != nil {
-		osdPlugins := osd.Plugins
-		if osdPlugins.Enabled && len(osdPlugins.InstallList) > 0 {
-			pluginList, err := yaml.Marshal(osdPlugins.InstallList)
-			if err != nil {
-				return args, nil
-			}
-			args["osdPluginsEnabled"] = true
-			args["osdPluginsList"] = string(pluginList)
-		} else {
-			args["osdPluginsEnabled"] = false
-		}
-	}
-
-	err := buildNodePoolOverrides(ctx, args, masterNode)
-	if err != nil {
-		return args, ctx.Log().ErrorfNewErr("Failed to build nodepool overrides: %v", err)
-	}
-
-	// Test images
-	// TODO:- Get from BOM once BFS images are done
-	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
-	args["osdImage"] = "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
-
-	return args, nil
-}
-
-// getAdditionalConfig returns any existing additional config for the given node
-func getAdditionalConfig(ctx spi.ComponentContext, nodeName string) (map[string]string, bool) {
-	client, err := k8sutil.GetDynamicClient()
-	if err != nil {
-		return nil, false
-	}
-
-	resourceClient := client.Resource(clusterGVR)
-	obj, err := resourceClient.Namespace(ComponentNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil, false
-		}
-	}
-	value, exists, err := unstructured.NestedFieldNoCopy(obj.Object, "spec", "nodePools")
-	if err != nil {
-		return nil, false
-	}
-	if exists {
-		nodePools, ok := value.([]interface{})
-		if ok {
-			for _, node := range nodePools {
-				n, ok := node.(map[string]interface{})
-				if ok {
-					if n["component"] == nodeName {
-						result := map[string]string{}
-						links, ok := n["additionalConfig"].(map[string]interface{})
-						if !ok {
-							return nil, false
-						}
-						for k := range links {
-							if v, ok := links[k].(string); ok {
-								result[k] = v
-							}
-						}
-						return result, true
-					}
-				}
-			}
-		}
-	}
-	return nil, false
-}
-
 // appendOverrides appends the additional overrides for install
 func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 
@@ -223,109 +95,6 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		Value: clusterResourceNamespace,
 	})
 	return kvs, nil
-}
-
-type OpenSearch struct {
-	OpenSearchCluster `json:"opensearchCluster"`
-}
-
-type OpenSearchCluster struct {
-	NodePools []NodePool `json:"nodePools" patchStrategy:"merge,retainKeys" patchMergeKey:"component"`
-}
-
-type NodePool struct {
-	Component        string                      `json:"component"`
-	Replicas         int32                       `json:"replicas"`
-	DiskSize         string                      `json:"diskSize,omitempty"`
-	Resources        corev1.ResourceRequirements `json:"resources,omitempty"`
-	Jvm              string                      `json:"jvm,omitempty"`
-	Roles            []string                    `json:"roles"`
-	Persistence      *PersistenceConfig          `json:"persistence,omitempty"`
-	AdditionalConfig map[string]string           `json:"additionalConfig,omitempty"`
-}
-
-// PersistenceConfig defines options for data persistence
-type PersistenceConfig struct {
-	PersistenceSource `json:","`
-}
-
-type PersistenceSource struct {
-	EmptyDir *corev1.EmptyDirVolumeSource `json:"emptyDir,omitempty"`
-}
-
-func buildNodePoolOverrides(ctx spi.ComponentContext, args map[string]interface{}, masterNode string) error {
-	convertedNodes, err := convertOSNodesToNodePools(ctx, masterNode)
-	if err != nil {
-		return err
-	}
-
-	nodePoolOverrides, err := yaml.Marshal(convertedNodes)
-	if err != nil {
-		return err
-	}
-	args["nodePools"] = string(nodePoolOverrides)
-	return nil
-}
-
-// convertOSNodesToNodePools converts OpenSearchNode to NodePool type
-func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]NodePool, error) {
-	var nodePools []NodePool
-
-	effectiveCR := ctx.EffectiveCR()
-	effectiveCRNodes := effectiveCR.Spec.Components.Elasticsearch.Nodes
-	actualCRNodes := getActualCRNodes(ctx.ActualCR())
-	resourceRequest, err := common.FindStorageOverride(effectiveCR)
-
-	if err != nil {
-		return nodePools, err
-	}
-
-	for _, node := range effectiveCRNodes {
-		nodePool := NodePool{
-			Component: node.Name,
-			Jvm:       node.JavaOpts,
-		}
-		if node.Replicas != nil {
-			if *node.Replicas == 0 {
-				continue
-			}
-			nodePool.Replicas = *node.Replicas
-		}
-		if node.Resources != nil {
-			nodePool.Resources = *node.Resources
-		}
-		if node.Storage != nil {
-			nodePool.DiskSize = node.Storage.Size
-		} else if resourceRequest != nil && len(resourceRequest.Storage) > 0 {
-			nodePool.DiskSize = resourceRequest.Storage
-		} else {
-			nodePool.DiskSize = ""
-			nodePool.Persistence = &PersistenceConfig{
-				PersistenceSource{
-					EmptyDir: &corev1.EmptyDirVolumeSource{},
-				},
-			}
-		}
-		// user defined storage has the highest precedence
-		if actualCRNode, ok := actualCRNodes[node.Name]; ok {
-			if actualCRNode.Storage != nil {
-				nodePool.DiskSize = actualCRNode.Storage.Size
-			}
-		}
-		for _, role := range node.Roles {
-			nodePool.Roles = append(nodePool.Roles, string(role))
-		}
-		if exisitngAdditionalConfig, ok := getAdditionalConfig(ctx, nodePool.Component); ok {
-			nodePool.AdditionalConfig = exisitngAdditionalConfig
-		}
-		nodePools = append(nodePools, nodePool)
-	}
-	if IsSingleMasterNodeCluster(ctx) {
-		nodePools[0].AdditionalConfig = map[string]string{
-			"cluster.initial_master_nodes": fmt.Sprintf("%s-%s-0", clusterName, masterNode),
-		}
-	}
-	return nodePools, nil
 }
 
 // deleteRelatedResource deletes the resources handled by the opensearchOperator
@@ -372,34 +141,6 @@ func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
 		}
 	}
 	return nil
-}
-
-// getActualCRNodes returns the nodes from the actual CR
-func getActualCRNodes(cr *vzapi.Verrazzano) map[string]vzapi.OpenSearchNode {
-	nodeMap := map[string]vzapi.OpenSearchNode{}
-	if cr != nil && cr.Spec.Components.Elasticsearch != nil {
-		for _, node := range cr.Spec.Components.Elasticsearch.Nodes {
-			nodeMap[node.Name] = node
-		}
-	}
-	return nodeMap
-}
-
-// getMasterNode returns the first master node from the list of nodes
-func getMasterNode(ctx spi.ComponentContext) string {
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-			for _, role := range node.Roles {
-				if node.Replicas == nil || *node.Replicas < 1 {
-					continue
-				}
-				if role == "master" {
-					return node.Name
-				}
-			}
-		}
-	}
-	return ""
 }
 
 // buildIngressOverrides builds the overrides required for the OpenSearch and OpenSearchDashboards ingresses
@@ -476,54 +217,6 @@ func appendIngressOverrides(ingressAnnotations map[string]string, path, hostName
 func (o opensearchOperatorComponent) isReady(ctx spi.ComponentContext) bool {
 	deployments := getEnabledDeployments(ctx)
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployments, 1, getPrefix(ctx))
-}
-
-// IsSingleMasterNodeCluster returns true if the cluster has a single master node
-func IsSingleMasterNodeCluster(ctx spi.ComponentContext) bool {
-	var replicas int32
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-			for _, role := range node.Roles {
-				if role == "master" && node.Replicas != nil {
-					replicas += *node.Replicas
-				}
-			}
-		}
-	}
-	return replicas <= 1
-}
-
-// IsSingleDataNodeCluster returns true if the cluster has a single data node
-func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
-	var replicas int32
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-			for _, role := range node.Roles {
-				if role == "data" && node.Replicas != nil {
-					replicas += *node.Replicas
-				}
-			}
-		}
-	}
-	return replicas <= 1
-}
-
-// IsUpgrade returns true if we are upgrading from <=1.6.x to 2.x
-func IsUpgrade(ctx spi.ComponentContext) bool {
-	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
-		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {
-			// If PVs with this label exists for any node pool, then it's an upgrade
-			pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, node.Name)
-			if err != nil {
-				return false
-			}
-			if len(pvList) > 0 {
-				return true
-			}
-		}
-	}
-
-	return false
 }
 
 // GetClient returns a controller runtime client for the Verrazzano resource

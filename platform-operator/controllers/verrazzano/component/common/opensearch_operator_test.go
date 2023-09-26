@@ -6,6 +6,10 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -19,8 +23,11 @@ import (
 )
 
 const (
-	testConfigData = "config:\n      dynamic:\n        kibana:\n          multitenancy_enabled: false\n        http:\n          anonymous_auth_enabled: false\n          xff:\n            enabled: true\n            internalProxies: '.*'\n            remoteIpHeader: 'x-forwarded-for'\n        authc:\n          vz_proxy_auth_domain:\n            description: \"Authenticate via Verrazzano proxy\"\n            http_enabled: true\n            transport_enabled: true\n            order: 0\n            http_authenticator:\n              type: proxy\n              challenge: false\n              config:\n                user_header: \"X-WEBAUTH-USER\"\n                roles_header: \"x-proxy-roles\"\n            authentication_backend:\n              type: noop\n          vz_basic_internal_auth_domain:\n            description: \"Authenticate via HTTP Basic against internal users database\"\n            http_enabled: true\n            transport_enabled: true\n            order: 1\n            http_authenticator:\n              type: basic\n              challenge: false\n            authentication_backend:\n              type: intern\n          vz_clientcert_auth_domain:\n             description: \"Authenticate via SSL client certificates\"\n             http_enabled: true\n             transport_enabled: true\n             order: 2\n             http_authenticator:\n               type: clientcert\n               config:\n                 enforce_hostname_verification: false\n                 username_attribute: cn\n               challenge: false\n             authentication_backend:\n                 type: noop"
-	testUsersData  = "admin:\n    hash: \n    reserved: true\n    backend_roles:\n    - \"admin\"\n    description: \"Admin user\""
+	testConfigData       = "config:\n      dynamic:\n        kibana:\n          multitenancy_enabled: false\n        http:\n          anonymous_auth_enabled: false\n          xff:\n            enabled: true\n            internalProxies: '.*'\n            remoteIpHeader: 'x-forwarded-for'\n        authc:\n          vz_proxy_auth_domain:\n            description: \"Authenticate via Verrazzano proxy\"\n            http_enabled: true\n            transport_enabled: true\n            order: 0\n            http_authenticator:\n              type: proxy\n              challenge: false\n              config:\n                user_header: \"X-WEBAUTH-USER\"\n                roles_header: \"x-proxy-roles\"\n            authentication_backend:\n              type: noop\n          vz_basic_internal_auth_domain:\n            description: \"Authenticate via HTTP Basic against internal users database\"\n            http_enabled: true\n            transport_enabled: true\n            order: 1\n            http_authenticator:\n              type: basic\n              challenge: false\n            authentication_backend:\n              type: intern\n          vz_clientcert_auth_domain:\n             description: \"Authenticate via SSL client certificates\"\n             http_enabled: true\n             transport_enabled: true\n             order: 2\n             http_authenticator:\n               type: clientcert\n               config:\n                 enforce_hostname_verification: false\n                 username_attribute: cn\n               challenge: false\n             authentication_backend:\n                 type: noop"
+	testUsersData        = "admin:\n    hash: \n    reserved: true\n    backend_roles:\n    - \"admin\"\n    description: \"Admin user\""
+	profilesRelativePath = "../../../../manifests/profiles"
+	clusterLabel         = "opster.io/opensearch-cluster"
+	esData               = "es-data"
 )
 
 // TestMergeSecurityConfigs tests the MergeSecretData function
@@ -145,4 +152,48 @@ func TestMergeSecurityConfigsHashError(t *testing.T) {
 
 	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
+}
+
+// TestIsUpgrade tests the IsUpgrade function
+// GIVEN a call to IsUpgrade
+// WHEN there are older PVs is called
+// THEN expected boolean is returned
+func TestIsUpgrade(t *testing.T) {
+	fakeClient := fake.NewClientBuilder().WithScheme(testScheme).Build()
+
+	fakeCtx := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.False(t, IsUpgrade(fakeCtx))
+
+	fakeClient = fake.NewClientBuilder().WithScheme(testScheme).WithLists(
+		&corev1.PersistentVolumeList{Items: []corev1.PersistentVolume{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pv-1",
+					Labels: map[string]string{
+						opensearchNodeLabel: esData,
+						clusterLabel:        clusterName,
+					},
+				},
+				Spec: corev1.PersistentVolumeSpec{
+					ClaimRef: &corev1.ObjectReference{
+						Namespace: constants.VerrazzanoSystemNamespace,
+						Name:      "vmi-system-es-data-1",
+					},
+					PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimDelete,
+				},
+			},
+		}}).Build()
+	fakeCtx = spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.True(t, IsUpgrade(fakeCtx))
+}
+
+// TestIsSingleMasterNodeCluster tests the IsSingleMasterNodeCluster function
+// GIVEN a VZ CR
+// WHEN IsSingleMasterNodeCluster is called
+// THEN expected boolean is returned
+func TestIsSingleMasterNodeCluster(t *testing.T) {
+	fakeCtx := spi.NewFakeContext(nil, &v1alpha1.Verrazzano{}, nil, false, profilesRelativePath)
+	assert.False(t, IsSingleMasterNodeCluster(fakeCtx))
+	fakeCtx = spi.NewFakeContext(nil, &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{Profile: "dev"}}, nil, false, profilesRelativePath)
+	assert.True(t, IsSingleMasterNodeCluster(fakeCtx))
 }

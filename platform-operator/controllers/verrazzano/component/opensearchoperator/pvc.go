@@ -22,15 +22,11 @@ import (
 	c "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var (
-	PVCListingError = "Failed listing persistent volumes: %v"
-)
-
 // getOSPersistentVolumes returns the list of older PersistentVolumes used by VMO OpenSearch
 func getOSPersistentVolumes(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) ([]v1.PersistentVolume, error) {
 	pvList := &v1.PersistentVolumeList{}
 	if err := ctx.Client().List(context.TODO(), pvList); err != nil {
-		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
+		return nil, ctx.Log().ErrorfNewErr(common.PVCListingError, err)
 	}
 
 	var openSearchPVList []v1.PersistentVolume
@@ -44,30 +40,6 @@ func getOSPersistentVolumes(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNo
 		}
 	}
 	return openSearchPVList, nil
-}
-
-// getPVsBasedOnLabel return the list of PersistentVolumes based on a certain label key-value pair
-func getPVsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolume, error) {
-	pvList := &v1.PersistentVolumeList{}
-	if err := ctx.Client().List(context.TODO(), pvList, c.MatchingLabels{labelKey: labelValue}); err != nil {
-		if errors.IsNotFound(err) {
-			return pvList.Items, nil
-		}
-		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
-	}
-	return pvList.Items, nil
-}
-
-// getPVCsBasedOnLabel return the list of PersistentVolumeClaims based on a certain label key-value pair
-func getPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolumeClaim, error) {
-	pvcList := &v1.PersistentVolumeClaimList{}
-	if err := ctx.Client().List(context.TODO(), pvcList, c.MatchingLabels{labelKey: labelValue}); err != nil {
-		if errors.IsNotFound(err) {
-			return pvcList.Items, nil
-		}
-		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
-	}
-	return pvcList.Items, nil
 }
 
 // setPVsToRetain sets the ReclaimPolicy for older PersistentVolumes to Retain
@@ -116,12 +88,12 @@ func createNewPVCs(ctx spi.ComponentContext, nodes []vzapi.OpenSearchNode) error
 	for _, node := range nodes {
 		nodePool := node.Name
 		// Get older PVs for this node pool
-		pvList, err := getPVsBasedOnLabel(ctx, opensearchNodeLabel, nodePool)
+		pvList, err := common.GetPVsBasedOnLabel(ctx, opensearchNodeLabel, nodePool)
 		if err != nil {
 			return err
 		}
 		// Get newly created PVCs for this node pool
-		pvcList, err := getPVCsBasedOnLabel(ctx, nodePoolLabel, nodePool)
+		pvcList, err := common.GetPVCsBasedOnLabel(ctx, nodePoolLabel, nodePool)
 		if err != nil {
 			return err
 		}

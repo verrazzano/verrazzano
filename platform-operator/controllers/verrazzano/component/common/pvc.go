@@ -18,6 +18,10 @@ import (
 	c "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	PVCListingError = "Failed listing persistent volumes: %v"
+)
+
 // RetainPersistentVolume locates the persistent volume associated with the provided pvc
 // and sets the reclaim policy to "retain" so that it can be migrated to the new deployment/statefulset.
 func RetainPersistentVolume(ctx spi.ComponentContext, pvc *v1.PersistentVolumeClaim, componentName string) error {
@@ -178,4 +182,28 @@ func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newCl
 		return nil
 	})
 	return err
+}
+
+// GetPVsBasedOnLabel return the list of PersistentVolumes based on a certain label key-value pair
+func GetPVsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolume, error) {
+	pvList := &v1.PersistentVolumeList{}
+	if err := ctx.Client().List(context.TODO(), pvList, c.MatchingLabels{labelKey: labelValue}); err != nil {
+		if errors.IsNotFound(err) {
+			return pvList.Items, nil
+		}
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
+	}
+	return pvList.Items, nil
+}
+
+// GetPVCsBasedOnLabel return the list of PersistentVolumeClaims based on a certain label key-value pair
+func GetPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolumeClaim, error) {
+	pvcList := &v1.PersistentVolumeClaimList{}
+	if err := ctx.Client().List(context.TODO(), pvcList, c.MatchingLabels{labelKey: labelValue}); err != nil {
+		if errors.IsNotFound(err) {
+			return pvcList.Items, nil
+		}
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
+	}
+	return pvcList.Items, nil
 }
