@@ -86,7 +86,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230526160243-7a73e30",
+              "tag": "v0.1.0-20230925072151-7a73e30",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -260,7 +260,7 @@
             },
             {
               "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230810212038-8777b84",
+              "tag": "v1.14.5-20230922100900-8777b84",
               "helmFullImageKey": "logging.fluentdImage"
             },
             {
@@ -321,7 +321,7 @@
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -581,7 +581,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v1.6.0-20230512022548-e289e05"
+              "tag": "v1.6.0-20230926055633-f1b766a"
             }
           ]
         }
@@ -630,7 +630,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.25.0-20230922084030-660afb41",
+              "tag": "v0.24.0-20230926053740-18128160",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -678,7 +678,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.8.2-20230531155057-c4a3ac95",
+              "tag": "v2.8.2-20230925100848-be7e3d42",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -713,7 +713,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230605074155-b7f69924",
+              "tag": "v1.3.1-20230925070337-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
