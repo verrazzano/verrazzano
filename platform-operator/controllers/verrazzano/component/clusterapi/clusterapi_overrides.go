@@ -303,13 +303,13 @@ func getBaseOverrides() (*capiOverrides, error) {
 	}
 
 	// Initialize internal static values
-	overrides.DefaultProviders.Core.Name = clusterAPIProvider
+	overrides.DefaultProviders.Core.Name = "cluster-api"
 	overrides.DefaultProviders.Core.MetadataFile = "core-components.yaml"
-	overrides.DefaultProviders.OCI.Name = infrastructureOciProvider
+	overrides.DefaultProviders.OCI.Name = "infrastructure-oci"
 	overrides.DefaultProviders.OCI.MetadataFile = "infrastructure-components.yaml"
-	overrides.DefaultProviders.OCNEBootstrap.Name = bootstrapOcneProvider
+	overrides.DefaultProviders.OCNEBootstrap.Name = "bootstrap-ocne"
 	overrides.DefaultProviders.OCNEBootstrap.MetadataFile = "bootstrap-components.yaml"
-	overrides.DefaultProviders.OCNEControlPlane.Name = controlPlaneOcneProvider
+	overrides.DefaultProviders.OCNEControlPlane.Name = "control-plane-ocne"
 	overrides.DefaultProviders.OCNEControlPlane.MetadataFile = "control-plane-components.yaml"
 
 	return overrides, err
