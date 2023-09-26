@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/types"
 	"time"
@@ -37,10 +39,10 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		Namespace:      actualCR.Namespace,
 		ID:             string(actualCR.UID),
 		Generation:     actualCR.Generation,
-		ControllerName: "opensearchoperator",
+		ControllerName: "opensearch-operator",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for opensearchoperator controller: %v", err)
+		zap.S().Errorf("Failed to create controller logger for opensearch-operator controller: %v", err)
 	}
 	r.log = log
 
@@ -57,29 +59,47 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
 	// Handle only if its opensearch-operator managed OS
-	if !isLegacyOS {
-		// Add default index patterns and ISM policies
-		if *effectiveCR.Spec.Components.Kibana.Enabled && *effectiveCR.Spec.Components.Elasticsearch.Enabled {
-			if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
-				err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
-				if err != nil {
-					return result.NewResultShortRequeueDelayWithError(err)
-				}
-			} else {
-				err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
-				if err != nil {
-					return result.NewResultShortRequeueDelayWithError(err)
-				}
-			}
-			err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
-			if err != nil {
-				return result.NewResultShortRequeueDelayWithError(err)
-			}
-			return result.NewResultRequeueDelay(5, 6, time.Minute)
+	if isLegacyOS {
+		return result.NewResult()
+	}
+
+	// Add default index patterns and ISM policies
+	if !areComponentsEnabled(effectiveCR) || !isComponentReady(actualCR, opensearch.ComponentName) ||
+		!isComponentReady(actualCR, opensearchdashboards.ComponentName) {
+		// both components must be enabled and ready
+		return result.NewResultRequeueDelay(1, 2, time.Minute)
+	}
+
+	if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
+		err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	} else {
+		err = r.DeleteDefaultISMPolicies(controllerCtx, effectiveCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	return result.NewResult()
+	err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	return result.NewResultRequeueDelay(5, 6, time.Minute)
+}
+
+// areComponentsEnabled returns true if OpenSearch and OpenSearch Dashboard are both enabled
+func areComponentsEnabled(effectiveCR *vzv1alpha1.Verrazzano) bool {
+	return vzcr.IsOpenSearchEnabled(effectiveCR) && vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
+}
+
+// isComponentReady returns true if the compoent is ready
+func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
+	comp := actualCR.Status.Components[compName]
+	return comp == nil && comp.State == vzv1alpha1.CompStateReady
 }
 
 // CreateIndexPatterns creates the required index patterns using osd client
@@ -142,7 +162,7 @@ func (r *Reconciler) GetVerrazzanoCR() (*vzv1alpha1.Verrazzano, error) {
 		return nil, err
 	}
 
-	vz := &vzapi.Verrazzano{}
+	vz := &vzv1alpha1.Verrazzano{}
 	if err := r.Client.Get(context.TODO(), *nsn, vz); err != nil {
 		return nil, err
 	}
