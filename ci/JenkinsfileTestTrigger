@@ -205,19 +205,8 @@ pipeline {
                 }
                 stage('OCI DNS tests') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                        string(name: 'TEST_ENV', value: 'kind'),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    ], wait: true
-                            }
+                        script {
+                            echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                         }
                     }
                 }
