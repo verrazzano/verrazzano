@@ -16,7 +16,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/cluster-operator/controllers/capi"
+	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -681,7 +681,8 @@ func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.V
 // getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
 func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
 	// Get the CAPI Cluster CR
-	cluster := capi.CAPIClusterClientObject()
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
 	clusterNamespacedName := types.NamespacedName{
 		Name:      clusterRef.Name,
 		Namespace: clusterRef.Namespace,
