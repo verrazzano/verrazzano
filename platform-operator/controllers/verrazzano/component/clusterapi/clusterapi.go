@@ -11,11 +11,18 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+const rbacGroup = "rbac.authorization.k8s.io"
 
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
@@ -70,6 +77,13 @@ const (
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
+	defaultClusterAPIDir                      = "/verrazzano/.cluster-api"
+	clusterAPIDirEnv                          = "VERRAZZANO_CLUSTER_API_DIR"
+	providerLabel                             = "cluster.x-k8s.io/provider"
+	clusterAPIProvider                        = "cluster-api"
+	bootstrapOcneProvider                     = "bootstrap-ocne"
+	controlPlaneOcneProvider                  = "control-plane-ocne"
+	infrastructureOciProvider                 = "infrastructure-oci"
 )
 
 type ImageConfig struct {
@@ -86,12 +100,12 @@ type PodMatcherClusterAPI struct {
 	infrastructureProvider string
 }
 
-const (
-	defaultClusterAPIDir = "/verrazzano/.cluster-api"
-	clusterAPIDirEnv     = "VERRAZZANO_CLUSTER_API_DIR"
-)
-
 var clusterAPIDir = defaultClusterAPIDir
+var providerGVR = schema.GroupVersionResource{
+	Group:    "clusterctl.cluster.x-k8s.io",
+	Version:  "v1alpha3",
+	Resource: "providers",
+}
 
 // Functions needed for unit testing to set and reset .cluster-api directory
 func setClusterAPIDir(dir string) {
@@ -255,4 +269,97 @@ func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
 		len(upgradeOptions.InfrastructureProviders) != 0
+}
+
+// Minimal definition of providers.clusterctl.cluster.x-k8s.io object
+type providerList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []provider `json:"items"`
+}
+type provider struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	ProviderName      string `json:"providerName,omitempty"`
+	Type              string `json:"type,omitempty"`
+	Version           string `json:"version,omitempty"`
+}
+
+func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {
+	var componentObjects []client.Object
+
+	if options.CoreProvider != "" {
+		coreComponents, err := getComponentsForProviderType(c, clusterAPIProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, coreComponents...)
+	}
+
+	if len(options.BootstrapProviders) != 0 {
+		boostrapComponents, err := getComponentsForProviderType(c, bootstrapOcneProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, boostrapComponents...)
+	}
+
+	if len(options.ControlPlaneProviders) != 0 {
+		controlPlaneComponents, err := getComponentsForProviderType(c, controlPlaneOcneProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, controlPlaneComponents...)
+	}
+
+	if len(options.InfrastructureProviders) != 0 {
+		infrastructureComponents, err := getComponentsForProviderType(c, infrastructureOciProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, infrastructureComponents...)
+	}
+	return componentObjects, nil
+}
+
+func getComponentsForProviderType(c client.Client, providerName string, namespace string) ([]client.Object, error) {
+	var objs []client.Object
+
+	// ClusterRoles
+	clusterRoles := &rbac.ClusterRoleList{}
+	if err := c.List(context.TODO(), clusterRoles, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range clusterRoles.Items {
+		objs = append(objs, &clusterRoles.Items[i])
+	}
+
+	// ClusterRoleBindings
+	clusterRoleBindings := &rbac.ClusterRoleBindingList{}
+	if err := c.List(context.TODO(), clusterRoleBindings, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range clusterRoleBindings.Items {
+		objs = append(objs, &clusterRoleBindings.Items[i])
+	}
+
+	// Roles
+	roles := &rbac.RoleList{}
+	if err := c.List(context.TODO(), roles, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range roles.Items {
+		objs = append(objs, &roles.Items[i])
+	}
+
+	// RoleBindings
+	roleBindings := &rbac.RoleBindingList{}
+	if err := c.List(context.TODO(), roleBindings, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range roleBindings.Items {
+		objs = append(objs, &roleBindings.Items[i])
+	}
+
+	return objs, nil
 }
