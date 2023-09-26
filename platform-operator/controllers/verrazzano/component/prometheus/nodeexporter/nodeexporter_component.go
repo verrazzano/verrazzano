@@ -119,6 +119,7 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 func (c prometheusNodeExporterComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// The new Helm chart fails to upgrade because of a label selector immutable field, so we need
 	// to delete the daemonset before upgrading
+	// Added in Verrazzano v1.7.0
 	ctx.Log().Infof("PreUpgrade deleting daemonset %s/%s", ComponentNamespace, daemonsetName)
 	ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: daemonsetName}}
 	if err := ctx.Client().Delete(context.TODO(), ds); err != nil && !errors.IsNotFound(err) {
