@@ -8,18 +8,21 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
-	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+
 	v1 "k8s.io/api/core/v1"
-	rbac "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"text/template"
 )
+
+const rbacGroup = "rbac.authorization.k8s.io"
 
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
@@ -74,13 +77,6 @@ const (
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
-	defaultClusterAPIDir                      = "/verrazzano/.cluster-api"
-	clusterAPIDirEnv                          = "VERRAZZANO_CLUSTER_API_DIR"
-	providerLabel                             = "cluster.x-k8s.io/provider"
-	clusterAPIProvider                        = "cluster-api"
-	bootstrapOcneProvider                     = "bootstrap-ocne"
-	controlPlaneOcneProvider                  = "control-plane-ocne"
-	infrastructureOciProvider                 = "infrastructure-oci"
 )
 
 type ImageConfig struct {
@@ -97,12 +93,12 @@ type PodMatcherClusterAPI struct {
 	infrastructureProvider string
 }
 
+const (
+	defaultClusterAPIDir = "/verrazzano/.cluster-api"
+	clusterAPIDirEnv     = "VERRAZZANO_CLUSTER_API_DIR"
+)
+
 var clusterAPIDir = defaultClusterAPIDir
-var providerGVR = schema.GroupVersionResource{
-	Group:    "clusterctl.cluster.x-k8s.io",
-	Version:  "v1alpha3",
-	Resource: "providers",
-}
 
 // Functions needed for unit testing to set and reset .cluster-api directory
 func setClusterAPIDir(dir string) {
@@ -231,9 +227,9 @@ func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersio
 }
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
-func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (capiUpgradeOptions, error) {
+func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
 	c.initializeImageVersionsOverrides(ctx.Log(), overrides)
-	applyUpgradeOptions := capiUpgradeOptions{}
+	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
 	podList := &v1.PodList{}
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
@@ -261,95 +257,52 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 }
 
 // isUpgradeOptionsNotEmpty returns true if any of the options is not empty
-func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
+func isUpgradeOptionsNotEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) != 0 ||
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
 		len(upgradeOptions.InfrastructureProviders) != 0
 }
 
-func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {
+func getComponentsToUpgrade(c clusterapi.Client, options clusterapi.ApplyUpgradeOptions) ([]client.Object, error) {
+	var components []unstructured.Unstructured
 	var componentObjects []client.Object
-
 	if options.CoreProvider != "" {
-		coreComponents, err := getComponentsForProviderType(c, clusterAPIProvider, constants.VerrazzanoCAPINamespace)
+		coreComponents, err := c.GetProviderComponents(clusterAPIProviderName, v1alpha3.CoreProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
 		if err != nil {
 			return componentObjects, err
 		}
-		componentObjects = append(componentObjects, coreComponents...)
+		components = append(components, coreComponents.Objs()...)
 	}
 
 	if len(options.BootstrapProviders) != 0 {
-		boostrapComponents, err := getComponentsForProviderType(c, bootstrapOcneProvider, constants.VerrazzanoCAPINamespace)
+		boostrapComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.BootstrapProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
 		if err != nil {
 			return componentObjects, err
 		}
-		componentObjects = append(componentObjects, boostrapComponents...)
+		components = append(components, boostrapComponents.Objs()...)
 	}
 
 	if len(options.ControlPlaneProviders) != 0 {
-		controlPlaneComponents, err := getComponentsForProviderType(c, controlPlaneOcneProvider, constants.VerrazzanoCAPINamespace)
+		controlPlaneComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.ControlPlaneProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
 		if err != nil {
 			return componentObjects, err
 		}
-		componentObjects = append(componentObjects, controlPlaneComponents...)
+		components = append(components, controlPlaneComponents.Objs()...)
 	}
 
 	if len(options.InfrastructureProviders) != 0 {
-		infrastructureComponents, err := getComponentsForProviderType(c, infrastructureOciProvider, constants.VerrazzanoCAPINamespace)
+		infrastructureComponents, err := c.GetProviderComponents(
+			ociProviderName, v1alpha3.InfrastructureProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
 		if err != nil {
 			return componentObjects, err
 		}
-		componentObjects = append(componentObjects, infrastructureComponents...)
+		components = append(components, infrastructureComponents.Objs()...)
+	}
+	for i := range components {
+		if components[i].GetObjectKind().GroupVersionKind().Group == rbacGroup {
+			componentObjects = append(componentObjects, &components[i])
+		}
 	}
 	return componentObjects, nil
-}
-
-// getComponentsForProviderType - return a list of ClusterRoles, ClusterRoleBindings, Roles and RoleBindings that are associated with provider specified.
-func getComponentsForProviderType(c client.Client, providerName string, namespace string) ([]client.Object, error) {
-	var objs []client.Object
-
-	// ClusterRoles
-	clusterRoles := &rbac.ClusterRoleList{}
-	if err := c.List(context.TODO(), clusterRoles, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
-		return objs, err
-	}
-	for i := range clusterRoles.Items {
-		objs = append(objs, &clusterRoles.Items[i])
-	}
-
-	// ClusterRoleBindings
-	clusterRoleBindings := &rbac.ClusterRoleBindingList{}
-	if err := c.List(context.TODO(), clusterRoleBindings, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
-		return objs, err
-	}
-	for i := range clusterRoleBindings.Items {
-		objs = append(objs, &clusterRoleBindings.Items[i])
-	}
-
-	// Roles
-	roles := &rbac.RoleList{}
-	if err := c.List(context.TODO(), roles, &client.ListOptions{
-		Namespace:     namespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
-	}); err != nil {
-		return objs, err
-	}
-	for i := range roles.Items {
-		objs = append(objs, &roles.Items[i])
-	}
-
-	// RoleBindings
-	roleBindings := &rbac.RoleBindingList{}
-	if err := c.List(context.TODO(), roleBindings, &client.ListOptions{
-		Namespace:     namespace,
-		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
-	}); err != nil {
-		return objs, err
-	}
-	for i := range roleBindings.Items {
-		objs = append(objs, &roleBindings.Items[i])
-	}
-
-	return objs, nil
 }

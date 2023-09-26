@@ -1,6 +1,6 @@
 #!/bin/bash -x
 
-# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2021, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 if [ -z "$1" ] ; then
@@ -10,10 +10,6 @@ fi
 
 SCRIPT_DIR="$1"
 DIFF_FOUND=false
-
-# Account for capi related clusterroles/clusterroleindings that are not deleted during capi delete
-sed -i "/capi-.*ClusterRole.*/d" ${SCRIPT_DIR}/post-uninstall-resources/default.txt
-sed -i "/capoci-.*ClusterRole.*/d" ${SCRIPT_DIR}/post-uninstall-resources/default.txt
 
 DIFF=$(diff ${SCRIPT_DIR}/pre-install-resources/default.txt ${SCRIPT_DIR}/post-uninstall-resources/default.txt | grep "^>")
 echo "Remaining resources:"
