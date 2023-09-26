@@ -694,7 +694,8 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef clus
 	// Get the state
 	phase, found, err := unstructured.NestedString(cluster.Object, "status", "phase")
 	if !found {
-		return "", err // FIXME: what to return
+		err = fmt.Errorf("could not find field status.phase field inside cluster %s: %v", clusterNamespacedName, err)
+		return "", err
 	}
 	if err != nil {
 		return "", err
