@@ -651,7 +651,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 // The state field functions differently according to whether this VMC references an underlying ClusterAPI cluster.
 func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// If there is no underlying CAPI cluster, set the state field based on the lastAgentConnectTime
-	if vmc.Status.ClusterRef == nil {
+	if vmc.Status.ClusterRef == (clustersv1alpha1.ClusterReference{}) {
 		if vmc.Status.LastAgentConnectTime != nil {
 			currentTime := metav1.Now()
 			// Using the current plus added time to find the difference with lastAgentConnectTime to validate
@@ -681,7 +681,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.V
 }
 
 // getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
+func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
 	// FIXME: better ways to do this?
 	// Get the CAPI Cluster CR
 	cluster := &unstructured.Unstructured{}
