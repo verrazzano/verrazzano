@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	opensearchcontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearch"
 	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/factory"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/namespacewatch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/reconcile"
@@ -126,11 +127,17 @@ func StartPlatformOperator(vzconfig config.OperatorConfig, log *zap.SugaredLogge
 		}
 	}
 
-	// Setup Verrazzano controllers
+	if err := opensearchcontroller.InitController(mgr); err != nil {
+		log.Errorf("Failed to start module-based opensearch controller", err)
+		return errors.Wrap(err, "Failed to initialize controller for module-based opensearch controller")
+	}
+
+	// Setup health checker
 	healthCheck := healthcheck.NewHealthChecker(statusUpdater, mgr.GetClient(), time.Duration(vzconfig.HealthCheckPeriodSeconds)*time.Second)
 	if vzconfig.HealthCheckPeriodSeconds > 0 {
 		healthCheck.Start()
 	}
+
 	dynamicClient, err := k8sutil.GetDynamicClient()
 	if err != nil {
 		return errors.Wrapf(err, "Failed to get Dynamic Client")
