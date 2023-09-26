@@ -16,9 +16,11 @@ func (o opensearchOperatorComponent) GetWatchDescriptors() []controllerspi.Watch
 		watch.GetModuleInstalledWatches([]string{
 			nginx.ComponentName,
 			cmconstants.CertManagerComponentName,
+			cmconstants.ClusterIssuerComponentName,
 		}),
 		watch.GetModuleUpdatedWatches([]string{
 			nginx.ComponentName,
+			cmconstants.ClusterIssuerComponentName,
 		}),
 	)
 }
