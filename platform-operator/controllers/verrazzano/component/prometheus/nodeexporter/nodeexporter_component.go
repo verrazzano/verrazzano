@@ -115,7 +115,7 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 	return true
 }
 
-// PostInstall creates/updates associated resources after this component is installed
+// PreUpgrade performs pre-upgrade processing for this component
 func (c prometheusNodeExporterComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	// The new Helm chart fails to upgrade because of a label selector immutable field, so we need
 	// to delete the daemonset before upgrading
