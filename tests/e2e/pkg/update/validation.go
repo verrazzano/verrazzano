@@ -64,7 +64,7 @@ func ValidatePods(deployName string, labelName string, nameSpace string, expecte
 // getReadyPods returns the number of pending pods in the provided pod list
 // and a boolean value indicating if there are no pending pods.
 func getReadyPods(pods []v12.Pod) (uint32, bool) {
-	var runningPods uint32 = 0
+	var runningPods uint32
 	pendingPods := false
 	for _, pod := range pods {
 		pkg.Log(pkg.Info, "checking pod: "+pod.Name)
