@@ -222,7 +222,8 @@ func checkBOMModifiedInBranch(t *testing.T) bool {
 	_, err := exec.Command("git", "fetch", "origin").Output()
 	assert.NoError(t, err)
 
-	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...remotes/origin/"+os.Getenv("BRANCH_NAME"))
+	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...remotes/origin/"+os.Getenv("BRANCH_NAME")) // #nosec G204
+
 	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoErrorf(t, err, "error: %s, %s", string(stdout), string(stderr))
