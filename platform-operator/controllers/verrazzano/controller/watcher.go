@@ -26,7 +26,7 @@ func (r Reconciler) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 			FuncShouldReconcile: r.ShouldConfigMapTriggerReconcile,
 		},
 		{
-			WatchedResourceKind: source.Kind{Type: &batchv1.Job{}},
+			WatchedResourceKind: &batchv1.Job{},
 			FuncShouldReconcile: r.ShouldJobTriggerReconcile,
 		},
 	}
