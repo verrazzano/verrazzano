@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.8-20230925202047-745fe64",
+              "tag": "v1.6.8-20230926101059-c67fc00",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -569,7 +569,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230919161553-c397f447f5",
+              "tag": "v20.0.1-20230923031034-a5c064d9f2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
