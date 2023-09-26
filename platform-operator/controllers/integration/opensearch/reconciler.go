@@ -46,6 +46,8 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 	r.log = log
 
+	log.Oncef("Starting OpenSearch integration for index patterns and ISM policies")
+
 	// Get effective CR.
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
