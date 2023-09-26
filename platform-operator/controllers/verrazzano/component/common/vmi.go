@@ -6,6 +6,7 @@ package common
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"reflect"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -530,4 +531,38 @@ func GetVMOManagedServices(ctx spi.ComponentContext) (*corev1.ServiceList, error
 		return nil, err
 	}
 	return &objList, nil
+}
+
+// IsLegacyOS returns true if the OS that is running is managed by VMO
+func IsLegacyOS(ctx spi.ComponentContext) (bool, error) {
+	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) {
+		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
+		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
+			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		if systemVMI.Spec.Opensearch.Enabled {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// IsLegacyOSD returns true if the OSD that is running is managed by VMO
+func IsLegacyOSD(ctx spi.ComponentContext) (bool, error) {
+	if vzcr.IsOpenSearchDashboardsEnabled(ctx.EffectiveCR()) {
+		systemVMI := vmov1.VerrazzanoMonitoringInstance{}
+		if err := ctx.Client().Get(context.TODO(), types.NamespacedName{Name: VMIName, Namespace: globalconst.VerrazzanoSystemNamespace}, &systemVMI); err != nil {
+			if meta.IsNoMatchError(err) || errors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		if systemVMI.Spec.OpensearchDashboards.Enabled {
+			return true, nil
+		}
+	}
+	return false, nil
 }
