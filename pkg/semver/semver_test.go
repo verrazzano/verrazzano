@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package semver
@@ -269,6 +269,16 @@ func TestIsGreatherThan(t *testing.T) {
 	assert.False(t, v009.IsGreatherThan(v009_2))
 	assert.False(t, v009.IsGreatherThan(v0010))
 	assert.True(t, v0010.IsGreatherThan(v009))
+
+	v010_0, _ := NewSemVersion("v0.1.0-0")
+	v010_1, _ := NewSemVersion("v0.1.0-1")
+	v011_1, _ := NewSemVersion("v0.1.1-1")
+	assert.True(t, v010_1.IsGreatherThan(v010))
+	assert.True(t, v010_1.IsGreatherThan(v010_0))
+	assert.True(t, v010_0.IsGreatherThan(v010))
+	assert.True(t, v011.IsGreatherThan(v010_1))
+	assert.True(t, v011_1.IsGreatherThan(v010_1))
+
 }
 
 // TestToString Tests ToString function which converts a Semver object to its string representation

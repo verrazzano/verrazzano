@@ -64,7 +64,7 @@ const (
 	mySQLHookFile          = "platform-operator/scripts/hooks/mysql-hook.sh"
 	serverVersionKey       = "serverVersion"
 	bomSubComponentName    = "mysql-upgrade"
-	mysqlServerImageName   = "community-server"
+	mysqlServerImageName   = "mysql-server"
 	imageRepositoryKey     = "image.repository"
 	mySQLPodName           = "mysql-0"
 	mySQLContainerName     = "mysql"
@@ -350,7 +350,7 @@ func getRegistrySettings(bomFile *bom.Bom) (bom.KeyValue, error) {
 	if err != nil {
 		return bom.KeyValue{}, err
 	}
-	img, err := bomFile.FindImage(sc, mysqlServerImageName)
+	img, err := bomFile.FindImage(bomSubComponentName, mysqlServerImageName)
 	if err != nil {
 		return bom.KeyValue{}, err
 	}

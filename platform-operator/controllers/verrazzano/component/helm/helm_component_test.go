@@ -204,7 +204,7 @@ func TestUpgradeReleaseNotInstalled(t *testing.T) {
 	helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 
 	err := comp.Upgrade(spi.NewFakeContext(newFakeClient(), &v1alpha1.Verrazzano{ObjectMeta: v1.ObjectMeta{Namespace: "foo"}}, nil, false))
-	a.NoError(err)
+	a.Error(err)
 }
 
 // TestUpgradeWithEnvOverrides tests the component upgrade
@@ -1721,7 +1721,7 @@ func TestHelmComponentUpgrade(t *testing.T) {
 			func() {
 				helm.SetActionConfigFunction(testActionConfigWithoutInstallation)
 			},
-			false,
+			true,
 		},
 		// GIVEN default Helm component
 		// WHEN Upgrade is called with failed PreUpgrade function

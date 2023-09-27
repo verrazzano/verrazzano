@@ -93,7 +93,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230526160243-7a73e30",
+              "tag": "v0.1.0-20230925072151-7a73e30",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -154,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230921192928-7c49553c6",
+              "dashboard": "v2.7.5-20230926234922-a9bd183c2",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.24.0",
-              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230925135032-680d85acc",
+              "ocneDriverVersion": "v0.25.0",
+              "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
+              "tag": "v2.7.6-20230926235628-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230925135032-680d85acc"
+              "tag": "v2.7.6-20230926235628-680d85acc"
             }
           ]
         },
@@ -262,7 +262,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -332,7 +332,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -556,15 +556,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.1.0",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.1.0",
+              "image": "mysql-server",
+              "tag": "8.0.32",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -581,8 +581,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.1.0"
+              "image": "mysql-router",
+              "tag": "8.0.32"
             }
           ]
         }
@@ -590,15 +590,15 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.1.0",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
-              "tag": "8.1.0-2.1.0",
+              "image": "mysql-operator",
+              "tag": "8.0.32-2.0.8",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
+              "tag": "v2.0.0-20230925105859-b8bc75a"
             }
           ]
         }
@@ -637,7 +637,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1",
+      "version": "0.64.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -678,7 +678,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.25.0-20230922084030-660afb41",
+              "tag": "v0.26.0-20230926210945-375556bb",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -757,7 +757,7 @@
     },
     {
       "name": "prometheus-node-exporter",
-      "version": "1.3.1",
+      "version": "1.6.1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -765,7 +765,8 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230605074155-b7f69924",
+              "tag": "v1.6.1-20230925193620-d2d52786",
+              "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -928,7 +929,7 @@
     },
     {
       "name": "argocd",
-      "version": "2.7.2",
+      "version": "2.8.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -936,7 +937,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20230919043605-fc41216e",
+              "tag": "v2.8.3-20230925214414-d5a19b1d",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -994,5 +995,10 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0",
+    "v1.27.0"
+  ]
 }

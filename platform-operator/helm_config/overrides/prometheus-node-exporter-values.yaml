@@ -8,6 +8,8 @@ fullName: prometheus-node-exporter
 # Prometheus ServiceMonitor settings
 prometheus:
   monitor:
+    additionalLabels:
+      release: prometheus-node-exporter
     relabelings:
       - action: replace
         targetLabel: verrazzano_cluster

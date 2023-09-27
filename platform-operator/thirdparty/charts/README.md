@@ -65,24 +65,23 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.1.0
+export MYSQL_CHART_VERSION=2.0.8
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm pull mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
-mv mysql-innodbcluster mysql
+helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
 ```
 
 ## MySQL Operator
 
-The `mysql-operator` folder was created by running the following commands:
+The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.1.0
+export MYSQL_OPERATOR_CHART_VERSION=2.0.8
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm pull mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
+helm fetch mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
 ```
 
 ## KeyCloak
@@ -210,7 +209,7 @@ helm fetch kiali/kiali-server --untar=true --version=${KIALI_SERVER_CHART_VERSIO
 The `argo-cd` folder was created by running the following commands:
 
 ```shell
-export ARGOCD_CHART_VERSION=5.34.3
+export ARGOCD_CHART_VERSION=5.45.3
 helm repo add argocd https://argoproj.github.io/argo-helm
 helm repo update
 rm -rf argo-cd
@@ -222,11 +221,11 @@ helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
 The `prometheus-community/prometheus-node-exporter` folder was created by running the following commands:
 
 ```shell
-export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
+export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=4.23.1
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 rm -rf prometheus-community/prometheus-node-exporter 
-helm fetch prometheus-community/prometheus-node-exporter --untar=true --untardir=prometheus-community/prometheus-node-exporter --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+helm fetch prometheus-community/prometheus-node-exporter --untar=true --untardir=prometheus-community --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
 ```
 
 ### Prometheus Pushgateway
@@ -238,7 +237,7 @@ export PROMETHEUS_PUSHGATEWAY_CHART_VERSION=2.4.1
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 rm -rf prometheus-community/prometheus-pushgateway
-helm fetch prometheus-community/prometheus-pushgateway --untar=true --untardir=prometheus-community/prometheus-pushgateway --version=${PROMETHEUS_PUSHGATEWAY_CHART_VERSION}
+helm fetch prometheus-community/prometheus-pushgateway --untar=true --untardir=prometheus-community --version=${PROMETHEUS_PUSHGATEWAY_CHART_VERSION}
 ```
 
 ### OpenSearch Operator

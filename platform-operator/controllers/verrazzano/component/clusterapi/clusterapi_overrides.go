@@ -418,7 +418,7 @@ func getImageOverride(ctx spi.ComponentContext, bomFile bom.Bom, component strin
 		return nil, err
 	}
 
-	img, err := bomFile.FindImage(subComp, imageName)
+	img, err := bomFile.FindImage(subcomponent, imageName)
 	if err != nil {
 		return nil, err
 	}

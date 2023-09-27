@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -24,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/k8s/namespace"
+	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,10 +34,34 @@ import (
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
 // NOTE: full uninstalls are done by the finalizer.go code
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
+	// Initialize metrics
+	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
+	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+	counterMetricObject.Inc()
+	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+
+	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
+	if err != nil {
+		zapLogForMetrics.Error(err)
+		return result.NewResult()
+	}
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
 		controllerCtx.Log.ErrorfThrottled(err.Error())
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		// This is a fatal error which should never happen, don't requeue
 		return result.NewResult()
 	}
@@ -49,6 +75,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
@@ -68,6 +97,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// Always use actualCR when updating status
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
@@ -78,6 +110,9 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// where the status is updated in those cases.
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
+			if metricsexporter.IsMetricError(err) {
+				errorCounterMetricObject.Inc()
+			}
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -100,9 +135,13 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
 	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
+		if metricsexporter.IsMetricError(err) {
+			errorCounterMetricObject.Inc()
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
+	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *actualCR)
 	return result.NewResult()
 }
 
