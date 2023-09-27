@@ -138,19 +138,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 		return fmt.Errorf("invalid version %s: Please upgrade the Verrazzano version to v%s",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
-
-	// Make sure this isn't a rollback attempt from the currently installed version, which is currently unsupported
-	// - use case is, user rolls back to an earlier version of the platform operator and requests the older BOM version
-	currentStatusVersion, err := semver.NewSemVersion(strings.TrimSpace(currStatusVerString))
-	if err != nil {
-		// for this path we should always have a status version
-		return err
-	}
-	if newSpecVer.IsLessThan(currentStatusVersion) {
-		return fmt.Errorf("Requested version %s less than installed version %s, rollback is not supported",
-			newSpecVer.ToString(), currentStatusVersion.ToString())
-	}
-
+	
 	// Sanity check, verify that the new version request is > than the current spec version
 	// - in reality, this should probably never happen unless we've introduced an error into the controller
 	currentVerString := strings.TrimSpace(currSpecVerString)
