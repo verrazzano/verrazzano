@@ -47,13 +47,13 @@ modules:
   - name: kiali-server
     version: 1.66.1
   - name: mysql
-    version: 8.1.0
+    version: 8.0.32
   - name: mysql-operator
-    version: 8.1.0
+    version: 8.0.32
   - name: keycloak
     version: 20.0.1
   - name: prometheus-operator
-    version: 0.64.1
+    version: 0.64.1-1
   - name: prometheus-adapter
     version: 0.10.0
   - name: kube-state-metrics

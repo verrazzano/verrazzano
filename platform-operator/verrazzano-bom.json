@@ -154,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230921192928-7c49553c6",
+              "dashboard": "v2.7.5-20230926234922-a9bd183c2",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.25.0",
               "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
-              "tag": "v2.7.6-20230925154904-680d85acc",
+              "tag": "v2.7.6-20230926235628-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230925135032-680d85acc"
+              "tag": "v2.7.6-20230926235628-680d85acc"
             }
           ]
         },
@@ -556,15 +556,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.1.0",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.1.0",
+              "image": "mysql-server",
+              "tag": "8.0.32",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -581,8 +581,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.1.0"
+              "image": "mysql-router",
+              "tag": "8.0.32"
             }
           ]
         }
@@ -590,15 +590,15 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.1.0",
+      "version": "8.0.32",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "community-operator",
-              "tag": "8.1.0-2.1.0",
+              "image": "mysql-operator",
+              "tag": "8.0.32-2.0.8",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -637,7 +637,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1",
+      "version": "0.64.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -678,7 +678,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.25.0-20230922084030-660afb41",
+              "tag": "v0.26.0-20230926210945-375556bb",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -995,5 +995,10 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0",
+    "v1.27.0"
+  ]
 }

@@ -167,8 +167,6 @@ endif
 #
 .PHONY: unit-test
 unit-test: go-install
-#	env BRANCH_NAME=$(git branch --show-current)
-#	echo $BRANCH_NAME
 	$(GO) test ./internal/... ./controllers/... ./apis/...
 
 CLUSTER_NAME ?= verrazzano
