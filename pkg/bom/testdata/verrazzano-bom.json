@@ -259,21 +259,45 @@
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             },
             {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.12.3-20210517195222-f345ec2",
-              "helmFullImageKey": "logging.fluentdImage"
-            },
-            {
-              "image": "console",
-              "tag": "1.1.0-20210812131321-65032b3",
-              "helmFullImageKey": "console.imageName",
-              "helmTagKey": "console.imageVersion"
-            },
-            {
               "image": "nginx-ingress-controller",
               "tag": "0.46.0-20210510134749-abc2d2088",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "fluentd",
+      "version": "1.14.5",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "fluentd",
+          "images": [
+            {
+              "image": "fluentd-kubernetes-daemonset",
+              "tag": "v1.14.5-20230810212038-8777b84",
+              "helmFullImageKey": "logging.fluentdImage"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "verrazzano-console",
+      "version": "2.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "verrazzano-console",
+          "images": [
+            {
+              "image": "console",
+              "tag": "v2.0.0-20230912070053-2d1883d",
+              "helmFullImageKey": "imageName",
+              "helmTagKey": "imageTag"
             }
           ]
         }

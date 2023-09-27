@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package console
@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -27,26 +26,6 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 		return nil, err
 	}
 
-	bomFile, err := bom.NewBom(config.GetDefaultBOMFilePath())
-	if err != nil {
-		return kvs, err
-	}
-	images, err := bomFile.BuildImageOverrides("verrazzano")
-	if err != nil {
-		return kvs, err
-	}
-	var imageName, imageTag string
-	for _, image := range images {
-		if image.Key == "console.imageName" {
-			imageName = image.Value
-		} else if image.Key == "console.imageVersion" {
-			imageTag = image.Value
-		}
-	}
-	if imageTag == "" || imageName == "" {
-		return kvs, ctx.Log().ErrorfNewErr("Failed to construct console image from BOM")
-	}
-
 	return append(kvs,
 		bom.KeyValue{
 			Key:   "config.dnsSuffix",
@@ -56,14 +35,7 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 			Key:   "config.envName",
 			Value: envName,
 		},
-		bom.KeyValue{
-			Key:   "imageName",
-			Value: imageName,
-		},
-		bom.KeyValue{
-			Key:   "imageTag",
-			Value: imageTag,
-		}), nil
+	), nil
 }
 
 func (c consoleComponent) isConsoleReady(ctx spi.ComponentContext) bool {

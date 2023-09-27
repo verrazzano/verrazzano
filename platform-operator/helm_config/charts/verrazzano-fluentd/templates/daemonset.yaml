@@ -16,6 +16,7 @@ spec:
     metadata:
       annotations:
         sidecar.istio.io/inject: "true"
+        verrazzano.io/cmChecksum: {{ include (print $.Template.BasePath "/fluentd-config-configmap.yaml") . | sha256sum }}
       labels:
         app: fluentd
     spec:

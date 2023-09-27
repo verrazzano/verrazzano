@@ -12,18 +12,15 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
 	KeycloakAuthEnabled *bool `json:"keycloakAuthEnabled,omitempty"`
-
-	Ingress         *vzapi.IngressNginxComponent `json:"ingress,omitempty"`
-	DNS             *vzapi.DNSComponent          `json:"dns,omitempty"`
-	EnvironmentName string                       `json:"environmentName,omitempty"`
-
-	ClusterIssuer *vzapi.ClusterIssuerComponent `json:"clusterIssuer,omitempty"`
 }
+
+var emptyConfig = valuesConfig{}
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
 func (r rancherComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
@@ -31,9 +28,7 @@ func (r rancherComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 		return nil, nil
 	}
 
-	configSnippet := valuesConfig{
-		EnvironmentName: effectiveCR.Spec.EnvironmentName,
-	}
+	configSnippet := valuesConfig{}
 
 	rancher := effectiveCR.Spec.Components.Rancher
 	if rancher != nil {
@@ -41,21 +36,8 @@ func (r rancherComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 		configSnippet.KeycloakAuthEnabled = rancher.KeycloakAuthEnabled
 	}
 
-	issuer := effectiveCR.Spec.Components.ClusterIssuer
-	if issuer != nil {
-		configSnippet.ClusterIssuer = issuer.DeepCopy()
-	}
-
-	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil {
-		configSnippet.DNS = dns.DeepCopy()
-		configSnippet.DNS.InstallOverrides = vzapi.InstallOverrides{}
-	}
-
-	nginx := effectiveCR.Spec.Components.Ingress
-	if nginx != nil {
-		configSnippet.Ingress = nginx.DeepCopy()
-		configSnippet.Ingress.InstallOverrides.ValueOverrides = []vzapi.Overrides{}
+	if reflect.DeepEqual(emptyConfig, configSnippet) {
+		return nil, nil
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
@@ -64,7 +46,8 @@ func (r rancherComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (r rancherComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{nginx.ComponentName, cmconstants.CertManagerComponentName, cmconstants.ClusterIssuerComponentName, fluentoperator.ComponentName}),
 		watch.GetCreateNamespaceWatch(CattleGlobalDataNamespace),
 		watch.GetUpdateNamespaceWatch(CattleGlobalDataNamespace),
 	)

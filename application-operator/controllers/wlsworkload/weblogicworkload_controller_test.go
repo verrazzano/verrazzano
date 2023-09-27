@@ -38,6 +38,8 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+const image = "unit-test-image:existing"
+const clusterOne = "cluster-1"
 const namespace = "unit-test-namespace"
 const restartVersion = "new-restart"
 const weblogicDomainName = "unit-test-domain"
@@ -428,7 +430,7 @@ func TestReconcileCreateWebLogicDomainV9WithPV(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV9Template(weblogicDomainv9WithPV)
-			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate("cluster-1")}
+			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate(clusterOne)}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
@@ -475,7 +477,7 @@ func TestReconcileCreateWebLogicDomainV9WithPV(t *testing.T) {
 		}).Times(2)
 	// expect call to fetch existing WebLogic Cluster cluster-1
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-1"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: clusterOne}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
@@ -570,7 +572,7 @@ func TestReconcileCreateWebLogicDomainV9(t *testing.T) {
 		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "unit-test-verrazzano-weblogic-workload"}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, workload *vzapi.VerrazzanoWebLogicWorkload, opts ...client.GetOption) error {
 			workload.Spec.Template = buildDomainV9Template(weblogicDomainv9WithTwoClusters)
-			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate("cluster-1"), buildClusterTemplate("cluster-2")}
+			workload.Spec.Clusters = []vzapi.VerrazzanoWebLogicWorkloadTemplate{buildClusterTemplate(clusterOne), buildClusterTemplate("cluster-2")}
 			workload.ObjectMeta.Labels = labels
 			workload.APIVersion = vzapi.SchemeGroupVersion.String()
 			workload.Kind = vzconst.VerrazzanoWebLogicWorkloadKind
@@ -617,7 +619,7 @@ func TestReconcileCreateWebLogicDomainV9(t *testing.T) {
 		}).Times(2)
 	// expect call to fetch existing WebLogic Cluster cluster-1
 	cli.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: "cluster-1"}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Get(gomock.Any(), types.NamespacedName{Namespace: namespace, Name: clusterOne}, gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, domain *unstructured.Unstructured, opts ...client.GetOption) error {
 			return k8serrors.NewNotFound(k8sschema.GroupResource{}, "test")
 		})
@@ -1573,7 +1575,7 @@ func TestReconcileUpdateFluentdImage(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), image, "image")
 			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR exists
 			return nil
@@ -2180,7 +2182,7 @@ func TestReconcileRestart(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), image, "image")
 			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
@@ -2324,7 +2326,7 @@ func TestReconcileStopDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), image, "image")
 			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil
@@ -2457,7 +2459,7 @@ func TestReconcileStartDomain(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, name types.NamespacedName, u *unstructured.Unstructured, opts ...client.GetOption) error {
 			// set the old Fluentd image on the returned obj
 			containers, _, _ := unstructured.NestedSlice(u.Object, "spec", "serverPod", "containers")
-			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), "unit-test-image:existing", "image")
+			_ = unstructured.SetNestedField(containers[0].(map[string]interface{}), image, "image")
 			_ = unstructured.SetNestedSlice(u.Object, containers, "spec", "serverPod", "containers")
 			// return nil error because the VerrazzanoWebLogicWorkload CR StatefulSet exists
 			return nil

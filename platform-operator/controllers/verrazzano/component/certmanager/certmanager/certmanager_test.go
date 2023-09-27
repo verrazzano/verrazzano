@@ -5,6 +5,7 @@ package certmanager
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"testing"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -257,7 +258,7 @@ func createClientFunc(caConfig vzapi.CA, cn string, otherObjs ...runtime.Object)
 }
 
 // TestUninstallCertManager tests the cert-manager uninstall process
-// GIVEN a call to uninstallCertManager
+// GIVEN a call to cleanupLeaderElectionResources
 // WHEN the objects exist in the cluster
 // THEN no error is returned and all objects are deleted
 func TestUninstallCertManager(t *testing.T) {
@@ -314,7 +315,7 @@ func TestUninstallCertManager(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(tt.objects...).Build()
 			fakeContext := spi.NewFakeContext(c, vz, nil, false, profileDir)
-			err := uninstallCertManager(fakeContext)
+			err := resource.CleanupResources(fakeContext, leaderElectionSystemResources)
 			assert.NoError(t, err)
 			// expect the controller ConfigMap to get deleted
 			err = c.Get(context.TODO(), types.NamespacedName{Name: controllerConfigMap, Namespace: constants.KubeSystem}, &v1.ConfigMap{})

@@ -8,14 +8,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
-	vzresource "github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -23,7 +22,10 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	v1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"path/filepath"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -41,8 +43,10 @@ const (
 	acmeSolverArg = "--acme-http01-solver-image="
 
 	// Uninstall resources
-	controllerConfigMap = "cert-manager-controller"
-	caInjectorConfigMap = "cert-manager-cainjector-leader-election"
+	controllerConfigMap          = "cert-manager-controller"
+	caInjectorConfigMap          = "cert-manager-cainjector-leader-election"
+	caInjectorLeaderElectionRole = "cert-manager-cainjector:leaderelection"
+	controllerLeaderElectionRole = "cert-manager:leaderelection"
 )
 
 const snippetSubstring = "rfc2136:\n"
@@ -75,6 +79,15 @@ var ociDNSSnippet = strings.Split(`ocidns:
   required:
     - ocizonename
   type: object`, "\n")
+
+var leaderElectionSystemResources = []client.Object{
+	&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: controllerConfigMap, Namespace: constants.KubeSystem}},
+	&v1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: caInjectorConfigMap, Namespace: constants.KubeSystem}},
+	&rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}},
+	&rbac.Role{ObjectMeta: metav1.ObjectMeta{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}},
+	&rbac.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: controllerLeaderElectionRole, Namespace: constants.KubeSystem}},
+	&rbac.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: caInjectorLeaderElectionRole, Namespace: constants.KubeSystem}},
+}
 
 // CertIssuerType identifies the certificate issuer type
 type CertIssuerType string
@@ -212,35 +225,6 @@ func createSnippetWithPadding(padding string) []byte {
 	}
 
 	return []byte(builder.String())
-}
-
-// uninstallCertManager is the implementation for the cert-manager uninstall step
-// this removes cert-manager ConfigMaps from the cluster and after the helm uninstall, deletes the namespace
-func uninstallCertManager(compContext spi.ComponentContext) error {
-	// Delete the kube-system cert-manager configMaps [controller, caInjector]
-	err := vzresource.Resource{
-		Name:      controllerConfigMap,
-		Namespace: constants.KubeSystem,
-		Client:    compContext.Client(),
-		Object:    &v1.ConfigMap{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
-	err = vzresource.Resource{
-		Name:      caInjectorConfigMap,
-		Namespace: constants.KubeSystem,
-		Client:    compContext.Client(),
-		Object:    &v1.ConfigMap{},
-		Log:       compContext.Log(),
-	}.Delete()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // GetOverrides gets the install overrides

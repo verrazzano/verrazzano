@@ -5,8 +5,8 @@ package externaldns
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -15,34 +15,32 @@ import (
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
 type valuesConfig struct {
-	DNS          *v1alpha1.DNSComponent `json:"dns,omitempty"`
-	IstioEnabled bool                   `json:"istioEnabled"`
+	DNS *v1alpha1.DNSComponent `json:"dns,omitempty"`
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
-func (c externalDNSComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
+func (c *externalDNSComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 	if effectiveCR == nil {
 		return nil, nil
 	}
 
-	configSnippet := valuesConfig{}
-
 	dns := effectiveCR.Spec.Components.DNS
-	if dns != nil {
-		configSnippet.DNS = &v1alpha1.DNSComponent{
+	if dns == nil {
+		return nil, nil
+	}
+
+	configSnippet := valuesConfig{
+		DNS: &v1alpha1.DNSComponent{
 			External:         dns.External,
 			InstallOverrides: v1alpha1.InstallOverrides{}, // always ignore the overrides here, those are handled separately
 			OCI:              dns.OCI,
 			Wildcard:         dns.Wildcard,
-		}
+		},
 	}
-
-	configSnippet.IstioEnabled = vzcr.IsIstioEnabled(effectiveCR)
-
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
-func (c externalDNSComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName})
+func (c *externalDNSComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, common.IstioComponentName})
 }

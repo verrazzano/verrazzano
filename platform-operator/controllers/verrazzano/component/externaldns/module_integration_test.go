@@ -5,9 +5,10 @@ package externaldns
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"testing"
 )
 
 // TestGetModuleSpec tests the GetModuleConfigAsHelmValues function impl for this component
@@ -58,8 +59,7 @@ func TestGetModuleSpec(t *testing.T) {
 						"dnsZoneName": "myzone",
 						"ociConfigSecret": "oci"
 					  }
-					},
-					"istioEnabled": true
+					}
 				  }
 				}
 			  }
@@ -100,8 +100,7 @@ func TestGetModuleSpec(t *testing.T) {
 							"dnsZoneName": "myzone",
 							"ociConfigSecret": "oci"
 						  }
-						},
-						"istioEnabled": false
+						}
 					  }
 					}
 				  }
@@ -139,8 +138,7 @@ func TestGetModuleSpec(t *testing.T) {
 							"dnsZoneName": "myzone",
 							"ociConfigSecret": "oci"
 						  }
-						},
-						"istioEnabled": true
+						}
 					  }
 					}
 				  }
@@ -158,55 +156,6 @@ func TestGetModuleSpec(t *testing.T) {
 				},
 			},
 			wantErr: assert.NoError,
-			want: `{
-			  "verrazzano": {
-				"module": {
-				  "spec": {
-					"istioEnabled": true
-				  }
-				}
-			  }
-			}`,
-		},
-		{
-			name: "BasicIssuerConfig",
-			effectiveCR: &vzapi.Verrazzano{
-				Spec: vzapi.VerrazzanoSpec{
-					Components: vzapi.ComponentSpec{
-						DNS: &vzapi.DNSComponent{
-							OCI: &vzapi.OCI{
-								DNSScope:               "global",
-								DNSZoneCompartmentOCID: "ocid..compartment.mycomp",
-								DNSZoneOCID:            "ocid..zone.myzone",
-								DNSZoneName:            "myzone",
-								OCIConfigSecret:        "oci",
-							},
-						},
-						Istio: &vzapi.IstioComponent{
-							Enabled: &trueValue,
-						},
-					},
-				},
-			},
-			wantErr: assert.NoError,
-			want: `{
-			  "verrazzano": {
-				"module": {
-				  "spec": {
-					"dns": {
-					  "oci": {
-						"dnsScope": "global",
-						"dnsZoneCompartmentOCID": "ocid..compartment.mycomp",
-						"dnsZoneOCID": "ocid..zone.myzone",
-						"dnsZoneName": "myzone",
-						"ociConfigSecret": "oci"
-					  }
-					},
-					"istioEnabled": true
-				  }
-				}
-			  }
-			}`,
 		},
 	}
 	for _, tt := range tests {
@@ -216,7 +165,11 @@ func TestGetModuleSpec(t *testing.T) {
 			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return
 			}
-			assert.JSONEq(t, tt.want, string(got.Raw))
+			if len(tt.want) > 0 {
+				assert.JSONEq(t, tt.want, string(got.Raw))
+			} else {
+				assert.Nil(t, got)
+			}
 		})
 	}
 }

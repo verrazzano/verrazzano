@@ -102,9 +102,6 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"monitoringOperator.osImage":         "ghcr.io/verrazzano/opensearch:2.3.0-20230123213036-bd387046f04",
 			"monitoringOperator.osdImage":        "ghcr.io/verrazzano/opensearch-dashboards:2.3.0-20230124171546-f9e6353395",
 			"monitoringOperator.oidcProxyImage":  "ghcr.io/verrazzano/nginx-ingress-controller:0.46.0-20210510134749-abc2d2088",
-			"logging.fluentdImage":               "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.12.3-20210517195222-f345ec2",
-			"console.imageName":                  "ghcr.io/verrazzano/console",
-			"console.imageVersion":               "0.15.0-20210512140333-bbb6bd7",
 			"api.imageName":                      "ghcr.io/verrazzano/nginx-ingress-controller",
 			"api.imageVersion":                   "0.46.0-20210510134749-abc2d2088",
 		},
@@ -155,11 +152,22 @@ var testSubcomponetHelmKeyValues = map[string]*testSubComponent{
 			"keycloak.image.tag":        "10.0.1-20201016212759-30d98b0",
 		},
 	},
-	//"keycloak-oracle-theme": {
-	//	kvs: map[string]string{
-	//		"image": "ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7",
-	//	},
-	//},
+	"keycloak-oracle-theme": {
+		kvs: map[string]string{
+			"image": "ghcr.io/verrazzano/keycloak-oracle-theme:0.15.0-20210510085250-01638c7",
+		},
+	},
+	"fluentd": {
+		kvs: map[string]string{
+			"logging.fluentdImage": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230810212038-8777b84",
+		},
+	},
+	"verrazzano-console": {
+		kvs: map[string]string{
+			"imageName": "ghcr.io/verrazzano/console",
+			"imageTag":  "v2.0.0-20230912070053-2d1883d",
+		},
+	},
 }
 
 // This is the real BOM file path needed for unit tests
@@ -177,7 +185,7 @@ func TestFakeBom(t *testing.T) {
 	bom, err := NewBom(testBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
+	assert.Len(bom.bomDoc.Components, 16, "incorrect number of Bom components")
 
 	validateImages(assert, &bom, true)
 }
@@ -191,7 +199,7 @@ func TestRealBom(t *testing.T) {
 	bom, err := NewBom(realBomFilePath)
 	assert.NoError(err, "error calling NewBom")
 	assert.Equal("ghcr.io", bom.bomDoc.Registry, "Wrong registry name")
-	assert.Len(bom.bomDoc.Components, 14, "incorrect number of Bom components")
+	assert.Len(bom.bomDoc.Components, 16, "incorrect number of Bom components")
 
 	// Ignore the values in the real bom file since some will change every build
 	validateImages(assert, &bom, false)

@@ -130,7 +130,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 	var rel *release.Release
 	if installed {
 		// upgrade it
-		log.Infof("Starting Helm upgrade of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
+		log.Progressf("Starting Helm upgrade of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
 		client := action.NewUpgrade(actionConfig)
 		client.Namespace = namespace
 		client.DryRun = dryRun
@@ -143,7 +143,7 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 				releaseName, err.Error())
 		}
 	} else {
-		log.Infof("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
+		log.Progressf("Starting Helm installation of release %s in namespace %s with overrides: %v", releaseName, namespace, overrides)
 		client := action.NewInstall(actionConfig)
 		client.Namespace = namespace
 		client.ReleaseName = releaseName
@@ -153,13 +153,13 @@ func Upgrade(log vzlog.VerrazzanoLogger, releaseName string, namespace string, c
 
 		rel, err = client.Run(chart, vals)
 		if err != nil {
-			log.Errorf("Failed running Helm command for release %s: %v",
+			log.ErrorfThrottled("Failed running Helm command for release %s: %v",
 				releaseName, err.Error())
 			return nil, err
 		}
 	}
 
-	log.Infof("Helm upgraded/installed %s in namespace %s", rel.Name, rel.Namespace)
+	log.Progressf("Helm upgraded/installed %s in namespace %s", rel.Name, rel.Namespace)
 
 	return rel, nil
 }

@@ -481,8 +481,7 @@ func isAcceptableMessageForSimpleLogFormat(level string, message string) bool {
 	if (level != "error" && level != "info") || strings.Contains(message, "Starting EventSource") {
 		return false
 	}
-	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate") || strings.Contains(message, "Associating NetworkPolicy") || strings.Contains(message, "Updating the Labels and Annotations") || strings.Contains(message, "Resetting initial MySQL pod readiness check") || strings.Contains(message, "waiting for readiness gates")) {
-
+	if level == "info" && (strings.Contains(message, "replica") || strings.Contains(message, "certificate") || strings.Contains(message, "Associating NetworkPolicy") || strings.Contains(message, "Updating the Labels and Annotations") || strings.Contains(message, "Resetting initial MySQL pod readiness check") || strings.Contains(message, "waiting for readiness gates") || strings.Contains(message, "required ingresses") || strings.Contains(message, "waiting for") || strings.Contains(message, "Waiting for") || strings.Contains(message, "Certificate") || strings.Contains(message, "Replica") || strings.Contains(message, "Starting Controller") || strings.Contains(message, "Starting workers") || strings.Contains(message, "Helm") || strings.Contains(message, "helm") || strings.Contains(message, "Applying yaml") || strings.Contains(message, "Successfully deleted")) {
 		return false
 	}
 	return true

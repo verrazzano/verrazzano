@@ -27,6 +27,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	namespace = "test-namespace"
+)
+
 // TestFetchWorkloadDefinition tests the FetchWorkloadDefinition function
 func TestFetchWorkloadDefinition(t *testing.T) {
 	assert := asserts.New(t)
@@ -123,7 +127,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 			return nil
 		})
 	// Expect a call to list the children resources and return a list.
-	options := []client.ListOption{client.InNamespace("test-namespace")}
+	options := []client.ListOption{client.InNamespace(namespace)}
 	cli.EXPECT().
 		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -142,7 +146,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	workload.SetNamespace("test-namespace")
+	workload.SetNamespace(namespace)
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
 	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)
@@ -164,7 +168,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 			wlDef.Spec.ChildResourceKinds = []oamcore.ChildResourceKind{{APIVersion: "apps/v1", Kind: "Deployment"}}
 			return nil
 		})
-	options = []client.ListOption{client.InNamespace("test-namespace")}
+	options = []client.ListOption{client.InNamespace(namespace)}
 	cli.EXPECT().
 		List(gomock.Eq(ctx), gomock.Not(gomock.Nil()), options).
 		DoAndReturn(func(ctx context.Context, resources *unstructured.UnstructuredList, opts ...client.ListOption) error {
@@ -172,7 +176,7 @@ func TestFetchWorkloadChildren(t *testing.T) {
 		})
 	workload = unstructured.Unstructured{}
 	workload.SetGroupVersionKind(oamcore.ContainerizedWorkloadGroupVersionKind)
-	workload.SetNamespace("test-namespace")
+	workload.SetNamespace(namespace)
 	workload.SetName("test-workload-name")
 	workload.SetUID("test-workload-uid")
 	children, err = FetchWorkloadChildren(ctx, cli, vzlog.DefaultLogger(), &workload)

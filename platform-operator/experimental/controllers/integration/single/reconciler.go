@@ -11,9 +11,9 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/helm"
 	"github.com/verrazzano/verrazzano-modules/pkg/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/istio"
-	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/experimental/event"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
@@ -25,10 +25,10 @@ import (
 
 // Create ModuleIntegrateAllRequestEvent for these modules
 var requireIntegrateAll = map[string]bool{
-	certmanager.ComponentName:        true,
-	fluentoperator.ComponentName:     true,
-	istio.ComponentName:              true,
-	prometheusOperator.ComponentName: true,
+	certmanager.ComponentName:              true,
+	fluentoperator.ComponentName:           true,
+	istio.ComponentName:                    true,
+	common.PrometheusOperatorComponentName: true,
 }
 
 // Reconcile reconciles the IntegrateSingleRequestEvent (in the form of a configmap)

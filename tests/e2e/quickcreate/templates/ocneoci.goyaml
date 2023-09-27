@@ -1,0 +1,34 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: clusters.verrazzano.io/v1alpha1
+kind: OCNEOCIQuickCreate
+metadata:
+    name: {{.CLUSTER_ID}}
+    namespace: {{.NAMESPACE}}
+spec:
+    identityRef:
+        name: test
+        namespace: {{.NAMESPACE}}
+    ocne:
+        version: "{{.OCNE_VERSION}}"
+    oci:
+        compartment: {{.OCI_COMPARTMENT_ID}}
+        region: {{.CAPI_CLUSTER_REGION}}
+        imageId: {{.OCNE_IMAGE_ID}}
+        sshPublicKey: {{.CAPI_NODE_SSH_KEY_PATH}}
+        network:
+            createVCN: true
+        controlPlane:
+            ocpus: 2
+            memoryGbs: 16
+            bootVolumeGbs: 50
+            replicas: 1
+            shape: VM.Standard.E4.Flex
+        workers:
+            - name: {{.CLUSTER_ID}}-1
+              ocpus: 2
+              memoryGbs: 16
+              bootVolumeGbs: 50
+              replicas: 1
+              shape: VM.Standard.E4.Flex

@@ -14,16 +14,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/factory"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/namespacewatch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
-	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"
@@ -247,10 +247,20 @@ func createVPOHelmChartConfigMap(kubeClient kubernetes.Interface, configMap *cor
 }
 
 // initModuleControllers creates a controller for every module
-// The controller uses the module name (i.e. component name) as a predicate, so that each controller only processes Module CRs for the
-// respective component.
+// The controller uses the module name (i.e. component name) as a predicate,
+// so that each controller only processes Module CRs for the respective component.
 func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager) error {
-	const maxReconciles = 30
+	// Run 50 controllers max concurrently.  Even though there is a controller for each
+	// module, the controller-runtime serializes reconciles if the MaxConcurrentReconciles is 1.
+	// This is because it is the same resource type being reconcile, but with a
+	// different predicate per controller.  Also, with the MaxConcurrentReconciles > 1, there
+	// is a chance that the controller-runtime will call the same controller (e.g. istio) to
+	// reconcile, while it is already reconciling a given CR.  There is a check in the
+	// module-operator package to catch this and requeue, thereby never allowing more
+	// than 1 instance of the same module from having more than 1 outstanding reconcile happening.
+	// See https://github.com/verrazzano/verrazzano-modules/blob/main/module-operator/controllers/module/reconciler.go#L225
+	// for details.
+	const maxReconciles = 50
 
 	// Temp hack to prevent module controller from looking up helm info
 	module.IgnoreHelmInfo()
@@ -259,7 +269,13 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 		if !comp.ShouldUseModule() {
 			continue
 		}
-		// init controller
+		// Create and initialize the module controller.  Note that the implementation of the module controller
+		// is in the module-operator package (in the module-operator repo).  This is the exact
+		// same controller that is used by the module-operator used by OCNE.  The only difference
+		// is the set of handlers.  This code uses component shim handlers in the VPO code, whereas
+		// the OCNE module-operator uses OCNE handlers in the module-operator controller.  See
+		// ModuleHandlerInfo param below.  Also see the module-operator where the OCNE handlers are used
+		// for comparison: https://github.com/verrazzano/verrazzano-modules/blob/main/module-operator/main.go
 		if err := module.InitController(module.ModuleControllerConfig{
 			ControllerManager: mgr,
 			ModuleHandlerInfo: modulehandlerfactory.NewModuleHandlerInfo(),

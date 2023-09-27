@@ -17,6 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+const (
+	failedToUpdate = "Failed to update %s: %v"
+)
+
 // WebhookInit Webhook init container entry point
 func WebhookInit(certDir string, log *zap.SugaredLogger) error {
 	log.Debug("Creating certificates used by webhooks")
@@ -69,55 +73,55 @@ func StartWebhookServer(metricsAddr string, log *zap.SugaredLogger, enableLeader
 	log.Debug("Setting up certificates for webhook")
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.IngressTraitValidatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.IngressTraitValidatingWebhookName, err)
+		log.Errorf(failedToUpdate, certificates.IngressTraitValidatingWebhookName, err)
 		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterSecretName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterSecretName, err)
+		log.Errorf(failedToUpdate, certificates.MultiClusterSecretName, err)
 		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterComponentName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterComponentName, err)
+		log.Errorf(failedToUpdate, certificates.MultiClusterComponentName, err)
 		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterConfigMapName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterConfigMapName, err)
+		log.Errorf(failedToUpdate, certificates.MultiClusterConfigMapName, err)
 		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.MultiClusterApplicationConfigurationName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MultiClusterApplicationConfigurationName, err)
+		log.Errorf(failedToUpdate, certificates.MultiClusterApplicationConfigurationName, err)
 		return err
 	}
 
 	err = updateValidatingWebhookConfiguration(kubeClient, certificates.VerrazzanoProjectValidatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.VerrazzanoProjectValidatingWebhookName, err)
+		log.Errorf(failedToUpdate, certificates.VerrazzanoProjectValidatingWebhookName, err)
 		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.IstioMutatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.IstioMutatingWebhookName, err)
+		log.Errorf(failedToUpdate, certificates.IstioMutatingWebhookName, err)
 		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.AppConfigMutatingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.AppConfigMutatingWebhookName, err)
+		log.Errorf(failedToUpdate, certificates.AppConfigMutatingWebhookName, err)
 		return err
 	}
 
 	err = updateMutatingWebhookConfiguration(kubeClient, certificates.MetricsBindingWebhookName)
 	if err != nil {
-		log.Errorf("Failed to update %s: %v", certificates.MetricsBindingWebhookName, err)
+		log.Errorf(failedToUpdate, certificates.MetricsBindingWebhookName, err)
 		return err
 	}
 

@@ -117,6 +117,14 @@ spec:
                   - type
                   type: object
                 type: array
+              kubernetes:
+                description: The state of Kubernetes information of this managed cluster.
+                properties:
+                  version:
+                    description: The observed Kubernetes version installed on this
+                      cluster.
+                    type: string
+                type: object
               lastAgentConnectTime:
                 description: The last time the agent from this managed cluster connected
                   to the admin cluster.
@@ -148,6 +156,14 @@ spec:
                 description: The Thanos Query Store API host name for this managed
                   cluster.
                 type: string
+              verrazzano:
+                description: The state of Verrazzano information of this managed cluster.
+                properties:
+                  version:
+                    description: The observed Verrazzano version installed on this
+                      cluster.
+                    type: string
+                type: object
             required:
             - state
             type: object

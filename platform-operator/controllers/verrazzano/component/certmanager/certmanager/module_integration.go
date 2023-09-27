@@ -6,36 +6,41 @@ package certmanager
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	prometheusOperator "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/operator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
-// certManagerModuleConfig Internal component configuration used to communicate Verrazzano CR config for CertManager to
+// valuesConfig Internal component configuration used to communicate Verrazzano CR config for CertManager to
 // this component through the Module interface as Helm values
-type certManagerModuleConfig struct {
+type valuesConfig struct {
 	ClusterResourceNamespace string `json:"clusterResourceNamespace,omitempty"`
 }
+
+var emptyConfig = valuesConfig{}
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
 func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
 	// Convert the CertManager Verrazzano CR config to internal well-known Helm values
-	compConfig := effectiveCR.Spec.Components.CertManager
-	if compConfig == nil {
+	configSnippet := effectiveCR.Spec.Components.CertManager
+	if configSnippet == nil {
 		return nil, nil
 	}
-	// TODO: Review this, the CM component only uses the ClusterIssuerComponent.ClusterResourceNamespace for configuration
-	//  beyond the basic enable/disable and overrides capability.  Because we handle the InstallOverrides separately
-	//  this may be all we need to trigger reconciles of the CM install
-	clusterResourceNamespace := compConfig.Certificate.CA.ClusterResourceNamespace
+	clusterResourceNamespace := configSnippet.Certificate.CA.ClusterResourceNamespace
 	issuerConfig := effectiveCR.Spec.Components.ClusterIssuer
 	if issuerConfig != nil {
 		clusterResourceNamespace = issuerConfig.ClusterResourceNamespace
 	}
+
+	if reflect.DeepEqual(emptyConfig, configSnippet) {
+		return nil, nil
+	}
+
 	return spi.NewModuleConfigHelmValuesWrapper(
-		certManagerModuleConfig{
+		valuesConfig{
 			ClusterResourceNamespace: clusterResourceNamespace,
 		},
 	)
@@ -43,5 +48,5 @@ func (c certManagerComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (c certManagerComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
-	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, prometheusOperator.ComponentName})
+	return watch.GetModuleInstalledWatches([]string{fluentoperator.ComponentName, common.PrometheusOperatorComponentName})
 }

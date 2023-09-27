@@ -56,7 +56,7 @@ func TestAppendOverrides(t *testing.T) {
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{}, nil, false)
 	overrides, err := AppendOverrides(ctx, "", "", "", []bom.KeyValue{})
 	assert.NoError(t, err)
-	assert.Len(t, overrides, 4)
+	assert.Len(t, overrides, 2)
 }
 
 func TestGetOverrides(t *testing.T) {
