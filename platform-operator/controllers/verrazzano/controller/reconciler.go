@@ -144,6 +144,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
+	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *actualCR)
 	return result.NewResult()
 }
 
