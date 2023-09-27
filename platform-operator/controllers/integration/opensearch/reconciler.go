@@ -75,6 +75,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 
 	if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
+		zap.S().Infof("creating polciies")
 		err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
@@ -101,7 +102,7 @@ func areComponentsEnabled(effectiveCR *vzv1alpha1.Verrazzano) bool {
 // isComponentReady returns true if the compoent is ready
 func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
 	comp := actualCR.Status.Components[compName]
-	return comp == nil && comp.State == vzv1alpha1.CompStateReady
+	return comp != nil && comp.State == vzv1alpha1.CompStateReady
 }
 
 // CreateIndexPatterns creates the required index patterns using osd client
