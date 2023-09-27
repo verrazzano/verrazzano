@@ -35,6 +35,11 @@ func (c fluentdComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verr
 			ExtraVolumeMounts:   fluentd.ExtraVolumeMounts,
 		}
 	}
+
+	if configSnippet == nil {
+		return nil, nil
+	}
+
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)
 }
 

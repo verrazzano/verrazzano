@@ -17,6 +17,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
@@ -24,6 +25,8 @@ type valuesConfig struct {
 	DefaultVolumeSource      *corev1.VolumeSource            `json:"defaultVolumeSource,omitempty" patchStrategy:"replace"`
 	VolumeClaimSpecTemplates []vzapi.VolumeClaimSpecTemplate `json:"volumeClaimSpecTemplates,omitempty" patchStrategy:"merge,retainKeys" patchMergeKey:"name"`
 }
+
+var emptyConfig = valuesConfig{}
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON valuesConfig representing the portion of the Verrazzano CR that corresponds to the module
 func (c jaegerOperatorComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazzano) (*apiextensionsv1.JSON, error) {
@@ -34,6 +37,10 @@ func (c jaegerOperatorComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.
 	configSnippet := valuesConfig{
 		DefaultVolumeSource:      effectiveCR.Spec.DefaultVolumeSource,
 		VolumeClaimSpecTemplates: effectiveCR.Spec.VolumeClaimSpecTemplates,
+	}
+
+	if reflect.DeepEqual(emptyConfig, configSnippet) {
+		return nil, nil
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)

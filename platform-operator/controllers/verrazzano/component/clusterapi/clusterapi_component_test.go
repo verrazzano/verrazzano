@@ -4,7 +4,9 @@
 package clusterapi
 
 import (
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
+	"context"
+	rbac "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
 	"testing"
 	"time"
@@ -91,10 +93,9 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 func TestGetDependencies(t *testing.T) {
 	var comp clusterAPIComponent
 	dependencies := comp.GetDependencies()
-	assert.Len(t, dependencies, 3)
+	assert.Len(t, dependencies, 2)
 	assert.Equal(t, cmconstants.CertManagerComponentName, dependencies[0])
 	assert.Equal(t, cmconstants.ClusterIssuerComponentName, dependencies[1])
-	assert.Equal(t, rancher.ComponentName, dependencies[2])
 }
 
 // TestIsReady tests the IsReady function
@@ -451,16 +452,121 @@ func TestPreUpgrade(t *testing.T) {
 // WHEN ClusterAPI is upgraded
 // THEN no error is returned
 func TestUpgrade(t *testing.T) {
+	const capiOverrides = `
+{
+  "global": {
+    "registry": "ghcr.io"
+  },
+  "defaultProviders": {
+    "ocneBootstrap": {
+      "url": "/test/bootstrap.yaml",
+      "image": {
+        "registry": "myreg.io",
+        "tag": "v1.0"
+      }
+    },
+    "ocneControlPlane": {
+      "image": {
+        "repository": "verrazzano",
+        "registry": "ghcr.io",
+        "tag": "0.0.1-1-20211215184123-0a1b633"
+      }
+    },
+    "oci": {
+      "version": "v0.8.2",
+      "image": {
+        "repository": "oci-repo",
+        "registry": "myreg2.io",
+        "tag": "v0.8.2"
+      }
+    },
+    "core": {
+    }
+  }
+}`
+
+	vz := &v1alpha1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "vz",
+		},
+		Spec: v1alpha1.VerrazzanoSpec{
+			Components: v1alpha1.ComponentSpec{
+				ClusterAPI: &v1alpha1.ClusterAPIComponent{
+					InstallOverrides: v1alpha1.InstallOverrides{
+						ValueOverrides: []v1alpha1.Overrides{
+							{
+								Values: &apiextensionsv1.JSON{
+									Raw: []byte(capiOverrides),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      controlPlaneOcneProvider + "-95d8c5d97-m6mbr",
+				Labels: map[string]string{
+					providerLabel: clusterAPIProvider,
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  clusterAPIOCNEControlPLaneControllerImage,
+						Image: "ghcr.io/verrazzano/cluster-api-ocne-control-plane-controller:0.0.1-20211215184123-older",
+					},
+				},
+			},
+		},
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-cm",
+				Namespace: ComponentNamespace,
+			},
+		},
+		&rbac.Role{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:       "test-role",
+				Namespace:  ComponentNamespace,
+				Finalizers: []string{"test-finalizer"},
+			},
+		},
+	).Build()
+
 	SetCAPIInitFunc(fakeClusterAPINew)
 	defer ResetCAPIInitFunc()
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
 
-	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
 	var comp clusterAPIComponent
-	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
-	err := comp.Upgrade(compContext)
+	compContext := spi.NewFakeContext(fakeClient, vz, nil, false)
+
+	roleList := &rbac.RoleList{}
+	err := compContext.Client().List(context.TODO(), roleList)
 	assert.NoError(t, err)
+	assert.NotEmpty(t, roleList.Items)
+
+	configMapList := &corev1.ConfigMapList{}
+	err = compContext.Client().List(context.TODO(), configMapList)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, configMapList.Items)
+
+	err = comp.Upgrade(compContext)
+	assert.NoError(t, err)
+
+	err = compContext.Client().List(context.TODO(), roleList)
+	assert.NoError(t, err)
+	assert.Empty(t, roleList.Items)
+
+	err = compContext.Client().List(context.TODO(), configMapList)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, configMapList.Items)
 }
 
 // TestValidateUpdate tests webhook updates

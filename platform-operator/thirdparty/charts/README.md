@@ -65,23 +65,24 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.0.8
+export MYSQL_CHART_VERSION=2.1.0
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
+helm pull mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
+mv mysql-innodbcluster mysql
 ```
 
 ## MySQL Operator
 
-The `mysql` folder was created by running the following commands:
+The `mysql-operator` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.0.8
+export MYSQL_OPERATOR_CHART_VERSION=2.1.0
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm fetch mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
+helm pull mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
 ```
 
 ## KeyCloak
@@ -218,14 +219,26 @@ helm fetch argocd/argo-cd --untar=true --version=${ARGOCD_CHART_VERSION}
 
 ### Prometheus Node Exporter
 
-The `prometheus-community/prometheus-node-exporter` folder was created by running the followiong commands:
+The `prometheus-community/prometheus-node-exporter` folder was created by running the following commands:
 
 ```shell
 export PROMETHEUS_NODE_EXPORTER_CHART_VERSION=3.1.0
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 rm -rf prometheus-community/prometheus-node-exporter 
-helm fetch prometheus-community/prometheus-node-exporter --untar=true --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+helm fetch prometheus-community/prometheus-node-exporter --untar=true --untardir=prometheus-community/prometheus-node-exporter --version=${PROMETHEUS_NODE_EXPORTER_CHART_VERSION}
+```
+
+### Prometheus Pushgateway
+
+The `prometheus-community/prometheus-pushgateway` folder was created by running the following commands:
+
+```shell
+export PROMETHEUS_PUSHGATEWAY_CHART_VERSION=2.4.1
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+rm -rf prometheus-community/prometheus-pushgateway
+helm fetch prometheus-community/prometheus-pushgateway --untar=true --untardir=prometheus-community/prometheus-pushgateway --version=${PROMETHEUS_PUSHGATEWAY_CHART_VERSION}
 ```
 
 ### OpenSearch Operator
@@ -279,3 +292,15 @@ helm fetch bitnami/thanos --untar=true --version=${THANOS_CHART_VERSION}
 ```
 
 After downloading the chart, run the [update_prometheus_rules.sh](hack/update_prometheus_rules.sh) script to update alerting and recording rules.
+
+### kube-state-metrics
+
+The `prometheus-community/kube-state-metrics` folder was created by running the following commands:
+
+```shell
+export KUBE_STATE_METRICS_CHART_VERSION=5.13.0
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+rm -rf prometheus-community/kube-state-metrics
+helm fetch prometheus-community/kube-state-metrics --untar=true --untardir=prometheus-community --version=${KUBE_STATE_METRICS_CHART_VERSION}
+```

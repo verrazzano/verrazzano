@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1",
+      "version": "1.9.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -93,7 +93,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230526160243-7a73e30",
+              "tag": "v0.1.0-20230925072151-7a73e30",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5",
+      "version": "2.7.5-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -156,15 +156,15 @@
               "image": "rancher",
               "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
-              "ocneDriverVersion": "v0.24.0",
-              "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.6-20230921193355-4a359105b",
+              "ocneDriverVersion": "v0.25.0",
+              "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
+              "tag": "v2.7.6-20230925154904-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230921193355-4a359105b"
+              "tag": "v2.7.6-20230925135032-680d85acc"
             }
           ]
         },
@@ -190,7 +190,7 @@
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20230922083827-58582b0"
+              "tag": "v0.1.32-20230925114322-53ac350"
             },
             {
               "image": "rancher-cleanup",
@@ -262,7 +262,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -273,7 +273,7 @@
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "v0.10.0-20230922082301-7cf62c11",
+              "tag": "v0.11.0-20230925134800-53d30b7f",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
@@ -332,7 +332,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -556,15 +556,15 @@
     },
     {
       "name": "mysql",
-      "version": "8.0.32",
+      "version": "8.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "mysql-server",
-              "tag": "8.0.32",
+              "image": "community-server",
+              "tag": "8.1.0",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
@@ -581,8 +581,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "mysql-router",
-              "tag": "8.0.32"
+              "image": "community-router",
+              "tag": "8.1.0"
             }
           ]
         }
@@ -590,15 +590,15 @@
     },
     {
       "name": "mysql-operator",
-      "version": "8.0.32",
+      "version": "8.1.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
-              "tag": "8.0.32-2.0.8",
+              "image": "community-operator",
+              "tag": "8.1.0-2.1.0",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
+              "tag": "v2.0.0-20230925105859-b8bc75a"
             }
           ]
         }
@@ -720,7 +720,7 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "2.8.2",
+      "version": "2.10.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -728,7 +728,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.8.2-20230531155057-c4a3ac95",
+              "tag": "v2.10.0-20230925145429-85dfe41a",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -739,7 +739,7 @@
     },
     {
       "name": "prometheus-pushgateway",
-      "version": "21.4.2",
+      "version": "1.6.2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -747,7 +747,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2-20230922084048-3af6d83b",
+              "tag": "v1.6.2-20230925134721-9944fc39",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -765,7 +765,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230605074155-b7f69924",
+              "tag": "v1.3.1-20230925070337-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

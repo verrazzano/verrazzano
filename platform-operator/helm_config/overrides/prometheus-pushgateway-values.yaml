@@ -3,6 +3,8 @@
 
 serviceMonitor:
   namespace: verrazzano-monitoring
+  additionalLabels:
+    release: prometheus-pushgateway
 persistentVolume:
   enabled: false
 podLabels:

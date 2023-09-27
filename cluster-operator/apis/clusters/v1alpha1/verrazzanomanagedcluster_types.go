@@ -119,6 +119,18 @@ type ArgoCDRegistration struct {
 	Message string `json:"message,omitempty"`
 }
 
+// KubernetesInformation defines the Kubernetes information for a managed cluster.
+type KubernetesInformation struct {
+	// The observed Kubernetes version installed on this cluster.
+	Version string `json:"version,omitempty"`
+}
+
+// VerrazzanoInformation defines the Verrazzano information for a managed cluster.
+type VerrazzanoInformation struct {
+	// The observed Verrazzano version installed on this cluster.
+	Version string `json:"version,omitempty"`
+}
+
 // VerrazzanoManagedClusterStatus defines the observed state of a Verrazzano Managed Cluster.
 type VerrazzanoManagedClusterStatus struct {
 	// The Verrazzano API server URL for this managed cluster.
@@ -137,6 +149,10 @@ type VerrazzanoManagedClusterStatus struct {
 	ArgoCDRegistration ArgoCDRegistration `json:"argoCDRegistration,omitempty"`
 	// The state of this managed cluster.
 	State StateType `json:"state"`
+	// The state of Kubernetes information of this managed cluster.
+	Kubernetes KubernetesInformation `json:"kubernetes,omitempty"`
+	// The state of Verrazzano information of this managed cluster.
+	Verrazzano VerrazzanoInformation `json:"verrazzano,omitempty"`
 }
 
 // +genclient
