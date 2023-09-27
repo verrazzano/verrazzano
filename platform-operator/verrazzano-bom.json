@@ -154,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230921192928-7c49553c6",
+              "dashboard": "v2.7.5-20230926234922-a9bd183c2",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.25.0",
               "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
-              "tag": "v2.7.6-20230925154904-680d85acc",
+              "tag": "v2.7.6-20230926235628-680d85acc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230925135032-680d85acc"
+              "tag": "v2.7.6-20230926235628-680d85acc"
             }
           ]
         },
@@ -994,5 +994,10 @@
       ]
     }
   ],
-  "supportedKubernetesVersions": ["v1.24.0", "v1.25.0", "v1.26.0", "v1.27.0"]
+  "supportedKubernetesVersions": [
+    "v1.24.0",
+    "v1.25.0",
+    "v1.26.0",
+    "v1.27.0"
+  ]
 }
