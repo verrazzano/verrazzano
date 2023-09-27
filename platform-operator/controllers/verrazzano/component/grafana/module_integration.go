@@ -18,6 +18,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"reflect"
 )
 
 // valuesConfig Structure for the translated effective Verrazzano CR values to Module CR Helm values
@@ -46,6 +47,11 @@ func (g grafanaComponent) GetModuleConfigAsHelmValues(effectiveCR *vzapi.Verrazz
 		configSnippet.Database = grafana.Database
 		configSnippet.SMTP = grafana.SMTP
 		configSnippet.Replicas = grafana.Replicas
+	}
+
+	emptyConfig := valuesConfig{}
+	if reflect.DeepEqual(configSnippet, emptyConfig) {
+		return nil, nil
 	}
 
 	return spi.NewModuleConfigHelmValuesWrapper(configSnippet)

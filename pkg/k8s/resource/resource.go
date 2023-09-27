@@ -5,7 +5,9 @@ package resource
 
 import (
 	"context"
+	spiErrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,6 +21,56 @@ type Resource struct {
 	Client    client.Client
 	Object    client.Object
 	Log       vzlog.VerrazzanoLogger
+}
+
+// CleanupResources deletes and removes finalizers from resources
+func CleanupResources(ctx spi.ComponentContext, objects []client.Object) error {
+	for _, object := range objects {
+		err := Resource{
+			Name:      object.GetName(),
+			Namespace: object.GetNamespace(),
+			Client:    ctx.Client(),
+			Object:    object,
+			Log:       ctx.Log(),
+		}.RemoveFinalizersAndDelete()
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Unexpected error cleaning up resource %s/%s still exists: %s", object.GetName(), object.GetNamespace(), err.Error())
+			return spiErrors.RetryableError{
+				Source:    ctx.GetComponent(),
+				Operation: ctx.GetOperation(),
+				Cause:     err,
+			}
+		}
+	}
+	return nil
+}
+
+// VerifyResourcesDeleted verifies resources have been fully cleaned up
+func VerifyResourcesDeleted(ctx spi.ComponentContext, objects []client.Object) error {
+	for _, object := range objects {
+		exists, err := Resource{
+			Name:      object.GetName(),
+			Namespace: object.GetNamespace(),
+			Client:    ctx.Client(),
+			Object:    object,
+			Log:       ctx.Log(),
+		}.Exists()
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Unexpected error checking if resource %s/%s still exists: %s", object.GetName(), object.GetNamespace(), err.Error())
+			return spiErrors.RetryableError{
+				Source:    ctx.GetComponent(),
+				Operation: ctx.GetOperation(),
+				Cause:     err,
+			}
+		}
+		if exists {
+			return spiErrors.RetryableError{
+				Source: ctx.GetComponent(),
+			}
+		}
+		ctx.Log().Debugf("Verified that resource %s/%s has been successfully deleted", object.GetName(), object.GetNamespace())
+	}
+	return nil
 }
 
 // Delete deletes a resource if it exists, not found error is ignored

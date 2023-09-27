@@ -39,7 +39,11 @@ func (o *OKEQuickCreate) ValidateCreate() error {
 	// Validate the OCI Network
 	if o.Spec.OKE.Network != nil {
 		addCNITypeErrors(ctx, o.Spec.OKE.Network.CNIType, "spec.oke.network")
-		addOCINetworkErrors(ctx, ociClient, o.Spec.OKE.Network.Config, 3, "spec.oke.network.config")
+		numSubnets := 3 // controlplane-endpoint, worker, service-lb
+		if o.Spec.OKE.Network.CNIType == VCNNative {
+			numSubnets++ // pod subnet
+		}
+		addOCINetworkErrors(ctx, ociClient, o.Spec.OKE.Network.Config, numSubnets, "spec.oke.network.config")
 	}
 	for i, np := range o.Spec.OKE.NodePools {
 		addOCINodeErrors(ctx, np.OCINode, fmt.Sprintf("spec.oke.nodePools[%d]", i))

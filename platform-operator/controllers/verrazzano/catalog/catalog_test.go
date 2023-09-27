@@ -49,7 +49,7 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, vzBOM)
 
-	var bomVersion string
+	var bomVersion, moduleVersion string
 	for _, module := range catalog.Modules {
 		if vzString.SliceContainsString(modulesNotInBom, module.Name) {
 			continue
@@ -64,11 +64,15 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, imageTagSemver)
 			bomVersion = imageTagSemver.ToStringWithoutBuildAndPrerelease()
+			moduleVersionSemver, err := semver.NewSemVersion(module.Version)
+			assert.NoError(t, err)
+			moduleVersion = moduleVersionSemver.ToStringWithoutBuildAndPrerelease()
 		} else {
 			bomVersion, err = vzBOM.GetComponentVersion(module.Name)
 			assert.NoError(t, err)
+			moduleVersion = module.Version
 		}
-		assert.Equalf(t, bomVersion, module.Version,
+		assert.Equalf(t, bomVersion, moduleVersion,
 			"Catalog entry for module %s out of date, BOM version: %s, catalog version %s", module.Name, bomVersion, module.Version)
 	}
 }
