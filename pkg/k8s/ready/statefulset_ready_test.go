@@ -255,7 +255,7 @@ func TestStatefulsetReady(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.ready, StatefulSetsAreReady(vzlog.DefaultLogger(), tt.c, tt.n, tt.expected, ""))
+			assert.Equal(t, tt.ready, StatefulSetsAreReady(vzlog.DefaultLogger(), tt.c, tt.n, tt.expected, "", false))
 		})
 	}
 }

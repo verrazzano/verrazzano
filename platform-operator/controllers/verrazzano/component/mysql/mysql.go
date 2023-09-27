@@ -198,7 +198,7 @@ func (c mysqlComponent) isMySQLReady(ctx spi.ComponentContext) bool {
 			routerReplicas = int(value.(float64))
 		}
 	}
-	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix)
+	ready := k8sready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, int32(serverReplicas), prefix, false)
 
 	if ready && routerReplicas > 0 {
 		ready = k8sready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deployment, int32(routerReplicas), prefix)

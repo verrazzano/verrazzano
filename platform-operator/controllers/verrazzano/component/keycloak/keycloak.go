@@ -1694,7 +1694,7 @@ func getClientScopeName(keycloakClientScopes KeycloakClientScopes, groupname str
 
 func (c KeycloakComponent) isKeycloakReady(ctx spi.ComponentContext) bool {
 	prefix := fmt.Sprintf("Component %s", ctx.GetComponent())
-	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, 1, prefix)
+	return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), c.AvailabilityObjects.StatefulsetNames, 1, prefix, false)
 }
 
 // isPodReady determines if the pod is running by checking for a Ready condition with Status equal True

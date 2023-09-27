@@ -19,7 +19,7 @@ import (
 const controllerRevisionHashLabel = "controller-revision-hash"
 
 // StatefulSetsAreReady Check that the named statefulsets have the minimum number of specified replicas ready and available
-func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
+func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string, ignoreUpdatedReplicas bool) bool {
 	for _, namespacedName := range namespacedNames {
 		statefulset := appsv1.StatefulSet{}
 		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
@@ -31,7 +31,8 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
-		if statefulset.Status.UpdatedReplicas < expectedReplicas {
+		// Specific check for opensearch to ignore the condition if updated replicas is zero.
+		if !(ignoreUpdatedReplicas && statefulset.Status.UpdatedReplicas == 0) && statefulset.Status.UpdatedReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.UpdatedReplicas)
 			return false

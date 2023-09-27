@@ -108,7 +108,7 @@ func (c ThanosComponent) isThanosReady(ctx spi.ComponentContext) bool {
 	statefulsetsToCheck := c.getEnabledStatefulsets(ctx)
 
 	return ready.DeploymentsAreReady(ctx.Log(), ctx.Client(), deploymentsToCheck, 1, prefix) &&
-		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix)
+		ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), statefulsetsToCheck, 1, prefix, false)
 }
 
 func (c ThanosComponent) getEnabledDeployments(ctx spi.ComponentContext) []types.NamespacedName {

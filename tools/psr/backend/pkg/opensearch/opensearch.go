@@ -53,7 +53,7 @@ func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix 
 		return ready.StatefulSetsAreReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: constants.VerrazzanoSystemNamespace,
-		}}, *node.Replicas, prefix)
+		}}, *node.Replicas, prefix, true)
 	}
 
 	// Data nodes have N = node.Replicas number of deployment objects.

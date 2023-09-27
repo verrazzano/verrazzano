@@ -114,7 +114,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 		return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ns,
-		}}, *node.Replicas, prefix)
+		}}, *node.Replicas, prefix, true)
 	}
 
 	// Data nodes have N = node.Replicas number of deployment objects.
