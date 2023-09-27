@@ -911,7 +911,36 @@ func (r *Reconciler) watchResources(namespace string, name string, log vzlog.Ver
 	}
 
 	log.Debugf("Watching the Rancher global data namespace to create admin cloud credential")
-	return r.watchRancherGlobalDataNamespace(namespace, name)
+	if err := r.watchRancherGlobalDataNamespace(namespace, name); err != nil {
+		return err
+	}
+
+	log.Debugf("Watching the verrazzano-logging namespace to reconcile authproxy")
+	return r.watchVerrazzanoLoggingNamespace(namespace, name)
+}
+
+func (r *Reconciler) watchVerrazzanoLoggingNamespace(namespace string, name string) error {
+	return r.Controller.Watch(
+		&source.Kind{Type: &corev1.Namespace{}},
+		createReconcileEventHandler(namespace, name),
+		predicate.Funcs{
+			CreateFunc: func(e event.CreateEvent) bool {
+				return r.isVerrazzanoLoggingNamespace(e.Object)
+			},
+			UpdateFunc: func(e event.UpdateEvent) bool {
+				return r.isVerrazzanoLoggingNamespace(e.ObjectNew)
+			},
+		},
+	)
+}
+
+func (r *Reconciler) isVerrazzanoLoggingNamespace(o client.Object) bool {
+	ns := o.(*corev1.Namespace)
+	if ns.Name != constants.VerrazzanoLoggingNamespace {
+		return false
+	}
+	r.AddWatch(authproxy.ComponentJSONName)
+	return true
 }
 
 func (r *Reconciler) watchManagedClusterRegistrationSecret(namespace string, name string) error {

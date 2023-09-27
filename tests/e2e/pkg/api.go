@@ -12,11 +12,11 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 
-	"github.com/onsi/gomega"
-
 	"github.com/hashicorp/go-retryablehttp"
+	"github.com/onsi/gomega"
 	networkingv1 "k8s.io/api/networking/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -169,7 +169,18 @@ func (api *APIEndpoint) GetIngress(namespace, name string) (*networkingv1.Ingres
 
 // GetOpensearchURL fetches OpenSearch endpoint URL
 func (api *APIEndpoint) GetOpensearchURL() (string, error) {
-	ingress, err := api.GetIngress("verrazzano-system", "vmi-system-os-ingest")
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		return "", err
+	}
+	ok, _ := IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+
+	var ingress *networkingv1.Ingress
+	if ok {
+		ingress, err = api.GetIngress("verrazzano-system", "opensearch")
+	} else {
+		ingress, err = api.GetIngress("verrazzano-system", "vmi-system-os-ingest")
+	}
 	if err != nil {
 		return "", err
 	}

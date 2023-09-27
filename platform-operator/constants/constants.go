@@ -84,10 +84,14 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 const OpensearchURLEnvVar = "OPENSEARCH_URL"
 
 // OpensearchIngress is the name of the ingress for Opensearch
-const OpensearchIngress = "vmi-system-os-ingest"
+const OpensearchIngress = "opensearch"
+
+const LegacyOpensearchIngress = "vmi-system-os-ingest"
 
 // OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
-const OpensearchDashboardsIngress = "vmi-system-osd"
+const OpensearchDashboardsIngress = "opensearch-dashboards"
+
+const LegacyOpensearchDashboardsIngress = "vmi-system-osd"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"

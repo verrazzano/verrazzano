@@ -4,6 +4,8 @@ package opensearchdashboards
 
 import (
 	"context"
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"testing"
 
@@ -78,7 +80,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{networkpolicies.ComponentName, "verrazzano-monitoring-operator", fluentoperator.ComponentName}
+	expArray := []string{networkpolicies.ComponentName, "opensearch-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }
@@ -279,11 +281,12 @@ func TestIsReadyForComponent(t *testing.T) {
 			Replicas:          1,
 			UpdatedReplicas:   1,
 		},
-	}).Build()
+	}, newVMI()).Build()
 	ctx := spi.NewFakeContext(c, vz, nil, false)
 	assert.False(t, NewComponent().IsReady(ctx))
 
 	clientFake := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -581,7 +584,7 @@ func TestIsAvailable(t *testing.T) {
 		{
 			"TestIsAvailable",
 			opensearchDashboardsComponent{},
-			spi.NewFakeContext(fake.NewClientBuilder().Build(), &vzapi.Verrazzano{}, nil, false),
+			spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).WithObjects(newVMI()).Build(), &vzapi.Verrazzano{}, nil, false),
 			"waiting for deployment verrazzano-system/vmi-system-osd to exist",
 			vzapi.ComponentUnavailable,
 		},
@@ -628,11 +631,12 @@ func TestPreInstall(t *testing.T) {
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -758,13 +762,14 @@ func TestGetCertificateNames(t *testing.T) {
 //	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }
@@ -1079,5 +1084,17 @@ func Test_opensearchdashboardComponent_ValidateUpdate(t *testing.T) {
 				t.Errorf("ValidateUpdate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func newVMI() *vmov1.VerrazzanoMonitoringInstance {
+	return &vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "system",
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			OpensearchDashboards: vmov1.OpensearchDashboards{Enabled: true},
+		},
 	}
 }

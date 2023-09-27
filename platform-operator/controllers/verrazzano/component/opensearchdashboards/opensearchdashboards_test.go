@@ -97,6 +97,7 @@ func TestIsReadyNotInstalled(t *testing.T) {
 //	THEN false is returned
 func TestIsReady(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		&appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,

@@ -425,6 +425,10 @@ type ComponentSpec struct {
 	// +optional
 	OAM *OAMComponent `json:"oam,omitempty"`
 
+	// The OpenSearchOperator component configuration
+	// +optional
+	OpenSearchOperator *OpenSearchOperatorComponent `json:"opensearchOperator,omitempty"`
+
 	// The Prometheus component configuration.
 	// +optional
 	Prometheus *PrometheusComponent `json:"prometheus,omitempty"`
@@ -468,6 +472,20 @@ type ComponentSpec struct {
 	// The WebLogic Kubernetes Operator component configuration.
 	// +optional
 	WebLogicOperator *WebLogicOperatorComponent `json:"weblogicOperator,omitempty"`
+}
+
+// OpenSearchOperatorComponent specifies the OpenSearchOperator configuration
+type OpenSearchOperatorComponent struct {
+	// If true, then OpenSearchOperator will be installed
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+	// List of Overrides for the default `values.yaml` file for the component Helm chart. Overrides are merged together,
+	// but in the event of conflicting fields, the last override in the list takes precedence over any others. You can
+	// find all possible values
+	// [here]( {{% release_source_url path=platform-operator/thirdparty/charts/opensearch-operator/values.yaml %}} )
+	// and invalid values will be ignored.
+	// +optional
+	InstallOverrides `json:",inline"`
 }
 
 type FluentbitOpensearchOutputComponent struct {

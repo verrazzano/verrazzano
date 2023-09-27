@@ -180,9 +180,7 @@ var _ = t.Describe("Thanos Metrics", Label("f:observability.monitoring.prom"), f
 
 		if !pkg.IsManagedClusterProfile() {
 			t.ItMinimumVersion("Verify sample OpenSearch metrics can be queried from Thanos", "1.5.0", kubeConfig, func() {
-				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{
-					container: esMaster,
-				})
+				eventuallyMetricsContainLabels(esClusterStatusMetric, map[string]string{})
 			})
 		}
 

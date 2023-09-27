@@ -1868,7 +1868,7 @@ func TestReconcilerInitForVzResource(t *testing.T) {
 		controller.EXPECT().Watch(gomock.Eq(jobKind), gomock.Any(), gomock.Any()).Return(nil)
 		// watches 2 secrets - managed cluster registration and Thanos internal user
 		controller.EXPECT().Watch(gomock.Eq(secretKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil)
+		controller.EXPECT().Watch(gomock.Eq(namespaceKind), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		reconciler.Controller = controller
 	}
 	setMockControllerPodWatchErr := func(reconciler *Reconciler) {

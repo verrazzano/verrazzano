@@ -39,6 +39,7 @@ import (
 
 const (
 	verrazzanoNamespace = "verrazzano-system"
+	loggingNamespace    = "verrazzano-logging"
 	esMasterPrefix      = "elasticsearch-master-vmi-system-es-master"
 	esMaster0           = esMasterPrefix + "-0"
 	esMaster1           = esMasterPrefix + "-1"
@@ -154,11 +155,13 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	elastic = vmi.GetOpensearch("system")
+	ok, _ := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+	elastic = vmi.GetOpensearch("system", ok)
 	if verrazzanoSecretRequired(vz) {
 		creds = pkg.EventuallyGetSystemVMICredentials()
 	}
-
+	opensearchIngress = elastic.GetOSIngressName()
+	osdIngress = elastic.GetOSDIngressName()
 })
 
 var _ = BeforeSuite(beforeSuite)
@@ -177,17 +180,16 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 	t.Context("Check that OpenSearch", func() {
 		if vzcr.IsComponentStatusEnabled(vz, opensearch.ComponentName) {
-			t.It("VMI is created successfully", func() {
-				Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
-					vmiCRD, err = verrazzanoMonitoringInstanceCRD()
-					return vmiCRD, err
-				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
-			})
-
 			if ingressEnabled(vz) {
 				t.It("endpoint is accessible", Label("f:mesh.ingress"), func() {
 					elasticPodsRunning := func() bool {
-						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-es-master"})
+						podName := "vmi-system-es-master"
+						podNamespace := verrazzanoNamespace
+						if elastic.OperatorManaged {
+							podName = "opensearch-es-master"
+							podNamespace = loggingNamespace
+						}
+						result, err := pkg.PodsRunning(podNamespace, []string{podName})
 						if err != nil {
 							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-es-master", verrazzanoNamespace, err))
 						}
@@ -195,7 +197,7 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 					}
 					Eventually(elasticPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "pods did not all show up")
 					Eventually(elasticIngress, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "ingress did not show up")
-					Expect(ingressURLs).To(HaveKey(opensearchIngress), "Ingress vmi-system-os-ingest not found")
+					Expect(ingressURLs).To(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s not found", opensearchIngress))
 					Eventually(elasticConnected, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "never connected")
 					Eventually(elasticIndicesCreated, elasticWaitTimeout, elasticPollingInterval).Should(BeTrue(), "indices never created")
 					assertOidcIngressByName(opensearchIngress, vz, opensearch.ComponentName)
@@ -253,7 +255,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			t.It("is not running", func() {
 				// Verify ES not present
 				Eventually(func() (bool, error) {
-					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-es"})
+					podPrefix := []string{"vmi-system-es"}
+					podNamespace := verrazzanoNamespace
+					if elastic.OperatorManaged {
+						podPrefix = []string{"opensearch-es"}
+						podNamespace = loggingNamespace
+					}
+					return pkg.PodsNotRunning(podNamespace, podPrefix)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(elastic.CheckIngress()).To(BeFalse())
 				Expect(ingressURLs).NotTo(HaveKey(opensearchIngress), fmt.Sprintf("Ingress %s should not exist", opensearchIngress))
@@ -268,14 +276,20 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 				t.It("endpoint is accessible", Label("f:mesh.ingress",
 					"f:observability.logging.kibana"), func() {
 					osdPodsRunning := func() bool {
-						result, err := pkg.PodsRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+						podName := "vmi-system-osd"
+						podNamespace := verrazzanoNamespace
+						if elastic.OperatorManaged {
+							podName = "opensearch-dashboards"
+							podNamespace = loggingNamespace
+						}
+						result, err := pkg.PodsRunning(podNamespace, []string{podName})
 						if err != nil {
 							AbortSuite(fmt.Sprintf("Pod %v is not running in the namespace: %v, error: %v", "vmi-system-osd", verrazzanoNamespace, err))
 						}
 						return result
 					}
 					Eventually(osdPodsRunning, waitTimeout, pollingInterval).Should(BeTrue(), "osd pods did not all show up")
-					Expect(ingressURLs).To(HaveKey("vmi-system-osd"), "Ingress vmi-system-osd not found")
+					Expect(ingressURLs).To(HaveKey(osdIngress), fmt.Sprintf("Ingress %s not found", osdIngress))
 					assertOidcIngressByName(osdIngress, vz, opensearchdashboards.ComponentName)
 					Expect(vz.Status.VerrazzanoInstance.OpenSearchURL).ToNot(BeNil())
 				})
@@ -284,7 +298,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 			t.It("is not running", func() {
 
 				Eventually(func() (bool, error) {
-					return pkg.PodsNotRunning(verrazzanoNamespace, []string{"vmi-system-osd"})
+					podPrefix := []string{"opensearch-dashboards"}
+					podNamespace := verrazzanoNamespace
+					if elastic.OperatorManaged {
+						podPrefix = []string{"opensearch-es"}
+						podNamespace = loggingNamespace
+					}
+					return pkg.PodsNotRunning(podNamespace, podPrefix)
 				}, waitTimeout, pollingInterval).Should(BeTrue())
 				Expect(ingressURLs).NotTo(HaveKey(osdIngress), fmt.Sprintf("Ingress %s should not exist", osdIngress))
 				Expect(vz.Status.VerrazzanoInstance == nil || vz.Status.VerrazzanoInstance.OpenSearchURL == nil).To(BeTrue())
@@ -336,6 +356,13 @@ var _ = t.Describe("VMI", Label("f:infra-lcm"), func() {
 
 	t.Context("Check that Grafana", func() {
 		if vzcr.IsComponentStatusEnabled(vz, grafana.ComponentName) {
+			t.It("VMI is created successfully", func() {
+				Eventually(func() (*apiextv1.CustomResourceDefinition, error) {
+					vmiCRD, err = verrazzanoMonitoringInstanceCRD()
+					return vmiCRD, err
+				}, waitTimeout, pollingInterval).ShouldNot(BeNil())
+			})
+
 			if ingressEnabled(vz) {
 				t.It("Grafana endpoint should be accessible", Label("f:mesh.ingress",
 					"f:observability.monitoring.graf"), func() {

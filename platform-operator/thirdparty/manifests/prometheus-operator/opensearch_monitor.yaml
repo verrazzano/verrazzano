@@ -1,6 +1,7 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+{{ if .isOpenSearchEnabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -11,40 +12,43 @@ metadata:
 spec:
   namespaceSelector:
     matchNames:
-      - {{ .systemNamespace }}
+      - {{ .loggingNamespace }}
   selector: {}
   endpoints:
-  - path: /_prometheus/metrics
-    enableHttp2: false
-  {{ if .isIstioEnabled }}
-    scheme: https
-{{ else }}
-    scheme: http
-{{ end }}
-    relabelings:
-      - sourceLabels:
-          - __meta_kubernetes_pod_name
-        regex: vmi-system-es-.*
-        action: keep
-      - sourceLabels:
-          - __meta_kubernetes_pod_container_port_number
-        regex: "9200"
-        action: keep
-      - sourceLabels:
-          - __meta_kubernetes_namespace
-        action: replace
-        targetLabel: namespace
-      - sourceLabels:
-          - __meta_kubernetes_pod_name
-        action: replace
-        targetLabel: kubernetes_pod_name
-      - action: replace
-        targetLabel: verrazzano_cluster
-        replacement: local
-{{ if .isIstioEnabled }}
-    tlsConfig:
-      caFile: /etc/istio-certs/root-cert.pem
-      certFile: /etc/istio-certs/cert-chain.pem
-      keyFile: /etc/istio-certs/key.pem
-      insecureSkipVerify: true
+    - path: /_prometheus/metrics
+      enableHttp2: false
+      tlsConfig:
+        ca:
+          secret:
+            name: opensearch-monitor-certs
+            key: ca.crt
+        cert:
+          secret:
+            name: opensearch-monitor-certs
+            key: tls.crt
+        keySecret:
+          name: opensearch-monitor-certs
+          key: tls.key
+        insecureSkipVerify: true
+      scheme: https
+      relabelings:
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          regex: opensearch.*
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_pod_container_port_number
+          regex: "9200"
+          action: keep
+        - sourceLabels:
+            - __meta_kubernetes_namespace
+          action: replace
+          targetLabel: namespace
+        - sourceLabels:
+            - __meta_kubernetes_pod_name
+          action: replace
+          targetLabel: kubernetes_pod_name
+        - action: replace
+          targetLabel: verrazzano_cluster
+          replacement: local
 {{ end }}

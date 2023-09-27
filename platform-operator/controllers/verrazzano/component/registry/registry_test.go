@@ -45,6 +45,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/oam"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	promadapter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/adapter"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/kubestatemetrics"
 	promnodeexporter "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/prometheus/nodeexporter"
@@ -119,7 +120,7 @@ func TestGetComponents(t *testing.T) {
 	comps := GetComponents()
 
 	var i int
-	a.Len(comps, 41, "Wrong number of components")
+	a.Len(comps, 42, "Wrong number of components")
 	a.Equal(comps[i].Name(), networkpolicies.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), fluentoperator.ComponentName)
@@ -147,6 +148,8 @@ func TestGetComponents(t *testing.T) {
 	a.Equal(comps[i].Name(), clusterapi.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), rancher.ComponentName)
+	i++
+	a.Equal(comps[i].Name(), opensearchoperator.ComponentName)
 	i++
 	a.Equal(comps[i].Name(), verrazzano.ComponentName)
 	i++

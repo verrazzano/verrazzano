@@ -1353,7 +1353,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.OpensearchIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1385,7 +1385,7 @@ func TestInstanceRestoreWithEmptyStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.OpensearchDashboardsIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},
@@ -1542,7 +1542,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.OpensearchIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: esURL},
@@ -1574,7 +1574,7 @@ func TestInstanceRestoreWithPopulatedStatus(t *testing.T) {
 			},
 		},
 		&networkingv1.Ingress{
-			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
+			ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: constants.OpensearchDashboardsIngress},
 			Spec: networkingv1.IngressSpec{
 				Rules: []networkingv1.IngressRule{
 					{Host: kibanaURL},

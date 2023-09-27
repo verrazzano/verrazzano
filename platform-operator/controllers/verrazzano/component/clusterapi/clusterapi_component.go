@@ -4,15 +4,11 @@
 package clusterapi
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"os/exec"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -25,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
 // ComponentName is the name of the component
@@ -65,32 +62,18 @@ var capiDeployments = []types.NamespacedName{
 	},
 }
 
-type capiUpgradeOptions struct {
-	CoreProvider            string
-	BootstrapProviders      []string
-	ControlPlaneProviders   []string
-	InfrastructureProviders []string
+type CAPIInitFuncType = func(path string, options ...clusterapi.Option) (clusterapi.Client, error)
+
+var capiInitFunc = clusterapi.New
+
+// SetCAPIInitFunc For unit testing, override the CAPI init function
+func SetCAPIInitFunc(f CAPIInitFuncType) {
+	capiInitFunc = f
 }
 
-// capiRunCmdFunc - required for unit tests
-var capiRunCmdFunc func(cmd *exec.Cmd) error
-
-// runCAPICmd - wrapper for executing commands, required for unit testing
-func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
-	if capiRunCmdFunc != nil {
-		return capiRunCmdFunc(cmd)
-	}
-	stdoutBuffer := &bytes.Buffer{}
-	stderrBuffer := &bytes.Buffer{}
-	cmd.Stdout = stdoutBuffer
-	cmd.Stderr = stderrBuffer
-
-	log.Debugf("Component %s is executing the command: %s", ComponentName, cmd.String())
-	err := cmd.Run()
-	if err != nil {
-		log.Debugf("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
-	}
-	return err
+// ResetCAPIInitFunc For unit testing, reset the CAPI init function to its default
+func ResetCAPIInitFunc() {
+	capiInitFunc = clusterapi.New
 }
 
 type clusterAPIComponent struct {
@@ -239,24 +222,28 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 		return c.Upgrade(ctx)
 	}
 
+	capiClient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
+
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
 	}
 
 	overridesContext := newOverridesContext(overrides)
-	coreArgValue := fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion())
-	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
-	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
-	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
-	cmd := exec.Command("clusterctl", "init",
-		"--target-namespace", ComponentNamespace,
-		"--core", coreArgValue,
-		"--control-plane", controlPlaneArgValue,
-		"--infrastructure", infrastructureArgValue,
-		"--bootstrap", bootstrapArgValue)
+	// Set up the init options for the CAPI init.
+	initOptions := clusterapi.InitOptions{
+		CoreProvider:            fmt.Sprintf("%s:%s", clusterAPIProviderName, overridesContext.GetClusterAPIVersion()),
+		BootstrapProviders:      []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())},
+		ControlPlaneProviders:   []string{fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())},
+		InfrastructureProviders: []string{fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())},
+		TargetNamespace:         ComponentNamespace,
+	}
 
-	return runCAPICmd(cmd, ctx.Log())
+	_, err = capiClient.Init(initOptions)
+	return err
 }
 
 func (c clusterAPIComponent) PostInstall(ctx spi.ComponentContext) error {
@@ -272,11 +259,18 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
-	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
-	// Temporarily ignore the return status until a clusterctl version issue is resolved
+	capiClient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
 
-	_ = runCAPICmd(cmd, ctx.Log())
-	return nil
+	// Set up the delete options for the CAPI delete operation.
+	deleteOptions := clusterapi.DeleteOptions{
+		DeleteAll:        true,
+		IncludeNamespace: true,
+		IncludeCRDs:      false,
+	}
+	return capiClient.Delete(deleteOptions)
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
@@ -288,6 +282,10 @@ func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
 }
 
 func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
+	capiClient, err := capiInitFunc("")
+	if err != nil {
+		return err
+	}
 	overrides, err := createOverrides(ctx)
 	if err != nil {
 		return err
@@ -303,7 +301,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {
 		// get all the resource that will be deleted and recreated
-		components, err := getComponentsToUpgrade(ctx.Client(), applyUpgradeOptions)
+		components, err := getComponentsToUpgrade(capiClient, applyUpgradeOptions)
 		if err != nil {
 			ctx.Log().ErrorfThrottled("Error generating cluster-api provider components to be upgraded")
 			return err
@@ -316,26 +314,8 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 
-		// Create the variable input list for apply
-		args := []string{"upgrade", "apply"}
-		if len(applyUpgradeOptions.CoreProvider) > 0 {
-			args = append(args, "--core")
-			args = append(args, applyUpgradeOptions.CoreProvider)
-		}
-		if len(applyUpgradeOptions.BootstrapProviders) > 0 {
-			args = append(args, "--bootstrap")
-			args = append(args, applyUpgradeOptions.BootstrapProviders[0])
-		}
-		if len(applyUpgradeOptions.ControlPlaneProviders) > 0 {
-			args = append(args, "--control-plane")
-			args = append(args, applyUpgradeOptions.ControlPlaneProviders[0])
-		}
-		if len(applyUpgradeOptions.InfrastructureProviders) > 0 {
-			args = append(args, "--infrastructure")
-			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
-		}
-		cmd := exec.Command("clusterctl", args...)
-		return runCAPICmd(cmd, ctx.Log())
+		// then apply the upgrade
+		return capiClient.ApplyUpgrade(applyUpgradeOptions)
 	}
 	return nil
 }

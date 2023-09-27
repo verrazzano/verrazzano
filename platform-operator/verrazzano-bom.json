@@ -307,8 +307,8 @@
           "name": "verrazzano-console",
           "images": [
             {
-              "image": "console",
-              "tag": "v2.0.0-20230912070053-2d1883d",
+              "image": "console-jenkins",
+              "tag": "v2.0.0-20230911185458-8638bc4",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
@@ -988,6 +988,24 @@
               "tag": "v2.37.0-20230911122845-caabc629",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "opensearch-operator",
+      "version": "2.4.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "opensearch-operator",
+          "images": [
+            {
+              "image": "opensearch-operator-jenkins",
+              "tag": "20230927073809-eebef79",
+              "helmFullImageKey": "manager.image.repository",
+              "helmTagKey": "manager.image.tag"
             }
           ]
         }
