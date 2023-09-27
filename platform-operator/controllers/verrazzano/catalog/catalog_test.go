@@ -201,7 +201,8 @@ func TestCompareBOMWithRemote(t *testing.T) {
 }
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
-	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)).Output()
+	arg := fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)
+	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", arg).Output()
 	assert.NoError(t, err)
 	_, err = exec.Command("git", "fetch").Output()
 	assert.NoError(t, err)
