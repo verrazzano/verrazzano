@@ -57,9 +57,6 @@ if [ -n "${AUTHPROXY_IMAGE}" ] && [[ "${AUTHPROXY_IMAGE}" == *:* ]] ; then
 fi
 
 if [[ "${MODULE_INTEGRATION:-"false"}" == "true" ]]; then
-  wget https://raw.githubusercontent.com/verrazzano/verrazzano-modules/main/module-operator/manifests/charts/operators/verrazzano-module-operator/crds/platform.verrazzano.io_modules.yaml \
-  -O $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator/crds/platform.verrazzano.io_modules.yaml
-
   helm template \
       --include-crds \
       ${IMAGE_PULL_SECRET_ARG} \
