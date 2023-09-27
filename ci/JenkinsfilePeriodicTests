@@ -183,19 +183,8 @@ pipeline {
             parallel {
                 stage('OCI DNS tests with instance principal') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'OCI_DNS_AUTH', value: 'instance_principal'),
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: true),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                    ], wait: true
-                            }
+                        script {
+                            echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                         }
                     }
                }
@@ -218,17 +207,8 @@ pipeline {
                 }
                stage('Backup and Restore Tests') {
                    steps {
-                       retry(count: JOB_PROMOTION_RETRIES) {
-                           script {
-                               build job: "/verrazzano-backup-all-test-oke/${CLEAN_BRANCH_NAME}",
-                                   parameters: [
-                                       string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                       string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: 'NONE'),
-                                       string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                       string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                       string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                   ], wait: true
-                           }
+                       script {
+                           echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                        }
                    }
                }
@@ -333,13 +313,7 @@ pipeline {
                 stage('Uninstall Resiliency tests') {
                     steps {
                         script {
-                            build job: "/verrazzano-uninstall-resiliency-suite/${CLEAN_BRANCH_NAME}",
-                                parameters: [
-                                    string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                    string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                    string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                    string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                ], wait: true
+                            echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                         }
                     }
                 }
@@ -418,19 +392,8 @@ pipeline {
                 }
                 stage('OCI DNS/ACME-Staging Tests') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "verrazzano-new-oci-dns-acceptance-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'CERT_ISSUER', value: "acme"),
-                                        string(name: 'ACME_ENVIRONMENT', value: "staging"),
-                                        booleanParam(name: 'CREATE_CLUSTER_USE_CALICO', value: false),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                    ], wait: true
-                            }
+                        script {
+                            echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                         }
                     }
                     post {
@@ -443,16 +406,8 @@ pipeline {
                 }
                 stage('OCI Service Integration Tests') {
                     steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-oci-integration-tests/${CLEAN_BRANCH_NAME}",
-                                    parameters: [
-                                        string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
-                                        string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                        string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                        string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
-                                    ], wait: true
-                            }
+                        script {
+                            echo "OKE no longer supports 1.24, no longer running these tests on 1.5"
                         }
                     }
                     post {

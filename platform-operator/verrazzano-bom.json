@@ -131,13 +131,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230509143745-870a44e17",
-              "tag": "v2.7.3-release-1.5-20230629184813-dc3bfeb44",
+              "tag": "v2.7.3-release-1.5-20230926183352-02c29c928",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-release-1.5-20230629184813-dc3bfeb44"
+              "tag": "v2.7.3-release-1.5-20230926183352-02c29c928"
             }
           ]
         },
@@ -167,7 +167,7 @@
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230922083921-15c72a6"
+              "tag": "v1.0.0-20230922162022-15c72a6"
             }
           ]
         }
@@ -223,7 +223,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.5.8-20230925202023-0688874",
+              "tag": "v1.5.8-20230926102159-36ef0e3",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -244,7 +244,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230829191738-b6247ad8ac8",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
@@ -449,7 +449,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230919161553-c397f447f5",
+              "tag": "v20.0.1-20230923031034-a5c064d9f2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
