@@ -483,6 +483,11 @@ func DisplayHookLogs(log *zap.SugaredLogger) error {
 	logFileData := strings.TrimSpace(strings.Trim(stdout, "\n"))
 	logFileName := strings.Split(logFileData, " ")[len(strings.Split(logFileData, " "))-1]
 
+	if len(logFileName) <= 0 {
+		log.Infof("Failed to find log file. The pod might have restarted")
+		return nil
+	}
+
 	var execCmd []string
 	execCmd = append(execCmd, "cat")
 	execCmd = append(execCmd, fmt.Sprintf("/tmp/%s", logFileName))
