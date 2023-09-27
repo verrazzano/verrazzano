@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5-1",
+      "version": "2.7.5-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
