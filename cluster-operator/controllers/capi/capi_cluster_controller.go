@@ -90,24 +90,25 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-		}
 
-		if err := r.removeFinalizer(cluster); err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// delete the cluster id secret
-		clusterRegistrationStatusSecret := &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.VerrazzanoCAPINamespace,
-				Name:      cluster.GetName() + clusterStatusSuffix,
-			},
-		}
-		err = r.Delete(ctx, clusterRegistrationStatusSecret)
-		if err != nil {
-			if !errors.IsNotFound(err) {
+			if err := r.removeFinalizer(cluster); err != nil {
 				return ctrl.Result{}, err
 			}
+
+			// delete the cluster id secret
+			clusterRegistrationStatusSecret := &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: constants.VerrazzanoCAPINamespace,
+					Name:      cluster.GetName() + clusterStatusSuffix,
+				},
+			}
+			err = r.Delete(ctx, clusterRegistrationStatusSecret)
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					return ctrl.Result{}, err
+				}
+			}
+
 		}
 
 		return ctrl.Result{}, nil
