@@ -703,11 +703,12 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 	// Get the state
 	phase, found, err := unstructured.NestedString(cluster.Object, "status", "phase")
 	if !found {
-		err = fmt.Errorf("could not find field status.phase field inside cluster %s: %v", clusterNamespacedName, err)
-		return "", err
+		r.log.Progressf("could not find status.phase field inside cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
 	}
 	if err != nil {
-		return "", err
+		r.log.Progressf("error while looking for status.phase field for cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
 	}
 
 	// Validate that the CAPI Phase is a proper StateType for the VMC
