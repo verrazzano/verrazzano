@@ -93,7 +93,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230526160243-7a73e30",
+              "tag": "v0.1.0-20230925072151-7a73e30",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -262,7 +262,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -332,7 +332,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230627214838-887ef0a0",
+              "tag": "1.17.2-20230927050615-82dac91e",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -629,7 +629,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
+              "tag": "v2.0.0-20230925105859-b8bc75a"
             }
           ]
         }
@@ -765,7 +765,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20230605074155-b7f69924",
+              "tag": "v1.3.1-20230925070337-b7f69924",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
