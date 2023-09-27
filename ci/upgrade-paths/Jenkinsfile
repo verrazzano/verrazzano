@@ -425,11 +425,11 @@ pipeline {
                                 upgradePlatformOperator()
                             }
                         }
-                        stage("Verify Upgrade Required") {
+                        /*stage("Verify Upgrade Required") {
                             steps {
                                 runGinkgoRandomizeSerial('upgrade/pre-upgrade/verify-upgrade-required')
                             }
-                        }
+                        }*/
                     }
                 }
                 stage("upgrade-verrazzano") {

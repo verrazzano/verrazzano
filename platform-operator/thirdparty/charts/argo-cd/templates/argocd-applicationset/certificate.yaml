@@ -1,7 +1,13 @@
 {{- if .Values.applicationSet.certificate.enabled -}}
-apiVersion: {{ include "argo-cd.apiVersion.cert-manager" . }}
+apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
+  {{- with (mergeOverwrite (deepCopy .Values.global.certificateAnnotations) .Values.applicationSet.certificate.annotations) }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+  {{- end }}
   name: {{ template "argo-cd.applicationSet.fullname" . }}
   namespace: {{ .Release.Namespace | quote }}
   labels:

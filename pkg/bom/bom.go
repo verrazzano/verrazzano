@@ -214,13 +214,17 @@ func (b *Bom) GetSubcomponentImages(subComponentName string) ([]BomImage, error)
 	return sc.Images, nil
 }
 
-func (b *Bom) FindImage(sc *BomSubComponent, imageName string) (BomImage, error) {
-	for _, image := range sc.Images {
+func (b *Bom) FindImage(subcomponentName, imageName string) (BomImage, error) {
+	images, err := b.GetSubcomponentImages(subcomponentName)
+	if err != nil {
+		return BomImage{}, err
+	}
+	for _, image := range images {
 		if image.ImageName == imageName {
 			return image, nil
 		}
 	}
-	return BomImage{}, fmt.Errorf("Image %s not found for sub-component %s", imageName, sc.Name)
+	return BomImage{}, fmt.Errorf("Image %s not found for sub-component %s", imageName, subcomponentName)
 }
 
 // GetSubcomponentImageCount returns the number of subcomponent images

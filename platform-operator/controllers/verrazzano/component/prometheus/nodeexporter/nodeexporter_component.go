@@ -4,6 +4,7 @@
 package nodeexporter
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 
@@ -11,6 +12,9 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -109,6 +113,20 @@ func (c prometheusNodeExporterComponent) MonitorOverrides(ctx spi.ComponentConte
 		}
 	}
 	return true
+}
+
+// PreUpgrade performs pre-upgrade processing for this component
+func (c prometheusNodeExporterComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	// The new Helm chart fails to upgrade because of a label selector immutable field, so we need
+	// to delete the daemonset before upgrading
+	// Added in Verrazzano v1.7.0
+	ctx.Log().Infof("PreUpgrade deleting daemonset %s/%s", ComponentNamespace, daemonsetName)
+	ds := &appsv1.DaemonSet{ObjectMeta: metav1.ObjectMeta{Namespace: ComponentNamespace, Name: daemonsetName}}
+	if err := ctx.Client().Delete(context.TODO(), ds); err != nil && !errors.IsNotFound(err) {
+		ctx.Log().Errorf("Error deleting daemonset: %v", err)
+		return err
+	}
+	return nil
 }
 
 // PostInstall creates/updates associated resources after this component is installed
