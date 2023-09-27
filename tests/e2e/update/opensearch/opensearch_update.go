@@ -25,7 +25,7 @@ const (
 )
 
 var (
-	ReplicaToDisableDefaultNode int32 = 0
+	ReplicaToDisableDefaultNode int32
 )
 
 type OpensearchCleanUpModifier struct {
