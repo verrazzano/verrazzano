@@ -162,7 +162,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			)
 		}
 
-		ok, _ := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 		t.DescribeTable("VMI components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
@@ -177,7 +177,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
 
-		// If version is >= 2.0.0, check for opensearch in verrazzano-logging namespace
+		// If version is >= 1.7.0, check for opensearch in verrazzano-logging namespace
 		if ok {
 			t.DescribeTable("Logging components are deployed,",
 				func(name string, expected bool) {

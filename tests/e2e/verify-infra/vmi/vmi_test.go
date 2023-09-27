@@ -155,7 +155,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return err
 	}, waitTimeout, pollingInterval).ShouldNot(HaveOccurred())
 
-	ok, _ := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+	ok, _ := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 	elastic = vmi.GetOpensearch("system", ok)
 	if verrazzanoSecretRequired(vz) {
 		creds = pkg.EventuallyGetSystemVMICredentials()

@@ -343,9 +343,9 @@ func GetSystemOpenSearchIngressURL(kubeconfigPath string) string {
 		Log(Error, fmt.Sprintf("Failed to get clientset for cluster %v", err))
 		return ""
 	}
-	// Return the newer OS ingress if >= 2.0.0
+	// Return the newer OS ingress if >= 1.7.0
 	// Else return the vmi ingress as usual
-	useNewOSIngress, _ := IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+	useNewOSIngress, _ := IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 	ingressList, _ := clientset.NetworkingV1().Ingresses(VerrazzanoNamespace).List(context.TODO(), metav1.ListOptions{})
 	for _, ingress := range ingressList.Items {
 		if !useNewOSIngress && (ingress.Name == "vmi-system-os-ingest" || ingress.Name == "vmi-system-es-ingest") {
