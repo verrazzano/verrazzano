@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/test/keycloakutil"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"net/url"
 	"strings"
 	"testing"
@@ -1837,4 +1838,63 @@ func TestAddRealmRoleToUser(t *testing.T) {
 	err = addRealmRoleToUser(ctx, cfg, cli, "test-user", "test-realm", "invalid-role")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Failed to add realm role")
+}
+
+// TestIsDeleteSTSRequired tests the call to isDeleteStatefulSetRequired
+// GIVEN a Keycloak component
+// WHEN I call isDeleteStatefulSetRequired
+// THEN the correct value is returned based on the version installed and version for upgrade
+func TestIsDeleteSTSRequired(t *testing.T) {
+	versionInstalled := "v1.4.6"
+	versionForUpgrade := "v1.4.7"
+	isDeleteRequired, err := isDeleteStatefulSetRequired(getCompContext(versionInstalled, versionForUpgrade))
+	assert.NoError(t, err)
+	assert.True(t, isDeleteRequired == false)
+
+	versionInstalled = "v1.4.6"
+	versionForUpgrade = "v1.5.0"
+	isDeleteRequired, err = isDeleteStatefulSetRequired(getCompContext(versionInstalled, versionForUpgrade))
+	assert.NoError(t, err)
+	assert.True(t, isDeleteRequired == true)
+
+	versionInstalled = "v1.5.0"
+	versionForUpgrade = "v1.6.0"
+	isDeleteRequired, err = isDeleteStatefulSetRequired(getCompContext(versionInstalled, versionForUpgrade))
+	assert.NoError(t, err)
+	assert.True(t, isDeleteRequired == false)
+}
+
+// getCompContext returns ComponentContext by setting the spec:version and  status:version using the input
+func getCompContext(versionInstalled, versionForUpgrade string) spi.ComponentContext {
+	pvc1Gi, _ := resource.ParseQuantity("1Gi")
+	vz := &vzapi.Verrazzano{
+		Spec: vzapi.VerrazzanoSpec{
+			Profile: vzapi.ProfileType("dev"),
+			VolumeClaimSpecTemplates: []vzapi.VolumeClaimSpecTemplate{{
+				ObjectMeta: metav1.ObjectMeta{Name: "mysql"},
+				Spec: v1.PersistentVolumeClaimSpec{
+					Resources: v1.ResourceRequirements{
+						Requests: v1.ResourceList{
+							"storage": pvc1Gi,
+						},
+					},
+				},
+			}},
+			Components: vzapi.ComponentSpec{
+				Keycloak: &vzapi.KeycloakComponent{
+					MySQL: vzapi.MySQLComponent{
+						VolumeSource: &v1.VolumeSource{
+							PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: "mysql"},
+						},
+					},
+				},
+			},
+			Version: versionForUpgrade,
+		},
+		Status: vzapi.VerrazzanoStatus{
+			Version: versionInstalled,
+		},
+	}
+	ctx := spi.NewFakeContext(fake.NewClientBuilder().Build(), vz, nil, false, profilesRelativePath)
+	return ctx
 }
