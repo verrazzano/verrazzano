@@ -168,8 +168,7 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (h HelmComponent) ShouldUseModule() bool {
-	// Default to true if module integration is enabled
-	return config.Get().ModuleIntegration
+	return true
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component

@@ -15,7 +15,6 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -100,7 +99,7 @@ func (c clusterAPIComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (c clusterAPIComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
+	return true
 }
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module

@@ -9,7 +9,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
@@ -38,7 +37,7 @@ func (i istioComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verraz
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (i istioComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
+	return true
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
