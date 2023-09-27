@@ -273,7 +273,6 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
-	// Temporarily ignore the return status until a clusterctl version issue is resolved
 
 	return runCAPICmd(cmd, ctx.Log())
 }
