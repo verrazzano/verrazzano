@@ -11,8 +11,6 @@ process_file() {
   local IMAGESIZE_ARRAY=()
 
   while IFS= read -r line; do
-    # Extract Commit ID
-    COMMIT_ID=$(echo "$line" | cut -d '-' -f 2 | cut -d '.' -f 2)
     # Extract image name
     IMAGENAME=$(echo "$line" | cut -d ':' -f 1)
     # Extract image size
@@ -28,6 +26,15 @@ process_file() {
     echo "${IMAGENAME_ARRAY[$i]}:${IMAGESIZE_ARRAY[$i]}"
   done
 }
+
+# Extract Commit ID
+extract_commit_id(){
+  local FILENAME="$1"
+  LAST_LINE=$(tail -n 1 "$FILENAME")
+  COMMIT_ID=$(echo "$LAST_LINE" | cut -d '-' -f 2)
+  echo "$COMMIT_ID">${WORKSPACE}/commitID.txt
+}
+
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
 if [ $? -ne  0 ] ; then
  echo "${CLEAN_BRANCH_NAME}/image-list not found"
@@ -42,13 +49,11 @@ fi
 declare -A IMAGENAME_SIZES_FILE_OS
 declare -A IMAGENAME_SIZES_FILE_GENERATED
 
+extract_commit_id "${WORKSPACE}/image-sizes-objectstore.txt"
 IMAGE_DATA_OS=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
 IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
 IMAGE_SIZE_DIFF_FOUND="false"
 NEW_IMAGE_FOUND="false"
-
-# Populating commitID.txt file with Short Commit Hash
-${COMMIT_ID} >> ${WORKSPACE}/commitID.txt
 
 # Exract image size & name. Populate the associative arrays for both files
 while IFS=: read -r IMAGENAME IMAGESIZE; do

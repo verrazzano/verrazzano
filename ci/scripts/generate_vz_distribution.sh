@@ -503,6 +503,6 @@ listImageSizes
 
 # Sort the image sizes by size and remove any dups
 cat ${WORKSPACE}/image-sizes-unsorted.txt | sort -u -k 2 -t ',' -n > ${WORKSPACE}/image-sizes.txt
-echo "Commit ID-${SHORT_COMMIT_HASH_ENV}." >> ${WORKSPACE}/image-sizes.txt
+echo "Commit ID-${SHORT_COMMIT_HASH_ENV}" >> ${WORKSPACE}/image-sizes.txt
 # Delete the directories created under WORKSPACE
 cleanupWorkspace
