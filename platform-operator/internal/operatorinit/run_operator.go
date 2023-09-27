@@ -266,9 +266,6 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 	module.IgnoreHelmInfo()
 
 	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			continue
-		}
 		// Create and initialize the module controller.  Note that the implementation of the module controller
 		// is in the module-operator package (in the module-operator repo).  This is the exact
 		// same controller that is used by the module-operator used by OCNE.  The only difference
