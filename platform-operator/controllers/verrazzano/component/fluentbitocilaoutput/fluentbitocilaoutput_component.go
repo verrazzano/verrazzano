@@ -122,6 +122,7 @@ func copyOCIApiSecret(ctx spi.ComponentContext) error {
 	return nil
 }
 
+/*
 func (c fluentbitOCILoggingAnalyticsOutput) ValidateInstall(vz *v1alpha1.Verrazzano) error {
 	var vzv1beta1 *v1beta1.Verrazzano
 	err := common.ConvertVerrazzanoCR(vz, vzv1beta1)
@@ -139,8 +140,12 @@ func (c fluentbitOCILoggingAnalyticsOutput) ValidateUpdate(old *v1alpha1.Verrazz
 	}
 	return c.validateOCILogAnalyticsOverrides(vzv1beta1)
 }
+*/
 
 func (c fluentbitOCILoggingAnalyticsOutput) validateOCILogAnalyticsOverrides(vz *v1beta1.Verrazzano) error {
+	if !c.IsEnabled(vz) {
+		return nil
+	}
 	client, err := getClient()
 	if err != nil {
 		return err
