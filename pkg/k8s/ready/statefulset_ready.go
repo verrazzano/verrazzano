@@ -138,3 +138,34 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 
 	return true
 }
+
+// AreOpensearchStsReady Check that the OS statefulsets have the minimum number of specified replicas ready and available. It ignores the updated replicas check if updated replicas are zero.
+func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	for _, namespacedName := range namespacedNames {
+		statefulset := appsv1.StatefulSet{}
+		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
+			if errors.IsNotFound(err) {
+				log.Progressf("%s is waiting for statefulset %v to exist", prefix, namespacedName)
+				// StatefulSet not found
+				return false
+			}
+			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
+			return false
+		}
+		if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
+				expectedReplicas, statefulset.Status.UpdatedReplicas)
+			return false
+		}
+		if statefulset.Status.ReadyReplicas < expectedReplicas {
+			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
+				expectedReplicas, statefulset.Status.ReadyReplicas)
+			return false
+		}
+		if !podsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
+			return false
+		}
+		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
+	}
+	return true
+}
