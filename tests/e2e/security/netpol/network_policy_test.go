@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
 
@@ -238,7 +239,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test verrazzano-platform-operator-webhook ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator-webhook"}}, "verrazzano-install", 9443, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-platform-operator-webhook"}}, "verrazzano-install", 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-platform-operator ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -254,7 +255,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 				t.Logs.Info("Test verrazzano-application-operator-webhook ingress rules")
 				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": "netpol-test"}}, "netpol-test", metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-operator-webhook"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-operator-webhook ingress rules failed: reason = %s", err))
-				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-operator-webhook"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
+				err = testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: nodeExporter}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": "verrazzano-application-operator-webhook"}}, vzconst.VerrazzanoSystemNamespace, 9443, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test verrazzano-application-operator-webhook ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -275,7 +276,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test prometheus-node-exporter ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, nodeExporterMetricsPort, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: nodeExporter}}, vzconst.PrometheusOperatorNamespace, nodeExporterMetricsPort, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test prometheus-node-exporter ingress rules failed: reason = %s", err))
 			},
 			func() {
@@ -355,7 +356,7 @@ var _ = t.Describe("Test Network Policies", Label("f:security.netpol"), func() {
 			},
 			func() {
 				t.Logs.Info("Test prometheus-node-exporter ingress rules")
-				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{"app": nodeExporter}}, vzconst.PrometheusOperatorNamespace, 9100, false, true)
+				err := testAccess(metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: "prometheus"}}, vzconst.PrometheusOperatorNamespace, metav1.LabelSelector{MatchLabels: map[string]string{kubernetesAppLabel: nodeExporter}}, vzconst.PrometheusOperatorNamespace, 9100, false, true)
 				Expect(err).To(BeNil(), fmt.Sprintf("FAIL: Test prometheus-node-exporter ingress rules failed: reason = %s", err))
 			},
 			func() {
