@@ -5,7 +5,6 @@ package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"k8s.io/utils/pointer"
 
 	"time"
 
@@ -23,6 +22,10 @@ const (
 	pollingInterval = 10 * time.Second
 
 	NodeGroupLabel = "node-group"
+)
+
+var (
+	ReplicaToDisableDefaultNode int32 = 0
 )
 
 type OpensearchCleanUpModifier struct {
@@ -70,7 +73,7 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
 		{
 			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: pointer.Int32(0),
+			Replicas: &ReplicaToDisableDefaultNode,
 		},
 	}
 	cr.Spec.Components.Elasticsearch.Nodes =
@@ -104,7 +107,7 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
 		{
 			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: pointer.Int32(0),
+			Replicas: &ReplicaToDisableDefaultNode,
 		},
 	}
 	cr.Spec.Components.Elasticsearch.Nodes =
@@ -126,7 +129,7 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
 		{
 			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: pointer.Int32(0),
+			Replicas: &ReplicaToDisableDefaultNode,
 		},
 	}
 	cr.Spec.Components.Elasticsearch.Nodes =
