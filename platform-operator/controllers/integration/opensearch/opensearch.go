@@ -118,20 +118,16 @@ func (o *OSClient) DeleteDefaultISMPolicy(log vzlog.VerrazzanoLogger, client cli
 func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
 
 	if !*vz.Spec.Components.Elasticsearch.Enabled || vz.Spec.Components.Elasticsearch.DisableDefaultPolicy {
-		zap.S().Info("DisableDefaultPolicy true")
 		return nil
 	}
 
 	if !o.IsOpenSearchReady(client) {
-		zap.S().Info("opensearch not ready")
-
 		return nil
 	}
 	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
 	if err != nil {
 		return err
 	}
-	log.Debugf("calling createOrUpdateDefaultISMPolicy")
 	_, err = o.createOrUpdateDefaultISMPolicy(log, openSearchEndpoint)
 	return err
 }
