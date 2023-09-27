@@ -723,7 +723,8 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		clustersv1alpha1.StateFailed:
 		return state, nil
 	default:
-		return clustersv1alpha1.StateUnknown, fmt.Errorf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
+		r.log.Progressf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
+		return clustersv1alpha1.StateUnknown, nil
 	}
 }
 
