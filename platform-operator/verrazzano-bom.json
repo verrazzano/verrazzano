@@ -517,7 +517,7 @@
               "registry": "iad.ocir.io",
               "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "fluent-operator",
-              "tag": "20230926081556-1b17472dc",
+              "tag": "20230927045924-07e43ec",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
