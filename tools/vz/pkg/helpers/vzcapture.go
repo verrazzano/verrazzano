@@ -346,16 +346,23 @@ func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.Certifi
 }
 
 func collectHostNames(certificateList v1.CertificateList) {
-	knownHostNamesMutex.Lock()
 	for _, cert := range certificateList.Items {
 		for _, hostname := range cert.Spec.DNSNames {
-			KnownHostNames[hostname] = true
+			putIntoHostNamesIfNotPresent(hostname)
 		}
 	}
 	for _, cert := range certificateList.Items {
 		for _, ipAddress := range cert.Spec.IPAddresses {
-			KnownHostNames[ipAddress] = true
+			putIntoHostNamesIfNotPresent(ipAddress)
 		}
+	}
+}
+
+func putIntoHostNamesIfNotPresent(inputKey string) {
+	knownHostNamesMutex.Lock()
+	keyInMap := KnownHostNames[inputKey]
+	if !keyInMap {
+		KnownHostNames[inputKey] = true
 	}
 	knownHostNamesMutex.Unlock()
 }
