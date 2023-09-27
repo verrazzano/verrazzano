@@ -147,17 +147,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230818161107-07044c506",
+              "dashboard": "v2.7.5-20230921192928-7c49553c6",
               "rancherUI": "v2.7.2-11/release-2.7.2",
               "ocneDriverVersion": "v0.24.0",
               "ocneDriverChecksum": "0d537a9e810ce23f7727b4ad70d884acc9648afa4d600be9036b0c4893d7311a",
-              "tag": "v2.7.5-20230831191011-c6f745626",
+              "tag": "v2.7.6-20230921193355-4a359105b",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.5-20230831191011-c6f745626"
+              "tag": "v2.7.6-20230921193355-4a359105b"
             }
           ]
         },
@@ -167,27 +167,27 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20230403204343-4124528"
+              "tag": "v0.1.20-20230908151457-b1ce5ae"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.5-20230803175843-1a77563"
+              "tag": "v0.3.5-20230922100255-1a77563"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.0-20230803175255-e6633a6d"
+              "tag": "v0.7.1-20230913140901-c69add6c"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.0-20230803175255-e6633a6d"
+              "tag": "v0.7.1-20230913140901-c69add6c"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20230804152729-58582b0"
+              "tag": "v0.1.32-20230925114322-53ac350"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20230626123339-15c72a6"
+              "tag": "v1.0.0-20230922083921-15c72a6"
             }
           ]
         }
@@ -247,7 +247,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.6.7",
+      "version": "1.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.7-20230907200018-52eb93a",
+              "tag": "v1.6.8-20230925202202-44af4c3",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -287,7 +287,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.6.7",
+      "version": "1.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -295,7 +295,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.7-20230907195903-20c9316",
+              "tag": "v1.6.8-20230926101059-c67fc00",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -316,12 +316,12 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230829191738-b6247ad8ac8",
+              "tag": "2.3.0-20230914055551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
               "image": "opensearch-dashboards",
-              "tag": "2.3.0-20230529153250-cc04b43c2b",
+              "tag": "2.3.0-20230918052256-cc04b43c2b",
               "helmFullImageKey": "monitoringOperator.osdImage"
             },
             {
@@ -369,7 +369,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "1.6.7",
+      "version": "1.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -386,7 +386,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "1.6.7",
+      "version": "1.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -403,7 +403,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.6.7",
+      "version": "1.6.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -569,7 +569,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230919161553-c397f447f5",
+              "tag": "v20.0.1-20230923031034-a5c064d9f2",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
