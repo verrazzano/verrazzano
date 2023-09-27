@@ -9,6 +9,7 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -82,13 +83,6 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// only process CAPI cluster instances not managed by Rancher/container driver
-	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
-	if ok {
-		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
-		return ctrl.Result{}, nil
-	}
-
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
@@ -124,16 +118,11 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// obtain and persist the API endpoint IP address for the admin cluster
-	err = r.createAdminAccessConfigMap(ctx)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
+	vmcName := r.getVMCName(cluster)
 	// ensure a base VMC
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.GetName(),
+			Name:      vmcName,
 			Namespace: constants.VerrazzanoMultiClusterNamespace,
 		},
 	}
@@ -143,6 +132,19 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 		return nil
 	}); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// only process CAPI cluster instances not managed by Rancher/container driver
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		r.Log.Infof("CAPI cluster %v lifecycle managed by VMC processing", cluster.GetName())
+		return ctrl.Result{}, nil
+	}
+
+	// obtain and persist the API endpoint IP address for the admin cluster
+	err = r.createAdminAccessConfigMap(ctx)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -248,6 +250,18 @@ func (r *CAPIClusterReconciler) removeFinalizer(cluster *unstructured.Unstructur
 		return err
 	}
 	return nil
+}
+
+func (r *CAPIClusterReconciler) getVMCName(cluster *unstructured.Unstructured) string {
+	// check for existence of a Rancher cluster management resource
+	rancherMgmtCluster := &unstructured.Unstructured{}
+	rancherMgmtCluster.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("Cluster"))
+	err := r.Get(context.TODO(), types.NamespacedName{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}, rancherMgmtCluster)
+	if err != nil {
+		return cluster.GetName()
+	}
+	// return the display Name
+	return rancherMgmtCluster.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
 }
 
 // getClusterClient returns a controller runtime client configured for the workload cluster
