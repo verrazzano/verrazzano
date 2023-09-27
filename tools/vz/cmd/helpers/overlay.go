@@ -5,6 +5,7 @@ package helpers
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -70,6 +71,29 @@ func MergeSetFlags(gv schema.GroupVersion, vz clipkg.Object, overlayYAML string)
 	if err != nil {
 		return vz, nil, err
 	}
+	vzYAML, err := overlayVerrazzano(gv, string(baseYAML), overlayYAML)
+	if err != nil {
+		return vz, nil, err
+	}
+
+	obj := &unstructured.Unstructured{}
+	err = yaml.Unmarshal([]byte(vzYAML), obj)
+	if err != nil {
+		return obj, nil, fmt.Errorf("Failed to create a verrazzano install resource: %s", err.Error())
+	}
+	return obj, obj, nil
+}
+
+// MergeSetFlagsUpgrade takes the existing Verrazzano resource and merges yaml representing a set flag passed on the command line with a
+// A merged verrazzano install resource is returned.
+func MergeSetFlagsUpgrade(gv schema.GroupVersion, vz *v1beta1.Verrazzano, overlayYAML string) (clipkg.Object, *unstructured.Unstructured, error) {
+	vz.APIVersion = "install.verrazzano.io/v1beta1"
+	vz.Kind = "Verrazzano"
+	baseYAML, err := yaml.Marshal(vz)
+	if err != nil {
+		return vz, nil, err
+	}
+
 	vzYAML, err := overlayVerrazzano(gv, string(baseYAML), overlayYAML)
 	if err != nil {
 		return vz, nil, err
