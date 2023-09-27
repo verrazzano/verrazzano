@@ -9,6 +9,7 @@ Component version updates:
 - NGINX Prometheus Exporter v0.11.0
 - Prometheus Pushgateway v1.6.2
 - Prometheus Node Exporter v1.6.1
+- Alertmanager v0.26.0
 
 
 Features:
