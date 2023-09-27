@@ -661,7 +661,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.V
 	if err != nil {
 		return err
 	}
-	vmc.Status.State = capiClusterPhase
+	if capiClusterPhase != "" {
+		vmc.Status.State = capiClusterPhase
+	}
 	return nil
 }
 
@@ -721,7 +723,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		clustersv1alpha1.StateFailed:
 		return state, nil
 	default:
-		return "", fmt.Errorf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
+		return clustersv1alpha1.StateUnknown, fmt.Errorf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
 	}
 }
 
