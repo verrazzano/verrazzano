@@ -5,6 +5,8 @@ package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
+
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
@@ -65,7 +67,12 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: pointer.Int32(0),
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -94,7 +101,12 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: pointer.Int32(0),
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -111,7 +123,12 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
+		{
+			Name:     "es-" + string(vmov1.MasterRole),
+			Replicas: pointer.Int32(0),
+		},
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
