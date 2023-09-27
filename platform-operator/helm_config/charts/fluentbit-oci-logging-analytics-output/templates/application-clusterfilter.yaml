@@ -1,4 +1,5 @@
-{{- if .Values.application.logGroupId -}}
+{{ if .Capabilities.APIVersions.Has "fluentbit.fluent.io/v1alpha2" -}}
+{{- if .Values.application.logGroupId }}
 apiVersion: fluentbit.fluent.io/v1alpha2
 kind: ClusterFilter
 metadata:
@@ -23,16 +24,21 @@ spec:
               {{- printf "log_metadata.%s: %s" $key $value | nindent 12 }}
               {{- end }}
               {{- end }}
+    {{- if .Values.application.globalMetadata}}
     - nest:
         operation: nest
         wildcard:
           - global_metadata.*
         nestUnder: oci_la_global_metadata
         removePrefix: global_metadata.
+    {{- end }}
+    {{- if .Values.application.logEventMetadata}}
     - nest:
         operation: nest
         wildcard:
           - log_metadata.*
         nestUnder: oci_la_metadata
         removePrefix: log_metadata.
+    {{- end }}
 {{- end }}
+{{ end -}}

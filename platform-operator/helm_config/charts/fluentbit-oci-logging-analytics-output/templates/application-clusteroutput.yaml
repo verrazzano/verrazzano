@@ -23,13 +23,12 @@ spec:
       {{- if .Values.auth.region }}
       region: {{ .Values.auth.region }}
       {{- end }}
-      {{- if .Values.auth.profileName}}
-      profileName: {{ .Values.auth.profileName }}
-      {{- end }}
     {{- end }}
     {{- if .Values.objectStorageNamespace }}
     objectStorageNamespace: {{ .Values.objectStorageNamespace }}
     {{- end }}
     ociConfigInRecord: true
+    tls:
+      verify: false
 {{- end }}
 {{ end -}}

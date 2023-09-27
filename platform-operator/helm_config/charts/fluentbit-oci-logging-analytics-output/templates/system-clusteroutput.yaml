@@ -23,9 +23,6 @@ spec:
       {{- if .Values.auth.region }}
       region: {{ .Values.auth.region }}
       {{- end }}
-      {{- if .Values.auth.profileName}}
-      profileName: {{ .Values.auth.profileName }}
-      {{- end }}
     {{- end }}
     {{- if .Values.objectStorageNamespace }}
     objectStorageNamespace: {{ .Values.objectStorageNamespace }}
@@ -53,5 +50,7 @@ spec:
       {{ $key }} : {{ $value }}
       {{- end }}
     {{- end }}
+    tls:
+      verify: false
 {{- end }}
 {{ end -}}
