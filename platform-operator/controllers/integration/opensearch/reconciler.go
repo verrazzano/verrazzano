@@ -42,7 +42,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		ControllerName: "opensearch-integration",
 	})
 	if err != nil {
-		zap.S().Errorf("Failed to create controller logger for opensearch-operator controller: %v", err)
+		zap.S().Errorf("Failed to create logger for opensearch integration controller: %v", err)
 	}
 	r.log = log
 
