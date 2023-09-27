@@ -707,7 +707,18 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		return "", err
 	}
 
-	return clustersv1alpha1.StateType(phase), nil
+	// Validate that the CAPI Phase is a proper StateType for the VMC
+	switch state := clustersv1alpha1.StateType(phase); state {
+	case clustersv1alpha1.StatePending,
+		clustersv1alpha1.StateProvisioning,
+		clustersv1alpha1.StateProvisioned,
+		clustersv1alpha1.StateDeleting,
+		clustersv1alpha1.StateUnknown,
+		clustersv1alpha1.StateFailed:
+		return state, nil
+	default:
+		return "", fmt.Errorf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
+	}
 }
 
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
