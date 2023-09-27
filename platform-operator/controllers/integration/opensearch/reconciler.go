@@ -46,7 +46,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	}
 	r.log = log
 
-	log.Oncef("Starting OpenSearch integration for index patterns and ISM policies")
+	log.Oncef("Starting OpenSearch integration controller for index patterns and ISM policies")
 
 	// Get effective CR.
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
@@ -62,7 +62,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	// Handle only if its opensearch-operator managed OS
+	// Handle only if it's opensearch-operator managed OS
 	if isLegacyOS {
 		return result.NewResult()
 	}
@@ -73,9 +73,11 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		// both components must be enabled and ready
 		return result.NewResultRequeueDelay(1, 2, time.Minute)
 	}
-
+	err = r.CreateIndexPatterns(controllerCtx, effectiveCR)
+	if err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	}
 	if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
-		zap.S().Infof("creating polciies")
 		err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
