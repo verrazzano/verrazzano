@@ -56,9 +56,11 @@ func NewComponent() spi.Component {
 }
 
 func (c fluentbitOCILoggingAnalyticsOutput) PreInstall(ctx spi.ComponentContext) error {
-	if err := copyOCIApiSecret(ctx); err != nil {
-		return err
-	}
+	/*
+		if err := copyOCIApiSecret(ctx); err != nil {
+			return err
+		}
+	*/
 	return c.HelmComponent.PreInstall(ctx)
 }
 
