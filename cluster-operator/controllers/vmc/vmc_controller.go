@@ -694,6 +694,9 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		Namespace: clusterRef.Namespace,
 	}
 	if err := r.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
+		if errors.IsNotFound(err) {
+			return "", nil
+		}
 		return "", err
 	}
 
