@@ -66,10 +66,22 @@ spec:
             {{- range .Values.notifications.extraArgs }}
             - {{ . | squote }}
             {{- end }}
-          {{- with .Values.notifications.extraEnv }}
           env:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+            {{- with (concat .Values.global.env .Values.notifications.extraEnv) }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            - name: ARGOCD_NOTIFICATIONS_CONTROLLER_LOGLEVEL
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.log.level
+                  name: argocd-cmd-params-cm
+                  optional: true              
+            - name: ARGOCD_NOTIFICATIONS_CONTROLLER_LOGFORMAT
+              valueFrom:
+                configMapKeyRef:
+                  key: notificationscontroller.log.format
+                  name: argocd-cmd-params-cm
+                  optional: true
           {{- with .Values.notifications.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
@@ -80,8 +92,10 @@ spec:
             protocol: TCP
           resources:
             {{- toYaml .Values.notifications.resources | nindent 12 }}
+          {{- with .Values.notifications.containerSecurityContext }}
           securityContext:
-            {{- toYaml .Values.notifications.containerSecurityContext | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           workingDir: /app
           volumeMounts:
             - name: tls-certs
