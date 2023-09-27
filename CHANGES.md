@@ -11,6 +11,7 @@ Component version updates:
 - Prometheus Node Exporter v1.6.1
 - Alertmanager v0.26.0
 
+
 Features:
 
 - Added OKEQuickCreate custom resource to support ease-of-use when creating OKE clusters on OCI.
