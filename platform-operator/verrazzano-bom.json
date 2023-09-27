@@ -581,7 +581,7 @@
           "images": [
             {
               "image": "keycloak-oracle-theme",
-              "tag": "v2.0.0-20230628190510-b8bc75a"
+              "tag": "v2.0.0-20230925105859-b8bc75a"
             }
           ]
         }
