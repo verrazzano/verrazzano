@@ -65,24 +65,23 @@ helm fetch rancher-stable/rancher --untar=true --version=${RANCHER_CHART_VERSION
 The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_CHART_VERSION=2.1.0
+export MYSQL_CHART_VERSION=2.0.8
 rm -rf mysql
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm pull mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
-mv mysql-innodbcluster mysql
+helm fetch mysql-operator/mysql-innodbcluster --untar=true --version=${MYSQL_CHART_VERSION}
 ```
 
 ## MySQL Operator
 
-The `mysql-operator` folder was created by running the following commands:
+The `mysql` folder was created by running the following commands:
 
 ```shell
-export MYSQL_OPERATOR_CHART_VERSION=2.1.0
+export MYSQL_OPERATOR_CHART_VERSION=2.0.8
 rm -rf mysql-operator
 helm repo add mysql-operator https://mysql.github.io/mysql-operator/
 helm repo update
-helm pull mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
+helm fetch mysql-operator/mysql-operator --untar=true --version=${MYSQL_OPERATOR_CHART_VERSION}
 ```
 
 ## KeyCloak
