@@ -478,7 +478,6 @@
             {
               "image": "prometheus-operator",
               "tag": "v0.59.1-20230926053228-fb82ffaa",
-              "helmRegKey": "prometheusOperator.image.registry",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
@@ -497,7 +496,6 @@
             {
               "image": "prometheus-config-reloader",
               "tag": "v0.59.1-20230926053228-fb82ffaa",
-              "helmRegKey": "prometheusOperator.prometheusConfigReloader.image.registry",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
             }
@@ -510,7 +508,6 @@
             {
               "image": "alertmanager",
               "tag": "v0.24.0-20230926053740-18128160",
-              "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
             }
@@ -523,7 +520,6 @@
             {
               "image": "prometheus",
               "tag": "v2.38.0-20230926054152-186a8ee6",
-              "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
             }
