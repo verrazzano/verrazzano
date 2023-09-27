@@ -138,7 +138,7 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 		return fmt.Errorf("invalid version %s: Please upgrade the Verrazzano version to v%s",
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
-	
+
 	// Sanity check, verify that the new version request is > than the current spec version
 	// - in reality, this should probably never happen unless we've introduced an error into the controller
 	currentVerString := strings.TrimSpace(currSpecVerString)
