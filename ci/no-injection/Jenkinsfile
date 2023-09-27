@@ -44,6 +44,7 @@ pipeline {
                 choices: [ "v1beta1", "v1alpha1"])
         booleanParam (description: 'Whether to create the cluster with Calico for AT testing (defaults to true)', name: 'CREATE_CLUSTER_USE_CALICO', defaultValue: true)
         booleanParam (description: 'Whether to dump k8s cluster on success (off by default can be useful to capture for comparing to failed cluster)', name: 'DUMP_K8S_CLUSTER_ON_SUCCESS', defaultValue: false)
+        booleanParam (name: 'RUN_COHERENCE_TESTS', description: 'Whether to run the Coherence Workload/Logging tests (defaults to true)',defaultValue: true)
         string (name: 'CONSOLE_REPO_BRANCH',
                 defaultValue: '',
                 description: 'The branch to check out after cloning the console repository.',
@@ -387,6 +388,9 @@ pipeline {
                             }
                         }
                         stage('coherence workload') {
+                            when {
+                                expression {params.RUN_COHERENCE_TESTS}
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/coherence-workload"
                             }
@@ -422,6 +426,9 @@ pipeline {
                             }
                         }
                         stage('logging trait Coherence workload') {
+                            when {
+                                expression {params.RUN_COHERENCE_TESTS}
+                            }
                             environment {
                                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/loggingtrait-coherenceworkload"
                             }
