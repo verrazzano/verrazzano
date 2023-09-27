@@ -23,7 +23,7 @@ modules:
   - name: verrazzano
     version: VERRAZZANO_VERSION
   - name: fluentd
-    version: 1.14.5
+    version: 1.14.5-1
   - name: verrazzano-console
     version: VERRAZZANO_VERSION
   - name: verrazzano-monitoring-operator
