@@ -259,7 +259,7 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	statusErr := r.updateStatus(ctx, vmc)
 
 	if statusErr != nil {
-		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, err)
+		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, statusErr)
 	}
 
 	if err := r.syncManagedMetrics(ctx, log, vmc); err != nil {
