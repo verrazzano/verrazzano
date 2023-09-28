@@ -63,8 +63,6 @@ helm template \
     ${APP_OPERATOR_IMAGE_ARG} \
     ${CLUSTER_OPERATOR_IMAGE_ARG} \
     ${AUTHPROXY_IMAGE_ARG} \
-    $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator \
-    --set experimentalFeatures.moduleIntegration.enabled=true
-
+    $SCRIPT_DIR/../../platform-operator/helm_config/charts/verrazzano-platform-operator
 
 exit $?
