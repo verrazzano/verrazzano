@@ -12,7 +12,7 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	custom2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -112,7 +112,7 @@ func (r Reconciler) PostRemoveFinalizer(controllerCtx controllerspi.ReconcileCon
 
 // preUninstall does all the global preUninstall
 func (r Reconciler) preUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	if res := custom2.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
+	if res := custom.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
@@ -155,7 +155,7 @@ func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := custom2.DeleteMCResources(componentCtx); err != nil {
+	if err := custom.DeleteMCResources(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -170,12 +170,12 @@ func (r Reconciler) postUninstallCleanup(log vzlog.VerrazzanoLogger, componentCt
 	}
 
 	log.Once("Global post-uninstall: deleting Istio CA Root Cert")
-	if err := custom2.DeleteIstioCARootCert(componentCtx); err != nil {
+	if err := custom.DeleteIstioCARootCert(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	log.Once("Global post-uninstall: node exporter cleanup")
-	if err := custom2.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
+	if err := custom.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -184,10 +184,10 @@ func (r Reconciler) postUninstallCleanup(log vzlog.VerrazzanoLogger, componentCt
 	// installed explicitly.
 	if !rancherProvisioned {
 		log.Once("Global post-uninstall: running Rancher cleanup")
-		if err := custom2.RunRancherPostUninstall(componentCtx); err != nil {
+		if err := custom.RunRancherPostUninstall(componentCtx); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
 	log.Once("Global post-uninstall: deleting namespaces")
-	return custom2.DeleteNamespaces(componentCtx, rancherProvisioned)
+	return custom.DeleteNamespaces(componentCtx, rancherProvisioned)
 }

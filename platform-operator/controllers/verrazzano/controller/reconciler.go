@@ -19,7 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	custom2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
@@ -169,13 +169,13 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	}
 
 	// Delete leftover MySQL backup job if we find one.
-	if err := custom2.CleanupMysqlBackupJob(log, r.Client); err != nil {
+	if err := custom.CleanupMysqlBackupJob(log, r.Client); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	// if an OCI DNS installation, make sure the secret required exists before proceeding
 	if actualCR.Spec.Components.DNS != nil && actualCR.Spec.Components.DNS.OCI != nil {
-		err := custom2.DoesOCIDNSConfigSecretExist(r.Client, actualCR)
+		err := custom.DoesOCIDNSConfigSecretExist(r.Client, actualCR)
 		if err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
@@ -183,7 +183,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 
 	// Sync the local cluster registration secret that allows the use of MC xyz resources on the
 	// admin cluster without needing a VMC.
-	if err := custom2.SyncLocalRegistrationSecret(r.Client); err != nil {
+	if err := custom.SyncLocalRegistrationSecret(r.Client); err != nil {
 		log.Errorf("Failed to sync the local registration secret: %v", err)
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -193,7 +193,7 @@ func (r Reconciler) preWork(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Ver
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	custom2.CreateRancherIngressAndCertCopies(componentCtx)
+	custom.CreateRancherIngressAndCertCopies(componentCtx)
 
 	return result.NewResult()
 }
