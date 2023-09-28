@@ -27,6 +27,8 @@ import (
 const catalogPath = "../../../manifests/catalog/catalog.yaml"
 const bomPath = "../../../verrazzano-bom.json"
 const testBOMPath = "../testdata/test_bom.json"
+const pathToRoot = "../../../../"
+
 const targetBranch = "master"
 
 var remoteBOMPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/verrazzano-bom.json", targetBranch)
@@ -274,9 +276,9 @@ func TestCompareChartsWithRemote(t *testing.T) {
 			continue
 		}
 		if module.Chart != "" {
-			args := []string{"template", module.Chart}
+			args := []string{"template", pathToRoot + module.Chart}
 			for _, file := range module.ValuesFiles {
-				args = append(args, "-f", file)
+				args = append(args, "-f", pathToRoot+file)
 			}
 			cmd := exec.Command("helm", args...)
 			localManifest, stderr, err := runner.Run(cmd)
