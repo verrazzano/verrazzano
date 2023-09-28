@@ -347,7 +347,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230914055551-b6247ad8ac8",
+              "tag": "2.3.0-20230928071551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
@@ -1004,7 +1004,7 @@
           "images": [
             {
               "image": "opensearch-operator-jenkins",
-              "tag": "20230927073809-eebef79",
+              "tag": "20230928070419-ed2a7c1",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }

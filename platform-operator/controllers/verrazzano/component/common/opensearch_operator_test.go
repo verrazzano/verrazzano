@@ -197,3 +197,28 @@ func TestIsSingleMasterNodeCluster(t *testing.T) {
 	fakeCtx = spi.NewFakeContext(nil, &v1alpha1.Verrazzano{Spec: v1alpha1.VerrazzanoSpec{Profile: "dev"}}, nil, false, profilesRelativePath)
 	assert.True(t, IsSingleMasterNodeCluster(fakeCtx))
 }
+
+func TestGetImagesOverrides(t *testing.T) {
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
+	kvs, err := GetVMOImagesOverrides()
+	assert.NoError(t, err)
+
+	// Assert that OS and OSD images are found
+	osImageFound := false
+	osdImageFound := false
+
+	for _, kv := range kvs {
+		if kv.Key == "monitoringOperator.osImage" {
+			t.Log(kv.Value)
+			osImageFound = true
+		} else if kv.Key == "monitoringOperator.osdImage" {
+			t.Log(kv.Value)
+			osdImageFound = true
+		}
+	}
+	assert.True(t, osImageFound)
+	assert.True(t, osdImageFound)
+}
