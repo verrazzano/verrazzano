@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
@@ -29,40 +28,26 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"time"
 )
 
-// Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstalls.
-// NOTE: full uninstalls are done by the finalizer.go code
+// Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstallations.
+// Reconciliation is done by creating and updating Module CRs, one for each component that is enabled in the Verrazzano effective CR.
+// If the Verrazzano component is disabled, then reconcile will uninstall that component by deleting the Module CR.  This code
+// idempotent and can be called any number of times from the controller-runtime.  If the Verrazzano CR gets modified while
+// a life-cycle operation is already in progress, then those changes will take effect as soon as possible (when Reconcile is called)
+//
+// Reconciliation has 3 phases, pre-work, work, and post-work.  The global pre-work and post-work can block the entire controller,
+// depending on what is being done.  The work phase, just creates,updates, and deletes the Module CR.  Those operations are non-blocking, other
+// than the time it takes to call the Kubernetes API server.
+//
+// NOTE: full uninstallations are done by the finalizer.go code
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
-	// Initialize metrics
-	zapLogForMetrics := zap.S().With(log.FieldController, "verrazzano")
-	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
-	if err != nil {
-		zapLogForMetrics.Error(err)
-		return result.NewResult()
-	}
-	counterMetricObject.Inc()
-	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
-	if err != nil {
-		zapLogForMetrics.Error(err)
-		return result.NewResult()
-	}
-
-	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
-	if err != nil {
-		zapLogForMetrics.Error(err)
-		return result.NewResult()
-	}
-	reconcileDurationMetricObject.TimerStart()
-	defer reconcileDurationMetricObject.TimerStop()
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(u.Object, actualCR); err != nil {
-		controllerCtx.Log.ErrorfThrottled(err.Error())
-		if metricsexporter.IsMetricError(err) {
-			errorCounterMetricObject.Inc()
-		}
 		// This is a fatal error which should never happen, don't requeue
+		vzlog.DefaultLogger().Info("Failed to convert Unstructured object to Verrazzano CR")
 		return result.NewResult()
 	}
 
@@ -75,12 +60,50 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		ControllerName: "verrazzano",
 	})
 	if err != nil {
-		if metricsexporter.IsMetricError(err) {
-			errorCounterMetricObject.Inc()
-		}
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
+		return result.NewResultRequeueDelay(1, 2, time.Minute)
 	}
 
+	// Intentionally ignore metrics errors so that it doesn't cause reconcile for fail
+	counterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileCounter)
+	if err != nil {
+		log.ErrorfThrottled(err.Error())
+	}
+	counterMetricObject.Inc()
+
+	// Intentionally ignore metrics errors so that it doesn't cause reconcile for fail
+	errorCounterMetricObject, err := metricsexporter.GetSimpleCounterMetric(metricsexporter.ReconcileError)
+	if err != nil {
+		log.ErrorfThrottled(err.Error())
+	}
+
+	// Intentionally ignore metrics errors so that it doesn't cause reconcile for fail
+	reconcileDurationMetricObject, err := metricsexporter.GetDurationMetric(metricsexporter.ReconcileDuration)
+	if err != nil {
+		log.ErrorfThrottled(err.Error())
+	}
+
+	reconcileDurationMetricObject.TimerStart()
+	defer reconcileDurationMetricObject.TimerStop()
+
+	res := r.doReconcile(log, controllerCtx, actualCR)
+	if res.IsError() && metricsexporter.IsMetricError(res.GetError()) {
+		errorCounterMetricObject.Inc()
+	}
+
+	// Requeue if reconcile is not done
+	if res.ShouldRequeue() {
+		return res
+	}
+
+	// Reconcile is complete
+	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
+	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *actualCR)
+	return result.NewResult()
+}
+
+// doReconcile reconciles the Verrazzano CR.
+func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx controllerspi.ReconcileContext, actualCR *vzv1alpha1.Verrazzano) result.Result {
 	// Do CR initialization
 	if res := r.initVzResource(log, actualCR); res.ShouldRequeue() {
 		return res
@@ -97,9 +120,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// Always use actualCR when updating status
 	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
-		if metricsexporter.IsMetricError(err) {
-			errorCounterMetricObject.Inc()
-		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	effectiveCR.Status = actualCR.Status
@@ -110,9 +130,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// where the status is updated in those cases.
 	if r.isUpgrading(actualCR) {
 		if err := r.updateStatusUpgrading(log, actualCR); err != nil {
-			if metricsexporter.IsMetricError(err) {
-				errorCounterMetricObject.Inc()
-			}
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
@@ -135,9 +152,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 
 	// All done reconciling.  Add the completed condition to the status and set the state back to Ready.
 	if err := r.updateStatusInstallUpgradeComplete(actualCR); err != nil {
-		if metricsexporter.IsMetricError(err) {
-			errorCounterMetricObject.Inc()
-		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
