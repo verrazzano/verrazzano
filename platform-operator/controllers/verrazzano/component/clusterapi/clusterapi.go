@@ -14,10 +14,13 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -123,6 +126,7 @@ func getClusterAPIDir() string {
 func preInstall(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
+		ctx.Log().Errorf("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -134,6 +138,7 @@ func preInstall(ctx spi.ComponentContext) error {
 func preUpgrade(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
+		ctx.Log().Errorf("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -170,24 +175,32 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
 	overrides, err := createOverrides(ctx)
 	if err != nil {
+		ctx.Log().Errorf("Failed to create image overrides: %v", err)
 		return err
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
 	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
+		ctx.Log().Errorf("Failed to apply template for creating clusterctl.yaml: %v", err)
 		return err
 	}
 
 	err = os.Mkdir(getClusterAPIDir(), 0755)
 	if err != nil {
 		if !os.IsExist(err) {
+			ctx.Log().Errorf("Failed to create directory %s: %v", getClusterAPIDir(), err)
 			return err
 		}
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
+	err = os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
+	if err != nil {
+		ctx.Log().Errorf("Failed to create file %s: %v", getClusterAPIDir()+"/clusterctl.yaml", err)
+	}
+
+	return err
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
@@ -352,4 +365,18 @@ func getComponentsForProviderType(c client.Client, providerName string, namespac
 	}
 
 	return objs, nil
+}
+
+// checkClusterAPIDeployment checks for the existence of a deployment for a cluster api provider
+func checkClusterAPIDeployment(ctx spi.ComponentContext, deploymentName string) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: deploymentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, deploymentName, err)
+		return false, err
+	}
+	return true, nil
 }
