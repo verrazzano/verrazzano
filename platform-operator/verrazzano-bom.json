@@ -85,7 +85,7 @@
     },
     {
       "name": "cert-manager-webhook-oci",
-      "version": "0.1.0",
+      "version": "0.1.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -103,7 +103,7 @@
     },
     {
       "name": "external-dns",
-      "version": "0.12.2",
+      "version": "0.12.2-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.17.2",
+      "version": "1.17.2-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -283,7 +283,7 @@
     },
     {
       "name": "fluentd",
-      "version": "1.14.5",
+      "version": "1.14.5-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -382,7 +382,7 @@
     },
     {
       "name": "oam-kubernetes-runtime",
-      "version": "0.3.3",
+      "version": "0.3.3-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -507,7 +507,7 @@
     },
     {
       "name": "fluent-operator",
-      "version": "2.2.0",
+      "version": "2.2.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -538,7 +538,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "1.66.1",
+      "version": "1.66.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -609,7 +609,7 @@
     },
     {
       "name": "keycloak",
-      "version": "20.0.1",
+      "version": "20.0.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -702,7 +702,7 @@
     },
     {
       "name": "prometheus-adapter",
-      "version": "0.10.0",
+      "version": "0.10.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -776,7 +776,7 @@
     },
     {
       "name": "jaeger-operator",
-      "version": "1.42.0",
+      "version": "1.42.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -871,7 +871,7 @@
     },
     {
       "name": "velero",
-      "version": "1.9.1",
+      "version": "1.9.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -899,7 +899,7 @@
     },
     {
       "name": "rancher-backup",
-      "version": "3.1.0",
+      "version": "3.1.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
