@@ -43,9 +43,3 @@ webhookAffinity:
         weight: 100
 webhooks:
   resourceValidation: false
-
-# Configuration for experimental features that are under active development
-experimentalFeatures:
-  # Experimental support for Module CRDs and controllers
-  moduleIntegration:
-    enabled: true

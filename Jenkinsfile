@@ -45,7 +45,6 @@ pipeline {
         booleanParam (description: 'Whether to wait for triggered tests or not. This defaults to false, this setting is useful for things like release automation that require everything to complete successfully', name: 'WAIT_FOR_TRIGGERED', defaultValue: false)
         booleanParam (description: 'Whether to fail build if UT coverage number decreases lower than its release-* coverage from object storage. This defaults to false, meaning Any non release-*/master branch will WARN only if its coverage is lower. This can be enabled so that jobs will FAIL if coverage drops, for example when testing a PR before merging.', name: 'FAIL_IF_COVERAGE_DECREASED', defaultValue: false)
         booleanParam (description: 'Whether to write the UT coverage number to object storage. This always occurs for release-*/master branches. Defaults to true, but it can be disabled to not always upload.', name: 'UPLOAD_UNIT_TEST_COVERAGE', defaultValue: true)
-        booleanParam (description: 'Whether to generate the operator.yaml with module integration configured', name: 'MODULE_INTEGRATION', defaultValue: true)
         booleanParam (description: 'Whether to run clusterAPI override tests', name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', defaultValue: false)
         choice (name: 'WILDCARD_DNS_DOMAIN',
                 description: 'Wildcard DNS Domain',
@@ -201,7 +200,7 @@ pipeline {
 
         stage('Generate operator.yaml') {
             environment {
-                MODULE_INTEGRATION = "${params.MODULE_INTEGRATION}"
+                MODULE_INTEGRATION = "true"
             }
             when { not { buildingTag() } }
             steps {

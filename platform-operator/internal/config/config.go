@@ -104,9 +104,6 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
-
-	// Module Itegration feature flag toggles the VPO to use the new Verrazzano controllers with modules
-	ModuleIntegration bool
 }
 
 // The singleton instance of the operator config
@@ -125,7 +122,6 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ModuleIntegration:              true,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
