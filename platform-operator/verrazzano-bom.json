@@ -158,7 +158,7 @@
               "rancherUI": "v2.7.2-13/release-2.7.2",
               "ocneDriverVersion": "v0.25.0",
               "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
-              "tag": "v2.7.6-20230927213822-680d85acc",
+              "tag": "v2.7.6-20230927213822-680d85accx",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
@@ -182,7 +182,7 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.1-20230913140901-c69add6c"
+              "tag": "v0.7.1-20230913140901-c69add6cx"
             },
             {
               "image": "rancher-fleet",
