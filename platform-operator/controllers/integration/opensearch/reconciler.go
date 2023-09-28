@@ -88,6 +88,12 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
+	if common.IsSingleMasterNodeCluster(componentCtx) {
+		err = r.AddTemplateAutoExpand(controllerCtx, effectiveCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
 	err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
@@ -148,6 +154,16 @@ func (r Reconciler) ConfigureISMPolicies(controllerCtx controllerspi.ReconcileCo
 		return err
 	}
 	err = osClient.ConfigureISM(r.log, r.Client, vz)
+	return err
+}
+
+// AddAutoExpandTemplate adds template to add auto expand setting for the indices
+func (r Reconciler) AddTemplateAutoExpand(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
+	osClient, err := r.getOSClient()
+	if err != nil {
+		return err
+	}
+	err = osClient.SetAutoExpandIndices(r.log, r.Client, vz)
 	return err
 }
 

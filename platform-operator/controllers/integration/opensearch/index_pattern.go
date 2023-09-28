@@ -54,14 +54,14 @@ func (od *OSDashboardsClient) creatIndexPatterns(log vzlog.VerrazzanoLogger, sav
 	indexPatternURL := fmt.Sprintf("%s/api/saved_objects/_bulk_create", openSearchDashboardsEndpoint)
 	req, err := http.NewRequest("POST", indexPatternURL, strings.NewReader(string(savedObjectBytes)))
 	if err != nil {
-		log.Errorf("failed to create request for index patterns using bulk API %s", err.Error())
+		log.Errorf("Failed to create request for index patterns using bulk API %s", err.Error())
 		return err
 	}
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("osd-xsrf", "true")
 	resp, err := od.DoHTTP(req)
 	if err != nil {
-		log.Errorf("failed to create index patterns %s using bulk API %s", string(savedObjectBytes), err.Error())
+		log.Errorf("Failed to create index patterns %s using bulk API %s", string(savedObjectBytes), err.Error())
 		return fmt.Errorf("failed to post index patterns in OpenSearch dashboards: %v", err)
 	}
 	defer resp.Body.Close()

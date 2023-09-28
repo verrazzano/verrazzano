@@ -36,7 +36,7 @@ const (
     "_primary_term" : 1,
     "policy" : {
     "policy_id" : "verrazzano-system",
-    "description" : "__operator-managed__",
+    "description" : "Verrazzano-managed",
     "last_updated_time" : 1647551644420,
     "schema_version" : 12,
     "error_notification" : null,

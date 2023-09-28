@@ -86,7 +86,7 @@ const (
 	// Default amount of time before a policy-managed index is rolled over
 	defaultRolloverIndexAge = "1d"
 	// Descriptor to identify policies as being managed by the integration controller
-	operatorManagedPolicy       = "__operator-managed__"
+	operatorManagedPolicy       = "Verrazzano-managed"
 	systemDefaultPolicyFileName = "vz-system-default-ISM-policy.json"
 	appDefaultPolicyFileName    = "vz-application-default-ISM-policy.json"
 	defaultPolicyPath           = "opensearch-operator"

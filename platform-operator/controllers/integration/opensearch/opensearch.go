@@ -4,8 +4,10 @@
 package opensearch
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -27,6 +29,7 @@ type (
 )
 
 const (
+	indexSettings     = `{"index_patterns": [".opendistro*"],"priority": 0,"template": {"settings": {"auto_expand_replicas": "0-1"}}}`
 	applicationJSON   = "application/json"
 	contentTypeHeader = "Content-Type"
 )
@@ -132,6 +135,33 @@ func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipk
 	return err
 }
 
+// SetAutoExpandIndices updates the default index settings to auto expand replicas (max 1) when nodes are added to the cluster
+func (o *OSClient) SetAutoExpandIndices(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
+	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
+	settingsURL := fmt.Sprintf("%s/_index_template/ism-plugin-template", openSearchEndpoint)
+	req, err := http.NewRequest("PUT", settingsURL, bytes.NewReader([]byte(indexSettings)))
+	if err != nil {
+		return err
+	}
+	req.Header.Add(contentTypeHeader, applicationJSON)
+	resp, err := o.DoHTTP(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("got status code %d when updating default settings of index, expected %d", resp.StatusCode, http.StatusOK)
+	}
+	var updatedIndexSettings map[string]bool
+	err = json.NewDecoder(resp.Body).Decode(&updatedIndexSettings)
+	if err != nil {
+		return err
+	}
+	if !updatedIndexSettings["acknowledged"] {
+		return fmt.Errorf("expected acknowldegement for index settings update but did not get. Actual response  %v", updatedIndexSettings)
+	}
+	return nil
+}
+
 // IsOpenSearchReady returns true when all OpenSearch pods are ready, false otherwise
 func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
 	statefulSets := appsv1.StatefulSetList{}
@@ -147,14 +177,13 @@ func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
 		zap.S().Warn("waiting for OpenSearch statefulset to be created.")
 		return false
 	}
-
 	if len(statefulSets.Items) > 1 {
 		zap.S().Errorf("invalid number of OpenSearch statefulset created %v.", len(statefulSets.Items))
 		return false
 	}
-
 	return statefulSets.Items[0].Status.ReadyReplicas == statefulSets.Items[0].Status.Replicas
 }
+
 func GetOpenSearchHTTPEndpoint(client clipkg.Client) (string, error) {
 	opensearchURL, err := k8sutil.GetURLForIngress(client, "opensearch", "verrazzano-system", "https")
 	if err != nil {
@@ -162,6 +191,7 @@ func GetOpenSearchHTTPEndpoint(client clipkg.Client) (string, error) {
 	}
 	return opensearchURL, nil
 }
+
 func GetOSDHTTPEndpoint(client clipkg.Client) (string, error) {
 	osdURL, err := k8sutil.GetURLForIngress(client, "opensearch-dashboards", "verrazzano-system", "https")
 	if err != nil {
