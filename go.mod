@@ -187,7 +187,7 @@ require (
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
+	k8s.io/utils v0.0.0-20230209194617-a36077c30491
 	oras.land/oras-go v1.2.0 // indirect
 	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
