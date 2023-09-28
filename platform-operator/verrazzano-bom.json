@@ -1002,8 +1002,8 @@
           "name": "opensearch-operator",
           "images": [
             {
-              "image": "opensearch-operator-jenkins",
-              "tag": "20230927073809-eebef79",
+              "image": "opensearch-operator",
+              "tag": "v2.4.0-20230925135536-bc8f9cc",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
