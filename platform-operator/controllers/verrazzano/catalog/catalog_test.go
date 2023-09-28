@@ -140,7 +140,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
 	// don't run check if not
 	// this is so that merges to the BOM on the target branch don't fail this test on other feature branches
-	if checkBOMModifiedInBranch(t) {
+	if strings.Contains(getTargetBranchDiff(t), "platform-operator/verrazzano-bom.json") {
 		config.SetDefaultBomFilePath(bomPath)
 
 		// get the local bom
@@ -202,7 +202,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	}
 }
 
-func checkBOMModifiedInBranch(t *testing.T) bool {
+func getTargetBranchDiff(t *testing.T) string {
 	arg := fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)
 	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", arg).Output()
 	assert.NoError(t, err)
@@ -212,7 +212,7 @@ func checkBOMModifiedInBranch(t *testing.T) bool {
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoError(t, err)
 	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
-	return strings.Contains(string(stdout), "platform-operator/verrazzano-bom.json")
+	return string(stdout)
 }
 
 func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.Bom) bool {
