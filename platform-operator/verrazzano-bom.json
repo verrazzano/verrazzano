@@ -202,7 +202,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.4.6",
+      "version": "v1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
