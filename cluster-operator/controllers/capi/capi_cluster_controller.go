@@ -88,34 +88,34 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
 			err = r.unregisterCluster(ctx, cluster)
 			if err != nil {
+				r.Log.Warnf("Unable to unregister cluster %s: %v.  Cluster deletion will proceed.", cluster.GetName(), err)
+			}
+		}
+
+		if err := r.removeFinalizer(cluster); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// delete the cluster id secret
+		clusterRegistrationStatusSecret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: constants.VerrazzanoCAPINamespace,
+				Name:      cluster.GetName() + clusterStatusSuffix,
+			},
+		}
+		err = r.Delete(ctx, clusterRegistrationStatusSecret)
+		if err != nil {
+			if !errors.IsNotFound(err) {
 				return ctrl.Result{}, err
 			}
-
-			if err := r.removeFinalizer(cluster); err != nil {
-				return ctrl.Result{}, err
-			}
-
-			// delete the cluster id secret
-			clusterRegistrationStatusSecret := &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: constants.VerrazzanoCAPINamespace,
-					Name:      cluster.GetName() + clusterStatusSuffix,
-				},
-			}
-			err = r.Delete(ctx, clusterRegistrationStatusSecret)
-			if err != nil {
-				if !errors.IsNotFound(err) {
-					return ctrl.Result{}, err
-				}
-			}
-
 		}
 
 		return ctrl.Result{}, nil
 	}
 
-	// add a finalizer to the CAPI cluster if it doesn't already exist
-	if err = r.ensureFinalizer(cluster); err != nil {
+	// obtain and persist the API endpoint IP address for the admin cluster
+	err = r.createAdminAccessConfigMap(ctx)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -136,19 +136,6 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	// only process CAPI cluster instances not managed by Rancher/container driver
-	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
-	if ok {
-		r.Log.Infof("CAPI cluster %v lifecycle managed by VMC processing", cluster.GetName())
-		return ctrl.Result{}, nil
-	}
-
-	// obtain and persist the API endpoint IP address for the admin cluster
-	err = r.createAdminAccessConfigMap(ctx)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
 		r.Log.Debugf("Attempting cluster regisration with Rancher")
@@ -158,8 +145,18 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
+	// add a finalizer to the CAPI cluster if it doesn't already exist
+	if err = r.ensureFinalizer(cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	return verrazzanoReconcileFn(ctx, cluster, r)
+	result, err := verrazzanoReconcileFn(ctx, cluster, r)
+	if err != nil {
+		return result, err
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
@@ -201,14 +198,16 @@ func (r *CAPIClusterReconciler) createAdminAccessConfigMap(ctx context.Context) 
 	return nil
 }
 
+// unregisterCluster removes the cluster from Rancher and/or Verrazzano.
 func (r *CAPIClusterReconciler) unregisterCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
 	var err error
 	if r.RancherEnabled {
 		err = clusterRancherUnregistrationFn(ctx, r.RancherRegistrar, cluster)
-	} else {
-		err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster)
+		if err != nil {
+			return err
+		}
 	}
-	if err != nil {
+	if err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster); err != nil {
 		return err
 	}
 

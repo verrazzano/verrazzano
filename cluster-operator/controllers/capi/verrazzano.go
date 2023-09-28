@@ -53,8 +53,7 @@ func doVerrazzanoReconcile(ctx context.Context, cluster *unstructured.Unstructur
 	// ensure Verrazzano is installed and ready in workload cluster
 	ready, err := v.isVerrazzanoReady(ctx, workloadClient)
 	if !ready {
-		v.Log.Debugf("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
-		return vzctrl.LongRequeue(), err
+		return vzctrl.LongRequeue(), fmt.Errorf("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
 	}
 
 	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{

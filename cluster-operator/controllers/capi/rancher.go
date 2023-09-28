@@ -5,7 +5,6 @@ package capi
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -54,6 +53,12 @@ func SetDefaultClusterRancherUnregistrationFunction() {
 }
 
 func (r *RancherRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+	// only process CAPI cluster instances not managed by Rancher/container driver
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		return ctrl.Result{}, nil
+	}
+
 	err := ready.DeploymentsAreAvailable(r.Client, []types.NamespacedName{{
 		Namespace: common.CattleSystem,
 		Name:      common.RancherName,
@@ -92,10 +97,15 @@ func (r *RancherRegistration) GetRancherAPIResources(cluster *unstructured.Unstr
 
 // UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
 func UnregisterRancherCluster(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) error {
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		return nil
+	}
+
 	clusterID := getClusterID(ctx, r.Client, cluster)
 	if len(clusterID) == 0 {
-		// no cluster id found
-		return fmt.Errorf("No cluster ID found for cluster %s", cluster.GetName())
+		// no cluster id found, nothing to do
+		return nil
 	}
 	rc, log, err := r.GetRancherAPIResources(cluster)
 	if err != nil {
