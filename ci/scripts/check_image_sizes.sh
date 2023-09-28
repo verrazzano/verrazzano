@@ -52,6 +52,7 @@ declare -A IMAGENAME_SIZES_FILE_GENERATED
 extract_commit_id "${WORKSPACE}/image-sizes-objectstore.txt"
 IMAGE_DATA_OS=$(process_file "${WORKSPACE}/image-sizes-objectstore.txt")
 IMAGE_DATA_GENERATED=$(process_file "${WORKSPACE}/image-sizes.txt")
+
 IMAGE_SIZE_DIFF_FOUND="false"
 NEW_IMAGE_FOUND="false"
 
