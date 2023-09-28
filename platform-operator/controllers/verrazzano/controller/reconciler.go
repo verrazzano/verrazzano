@@ -34,12 +34,12 @@ import (
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstallations.
 // Reconciliation is done by creating and updating Module CRs, one for each component that is enabled in the Verrazzano effective CR.
 // If the Verrazzano component is disabled, then reconcile will uninstall that component by deleting the Module CR.  This code
-// idempotent and can be called any number of times from the controller-runtime.  If the Verrazzano CR gets modified while
+// is idempotent and can be called any number of times from the controller-runtime.  If the Verrazzano CR gets modified while
 // a life-cycle operation is already in progress, then those changes will take effect as soon as possible (when Reconcile is called)
 //
 // Reconciliation has 3 phases, pre-work, work, and post-work.  The global pre-work and post-work can block the entire controller,
-// depending on what is being done.  The work phase, just creates,updates, and deletes the Module CR.  Those operations are non-blocking, other
-// than the time it takes to call the Kubernetes API server.
+// depending on what is being done.  The work phase, just creates,updates, and deletes the Module CR.
+// Those operations are non-blocking, other than the time it takes to call the Kubernetes API server.
 //
 // NOTE: full uninstallations are done by the finalizer.go code
 func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
