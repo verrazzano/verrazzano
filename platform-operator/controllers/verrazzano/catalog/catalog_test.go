@@ -207,7 +207,6 @@ func checkBOMModifiedInBranch(t *testing.T) bool {
 	_, err = exec.Command("git", "fetch").Output()
 	assert.NoError(t, err)
 	cmd := exec.Command("git", "diff", "--name-only", fmt.Sprintf("remotes/origin/%s...", targetBranch)) // #nosec G204
-	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoError(t, err)
 	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
@@ -245,4 +244,45 @@ func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.B
 		}
 	}
 	return false
+}
+
+func TestCompareChartsWithRemote(t *testing.T) {
+	config.SetDefaultBomFilePath(bomPath)
+
+	// get the local catalog
+	localCatalog, err := NewCatalog(catalogPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, localCatalog)
+
+	// get the remote catalog from the target branch
+	req, err := retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
+	assert.NoError(t, err)
+	client := retryablehttp.NewClient()
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	bodyRaw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, bodyRaw)
+	remoteCatalog, err := NewCatalogfromYAML(bodyRaw)
+	assert.NoError(t, err)
+	assert.NotNil(t, remoteCatalog)
+
+	for _, module := range localCatalog.Modules {
+		// if this is a new module that doesn't exist in the remote catalog, continue
+		if remoteCatalog.GetVersion(module.Name) == "" {
+			continue
+		}
+		if module.Chart != "" {
+			args := []string{"template", module.Chart}
+			for _, file := range module.ValuesFiles {
+				args = append(args, "-f", file)
+			}
+			cmd := exec.Command("helm", args...)
+			localManifest, stderr, err := runner.Run(cmd)
+			assert.NoError(t, err)
+			assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
+			assert.NotEmpty(t, localManifest)
+		}
+	}
 }
