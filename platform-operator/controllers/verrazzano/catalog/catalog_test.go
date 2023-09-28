@@ -28,7 +28,6 @@ import (
 const catalogPath = "../../../manifests/catalog/catalog.yaml"
 const bomPath = "../../../verrazzano-bom.json"
 const testBOMPath = "../testdata/test_bom.json"
-const pathToRoot = "../../../../"
 
 const targetBranch = "master"
 

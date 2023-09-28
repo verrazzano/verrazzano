@@ -151,7 +151,7 @@ func TestCompareToPrereleaseInts(t *testing.T) {
 	v010_0, _ := NewSemVersion("v0.1.0-0")
 	v011, _ := NewSemVersion("v0.1.1")
 
-	v010_aaa, _ := NewSemVersion("v0.1.0-aaa")
+	v010Aaa, _ := NewSemVersion("v0.1.0-aaa")
 
 	result, err := v010.CompareToPrereleaseInts(v010_1)
 	assert.Equal(t, -1, result)
@@ -169,7 +169,7 @@ func TestCompareToPrereleaseInts(t *testing.T) {
 	assert.Equal(t, -1, result)
 	assert.NoError(t, err)
 
-	result, err = v010.CompareToPrereleaseInts(v010_aaa)
+	_, err = v010.CompareToPrereleaseInts(v010Aaa)
 	assert.Error(t, err)
 }
 
