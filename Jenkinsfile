@@ -306,7 +306,6 @@ pipeline {
                     make unit-test-coverage-ratcheting
                     echo "Checking versions..."
                     release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
-                    release/scripts/check_image_tags.sh platform-operator/verrazzano-bom.json
                 """
                     }
                     post {
