@@ -51,7 +51,7 @@ modules:
   - name: mysql-operator
     version: 8.0.32
   - name: keycloak
-    version: 20.0.1
+    version: 20.0.1-1
   - name: prometheus-operator
     version: 0.64.1-1
   - name: prometheus-adapter

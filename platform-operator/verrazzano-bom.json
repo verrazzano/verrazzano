@@ -609,7 +609,7 @@
     },
     {
       "name": "keycloak",
-      "version": "20.0.1",
+      "version": "20.0.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
