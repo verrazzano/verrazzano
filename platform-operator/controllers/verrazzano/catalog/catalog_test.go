@@ -192,7 +192,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 				assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
 					"BOM entry for module %s on this branch has been modified from the one on %s.\n"+
 						"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
-						"Increment the prerelease version for module %s in the catalog k (platform-operator/manifests/catalog/catalog.yaml)"+
+						"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
 						"and update the corresponding BOM component version.",
 					module.Name, targetBranch, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 			}
