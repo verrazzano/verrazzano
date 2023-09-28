@@ -35,6 +35,8 @@ func (r Reconciler) GetName() string {
 // Uninstall has 3 phases, pre-work, work, and post-work.  The global pre-work and post-work can block the entire controller,
 // depending on what is being done.  The work phase deletes the Module CRs then checks if they are gone.
 // Those delete operations are non-blocking, other than the time it takes to call the Kubernetes API server.
+//
+// Once the Modules are gone and the post-work is done, then the finalizer is removed, causing the Verrazzano CR to be deleted from etcd.
 func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
