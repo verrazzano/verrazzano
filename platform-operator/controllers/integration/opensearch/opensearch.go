@@ -119,11 +119,9 @@ func (o *OSClient) DeleteDefaultISMPolicy(log vzlog.VerrazzanoLogger, client cli
 
 // SyncDefaultISMPolicy set up the default ISM Policies.
 func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
-
 	if !*vz.Spec.Components.Elasticsearch.Enabled || vz.Spec.Components.Elasticsearch.DisableDefaultPolicy {
 		return nil
 	}
-
 	if !o.IsOpenSearchReady(client) {
 		return nil
 	}
@@ -138,6 +136,9 @@ func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipk
 // SetAutoExpandIndices updates the default index settings to auto expand replicas (max 1) when nodes are added to the cluster
 func (o *OSClient) SetAutoExpandIndices(log vzlog.VerrazzanoLogger, client clipkg.Client, vz *vzv1alpha1.Verrazzano) error {
 	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
+	if err != nil {
+		return err
+	}
 	settingsURL := fmt.Sprintf("%s/_index_template/ism-plugin-template", openSearchEndpoint)
 	req, err := http.NewRequest("PUT", settingsURL, bytes.NewReader([]byte(indexSettings)))
 	if err != nil {
@@ -157,7 +158,7 @@ func (o *OSClient) SetAutoExpandIndices(log vzlog.VerrazzanoLogger, client clipk
 		return err
 	}
 	if !updatedIndexSettings["acknowledged"] {
-		return fmt.Errorf("expected acknowldegement for index settings update but did not get. Actual response  %v", updatedIndexSettings)
+		return fmt.Errorf("expected acknowledgement for index settings update but did not get. Actual response  %v", updatedIndexSettings)
 	}
 	return nil
 }
