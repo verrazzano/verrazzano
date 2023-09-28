@@ -150,18 +150,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NotNil(t, localBOM)
 
 		// get the remote bom from the target branch
-		req, err := retryablehttp.NewRequest("GET", remoteBOMPath, nil)
-		assert.NoError(t, err)
-		client := retryablehttp.NewClient()
-		resp, err := client.Do(req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		bodyRaw, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, bodyRaw)
-		remoteBOM, err := bom.NewBOMFromJSON(bodyRaw)
-		assert.NoError(t, err)
-		assert.NotNil(t, remoteBOM)
+		remoteBOM := getRemoteBOM(t)
 
 		// get the local catalog
 		localCatalog, err := NewCatalog(catalogPath)
@@ -169,17 +158,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NotNil(t, localCatalog)
 
 		// get the remote catalog from the target branch
-		req, err = retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
-		assert.NoError(t, err)
-		resp, err = client.Do(req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		bodyRaw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, bodyRaw)
-		remoteCatalog, err := NewCatalogfromYAML(bodyRaw)
-		assert.NoError(t, err)
-		assert.NotNil(t, remoteCatalog)
+		remoteCatalog := getRemoteCatalog(t)
 
 		for _, module := range localCatalog.Modules {
 			// if this is a new module that doesn't exist in the remote catalog, continue
@@ -203,6 +182,51 @@ func TestCompareBOMWithRemote(t *testing.T) {
 						"and update the corresponding BOM component version.",
 					module.Name, targetBranch, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 			}
+		}
+	}
+}
+
+func TestCompareChartsWithRemote(t *testing.T) {
+	config.SetDefaultBomFilePath(bomPath)
+
+	// get the local catalog
+	localCatalog, err := NewCatalog(catalogPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, localCatalog)
+
+	// get the remote catalog from the target branch
+	remoteCatalog := getRemoteCatalog(t)
+
+	changes := getTargetBranchDiff(t)
+
+	for _, module := range localCatalog.Modules {
+		// if this is a new module that doesn't exist in the remote catalog, continue
+		if remoteCatalog.GetVersion(module.Name) == "" ||
+			module.Version == constants.BomVerrazzanoVersion {
+			continue
+		}
+		var changedFiles []string
+		for _, change := range changes {
+			if (module.Chart != "" && strings.HasPrefix(change, module.Chart)) ||
+				(len(module.ValuesFiles) > 0 && slices.Contains(module.ValuesFiles, change)) {
+				changedFiles = append(changedFiles, change)
+			}
+		}
+		if len(changedFiles) != 0 {
+			localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
+			assert.NoError(t, err)
+			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
+			assert.NoError(t, err)
+			compare, err := localVersion.CompareToPrereleaseInts(remoteVersion)
+			assert.NoErrorf(t, err, "Unexpected error comparing prerelease fields for module %s.\n"+
+				"Version on local branch: %s, Version on target branch %s: %s",
+				module.Name, localVersion.ToString(), targetBranch, remoteVersion.ToString())
+			assert.Equalf(t, compare, 1,
+				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
+					"The catalog module version %s must be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
+					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
+					"and update the corresponding BOM component version.",
+				module.Name, targetBranch, changedFiles, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 		}
 	}
 }
@@ -253,15 +277,7 @@ func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.B
 	return false
 }
 
-func TestCompareChartsWithRemote(t *testing.T) {
-	config.SetDefaultBomFilePath(bomPath)
-
-	// get the local catalog
-	localCatalog, err := NewCatalog(catalogPath)
-	assert.NoError(t, err)
-	assert.NotNil(t, localCatalog)
-
-	// get the remote catalog from the target branch
+func getRemoteCatalog(t *testing.T) Catalog {
 	req, err := retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
 	assert.NoError(t, err)
 	client := retryablehttp.NewClient()
@@ -274,37 +290,21 @@ func TestCompareChartsWithRemote(t *testing.T) {
 	remoteCatalog, err := NewCatalogfromYAML(bodyRaw)
 	assert.NoError(t, err)
 	assert.NotNil(t, remoteCatalog)
+	return remoteCatalog
+}
 
-	changes := getTargetBranchDiff(t)
-
-	for _, module := range localCatalog.Modules {
-		// if this is a new module that doesn't exist in the remote catalog, continue
-		if remoteCatalog.GetVersion(module.Name) == "" ||
-			module.Version == constants.BomVerrazzanoVersion {
-			continue
-		}
-		var changedFiles []string
-		for _, change := range changes {
-			if (module.Chart != "" && strings.HasPrefix(change, module.Chart)) ||
-				(len(module.ValuesFiles) > 0 && slices.Contains(module.ValuesFiles, change)) {
-				changedFiles = append(changedFiles, change)
-			}
-		}
-		if len(changedFiles) != 0 {
-			localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
-			assert.NoError(t, err)
-			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
-			assert.NoError(t, err)
-			compare, err := localVersion.CompareToPrereleaseInts(remoteVersion)
-			assert.NoErrorf(t, err, "Unexpected error comparing prerelease fields for module %s.\n"+
-				"Version on local branch: %s, Version on target branch %s: %s",
-				module.Name, localVersion.ToString(), targetBranch, remoteVersion.ToString())
-			assert.Equalf(t, compare, 1,
-				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
-					"The catalog module version %s must be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
-					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
-					"and update the corresponding BOM component version.",
-				module.Name, targetBranch, changedFiles, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
-		}
-	}
+func getRemoteBOM(t *testing.T) bom.Bom {
+	req, err := retryablehttp.NewRequest("GET", remoteBOMPath, nil)
+	assert.NoError(t, err)
+	client := retryablehttp.NewClient()
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	bodyRaw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, bodyRaw)
+	remoteBOM, err := bom.NewBOMFromJSON(bodyRaw)
+	assert.NoError(t, err)
+	assert.NotNil(t, remoteBOM)
+	return remoteBOM
 }
