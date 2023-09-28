@@ -87,6 +87,25 @@ spec:
                 required:
                 - status
                 type: object
+              clusterRef:
+                description: The reference to this managed cluster's underlying ClusterAPI
+                  cluster.
+                properties:
+                  apiVersion:
+                    description: The API version of the referenced ClusterAPI cluster
+                      object.
+                    type: string
+                  kind:
+                    description: The kind of the referenced ClusterAPI cluster object.
+                    type: string
+                  name:
+                    description: The name of the referenced ClusterAPI cluster object.
+                    type: string
+                  namespace:
+                    description: The namespace of the referenced ClusterAPI cluster
+                      object.
+                    type: string
+                type: object
               conditions:
                 description: The current state of this managed cluster.
                 items:
