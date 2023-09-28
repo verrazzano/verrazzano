@@ -11184,7 +11184,7 @@ spec:
             - ALL
           privileged: false
           runAsGroup: 65532
-          runAsUser: 65532
+          runAsUser: 1000
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
