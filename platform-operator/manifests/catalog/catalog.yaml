@@ -96,7 +96,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/mysql-operator-values.yaml
   - name: keycloak
-    version: 20.0.1
+    version: 20.0.1-2
     chart: platform-operator/thirdparty/charts/keycloak
     valuesFiles:
       - platform-operator/helm_config/overrides/keycloak-values.yaml
