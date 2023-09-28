@@ -92,34 +92,43 @@ func getServiceIPUpdatedWatch() []controllerspi.WatchDescriptor {
 				return false
 			}
 
-			if !isVerrazzanoReady(cli) {
-				vzlog.DefaultLogger().Infof("Verrazzano is not in ready state")
+			if newService.Spec.Type != corev1.ServiceTypeLoadBalancer {
+				// Not a LB service
+				vzlog.DefaultLogger().Progressf("Service IP watch, not a LoadBalancer service type: %v", newService.Spec.Type)
 				return false
 			}
 
-			if !reflect.DeepEqual(oldService.Status.LoadBalancer, newService.Status.LoadBalancer.Ingress) {
+			if len(newService.Spec.ExternalIPs) > 0 {
+				// externally configured LB IPs
+				vzlog.DefaultLogger().Progressf("Service IP watch, External IPs configured: %v", newService.Spec.ExternalIPs)
+				return false
+			}
+
+			logger := vzlog.DefaultLogger()
+
+			cr, err := getVerrazzanoCR(cli)
+			if err != nil {
+				logger.ErrorfThrottled("Error obtaining Verrazzano CR")
+				return false
+			}
+
+			if cr.Status.State != vzapi.VzStateReady {
+				vzlog.DefaultLogger().Progressf("Service IP watch, Verrazzano is not in ready state: %v", cr.Status.State)
+				return false
+			}
+
+			// TODO:  lookup ingress host and see if it's wildcard
+
+			// If the LoadBalancer Ingress lists in the status have changed, reconcile
+			if !reflect.DeepEqual(oldService.Status.LoadBalancer.Ingress, newService.Status.LoadBalancer.Ingress) {
+				vzlog.DefaultLogger().Progressf("Service IP watch, LoadBalancer IPs unchanged")
 				return true
 			}
 
-			if oldService.Status.LoadBalancer.Ingress[0].IP != newService.Status.LoadBalancer.Ingress[0].IP {
-				return true
-			}
 			return false
 		},
 	})
 	return watches
-}
-
-func isVerrazzanoReady(cli client.Client) bool {
-	cr, err := getVerrazzanoCR(cli)
-	if err != nil {
-		vzlog.DefaultLogger().ErrorfThrottled("Error getting Verrazzano CR: %s", err.Error())
-		return false
-	}
-	if cr.Status.State != vzapi.VzStateReady {
-		return true
-	}
-	return false
 }
 
 func getVerrazzanoCR(cli client.Client) (*vzapi.Verrazzano, error) {
