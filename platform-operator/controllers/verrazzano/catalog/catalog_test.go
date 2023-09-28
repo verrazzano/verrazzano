@@ -4,6 +4,7 @@
 package catalog
 
 import (
+	"fmt"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
 	"os/exec"
@@ -26,8 +27,10 @@ import (
 const catalogPath = "../../../manifests/catalog/catalog.yaml"
 const bomPath = "../../../verrazzano-bom.json"
 const testBOMPath = "../testdata/test_bom.json"
-const remoteBOMPath = "https://raw.githubusercontent.com/verrazzano/verrazzano/master/platform-operator/verrazzano-bom.json"
-const remoteCatalogPath = "https://raw.githubusercontent.com/verrazzano/verrazzano/master/platform-operator/manifests/catalog/catalog.yaml"
+const targetBranch = "master"
+
+var remoteBOMPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/verrazzano-bom.json", targetBranch)
+var remoteCatalogPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/manifests/catalog/catalog.yaml", targetBranch)
 
 type bomSubcomponentOverrides struct {
 	subcomponentName string
@@ -92,7 +95,8 @@ func TestNewCatalogModuleVersions(t *testing.T) {
 			moduleVersion = module.Version
 		}
 		assert.Equalf(t, bomVersion, moduleVersion,
-			"Catalog entry for module %s out of date, BOM version: %s, catalog version %s", module.Name, bomVersion, module.Version)
+			"Catalog module version and BOM version for module %s out of date, BOM version: %s, catalog version %s",
+			module.Name, bomVersion, module.Version)
 	}
 }
 
@@ -128,12 +132,12 @@ func TestGetVersionForAllRegistryComponents(t *testing.T) {
 // TestCompareBOMWithRemote ensures that if the BOM on the feature branch has been updated,
 // the corresponding catalog module version has also been upgraded
 // IF the BOM on this branch has been updated since the common ancestor commit with the target branch
-// GIVEN the BOM and catalog from the branch and the BOM and catalog from master
+// GIVEN the BOM and catalog from the branch and the BOM and catalog from the target branch
 // ENSURE that if the BOM entry for a module has been updated, the module version has also been updated
 func TestCompareBOMWithRemote(t *testing.T) {
 	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
 	// don't run check if not
-	// this is so that merges to the BOM in master don't fail this test on other feature branches
+	// this is so that merges to the BOM on the target branch don't fail this test on other feature branches
 	if checkBOMModifiedInBranch(t) {
 		config.SetDefaultBomFilePath(bomPath)
 
@@ -142,7 +146,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, localBOM)
 
-		// get the remote bom from master
+		// get the remote bom from the target branch
 		req, err := retryablehttp.NewRequest("GET", remoteBOMPath, nil)
 		assert.NoError(t, err)
 		client := retryablehttp.NewClient()
@@ -161,7 +165,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, localCatalog)
 
-		// get the remote catalog from master
+		// get the remote catalog from the target branch
 		req, err = retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
 		assert.NoError(t, err)
 		resp, err = client.Do(req)
@@ -175,56 +179,70 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NotNil(t, remoteCatalog)
 
 		for _, module := range localCatalog.Modules {
-			if vzString.SliceContainsString(modulesNotInBom, module.Name) ||
-				module.Version == constants.BomVerrazzanoVersion {
+			// if this is a new module that doesn't exist in the remote catalog, continue
+			if remoteCatalog.GetVersion(module.Name) == "" {
 				continue
 			}
-			// check to see if this is a module without a top level BOM component
-			overridedModule, ok := subcomponentOverrides[module.Name]
-			updated := false
-			if ok {
-				for _, override := range overridedModule {
-					localBOMImage, err := localBOM.FindImage(override.subcomponentName, override.imageName)
-					assert.NoError(t, err)
-					remoteBOMImage, err := remoteBOM.FindImage(override.subcomponentName, override.imageName)
-					assert.NoError(t, err)
-					if localBOMImage != remoteBOMImage {
-						updated = true
-					}
-				}
-			} else {
-				localComponent, err := localBOM.GetComponent(module.Name)
-				assert.NoError(t, err)
-				remoteComponent, err := remoteBOM.GetComponent(module.Name)
-				assert.NoError(t, err)
-				if !reflect.DeepEqual(localComponent, remoteComponent) {
-					updated = true
-				}
-			}
-
-			// bom entry for the module has been updated, so ensure the module version has been updated as well
-			if updated {
+			// if the BOM entry for the module has been updated ensure the module version has been updated as well
+			if checkIfModuleUpdated(t, module, localBOM, remoteBOM) {
 				localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
 				assert.NoError(t, err)
 				remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
 				assert.NoError(t, err)
 				assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
-					"BOM entry for module %s has been updated so local catalog version %s should be greater than remote catalog version %s",
-					module.Name, localVersion.ToString(), remoteVersion.ToString())
+					"BOM entry for module %s on this branch has been modified from the one on %s.\n"+
+						"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
+						"Increment the prerelease version for module %s in the catalog k (platform-operator/manifests/catalog/catalog.yaml)"+
+						"and update the corresponding BOM component version.",
+					module.Name, targetBranch, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 			}
 		}
 	}
 }
 
 func checkBOMModifiedInBranch(t *testing.T) bool {
-	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", "+refs/heads/master:refs/remotes/origin/master").Output()
+	arg := fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)
+	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", arg).Output()
 	assert.NoError(t, err)
 	_, err = exec.Command("git", "fetch").Output()
 	assert.NoError(t, err)
-	cmd := exec.Command("git", "diff", "--name-only", "remotes/origin/master...") // #nosec G204
+	cmd := exec.Command("git", "diff", "--name-only", fmt.Sprintf("remotes/origin/%s...", targetBranch)) // #nosec G204
 	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoError(t, err)
 	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
 	return strings.Contains(string(stdout), "platform-operator/verrazzano-bom.json")
+}
+
+func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.Bom) bool {
+	// skip module if:
+	//	- it is a module that doesn't have a bom version
+	//	- it is a module that is versioned with the BOM
+	//	- it is a new module that doesn't exist yet in the remote catalog
+	if vzString.SliceContainsString(modulesNotInBom, module.Name) ||
+		module.Version == constants.BomVerrazzanoVersion {
+		return false
+	}
+	// check to see if this is a module without a top level BOM component
+	overridedModule, ok := subcomponentOverrides[module.Name]
+	if ok {
+		for _, override := range overridedModule {
+			localBOMImage, err := localBOM.FindImage(override.subcomponentName, override.imageName)
+			assert.NoError(t, err)
+			remoteBOMImage, err := remoteBOM.FindImage(override.subcomponentName, override.imageName)
+			assert.NoError(t, err)
+			if localBOMImage != remoteBOMImage {
+				return true
+			}
+		}
+	} else {
+		localComponent, err := localBOM.GetComponent(module.Name)
+		assert.NoError(t, err)
+		remoteComponent, err := remoteBOM.GetComponent(module.Name)
+		assert.NoError(t, err)
+		if !reflect.DeepEqual(localComponent, remoteComponent) {
+			return true
+		}
+	}
+	return false
 }

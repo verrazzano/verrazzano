@@ -89,9 +89,6 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
-		if err != nil && metricsexporter.IsMetricError(err) {
-			errorCounterMetricObject.Inc()
-		}
 		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
 		return result.NewResultShortRequeueDelayIfError(err)
 	}
@@ -144,6 +141,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 	controllerCtx.Log.Oncef("Successfully reconciled Verrazzano for generation %v", actualCR.Generation)
+	metricsexporter.AnalyzeVerrazzanoResourceMetrics(log, *actualCR)
 	return result.NewResult()
 }
 
