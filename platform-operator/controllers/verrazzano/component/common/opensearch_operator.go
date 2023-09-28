@@ -6,9 +6,11 @@ package common
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,6 +36,7 @@ const (
 	hashSecName         = "admin-credentials-secret"
 	clusterName         = "opensearch"
 	opensearchNodeLabel = "verrazzano.io/opensearch-nodepool"
+	testBomFilePath     = "../../../../verrazzano-bom.json"
 )
 
 var (
@@ -115,12 +118,44 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 		return args, ctx.Log().ErrorfNewErr("Failed to build nodepool overrides: %v", err)
 	}
 
-	// Test images
-	// TODO:- Get from BOM once BFS images are done
-	args["opensearchImage"] = "iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest"
-	args["osdImage"] = "iad.ocir.io/odsbuilddev/sandboxes/isha.girdhar/osd:latest"
+	kvs, err := GetVMOImagesOverrides()
+	if err != nil {
+		return args, err
+	}
+
+	for _, kv := range kvs {
+		if kv.Key == "monitoringOperator.osImage" {
+			args["opensearchImage"] = kv.Value
+		} else if kv.Key == "monitoringOperator.osdImage" {
+			args["osdImage"] = kv.Value
+		} else if kv.Key == "monitoringOperator.osInitImage" {
+			args["initImage"] = kv.Value
+		}
+	}
 
 	return args, nil
+}
+
+// GetVMOImagesOverrides returns the images under the verrazzano-monitoring-operator subcomponent
+func GetVMOImagesOverrides() ([]bom.KeyValue, error) {
+	var bomFile bom.Bom
+	var err error
+	if bomFile, err = bom.NewBom(config.GetDefaultBOMFilePath()); err != nil {
+		return nil, err
+	}
+
+	kvs, err := bomFile.BuildImageOverrides(VMOComponentName)
+	if err != nil {
+		return nil, err
+	}
+
+	initImage, err := bomFile.BuildImageOverrides("monitoring-init-images")
+	if err != nil {
+		return nil, err
+	}
+
+	kvs = append(kvs, initImage...)
+	return kvs, nil
 }
 
 // IsSingleMasterNodeCluster returns true if the cluster has a single master node
@@ -153,7 +188,7 @@ func IsSingleDataNodeCluster(ctx spi.ComponentContext) bool {
 	return replicas <= 1
 }
 
-// IsUpgrade returns true if we are upgrading from <=1.6.x to 2.x
+// IsUpgrade returns true if we are upgrading from <=1.6.x to > 1.6
 func IsUpgrade(ctx spi.ComponentContext) bool {
 	if vzcr.IsOpenSearchEnabled(ctx.EffectiveCR()) && ctx.EffectiveCR().Spec.Components.Elasticsearch != nil {
 		for _, node := range ctx.EffectiveCR().Spec.Components.Elasticsearch.Nodes {

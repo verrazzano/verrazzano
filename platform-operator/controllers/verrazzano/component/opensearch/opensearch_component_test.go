@@ -34,6 +34,7 @@ const (
 	podtemplatehash      = "pod-template-hash"
 	depKube              = "deployment.kubernetes.io/revision"
 	systemesingest       = "system-es-ingest"
+	testBomFilePath      = "../../../../verrazzano-bom.json"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -644,6 +645,10 @@ func TestPreInstall(t *testing.T) {
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
@@ -774,13 +779,18 @@ func TestGetCertificateNames(t *testing.T) {
 //	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

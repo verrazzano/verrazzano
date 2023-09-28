@@ -7,15 +7,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/certmanager"
+	cmconst "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-
-	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +116,7 @@ func TestGetDependencies(t *testing.T) {
 	dependencies := NewComponent().GetDependencies()
 	assert.Len(t, dependencies, 3)
 	assert.Equal(t, networkpolicies.ComponentName, dependencies[0])
-	assert.Equal(t, certmanager.ComponentName, dependencies[1])
+	assert.Equal(t, cmconst.ClusterIssuerComponentName, dependencies[1])
 	assert.Equal(t, nginx.ComponentName, dependencies[2])
 }
 

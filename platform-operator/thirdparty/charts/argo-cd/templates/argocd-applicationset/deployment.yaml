@@ -17,19 +17,20 @@ spec:
   strategy:
     {{- trim . | nindent 4 }}
   {{- end }}
-  replicas: {{ .Values.applicationSet.replicaCount }}
+  replicas: {{ .Values.applicationSet.replicas | default .Values.applicationSet.replicaCount }}
   revisionHistoryLimit: {{ .Values.global.revisionHistoryLimit }}
   selector:
     matchLabels:
       {{- include "argo-cd.selectorLabels" (dict "context" . "name" .Values.applicationSet.name) | nindent 6 }}
   template:
     metadata:
-      {{- with (mergeOverwrite (deepCopy .Values.global.podAnnotations) .Values.applicationSet.podAnnotations) }}
       annotations:
+        checksum/cmd-params: {{ include (print $.Template.BasePath "/argocd-configs/argocd-cmd-params-cm.yaml") . | sha256sum }}
+        {{- with (mergeOverwrite (deepCopy .Values.global.podAnnotations) .Values.applicationSet.podAnnotations) }}
         {{- range $key, $value := . }}
         {{ $key }}: {{ $value | quote }}
         {{- end }}
-      {{- end }}
+        {{- end }}
       labels:
         {{- include "argo-cd.labels" (dict "context" . "component" .Values.applicationSet.name "name" .Values.applicationSet.name) | nindent 8 }}
         {{- with (mergeOverwrite (deepCopy .Values.global.podLabels) .Values.applicationSet.podLabels) }}
@@ -79,7 +80,7 @@ spec:
               {{- toYaml . | nindent 12 }}
             {{- end }}
           env:
-            {{- with .Values.applicationSet.extraEnv }}
+            {{- with (concat .Values.global.env .Values.applicationSet.extraEnv) }}
               {{- toYaml . | nindent 12 }}
             {{- end }}
             - name: NAMESPACE
@@ -92,12 +93,6 @@ spec:
                   key: applicationsetcontroller.enable.leader.election
                   name: argocd-cmd-params-cm
                   optional: true
-            - name: ARGOCD_APPLICATIONSET_CONTROLLER_NAMESPACE
-              valueFrom:
-                configMapKeyRef:
-                  key: applicationsetcontroller.namespace
-                  name: argocd-cmd-params-cm
-                  optional: true
             - name: ARGOCD_APPLICATIONSET_CONTROLLER_REPO_SERVER
               valueFrom:
                 configMapKeyRef:
@@ -108,6 +103,12 @@ spec:
               valueFrom:
                 configMapKeyRef:
                   key: applicationsetcontroller.policy
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_ENABLE_POLICY_OVERRIDE
+              valueFrom:
+                configMapKeyRef:
+                  key: applicationsetcontroller.enable.policy.override
                   name: argocd-cmd-params-cm
                   optional: true
             - name: ARGOCD_APPLICATIONSET_CONTROLLER_DEBUG
@@ -146,6 +147,54 @@ spec:
                   key: applicationsetcontroller.enable.progressive.syncs
                   name: argocd-cmd-params-cm
                   optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_ENABLE_NEW_GIT_FILE_GLOBBING
+              valueFrom:
+                configMapKeyRef:
+                  key: applicationsetcontroller.enable.new.git.file.globbing
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_REPO_SERVER_PLAINTEXT
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.repo.server.plaintext
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_REPO_SERVER_STRICT_TLS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.repo.server.strict.tls
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_REPO_SERVER_TIMEOUT_SECONDS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.repo.server.timeout.seconds
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_CONCURRENT_RECONCILIATIONS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.concurrent.reconciliations.max
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_NAMESPACES
+              valueFrom:
+                configMapKeyRef:
+                  key: applicationsetcontroller.namespaces
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_SCM_ROOT_CA_PATH
+              valueFrom:
+                configMapKeyRef:
+                  key: applicationsetcontroller.scm.root.ca.path
+                  name: argocd-cmd-params-cm
+                  optional: true
+            - name: ARGOCD_APPLICATIONSET_CONTROLLER_ALLOWED_SCM_PROVIDERS
+              valueFrom:
+                configMapKeyRef:
+                  name: argocd-cmd-params-cm
+                  key: applicationsetcontroller.allowed.scm.providers
+                  optional: true
           {{- with .Values.applicationSet.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
@@ -182,8 +231,10 @@ spec:
           {{- end }}
           resources:
             {{- toYaml .Values.applicationSet.resources | nindent 12 }}
+          {{- with .Values.applicationSet.containerSecurityContext }}
           securityContext:
-            {{- toYaml .Values.applicationSet.containerSecurityContext | nindent 12 }}
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           volumeMounts:
             {{- with .Values.applicationSet.extraVolumeMounts }}
               {{- toYaml . | nindent 12 }}
@@ -196,6 +247,8 @@ spec:
               name: gpg-keys
             - mountPath: /app/config/gpg/keys
               name: gpg-keyring
+            - mountPath: /app/config/reposerver/tls
+              name: argocd-repo-server-tls
             - mountPath: /tmp
               name: tmp
         {{- with .Values.applicationSet.extraContainers }}
@@ -245,6 +298,17 @@ spec:
           emptyDir: {}
         - name: tmp
           emptyDir: {}
+        - name: argocd-repo-server-tls
+          secret:
+            secretName: argocd-repo-server-tls
+            optional: true
+            items:
+              - key: tls.crt
+                path: tls.crt
+              - key: tls.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
       {{- with .Values.applicationSet.dnsConfig }}
       dnsConfig:
         {{- toYaml . | nindent 8 }}

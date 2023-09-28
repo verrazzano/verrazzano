@@ -158,6 +158,11 @@ func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
 
 // PreUpgrade OpenSearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	return nil
+}
+
+// Upgrade OpenSearch component upgrade processing
+func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
 	args, err := common.BuildArgsForOpenSearchCR(ctx)
 	if err != nil {
@@ -171,12 +176,7 @@ func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return ctx.Log().ErrorfThrottledNewErr("Component: %s, Failed to substitute template values for OpenSearchCluster CR: %v", ComponentName, err)
 	}
-	return nil
-}
-
-// Upgrade OpenSearch component upgrade processing
-func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	return nil
+	return err
 }
 
 func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {

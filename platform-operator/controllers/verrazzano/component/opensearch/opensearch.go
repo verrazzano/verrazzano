@@ -111,7 +111,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	// If a node has the master role, it is a statefulset
 	// If the opster operator is managing OpenSearch, then all nodes are statefulset
 	if !isLegacyOS || hasRole(node.Roles, vmov1.MasterRole) {
-		return ready.StatefulSetsAreReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+		return ready.AreOpensearchStsReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ns,
 		}}, *node.Replicas, prefix)

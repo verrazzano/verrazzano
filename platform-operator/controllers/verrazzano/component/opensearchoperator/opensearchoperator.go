@@ -146,7 +146,6 @@ func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
 // buildIngressOverrides builds the overrides required for the OpenSearch and OpenSearchDashboards ingresses
 func buildIngressOverrides(ctx spi.ComponentContext, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
-
 		dnsSubDomain, err := vzconfig.BuildDNSDomain(ctx.Client(), ctx.EffectiveCR())
 		if err != nil {
 			return kvs, ctx.Log().ErrorfNewErr("Failed to build DNS subdomain: %v", err)

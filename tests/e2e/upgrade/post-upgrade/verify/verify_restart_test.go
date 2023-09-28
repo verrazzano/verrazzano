@@ -191,17 +191,17 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
-					isVersionAbove2_0_0, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+					isVersionAbove1_7_0, err := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
-					if !isVersionAbove2_0_0 && (deploymentName == "opensearch-operator-controller-manager" || deploymentName == "opensearch-dashboards") {
-						// skip opensearchOperator and new osd pod for version lower than 2.0.0
+					if !isVersionAbove1_7_0 && (deploymentName == "opensearch-operator-controller-manager" || deploymentName == "opensearch-dashboards") {
+						// skip opensearchOperator and new osd pod for version lower than 1.7.0
 						return true
 					}
-					if isVersionAbove2_0_0 && deploymentName == "vmi-system-osd" {
-						// skip legacy osd pod for version greater than 2.0.0
+					if isVersionAbove1_7_0 && deploymentName == "vmi-system-osd" {
+						// skip legacy osd pod for version greater than 1.7.0
 						return true
 					}
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
@@ -304,17 +304,17 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
-					isVersionAbove2_0_0, err := pkg.IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+					isVersionAbove1_7_0, err := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 					if err != nil {
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
-					if !isVersionAbove2_0_0 && (stsName == "opensearch-es-master") {
-						// skip operator based os sts for version lower than 2.0.0
+					if !isVersionAbove1_7_0 && (stsName == "opensearch-es-master") {
+						// skip operator based os sts for version lower than 1.7.0
 						return true
 					}
-					if isVersionAbove2_0_0 && stsName == "vmi-system-es-master" {
-						// skip legacy os sts for version greater than 2.0.0
+					if isVersionAbove1_7_0 && stsName == "vmi-system-es-master" {
+						// skip legacy os sts for version greater than 1.7.0
 						return true
 					}
 					if stsName == "mysql" && !isVersionAbove1_4_0 {

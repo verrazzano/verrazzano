@@ -16,9 +16,6 @@ manager:
     runAsNonRoot: true
     runAsUser: 65532
   image:
-    repository: public.ecr.aws/opsterio/opensearch-operator
-    ## tag default uses appVersion from Chart.yaml, to override specify tag tag: "v1.1"
-    tag: "2.4.0"
     pullPolicy: "IfNotPresent"
 
 kubeRbacProxy:

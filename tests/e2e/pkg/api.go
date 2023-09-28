@@ -173,7 +173,7 @@ func (api *APIEndpoint) GetOpensearchURL() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	ok, _ := IsVerrazzanoMinVersion("2.0.0", kubeconfigPath)
+	ok, _ := IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 
 	var ingress *networkingv1.Ingress
 	if ok {

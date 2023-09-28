@@ -282,7 +282,7 @@ func ItvalidateCertManagerResourcesCleanup() {
 			}
 			// Verify that the certificate is issued by the right cluster issuer
 			for _, issuer := range issuerList.Items {
-				if issuer.Name != currentCertIssuerName {
+				if issuer.Name == currentCertIssuerName {
 					return fmt.Errorf("issuer %s should NOT exist in the namespace %s", currentCertIssuerName, currentCertIssuerNamespace)
 				}
 			}

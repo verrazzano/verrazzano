@@ -168,8 +168,7 @@ func (h HelmComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if component is implemented using a Module
 func (h HelmComponent) ShouldUseModule() bool {
-	// Default to true if module integration is enabled
-	return config.Get().ModuleIntegration
+	return true
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
@@ -492,16 +491,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(context)
 
-	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
-	if err != nil {
-		return err
-	}
-	if !found {
-		context.Log().Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
-		return nil
-	}
-
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
 		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
@@ -512,7 +501,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 
 	// check for global image pull secret
 	var kvs []bom.KeyValue
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}

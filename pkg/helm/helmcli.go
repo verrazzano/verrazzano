@@ -258,7 +258,7 @@ func IsReleaseInstalled(releaseName string, namespace string) (found bool, err e
 		}
 		return false, err
 	}
-	return release.StatusDeployed == helmRelease.Info.Status, nil
+	return release.StatusDeployed == helmRelease.Info.Status || release.StatusFailed == helmRelease.Info.Status, nil
 }
 
 // ReleaseExists returns true if the helm Release exists in the cluster in any state

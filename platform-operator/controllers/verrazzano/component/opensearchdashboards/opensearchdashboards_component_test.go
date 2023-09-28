@@ -35,6 +35,7 @@ const (
 	masterAppName        = "system-osd"
 	DeploymentName       = "vmi-system-osd"
 	InstallArgsName      = "nodes.data.requests.storage"
+	testBomFilePath      = "../../../../verrazzano-bom.json"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -632,6 +633,10 @@ func TestPreInstall(t *testing.T) {
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
 	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
@@ -763,6 +768,10 @@ func TestGetCertificateNames(t *testing.T) {
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
 	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",

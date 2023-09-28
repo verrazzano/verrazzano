@@ -146,7 +146,7 @@ func TestInstallUpgrade(t *testing.T) {
 	err := v.Install(ctx)
 	assert.NoError(t, err)
 	err = v.Upgrade(ctx)
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	err = v.Reconcile(ctx)
 	assert.NoError(t, err)
 }
