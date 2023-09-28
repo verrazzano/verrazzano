@@ -291,6 +291,10 @@ func TestCompareChartsWithRemote(t *testing.T) {
 			assert.NoError(t, err)
 			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
 			assert.NoError(t, err)
+			greater := localVersion.IsGreatherThan(remoteVersion)
+			assert.True(t, greater)
+			compare := localVersion.CompareTo(remoteVersion)
+			assert.NotEmpty(t, compare)
 			assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
 				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
 					"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
