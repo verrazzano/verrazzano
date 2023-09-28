@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
+	"k8s.io/utils/strings/slices"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -140,7 +141,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
 	// don't run check if not
 	// this is so that merges to the BOM on the target branch don't fail this test on other feature branches
-	if strings.Contains(getTargetBranchDiff(t), "platform-operator/verrazzano-bom.json") {
+	if slices.Contains(getTargetBranchDiff(t), "platform-operator/verrazzano-bom.json") {
 		config.SetDefaultBomFilePath(bomPath)
 
 		// get the local bom
@@ -202,7 +203,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	}
 }
 
-func getTargetBranchDiff(t *testing.T) string {
+func getTargetBranchDiff(t *testing.T) []string {
 	arg := fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)
 	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", arg).Output()
 	assert.NoError(t, err)
@@ -212,7 +213,7 @@ func getTargetBranchDiff(t *testing.T) string {
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoError(t, err)
 	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
-	return string(stdout)
+	return strings.Split(string(stdout), "\n")
 }
 
 func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.Bom) bool {
@@ -270,21 +271,32 @@ func TestCompareChartsWithRemote(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, remoteCatalog)
 
+	changes := getTargetBranchDiff(t)
+	assert.NotEmpty(t, changes)
+
 	for _, module := range localCatalog.Modules {
 		// if this is a new module that doesn't exist in the remote catalog, continue
 		if remoteCatalog.GetVersion(module.Name) == "" {
 			continue
 		}
-		if module.Chart != "" {
-			args := []string{"template", pathToRoot + module.Chart}
-			for _, file := range module.ValuesFiles {
-				args = append(args, "-f", pathToRoot+file)
+		var changedFiles []string
+		for _, change := range changes {
+			if strings.HasPrefix(change, module.Chart) ||
+				slices.Contains(module.ValuesFiles, change) {
+				changedFiles = append(changedFiles, change)
 			}
-			cmd := exec.Command("helm", args...)
-			localManifest, stderr, err := runner.Run(cmd)
+		}
+		if len(changedFiles) != 0 {
+			localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
 			assert.NoError(t, err)
-			assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
-			assert.NotEmpty(t, localManifest)
+			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
+			assert.NoError(t, err)
+			assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
+				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s.\n%v\n"+
+					"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
+					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
+					"and update the corresponding BOM component version.",
+				module.Name, targetBranch, changedFiles, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 		}
 	}
 }
