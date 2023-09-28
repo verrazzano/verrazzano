@@ -206,9 +206,10 @@ func TestGetImagesOverrides(t *testing.T) {
 	kvs, err := GetVMOImagesOverrides()
 	assert.NoError(t, err)
 
-	// Assert that OS and OSD images are found
+	// Assert that OS, OSD and init images are found
 	osImageFound := false
 	osdImageFound := false
+	initImageFound := false
 
 	for _, kv := range kvs {
 		if kv.Key == "monitoringOperator.osImage" {
@@ -217,8 +218,12 @@ func TestGetImagesOverrides(t *testing.T) {
 		} else if kv.Key == "monitoringOperator.osdImage" {
 			t.Log(kv.Value)
 			osdImageFound = true
+		} else if kv.Key == "monitoringOperator.osInitImage" {
+			t.Log(kv.Value)
+			initImageFound = true
 		}
 	}
 	assert.True(t, osImageFound)
 	assert.True(t, osdImageFound)
+	assert.True(t, initImageFound)
 }

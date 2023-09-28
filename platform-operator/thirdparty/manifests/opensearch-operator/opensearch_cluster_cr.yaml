@@ -13,6 +13,8 @@ spec:
     additionalConfig:
       {{ .bootstrapConfig }}
   {{- end }}
+  initHelper:
+    image: {{ .initImage }}
   dashboards:
     additionalConfig:
       opensearch.requestHeadersAllowlist: '["securitytenant","Authorization","x-forwarded-for","X-WEBAUTH-USER","x-proxy-roles"]'

@@ -128,6 +128,8 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 			args["opensearchImage"] = kv.Value
 		} else if kv.Key == "monitoringOperator.osdImage" {
 			args["osdImage"] = kv.Value
+		} else if kv.Key == "monitoringOperator.osInitImage" {
+			args["initImage"] = kv.Value
 		}
 	}
 
@@ -147,6 +149,12 @@ func GetVMOImagesOverrides() ([]bom.KeyValue, error) {
 		return nil, err
 	}
 
+	initImage, err := bomFile.BuildImageOverrides("monitoring-init-images")
+	if err != nil {
+		return nil, err
+	}
+
+	kvs = append(kvs, initImage...)
 	return kvs, nil
 }
 

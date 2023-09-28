@@ -77,7 +77,7 @@ modules:
   - name: opensearch-operator
     version: 2.4.0
   - name: opensearch
-    version: 2.3.0
+    version: 2.3.0-2
   - name: opensearch-dashboards
     version: 2.3.0
   - name: grafana
