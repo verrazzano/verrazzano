@@ -84,6 +84,7 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	if err != nil {
 		return kvs, ctx.Log().ErrorNewErr("Failed to get the BOM file for the fluent-operator image overrides: ", err)
 	}
+	// test
 	images, err := bomFile.BuildImageOverrides("fluent-operator")
 	if err != nil {
 		return kvs, err
