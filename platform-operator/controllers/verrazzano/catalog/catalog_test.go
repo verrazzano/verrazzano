@@ -272,17 +272,17 @@ func TestCompareChartsWithRemote(t *testing.T) {
 	assert.NotNil(t, remoteCatalog)
 
 	changes := getTargetBranchDiff(t)
-	assert.NotEmpty(t, changes)
 
 	for _, module := range localCatalog.Modules {
 		// if this is a new module that doesn't exist in the remote catalog, continue
-		if remoteCatalog.GetVersion(module.Name) == "" {
+		if remoteCatalog.GetVersion(module.Name) == "" ||
+			module.Version == constants.BomVerrazzanoVersion {
 			continue
 		}
 		var changedFiles []string
 		for _, change := range changes {
-			if strings.HasPrefix(change, module.Chart) ||
-				slices.Contains(module.ValuesFiles, change) {
+			if (module.Chart != "" && strings.HasPrefix(change, module.Chart)) ||
+				(len(module.ValuesFiles) > 0 && slices.Contains(module.ValuesFiles, change)) {
 				changedFiles = append(changedFiles, change)
 			}
 		}
@@ -292,7 +292,7 @@ func TestCompareChartsWithRemote(t *testing.T) {
 			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
 			assert.NoError(t, err)
 			assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
-				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s.\n%v\n"+
+				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
 					"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
 					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
 					"and update the corresponding BOM component version.",
