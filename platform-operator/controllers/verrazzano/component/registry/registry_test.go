@@ -890,7 +890,7 @@ func (f fakeComponent) ShouldInstallBeforeUpgrade() bool {
 
 // ShouldUseModule returns true if a module should be used for lifecycle management
 func (f fakeComponent) ShouldUseModule() bool {
-	return config.Get().ModuleIntegration
+	return true
 }
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
