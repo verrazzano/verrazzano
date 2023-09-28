@@ -244,7 +244,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 
 	overrides, err := createOverrides(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Failed to create overrides for installing cluster-api providers: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to create overrides for installing cluster-api providers: %v", err)
 		return err
 	}
 
@@ -292,7 +292,7 @@ func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
 func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	overrides, err := createOverrides(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Failed to create overrides for upgrading cluster-api providers: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to create overrides for upgrading cluster-api providers: %v", err)
 		return err
 	}
 
@@ -302,7 +302,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(ctx, overridesContext)
 	if err != nil {
-		ctx.Log().Errorf("Failed to setup upgrade options for cluster-api providers: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to setup upgrade options for cluster-api providers: %v", err)
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {

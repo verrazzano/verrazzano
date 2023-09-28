@@ -126,7 +126,7 @@ func getClusterAPIDir() string {
 func preInstall(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
-		ctx.Log().Errorf("Failed to set environment variables needed by cluster-api providers: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -138,7 +138,7 @@ func preInstall(ctx spi.ComponentContext) error {
 func preUpgrade(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
-		ctx.Log().Errorf("Failed to set environment variables needed by cluster-api providers: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -175,21 +175,21 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
 	overrides, err := createOverrides(ctx)
 	if err != nil {
-		ctx.Log().Errorf("Failed to create image overrides: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to create image overrides: %v", err)
 		return err
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
 	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
-		ctx.Log().Errorf("Failed to apply template for creating clusterctl.yaml: %v", err)
+		ctx.Log().ErrorfThrottled("Failed to apply template for creating clusterctl.yaml: %v", err)
 		return err
 	}
 
 	err = os.Mkdir(getClusterAPIDir(), 0755)
 	if err != nil {
 		if !os.IsExist(err) {
-			ctx.Log().Errorf("Failed to create directory %s: %v", getClusterAPIDir(), err)
+			ctx.Log().ErrorfThrottled("Failed to create directory %s: %v", getClusterAPIDir(), err)
 			return err
 		}
 	}
@@ -197,7 +197,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Create the clusterctl.yaml used when initializing CAPI.
 	err = os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
 	if err != nil {
-		ctx.Log().Errorf("Failed to create file %s: %v", getClusterAPIDir()+"/clusterctl.yaml", err)
+		ctx.Log().ErrorfThrottled("Failed to create file %s: %v", getClusterAPIDir()+"/clusterctl.yaml", err)
 	}
 
 	return err
@@ -375,7 +375,7 @@ func checkClusterAPIDeployment(ctx spi.ComponentContext, deploymentName string) 
 		return false, nil
 	}
 	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, deploymentName, err)
+		ctx.Log().ErrorfThrottled("Failed to get %s/%s deployment: %v", ComponentNamespace, deploymentName, err)
 		return false, err
 	}
 	return true, nil
