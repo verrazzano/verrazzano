@@ -24,9 +24,9 @@ import (
 )
 
 const (
-	reldir          = "../../../manifests/profiles"
+	reldir          = "../manifests/profiles"
 	cattleSystem    = "cattle-system"
-	testBomFilePath = "../testdata/test_bom.json"
+	testBomFilePath = "../controllers/verrazzano/testdata/test_bom.json"
 )
 
 var period = time.Duration(10) * time.Second

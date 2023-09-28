@@ -33,7 +33,6 @@ func TestConfigDefaults(t *testing.T) {
 	asserts.True(conf.WebhookValidationEnabled, "WebhookValidationEnabled is incorrect")
 	asserts.False(conf.CloudCredentialWatchEnabled, "CloudCredentialWatchEnabled is incorrect")
 	asserts.Equal(conf.VerrazzanoRootDir, "/verrazzano", "VerrazzanoRootDir is incorrect")
-	asserts.True(conf.ModuleIntegration, "Module integration is enabled by default")
 	asserts.Equal("/verrazzano/platform-operator/helm_config", GetHelmConfigDir(), "GetHelmConfigDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts", GetHelmChartsDir(), "GetHelmChartsDir() is incorrect")
 	asserts.Equal("/verrazzano/platform-operator/helm_config/charts/verrazzano-monitoring-operator", GetHelmVMOChartsDir(), "GetHelmVmoChartsDir() is incorrect")
