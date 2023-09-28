@@ -18,7 +18,7 @@ prometheus:
       - action: replace
         sourceLabels:
         - job
-        targetLabel: jobfdsaf
+        targetLabel: job
         replacement: node-exporter
 
 securityContext:
