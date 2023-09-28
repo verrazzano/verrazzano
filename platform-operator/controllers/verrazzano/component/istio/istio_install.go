@@ -198,10 +198,8 @@ func (i istioComponent) PreInstall(compContext spi.ComponentContext) error {
 }
 
 func (i istioComponent) PostInstall(compContext spi.ComponentContext) error {
-	if config.Get().ModuleIntegration {
-		// Make sure namespaces get updated with Istio Enabled
-		common.CreateAndLabelNamespaces(compContext)
-	}
+	// Make sure namespaces get updated with Istio Enabled
+	common.CreateAndLabelNamespaces(compContext)
 
 	// During install there is a window where the Istio envoy sidecar container is not included in a pod.
 	// Restart system components that are missing the sidecar.
