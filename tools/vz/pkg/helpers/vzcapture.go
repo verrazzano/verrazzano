@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
+	v1 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -369,6 +370,70 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 		}
 	}
 	return nil
+}
+
+// captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
+func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	certificateList := v1.CertificateList{}
+	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
+	}
+	collectHostNames(certificateList)
+	if len(certificateList.Items) > 0 {
+		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+		captureCaCrtExpirationInfo(client, certificateList, namespace, captureDir, vzHelper)
+	}
+	return nil
+}
+
+// captureCaCrtExpirationInfo is a helper function of the captureCertificates function that loops through the certificates in a particular namespace and outputs a file containing information about the ca.crt of each certificate
+func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
+	caCrtList := []CaCrtInfo{}
+	for _, cert := range certificateList.Items {
+		caCrtInfoForCert, isFound, err := isCaExpired(client, cert, namespace)
+
+		if err != nil {
+			return err
+		}
+		if isFound {
+			caCrtList = append(caCrtList, *caCrtInfoForCert)
+		}
+
+	}
+	if len(caCrtList) > 0 {
+		LogMessage(fmt.Sprintf("ca.crts in namespace: %s ...\n", namespace))
+		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func collectHostNames(certificateList v1.CertificateList) {
+	for _, cert := range certificateList.Items {
+		for _, hostname := range cert.Spec.DNSNames {
+			putIntoHostNamesIfNotPresent(hostname)
+		}
+	}
+	for _, cert := range certificateList.Items {
+		for _, ipAddress := range cert.Spec.IPAddresses {
+			putIntoHostNamesIfNotPresent(ipAddress)
+		}
+	}
+}
+
+func putIntoHostNamesIfNotPresent(inputKey string) {
+	knownHostNamesMutex.Lock()
+	keyInMap := KnownHostNames[inputKey]
+	if !keyInMap {
+		KnownHostNames[inputKey] = true
+	}
+	knownHostNamesMutex.Unlock()
 }
 
 // CapturePodLog captures the log from the pod in the captureDir

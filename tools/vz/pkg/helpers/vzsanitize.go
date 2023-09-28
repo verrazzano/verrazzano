@@ -64,6 +64,12 @@ func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
 	}
+	knownHostNamesMutex.Lock()
+	for knownHost := range KnownHostNames {
+		wholeOccurrenceHostPattern := "\"" + knownHost + "\""
+		l = regexp.MustCompile(wholeOccurrenceHostPattern).ReplaceAllString(l, "\""+getSha256Hash(knownHost)+"\"")
+	}
+	knownHostNamesMutex.Unlock()
 	for _, eachRegex := range regexToReplacementList {
 		redactedValuesMutex.Lock()
 		l = regexp.MustCompile(eachRegex.regex).ReplaceAllStringFunc(l, eachRegex.compilePlan(redactedValuesOverride))
