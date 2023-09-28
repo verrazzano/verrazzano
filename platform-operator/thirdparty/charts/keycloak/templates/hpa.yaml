@@ -10,7 +10,6 @@ metadata:
     {{- printf "%s: %s" $key (tpl $value $ | quote) | nindent 4 }}
     {{- end }}
 spec:
-  fdsaf: fdsaf
   scaleTargetRef:
     apiVersion: apps/v1
     kind: StatefulSet

@@ -139,6 +139,40 @@ func TestCompareTo(t *testing.T) {
 	assert.Equal(t, 0, V100.CompareTo(v100))
 }
 
+// TestCompareToPrereleaseInts Tests comparisons between SemVersion instances
+// GIVEN a call to CompareTo with different SemVersion objects
+// WHEN v1 > v2, v1 < v2, and v1 == v2
+// THEN -1 is returned when v1 > v2, 1 when > v1 < v2, and 0 when v1 == v2
+func TestCompareToPrereleaseInts(t *testing.T) {
+
+	v010, _ := NewSemVersion("v0.1.0")
+	v010_1, _ := NewSemVersion("0.1.0-1")
+	v010_2, _ := NewSemVersion("v0.1.0-2")
+	v010_0, _ := NewSemVersion("v0.1.0-0")
+	v011, _ := NewSemVersion("v0.1.1")
+
+	v010_aaa, _ := NewSemVersion("v0.1.0-aaa")
+
+	result, err := v010.CompareToPrereleaseInts(v010_1)
+	assert.Equal(t, -1, result)
+	assert.NoError(t, err)
+
+	result, err = v010.CompareToPrereleaseInts(v010_0)
+	assert.Equal(t, 0, result)
+	assert.NoError(t, err)
+
+	result, err = v010_2.CompareToPrereleaseInts(v010_1)
+	assert.Equal(t, 1, result)
+	assert.NoError(t, err)
+
+	result, err = v010_1.CompareToPrereleaseInts(v011)
+	assert.Equal(t, -1, result)
+	assert.NoError(t, err)
+
+	result, err = v010.CompareToPrereleaseInts(v010_aaa)
+	assert.Error(t, err)
+}
+
 // TestIsEqualTo Tests IsEqualTo for various combinations of SemVersion objects
 // GIVEN a call to IsEqualTo with different SemVersion objects
 // WHEN v > arg, v < arg, and v == arg

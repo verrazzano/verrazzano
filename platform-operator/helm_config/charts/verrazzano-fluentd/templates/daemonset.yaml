@@ -19,7 +19,6 @@ spec:
         verrazzano.io/cmChecksum: {{ include (print $.Template.BasePath "/fluentd-config-configmap.yaml") . | sha256sum }}
       labels:
         app: fluentd
-        ffd: fdf
     spec:
       initContainers:
         - name: cacert-init
