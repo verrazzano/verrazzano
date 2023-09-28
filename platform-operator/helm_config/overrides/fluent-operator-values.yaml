@@ -29,6 +29,7 @@ fluentbit:
     - mountPath: /fluent-bit/etc/secret
       name: secret-volume
       readOnly: true
+      fdsaf
     {{- end }}
   namespaceFluentBitCfgSelector:
     matchLabels:

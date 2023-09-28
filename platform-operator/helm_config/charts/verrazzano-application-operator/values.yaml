@@ -17,5 +17,7 @@ requestMemory: 72Mi
 webhook:
   replicas: 1
 
+fdf: true
+
 # NOTE: The image you're looking for isn't here. The fluentd-kubernetes-daemonset image now comes from
 # the bill of materials file (verrazzano-bom.json).
