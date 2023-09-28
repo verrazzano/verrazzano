@@ -5,7 +5,7 @@
 image:
   repository: jaegertracing/jaeger-operator
   tag: 1.42.0
-  pullPolicy: IfNotPresent
+  pullPolicy: IfNotPresentdfas
   imagePullSecrets: []
 
 certs:
