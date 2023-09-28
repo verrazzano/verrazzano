@@ -5,6 +5,7 @@ package metricsexporter
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	spi "github.com/verrazzano/verrazzano/pkg/controller/errors"
 )
 
 type MetricsExporter struct {
@@ -118,4 +119,10 @@ func (c *ComponentHealth) SetComponentHealth(JSONname string, availability bool,
 	}
 	metric.Set(float64(setting))
 	return metric, nil
+}
+func IsMetricError(err error) bool {
+	if spi.IsUpdateConflict(err) || spi.IsRetryableError(err) {
+		return false
+	}
+	return true
 }

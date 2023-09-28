@@ -4,12 +4,18 @@
 package clusterapi
 
 import (
+	v1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
 type FakeClusterAPIClient struct{}
+
+type FakeComponentCLient struct{}
 
 func (f *FakeClusterAPIClient) GetProvidersConfig() ([]client.Provider, error) {
 	return []client.Provider{}, nil
@@ -20,7 +26,7 @@ func (f *FakeClusterAPIClient) GenerateProvider(provider string, providerType v1
 }
 
 func (f *FakeClusterAPIClient) GetProviderComponents(provider string, providerType v1alpha3.ProviderType, options client.ComponentsOptions) (client.Components, error) {
-	return nil, nil
+	return FakeComponentCLient{}, nil
 }
 
 func (f *FakeClusterAPIClient) Init(options client.InitOptions) ([]client.Components, error) {
@@ -93,4 +99,65 @@ func (f *FakeClusterAPIClient) RolloutUndo(options client.RolloutOptions) error 
 
 func (f *FakeClusterAPIClient) TopologyPlan(options client.TopologyPlanOptions) (*client.TopologyPlanOutput, error) {
 	return nil, nil
+}
+
+func (c FakeComponentCLient) Version() string {
+	return ""
+}
+
+func (c FakeComponentCLient) Variables() []string {
+	return nil
+}
+
+func (c FakeComponentCLient) Images() []string {
+	return nil
+}
+
+func (c FakeComponentCLient) TargetNamespace() string {
+	return ""
+}
+
+func (c FakeComponentCLient) InventoryObject() v1alpha3.Provider {
+	return v1alpha3.Provider{}
+}
+
+func (c FakeComponentCLient) Objs() []unstructured.Unstructured {
+	cm := unstructured.Unstructured{}
+	cm.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("ConfigMap"))
+	cm.SetName("test-cm")
+	cm.SetNamespace(ComponentNamespace)
+
+	role := unstructured.Unstructured{}
+	role.SetGroupVersionKind(rbac.SchemeGroupVersion.WithKind("Role"))
+	role.SetName("test-role")
+	role.SetNamespace(ComponentNamespace)
+	return []unstructured.Unstructured{cm, role}
+}
+
+func (c FakeComponentCLient) Yaml() ([]byte, error) {
+	return nil, nil
+}
+
+func (c FakeComponentCLient) Name() string {
+	return ""
+}
+
+func (c FakeComponentCLient) Type() v1alpha3.ProviderType {
+	return ""
+}
+
+func (c FakeComponentCLient) URL() string {
+	return ""
+}
+
+func (c FakeComponentCLient) SameAs(other config.Provider) bool {
+	return false
+}
+
+func (c FakeComponentCLient) ManifestLabel() string {
+	return ""
+}
+
+func (c FakeComponentCLient) Less(other config.Provider) bool {
+	return false
 }

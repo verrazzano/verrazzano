@@ -15,24 +15,28 @@ import (
 	"github.com/verrazzano/verrazzano/application-operator/controllers/clusters"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	v13 "k8s.io/api/networking/v1"
 	v12 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Syncer contains context for synchronize operations
 type Syncer struct {
-	AdminClient        client.Client
-	LocalClient        client.Client
-	Log                *zap.SugaredLogger
-	ManagedClusterName string
-	Context            context.Context
+	AdminClient          client.Client
+	LocalClient          client.Client
+	LocalDiscoveryClient discovery.DiscoveryInterface
+	Log                  *zap.SugaredLogger
+	ManagedClusterName   string
+	Context              context.Context
 
 	// List of namespaces to watch for multi-cluster objects.
 	ProjectNamespaces   []string
@@ -48,6 +52,21 @@ const mcAppConfigsLabel = "verrazzano.io/mc-app-configs"
 var (
 	retryDelay = 3 * time.Second
 )
+
+// Needed for unit testing
+var getDiscoveryClientFunc = defaultGetDiscoveryClientFunc
+
+func defaultGetDiscoveryClientFunc() (discovery.DiscoveryInterface, error) {
+	config, err := k8sutil.GetConfigFromController()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Kubeconfig for this workload cluster: %v", err)
+	}
+	return discovery.NewDiscoveryClientForConfig(config)
+}
+
+func setDiscoveryClientFunc(f func() (discovery.DiscoveryInterface, error)) {
+	getDiscoveryClientFunc = f
+}
 
 // Check if the placement is for this cluster
 func (s *Syncer) isThisCluster(placement clustersv1alpha1.Placement) bool {
@@ -177,8 +196,50 @@ func (s *Syncer) updateVMCStatus() error {
 	// If Thanos is disabled, we want to empty the host so Prometheus federation returns
 	vmc.Status.ThanosQueryStore = thanosAPIHost
 
+	// Update the Kubernetes version on the VMC
+	k8sVersion, err := s.getWorkloadK8sVersion()
+	if err != nil {
+		return fmt.Errorf("Failed to get Kubernetes information to update VMC %s: %v", vmcName, err)
+	}
+	vmc.Status.Kubernetes.Version = k8sVersion
+
+	// Update the Verrazzano version on the VMC
+	vzVersion, err := s.getWorkloadVZVersion()
+	if err != nil {
+		return fmt.Errorf("Failed to get Verrazzano information to update VMC %s: %v", vmcName, err)
+	}
+	vmc.Status.Verrazzano.Version = vzVersion
+
 	// update status of VMC
 	return s.AdminClient.Status().Update(s.Context, &vmc)
+}
+
+// getWorkloadK8sVersion retrieves the current Kubernetes version on this managed cluster
+func (s *Syncer) getWorkloadK8sVersion() (string, error) {
+	k8sVersion, err := s.LocalDiscoveryClient.ServerVersion()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Kubernetes version on this workload cluster: %v", err)
+	}
+	return k8sVersion.String(), nil
+}
+
+// getWorkloadVZVersion retrieves the current VZ version on this managed cluster,
+// as reported by the VZ CR's status
+func (s *Syncer) getWorkloadVZVersion() (string, error) {
+	vzList := &v1beta1.VerrazzanoList{}
+	if err := s.LocalClient.List(s.Context, vzList, &client.ListOptions{}); err != nil {
+		return "", fmt.Errorf("error listing Verrazzanos: %v", err)
+	}
+	if len(vzList.Items) > 1 {
+		return "", fmt.Errorf("cannot have more than 1 Verrazzano installation, found %d", len(vzList.Items))
+	}
+	if len(vzList.Items) == 0 {
+		// If there is no Verrazzano installed on this workload cluster, leave version empty but do not error
+		return "", nil
+	}
+	// Verrazzano is on this cluster, so get the version
+	vzState := string(vzList.Items[0].Status.Version)
+	return vzState, nil
 }
 
 // SyncMultiClusterResources - sync multi-cluster objects

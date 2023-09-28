@@ -87,6 +87,11 @@ func TestGetModuleSpec(t *testing.T) {
 			}
 			`,
 		},
+		{
+			name:        "EmptyConfig",
+			effectiveCR: &vzapi.Verrazzano{},
+			wantErr:     assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -95,7 +100,11 @@ func TestGetModuleSpec(t *testing.T) {
 			if !tt.wantErr(t, err, fmt.Sprintf("GetModuleConfigAsHelmValues(%v)", tt.effectiveCR)) {
 				return
 			}
-			assert.JSONEq(t, tt.want, string(got.Raw))
+			if len(tt.want) == 0 {
+				assert.Nil(t, got)
+			} else {
+				assert.JSONEq(t, tt.want, string(got.Raw))
+			}
 		})
 	}
 }

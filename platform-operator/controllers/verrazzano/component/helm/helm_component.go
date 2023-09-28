@@ -179,7 +179,6 @@ func (h HelmComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 
 // GetModuleConfigAsHelmValues returns an unstructured JSON snippet representing the portion of the Verrazzano CR that corresponds to the module
 func (h HelmComponent) GetModuleConfigAsHelmValues(effectiveCR *v1alpha1.Verrazzano) (*apiextensionsv1.JSON, error) {
-
 	return nil, nil
 }
 
@@ -493,16 +492,6 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 	// Resolve the namespace
 	resolvedNamespace := h.resolveNamespace(context)
 
-	// Check if the component is installed before trying to upgrade
-	found, err := helm.IsReleaseInstalled(h.ReleaseName, resolvedNamespace)
-	if err != nil {
-		return err
-	}
-	if !found {
-		context.Log().Infof("Skipping upgrade of component %s since it is not installed", h.ReleaseName)
-		return nil
-	}
-
 	if h.PreUpgradeFunc != nil && UpgradePrehooksEnabled {
 		context.Log().Infof("Running Pre-Upgrade for %s", h.ReleaseName)
 		err := h.PreUpgradeFunc(context.Log(), context.Client(), h.ReleaseName, resolvedNamespace, h.ChartDir)
@@ -513,7 +502,7 @@ func (h HelmComponent) Upgrade(context spi.ComponentContext) error {
 
 	// check for global image pull secret
 	var kvs []bom.KeyValue
-	kvs, err = secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
+	kvs, err := secret.AddGlobalImagePullSecretHelmOverride(context.Log(), context.Client(), resolvedNamespace, kvs, h.ImagePullSecretKeyname)
 	if err != nil {
 		return err
 	}

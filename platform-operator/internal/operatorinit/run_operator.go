@@ -14,16 +14,16 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/components"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/configmaps/overrides"
+	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/factory"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/namespacewatch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/obsolete/reconcile"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/secrets"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
+	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/healthcheck"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/mysqlcheck"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/namespacewatch"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	modulehandlerfactory "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/module/component-handler/factory"
-	verrazzancontroller "github.com/verrazzano/verrazzano/platform-operator/experimental/controllers/verrazzano"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/metricsexporter"
 	"sync"
@@ -266,9 +266,6 @@ func initModuleControllers(log *zap.SugaredLogger, mgr controllerruntime.Manager
 	module.IgnoreHelmInfo()
 
 	for _, comp := range registry.GetComponents() {
-		if !comp.ShouldUseModule() {
-			continue
-		}
 		// Create and initialize the module controller.  Note that the implementation of the module controller
 		// is in the module-operator package (in the module-operator repo).  This is the exact
 		// same controller that is used by the module-operator used by OCNE.  The only difference
