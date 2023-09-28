@@ -134,8 +134,8 @@ func TestGetVersionForAllRegistryComponents(t *testing.T) {
 
 // TestCompareBOMWithRemote ensures that if the BOM on the feature branch has been updated,
 // the corresponding catalog module version has also been upgraded
-// IF the BOM on this branch has been updated since the common ancestor commit with the target branch
 // GIVEN the BOM and catalog from the branch and the BOM and catalog from the target branch
+// IF the BOM on this branch has been updated since the common ancestor commit with the target branch
 // ENSURE that if the BOM entry for a module has been updated, the module version has also been updated
 func TestCompareBOMWithRemote(t *testing.T) {
 	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
@@ -178,7 +178,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 				assert.Equalf(t, compare, 1,
 					"BOM entry for module %s on this branch has been modified from the one on %s.\n"+
 						"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
-						"Increment the prerelease version for module %s in the catalog k (platform-operator/manifests/catalog/catalog.yaml)"+
+						"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
 						"and update the corresponding BOM component version.",
 					module.Name, targetBranch, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 			}
@@ -186,6 +186,11 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	}
 }
 
+// TestCompareChartsWithRemote ensures that if any of the chart or values overrides files on the feature branch
+// has been updated, the corresponding catalog module version has also been upgraded
+// GIVEN a list of all the files updated on a target branch
+// IF any of the chart or values overrides files have been updated since the common ancestor commit with the target branch
+// ENSURE that the corresponding module version is also greater than the version on the target branch
 func TestCompareChartsWithRemote(t *testing.T) {
 	config.SetDefaultBomFilePath(bomPath)
 
@@ -197,6 +202,7 @@ func TestCompareChartsWithRemote(t *testing.T) {
 	// get the remote catalog from the target branch
 	remoteCatalog := getRemoteCatalog(t)
 
+	// generate the file diff against the target branch
 	changes := getTargetBranchDiff(t)
 
 	for _, module := range localCatalog.Modules {
