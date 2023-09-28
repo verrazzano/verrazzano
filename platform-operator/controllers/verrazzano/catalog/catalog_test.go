@@ -288,16 +288,18 @@ func TestCompareChartsWithRemote(t *testing.T) {
 		}
 		if len(changedFiles) != 0 {
 			localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
+			tostring := localVersion.ToString()
+			assert.NotNil(t, tostring)
 			assert.NoError(t, err)
 			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
 			assert.NoError(t, err)
-			greater := localVersion.IsGreatherThan(remoteVersion)
-			assert.True(t, greater)
-			compare := localVersion.CompareTo(remoteVersion)
-			assert.NotEmpty(t, compare)
-			assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
+			compare, err := localVersion.CompareToPrereleaseInts(remoteVersion)
+			assert.NoErrorf(t, err, "Unexpected error comparing prerelease fields for module %s.\n"+
+				"Version on local branch: %s, Version on target branch %s: %s",
+				module.Name, localVersion.ToString(), targetBranch, remoteVersion.ToString())
+			assert.Equalf(t, compare, 1,
 				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
-					"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
+					"The catalog module version %s must be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
 					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
 					"and update the corresponding BOM component version.",
 				module.Name, targetBranch, changedFiles, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
