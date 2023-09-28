@@ -27,7 +27,7 @@ func (r Reconciler) GetName() string {
 }
 
 // PreRemoveFinalizer is called when the resource is being deleted, before the finalizer is removed.
-// This code will do a full Verrrazzano uninstall by deleting all the Module CRs. This code
+// This code will do a full Verrazzano uninstall by deleting all the Module CRs. This code
 // idempotent and can be called any number of times from the controller-runtime.  It doesn't matter if the Verrazzano CR
 // gets modified while uninstall already in progress, because the Reconcile method will not be called again for that particular
 // Verrazzano CR once the CR deletion timestamp is set.
