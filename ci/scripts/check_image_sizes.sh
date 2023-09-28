@@ -39,6 +39,7 @@ oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OC
 if [ $? -ne  0 ] ; then
  echo "${CLEAN_BRANCH_NAME}/image-list not found"
  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt
+ touch ${WORKSPACE}/commitID.txt
  if [ $? -eq 0 ] ; then
      exit
  fi
