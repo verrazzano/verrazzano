@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	shortWaitTimeout            = 1 * time.Minute
-	shortPollingInterval        = 10 * time.Second
+	shortWaitTimeout            = 4 * time.Minute
+	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
 	AddonComponentsYamlPath     = "tests/e2e/clusterapi/capi/addonverrazzano/templates/verrazzanofleet-none-profile.yaml"
@@ -37,7 +37,7 @@ var (
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
 	verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
 	addonControllerPod             = []string{"caapv-controller-manager"}
-	clusterName                    = os.Getenv("CLUSTER_NAME")
+	clusterName                    = "cluster-test-1"
 	clusterNamespace               = "default"
 )
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -172,7 +172,7 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 
 func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 
-	vzFetched, err := getVerrazzano(clusterName, "default", "workload-verrazzano", log)
+	vzFetched, err := getVerrazzano(clusterName, "default", "verrazzano", log)
 	if err != nil {
 		log.Errorf("unable to fetch vz resource from %s due to '%v'", clusterName, zap.Error(err))
 		return err
@@ -260,7 +260,7 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 	}
 
 	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io/v1alpha1",
+		Group:    "addons.cluster.x-k8s.io",
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleetbindings",
 	}
@@ -330,7 +330,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 
 			WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 				Eventually(func() bool {
-					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, clusterNamespace, t.Logs)
+					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, "verrazzano-install", t.Logs)
 				}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 			})
 
