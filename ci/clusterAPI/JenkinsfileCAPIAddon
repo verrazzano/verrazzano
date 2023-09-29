@@ -273,7 +273,7 @@ pipeline {
                 }
                 stage('Deploy Quick Create Clusters in parallel') {
                     parallel {
-                        stage('Deploy Quick Create OCNEOCI Cluster') {
+                    /*    stage('Deploy Quick Create OCNEOCI Cluster') {
                             when {
                                 expression { params.DEPLOY_OCNEOCI_CLUSTER == true }
                             }
@@ -291,7 +291,7 @@ pipeline {
                                     }
                                 }
                             }
-                        }
+                        } */
                         stage('Deploy Quick Create OKE Cluster') {
                             when {
                                 expression { params.DEPLOY_OKE_CLUSTER == true }
