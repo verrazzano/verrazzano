@@ -370,7 +370,7 @@ def runQuickCreateSuite(clusterType) {
             """
         }
     }
-
+}
 
 def runAddonTestSuite() {
     catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
