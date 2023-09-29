@@ -35,7 +35,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
   - name: cluster-api
-    version: 1.4.6
+    version: 1.5.0
   - name: verrazzano
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano
@@ -154,8 +154,10 @@ modules:
   - name: verrazzano-network-policies
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-network-policies
+  - name: opensearch-operator
+    version: 2.4.0
   - name: opensearch
-    version: 2.3.0-1
+    version: 2.3.0-2
   - name: opensearch-dashboards
     version: 2.3.0-1
   - name: grafana

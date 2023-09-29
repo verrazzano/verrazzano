@@ -89,6 +89,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("verrazzano-mc", "verrazzano-mc", true),
 			t.Entry("cert-manager", "cert-manager", true),
 			t.Entry(ingressNGINXNamespace, ingressNGINXNamespace, true),
+			t.Entry("verrazzano-logging", "verrazzano-logging", !isManagedClusterProfile),
 		)
 
 		kubeconfigPath, _ := k8sutil.GetKubeConfigLocation()
@@ -161,19 +162,36 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			)
 		}
 
+		ok, _ := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
 		t.DescribeTable("VMI components are deployed,",
 			func(name string, expected bool) {
 				Eventually(func() (bool, error) {
 					return vzComponentPresent(name, "verrazzano-system")
 				}, waitTimeout, pollingInterval).Should(Equal(expected))
 			},
-			t.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile),
-			t.Entry("includes es-data", "vmi-system-es-data", isProdProfile),
-			t.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile),
-			t.Entry("includes es-kibana", "vmi-system-osd", !isManagedClusterProfile),
+			t.Entry("includes es-ingest", "vmi-system-es-ingest", isProdProfile && !ok),
+			t.Entry("includes es-data", "vmi-system-es-data", isProdProfile && !ok),
+			t.Entry("includes es-master", "vmi-system-es-master", !isManagedClusterProfile && !ok),
+			t.Entry("includes es-kibana", "vmi-system-osd", !isManagedClusterProfile && !ok),
 			t.Entry("includes es-grafana", "vmi-system-grafana", !isManagedClusterProfile),
 			t.Entry("includes verrazzano-console", "verrazzano-console", !isManagedClusterProfile),
 		)
+
+		// If version is >= 1.7.0, check for opensearch in verrazzano-logging namespace
+		if ok {
+			t.DescribeTable("Logging components are deployed,",
+				func(name string, expected bool) {
+					Eventually(func() (bool, error) {
+						return vzComponentPresent(name, "verrazzano-logging")
+					}, waitTimeout, pollingInterval).Should(Equal(expected))
+				},
+				t.Entry("includes opensearch-operator", "opensearch-operator-controller-manager", !isManagedClusterProfile),
+				t.Entry("includes es-master", "opensearch-es-master", !isManagedClusterProfile),
+				t.Entry("includes es-data", "opensearch-es-data", isProdProfile),
+				t.Entry("includes es-ingest", "opensearch-es-ingest", isProdProfile),
+				t.Entry("includes opensearch-dashboards", "opensearch-dashboards", !isManagedClusterProfile),
+			)
+		}
 
 		t.DescribeTable("Prometheus components are deployed,",
 			func(name string) {

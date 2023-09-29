@@ -167,6 +167,17 @@ func convertComponentsFromV1Beta1(in v1beta1.ComponentSpec) ComponentSpec {
 		ClusterAPI:                convertClusterAPIFromV1Beta1(in.ClusterAPI),
 		ClusterAgent:              convertClusterAgentFromV1Beta1(in.ClusterAgent),
 		Dex:                       convertDexFromV1Beta1(in.Dex),
+		OpenSearchOperator:        convertOpenSearchOperatorFromV1Beta1(in.OpenSearchOperator),
+	}
+}
+
+func convertOpenSearchOperatorFromV1Beta1(in *v1beta1.OpenSearchOperatorComponent) *OpenSearchOperatorComponent {
+	if in == nil {
+		return nil
+	}
+	return &OpenSearchOperatorComponent{
+		Enabled:          in.Enabled,
+		InstallOverrides: convertInstallOverridesFromV1Beta1(in.InstallOverrides),
 	}
 }
 
