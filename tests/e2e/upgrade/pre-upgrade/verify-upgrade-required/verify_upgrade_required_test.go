@@ -65,6 +65,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 
 			var vz *vzalpha1.Verrazzano
 			Eventually(func() (*vzalpha1.Verrazzano, error) {
+				var err error
 				vz, err = pkg.GetVerrazzano()
 				return vz, err
 			}).WithPolling(pollingInterval).WithTimeout(waitTimeout).
