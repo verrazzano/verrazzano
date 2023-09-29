@@ -37,7 +37,7 @@ var (
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
 	verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
 	addonControllerPod             = []string{"caapv-controller-manager"}
-	clusterName                    = os.Getenv("CLUSTER_NAME")
+	clusterName                    = "cluster-test-1"
 	clusterNamespace               = "default"
 )
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -172,7 +172,7 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 
 func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 
-	vzFetched, err := getVerrazzano(clusterName, "default", "workload-verrazzano", log)
+	vzFetched, err := getVerrazzano(clusterName, "default", "verrazzano", log)
 	if err != nil {
 		log.Errorf("unable to fetch vz resource from %s due to '%v'", clusterName, zap.Error(err))
 		return err
