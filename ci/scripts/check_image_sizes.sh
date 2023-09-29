@@ -70,7 +70,9 @@ done <<< "$IMAGE_DATA_GENERATED"
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
   if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
     NEW_IMAGE_FOUND="true"
+    if [[ "$IMAGENAME" != "Commit ID" ]]; then
     echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt." >> ${WORKSPACE}/newimagefound.txt
+    fi
   fi
 done
 
@@ -80,7 +82,7 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
   FILE_SIZE_OS="${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}"
   FILE_SIZE_GENERATED="${IMAGENAME_SIZES_FILE_GENERATED[$IMAGENAME]}"
 
-# Check if image size has increased by 0.1 MB or more
+# Check if image size has increased by the threshold or more
   if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+IMAGE_SIZE_INCREASE_THRESHOLD))" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
     echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/result.txt
