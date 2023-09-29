@@ -139,7 +139,7 @@ func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 		return nil, err
 	}
 
-	secret, err := clientset.CoreV1().Secrets(clusterName).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(clusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
 	if err != nil {
 		log.Infof("Error fetching secret ", zap.Error(err))
 		return nil, err
@@ -203,6 +203,39 @@ func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 	return fmt.Errorf("All components are not ready: Current State = %v", curState)
 }
 
+func ensureVerrazzanoFleetBindingExists(clusterName string, log *zap.SugaredLogger) error {
+
+	vfbFetched, err := getVerrazzanoFleetBinding(log)
+	if err != nil {
+		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	var vfb VerrazzanoFleetBinding
+	modBinaryData, err := json.Marshal(vfbFetched)
+	if err != nil {
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(modBinaryData, &vfb)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
+	}
+
+	curState := "Ready"
+	for _, cond := range vfb.Status.Conditions {
+		if cond.Type == "Ready" {
+			curState = cond.Type
+		}
+	}
+
+	if curState == "Ready" {
+		return nil
+	}
+	return fmt.Errorf("All components are not ready: Current State = %v", curState)
+}
+
 func getVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	dclient, err := getCapiClusterDynamicClient(clusterName, log)
 	if err != nil {
@@ -217,6 +250,22 @@ func getVerrazzano(clusterName, namespace, vzinstallname string, log *zap.Sugare
 	}
 
 	return dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), vzinstallname, metav1.GetOptions{})
+}
+
+func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	dclient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return nil, err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "addons.cluster.x-k8s.io/v1alpha1",
+		Version:  "v1alpha1",
+		Resource: "verrazzanofleetbindings",
+	}
+
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 }
 
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
@@ -270,8 +319,15 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 						return err
 					}
 					return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, "default")
-				}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "verify VPO on workload cluster")
+				}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Create verrazzanoFleet resource")
 			})
+
+			WhenClusterAPIInstalledIt("Verify if VerrazzanoFleetBinding resource created", func() {
+				Eventually(func() error {
+					return ensureVerrazzanoFleetBindingExists(clusterName, t.Logs)
+				}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
+			})
+
 			WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 				Eventually(func() bool {
 					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, clusterNamespace, t.Logs)

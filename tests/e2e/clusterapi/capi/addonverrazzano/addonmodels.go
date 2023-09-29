@@ -50,3 +50,58 @@ type Verrazzano struct {
 		Version string `json:"version"`
 	} `json:"status"`
 }
+
+type VerrazzanoFleetBinding struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Name              string    `json:"name"`
+		Namespace         string    `json:"namespace"`
+		OwnerReferences   []struct {
+			APIVersion         string `json:"apiVersion"`
+			BlockOwnerDeletion bool   `json:"blockOwnerDeletion"`
+			Controller         bool   `json:"controller"`
+			Kind               string `json:"kind"`
+			Name               string `json:"name"`
+			UID                string `json:"uid"`
+		} `json:"ownerReferences"`
+		ResourceVersion string `json:"resourceVersion"`
+		UID             string `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		ClusterRef struct {
+			APIVersion string `json:"apiVersion"`
+			Kind       string `json:"kind"`
+			Name       string `json:"name"`
+			Namespace  string `json:"namespace"`
+		} `json:"clusterRef"`
+		Verrazzano struct {
+			Spec struct {
+				Components struct {
+				} `json:"components"`
+				EnvironmentName string `json:"environmentName"`
+				Profile         string `json:"profile"`
+				Security        struct {
+				} `json:"security"`
+				Version string `json:"version"`
+			} `json:"spec"`
+		} `json:"verrazzano"`
+	} `json:"spec"`
+	Status struct {
+		Conditions []struct {
+			LastTransitionTime time.Time `json:"lastTransitionTime"`
+			Status             string    `json:"status"`
+			Type               string    `json:"type"`
+		} `json:"conditions"`
+		Revision   int    `json:"revision"`
+		Status     string `json:"status"`
+		Verrazzano struct {
+			ComponentsAvailable string `json:"componentsAvailable"`
+			State               string `json:"state"`
+			Version             string `json:"version"`
+		} `json:"verrazzano"`
+	} `json:"status"`
+}
