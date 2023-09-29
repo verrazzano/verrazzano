@@ -260,7 +260,7 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 	}
 
 	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io/v1alpha1",
+		Group:    "addons.cluster.x-k8s.io",
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleetbindings",
 	}
