@@ -41,8 +41,9 @@ type (
 
 // funcMap contains the helper functions used during templating
 var funcMap template.FuncMap = map[string]any{
-	"contains": strings.Contains,
-	"nindent":  nindent,
+	"contains":        strings.Contains,
+	"nindent":         nindent,
+	"multiLineIndent": multiLineIndent,
 }
 
 func NewYAMLApplier(client crtpkg.Client, namespaceOverride string) *YAMLApplier {
@@ -482,4 +483,16 @@ func nindent(indent int, s string) string {
 	}
 
 	return sb.String()
+}
+
+func multiLineIndent(indentNum int, aff string) string {
+	var b = make([]byte, indentNum)
+	for i := 0; i < indentNum; i++ {
+		b[i] = 32
+	}
+	lines := strings.SplitAfter(aff, "\n")
+	for i, line := range lines {
+		lines[i] = string(b) + line
+	}
+	return strings.Join(lines[:], "")
 }

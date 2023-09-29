@@ -308,7 +308,7 @@
           "images": [
             {
               "image": "console",
-              "tag": "v2.0.0-20230912070053-2d1883d",
+              "tag": "v2.0.0-20230929040930-98a77e5",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
@@ -347,7 +347,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230914055551-b6247ad8ac8",
+              "tag": "2.3.0-20230928071551-b6247ad8ac8",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
@@ -989,6 +989,24 @@
               "tag": "v2.37.0-20230911122845-caabc629",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "opensearch-operator",
+      "version": "2.4.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "opensearch-operator",
+          "images": [
+            {
+              "image": "opensearch-operator",
+              "tag": "v2.4.0-20230929044732-8b4eb23",
+              "helmFullImageKey": "manager.image.repository",
+              "helmTagKey": "manager.image.tag"
             }
           ]
         }

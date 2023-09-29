@@ -1952,7 +1952,7 @@ func expectSyncRegistration(t *testing.T, mock *mocks.MockClient, name string, e
 	// Expect a call to get the tls ingress and return the ingress.
 	if !externalES {
 		mock.EXPECT().
-			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: vmiIngest}, gomock.Not(gomock.Nil()), gomock.Any()).
+			Get(gomock.Any(), types.NamespacedName{Namespace: constants.VerrazzanoSystemNamespace, Name: operatorOSIngress}, gomock.Not(gomock.Nil()), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, name types.NamespacedName, ingress *networkingv1.Ingress, opts ...client.GetOption) error {
 				ingress.TypeMeta = metav1.TypeMeta{
 					APIVersion: "networking.k8s.io/v1",

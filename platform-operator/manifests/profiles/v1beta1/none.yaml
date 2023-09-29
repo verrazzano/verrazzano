@@ -64,7 +64,10 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     opensearchDashboards:
+      enabled: false
+    opensearchOperator:
       enabled: false
     prometheus:
       enabled: false

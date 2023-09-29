@@ -50,7 +50,7 @@ func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix 
 
 	// If a node has the master role, it is a statefulset
 	if hasRole(node.Roles, vmov1.MasterRole) {
-		return ready.StatefulSetsAreReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
+		return ready.AreOpensearchStsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		}}, *node.Replicas, prefix)

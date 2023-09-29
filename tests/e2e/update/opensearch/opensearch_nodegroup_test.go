@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -10,6 +10,10 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
+const (
+	nodePoolLabel = "opster.io/opensearch-nodepool"
+)
+
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 
 	// GIVEN a VZ custom resource in dev profile,
@@ -18,9 +22,9 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update master node group", func() {
 		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.MasterRole)},
-			constants.VerrazzanoSystemNamespace, "es-master", "512Mi")
+		update.ValidatePods(string(vmov1.MasterRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.MasterRole)},
+			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
@@ -29,9 +33,9 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update ingest node group", func() {
 		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.IngestRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.IngestRole)},
-			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
+		update.ValidatePods(string(vmov1.IngestRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.IngestRole)},
+			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
@@ -40,8 +44,8 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update data node group", func() {
 		m := OpensearchDataNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoSystemNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
-			constants.VerrazzanoSystemNamespace, "es-", "512Mi")
+		update.ValidatePods(string(vmov1.DataRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.DataRole)},
+			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 	})
 })

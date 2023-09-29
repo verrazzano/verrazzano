@@ -50,3 +50,10 @@ func CheckCRDsExist(crdNames []string) (bool, error) {
 	}
 	return true, nil
 }
+
+func ApplyCRDYamlWithDirectoryName(ctx spi.ComponentContext, helmChartsDir, crdDir string) error {
+	path := filepath.Join(helmChartsDir, "/", crdDir)
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	ctx.Log().Oncef("Applying yaml for crds in %s", path)
+	return yamlApplier.ApplyD(path)
+}

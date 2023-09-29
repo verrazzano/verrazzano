@@ -1,0 +1,57 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+securityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+manager:
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    privileged: false
+    runAsGroup: 65532
+    runAsNonRoot: true
+    runAsUser: 65532
+  image:
+    pullPolicy: "IfNotPresent"
+
+kubeRbacProxy:
+  enable: false
+
+installCRDs: false
+
+ingress:
+  opensearch:
+    enable: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "65M"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
+    path: /()(.*)
+    ingressClassName: verrazzano-nginx
+    host: ""
+    serviceName: verrazzano-authproxy
+    portNumber: 8775
+    tls: []
+
+  opensearchDashboards:
+    enable: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      nginx.ingress.kubernetes.io/proxy-body-size: "65M"
+      nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+      nginx.ingress.kubernetes.io/service-upstream: "true"
+      nginx.ingress.kubernetes.io/upstream-vhost: "${service_name}.${namespace}.svc.cluster.local"
+    path: /()(.*)
+    ingressClassName: verrazzano-nginx
+    host: ""
+    serviceName: verrazzano-authproxy
+    portNumber: 8775
+    tls: []
+
+clusterResourceNamespace: ""

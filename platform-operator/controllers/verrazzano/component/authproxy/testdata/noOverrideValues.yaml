@@ -19,6 +19,11 @@ config:
   envName: default
   prometheusOperatorEnabled: true
   ingressClassName: verrazzano-nginx
+  opensearch:
+    protocol: https
+    namespace: verrazzano-logging
+    service: opensearch
+    osdService: opensearch-dashboards
 
 dns:
   wildcard:
