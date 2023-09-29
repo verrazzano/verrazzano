@@ -307,8 +307,8 @@
           "name": "verrazzano-console",
           "images": [
             {
-              "image": "console-jenkins",
-              "tag": "v2.0.0-20230911185458-8638bc4",
+              "image": "console",
+              "tag": "v2.0.0-20230929040930-98a77e5",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
@@ -1003,8 +1003,8 @@
           "name": "opensearch-operator",
           "images": [
             {
-              "image": "opensearch-operator-jenkins",
-              "tag": "20230928143958-122aaed",
+              "image": "opensearch-operator",
+              "tag": "v2.4.0-20230929044732-8b4eb23",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
