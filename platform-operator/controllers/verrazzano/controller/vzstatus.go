@@ -98,6 +98,9 @@ func (r Reconciler) updateStatusIfNeeded(log vzlog.VerrazzanoLogger, actualCR *v
 
 // isUpgrading returns true if spec indicates upgrade.
 func (r Reconciler) isUpgrading(actualCR *vzv1alpha1.Verrazzano) bool {
+	if actualCR.Status.Version == "" {
+		return false
+	}
 	return actualCR.Spec.Version != "" && actualCR.Spec.Version != actualCR.Status.Version
 }
 

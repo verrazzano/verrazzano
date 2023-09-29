@@ -71,8 +71,23 @@ func (r Reconciler) createOrUpdateOneModule(log vzlog.VerrazzanoLogger, actualCR
 
 	// Stash the current state of the module away for comparison after update
 	currentModule := &moduleapi.Module{}
-	if err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&moduleToUpdate), currentModule); err != nil && !errors.IsNotFound(err) {
+	err := r.Client.Get(context.TODO(), client.ObjectKeyFromObject(&moduleToUpdate), currentModule)
+	if err != nil && !errors.IsNotFound(err) {
 		return result.NewResultShortRequeueDelayWithError(err)
+	}
+
+	// The module exists.  Check if the MonitorChanges field is set to false, in which case
+	// the module cannot be modified, unless this is an upgrade
+	if err == nil && !r.isUpgrading(actualCR) {
+		componentCtx, err := componentspi.NewContext(log, r.Client, actualCR, nil, r.DryRun)
+		if err != nil {
+			log.ErrorfThrottled("Failed to get component context: %v", err)
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+
+		if !comp.MonitorOverrides(componentCtx) {
+			return result.NewResult()
+		}
 	}
 
 	// Create/Update the module if necessary
@@ -103,7 +118,7 @@ func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Modu
 	// There seems to be an issue with CreateOrUpdate() returning a false-updated status; if we compare the top-level
 	// fields one-by-one they will be Equal if unchanged, but passing in the full Object for compare returns a diff.
 	//
-	// For now we will use DeepEqual to compare parts of the Module objects we care about directly unless we can
+	// For now, use DeepEqual to compare parts of the Module objects we care about directly unless we can
 	// determine why we're getting diffs from the full ObjectCompare
 	return equality.Semantic.DeepEqual(mod1.Spec, mod2.Spec) &&
 		equality.Semantic.DeepEqual(mod1.ObjectMeta, mod2.ObjectMeta) &&
@@ -112,17 +127,6 @@ func (r Reconciler) moduleDeepEqual(mod1 *moduleapi.Module, mod2 *moduleapi.Modu
 
 // mutateModule mutates the module for the create or update callback
 func (r Reconciler) mutateModule(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano, module *moduleapi.Module, comp componentspi.Component, moduleVersion string) error {
-	if module.Annotations == nil {
-		module.Annotations = make(map[string]string)
-	}
-	module.Annotations[vzconst.VerrazzanoCRNameAnnotation] = effectiveCR.Name
-	module.Annotations[vzconst.VerrazzanoCRNamespaceAnnotation] = effectiveCR.Namespace
-
-	if module.Labels == nil {
-		module.Labels = make(map[string]string)
-	}
-	module.Labels[vzconst.VerrazzanoOwnerLabel] = string(effectiveCR.UID)
-
 	module.Spec.ModuleName = module.Name
 	module.Spec.TargetNamespace = comp.Namespace()
 	module.Spec.Version = moduleVersion

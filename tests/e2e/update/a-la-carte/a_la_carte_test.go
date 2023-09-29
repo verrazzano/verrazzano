@@ -86,6 +86,7 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Ingress = &vzapi.IngressNginxComponent{Enabled: &trueVal}
 	cr.Spec.Components.Keycloak = &vzapi.KeycloakComponent{Enabled: &trueVal}
 	cr.Spec.Components.MySQLOperator = &vzapi.MySQLOperatorComponent{Enabled: &trueVal}
+	cr.Spec.Components.OpenSearchOperator = &vzapi.OpenSearchOperatorComponent{Enabled: &trueVal}
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{Enabled: &trueVal}
 	cr.Spec.Components.Kibana = &vzapi.KibanaComponent{Enabled: &trueVal}
 	cr.Spec.Components.OAM = &vzapi.OAMComponent{Enabled: &trueVal}

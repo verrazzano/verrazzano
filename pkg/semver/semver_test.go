@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package semver
@@ -139,6 +139,40 @@ func TestCompareTo(t *testing.T) {
 	assert.Equal(t, 0, V100.CompareTo(v100))
 }
 
+// TestCompareToPrereleaseInts Tests comparisons between SemVersion instances
+// GIVEN a call to CompareTo with different SemVersion objects
+// WHEN v1 > v2, v1 < v2, and v1 == v2
+// THEN -1 is returned when v1 > v2, 1 when > v1 < v2, and 0 when v1 == v2
+func TestCompareToPrereleaseInts(t *testing.T) {
+
+	v010, _ := NewSemVersion("v0.1.0")
+	v010_1, _ := NewSemVersion("0.1.0-1")
+	v010_2, _ := NewSemVersion("v0.1.0-2")
+	v010_0, _ := NewSemVersion("v0.1.0-0")
+	v011, _ := NewSemVersion("v0.1.1")
+
+	v010Aaa, _ := NewSemVersion("v0.1.0-aaa")
+
+	result, err := v010.CompareToPrereleaseInts(v010_1)
+	assert.Equal(t, -1, result)
+	assert.NoError(t, err)
+
+	result, err = v010.CompareToPrereleaseInts(v010_0)
+	assert.Equal(t, 0, result)
+	assert.NoError(t, err)
+
+	result, err = v010_2.CompareToPrereleaseInts(v010_1)
+	assert.Equal(t, 1, result)
+	assert.NoError(t, err)
+
+	result, err = v010_1.CompareToPrereleaseInts(v011)
+	assert.Equal(t, -1, result)
+	assert.NoError(t, err)
+
+	_, err = v010.CompareToPrereleaseInts(v010Aaa)
+	assert.Error(t, err)
+}
+
 // TestIsEqualTo Tests IsEqualTo for various combinations of SemVersion objects
 // GIVEN a call to IsEqualTo with different SemVersion objects
 // WHEN v > arg, v < arg, and v == arg
@@ -269,6 +303,16 @@ func TestIsGreatherThan(t *testing.T) {
 	assert.False(t, v009.IsGreatherThan(v009_2))
 	assert.False(t, v009.IsGreatherThan(v0010))
 	assert.True(t, v0010.IsGreatherThan(v009))
+
+	v010_0, _ := NewSemVersion("v0.1.0-0")
+	v010_1, _ := NewSemVersion("v0.1.0-1")
+	v011_1, _ := NewSemVersion("v0.1.1-1")
+	assert.True(t, v010_1.IsGreatherThan(v010))
+	assert.True(t, v010_1.IsGreatherThan(v010_0))
+	assert.True(t, v010_0.IsGreatherThan(v010))
+	assert.True(t, v011.IsGreatherThan(v010_1))
+	assert.True(t, v011_1.IsGreatherThan(v010_1))
+
 }
 
 // TestToString Tests ToString function which converts a Semver object to its string representation

@@ -3,7 +3,6 @@
 
 {{ $virtualNodes := .OKE.VirtualNodePools }}
 {{ $nodePools := .OKE.NodePools }}
-{{ $workerSubnet := .WorkerNodeSubnetName }}
 {{ $availabilityDomains := .AvailabilityDomains }}
 
 {{- range $node := $virtualNodes }}
@@ -68,27 +67,19 @@ spec:
     initialNodeLabels:
         - key: name
           value: {{$node.Name}}
+    nodePoolCyclingDetails:
+        isNodeCyclingEnabled: true
+    nodeEvictionNodePoolSettings:
+        evictionGraceDuration: PT1H
+        isForceDeleteAfterGraceDuration: false
     nodePoolNodeConfig:
-        kmsKeyId: ""
         nodePoolPodNetworkOptionDetails:
             cniType: {{$.OKE.Network.CNIType}}
         {{- if eq $.OKE.Network.CNIType "OCI_VCN_IP_NATIVE" }}
             vcnIpNativePodNetworkOptions:
                 subnetNames:
-                    - {{$workerSubnet}}
+                    - pod
         {{- end }}
-        {{- if and $availabilityDomains $workerSubnet }}
-        placementConfigs:
-        {{- range $domain := $availabilityDomains }}
-            - subnetName: {{$workerSubnet}}
-              availabilityDomain: {{$domain.Name}}
-              faultDomains:
-              {{- range $faultDomain := $domain.FaultDomains }}
-                - {{$faultDomain.Name}}
-              {{- end }}
-        {{- end }}
-        {{- end }}
-
     nodeShape: {{$node.Shape}}
     # Add shape config if using flex shapes
     {{- if and (or $node.OCPUs $node.MemoryGbs) (contains $node.Shape "Flex") }}

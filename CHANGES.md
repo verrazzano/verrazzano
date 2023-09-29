@@ -1,12 +1,15 @@
 ### v1.7.0
 Component version updates:
 
+- ArgoCD v2.8.3
 - WebLogic Kubernetes Operator v4.1.2
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
 - Kube State Metrics v2.10.0
 - NGINX Prometheus Exporter v0.11.0
 - Prometheus Pushgateway v1.6.2
+- Prometheus Node Exporter v1.6.1
+- Alertmanager v0.26.0
 - Istio v1.19.0
 
 Features:

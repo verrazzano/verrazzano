@@ -11,7 +11,7 @@ import (
 	vzerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	common2 "github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
 )
 
 type ActionType string
@@ -45,7 +45,7 @@ func (h ComponentHandler) IsWorkNeeded(ctx handlerspi.HandlerContext) (bool, res
 
 // CheckDependencies checks if the dependencies are ready
 func (h ComponentHandler) CheckDependencies(ctx handlerspi.HandlerContext) result.Result {
-	return common2.CheckDependencies(ctx, string(h.action), h.getStartedReason())
+	return common.CheckDependencies(ctx, string(h.action), h.getStartedReason())
 }
 
 // PreWorkUpdateStatus does the pre-Work status update
@@ -53,18 +53,18 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 	module := ctx.CR.(*moduleapi.Module)
 
 	// Update the Verrazzano component status
-	nsn, err := common2.GetVerrazzanoNSN(ctx)
+	nsn, err := common.GetVerrazzanoNSN(ctx)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	sd := common2.StatusData{
+	sd := common.StatusData{
 		Vznsn:    *nsn,
 		CondType: vzapi.CondInstallStarted,
 		CompName: module.Spec.ModuleName,
 		Msg:      string(vzapi.CondInstallStarted),
 		Ready:    false,
 	}
-	res := common2.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
 	if res.ShouldRequeue() {
 		return res
 	}
@@ -77,7 +77,7 @@ func (h ComponentHandler) PreWorkUpdateStatus(ctx handlerspi.HandlerContext) res
 func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, string(h.action))
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -102,7 +102,7 @@ func (h ComponentHandler) DoWorkUpdateStatus(ctx handlerspi.HandlerContext) resu
 func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, string(h.action))
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -119,7 +119,7 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 
 // IsWorkDone Indicates whether a module is installed and ready
 func (h ComponentHandler) IsWorkDone(ctx handlerspi.HandlerContext) (bool, result.Result) {
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, string(h.action))
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return false, result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -137,7 +137,7 @@ func (h ComponentHandler) PostWorkUpdateStatus(ctx handlerspi.HandlerContext) re
 func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result {
 	module := ctx.CR.(*moduleapi.Module)
 
-	compCtx, comp, err := common2.GetComponentAndContext(ctx, string(h.action))
+	compCtx, comp, err := common.GetComponentAndContext(ctx, string(h.action))
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
@@ -167,11 +167,11 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 	}
 
 	// Update the Verrazzano component status
-	nsn, err := common2.GetVerrazzanoNSN(ctx)
+	nsn, err := common.GetVerrazzanoNSN(ctx)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	sd := common2.StatusData{
+	sd := common.StatusData{
 		Vznsn:       *nsn,
 		CondType:    cond,
 		CompName:    module.Spec.ModuleName,
@@ -179,7 +179,7 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 		Msg:         string(cond),
 		Ready:       true,
 	}
-	res := common2.UpdateVerrazzanoComponentStatus(ctx, sd)
+	res := common.UpdateVerrazzanoComponentStatus(ctx, sd)
 	if res.ShouldRequeue() {
 		return res
 	}

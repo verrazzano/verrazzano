@@ -1,0 +1,56 @@
+{
+  "policy":{
+    "description":"Verrazzano application default ISM Policy",
+    "default_state":"hot",
+    "schema_version":1,
+    "states":[
+      {
+        "name":"hot",
+        "actions":[
+          {
+            "retry":{
+              "count":3,
+              "backoff":"exponential",
+              "delay":"10m"
+            },
+            "rollover":{
+              "min_primary_shard_size":"5gb",
+              "min_index_age":"21d"
+            }
+          }
+        ],
+        "transitions":[
+          {
+            "state_name":"delete",
+            "conditions":{
+              "min_rollover_age":"14d"
+            }
+          }
+        ]
+      },
+      {
+        "name":"delete",
+        "actions":[
+          {
+            "retry":{
+              "count":3,
+              "backoff":"exponential",
+              "delay":"10m"
+            },
+            "delete":{
+
+            }
+          }
+        ]
+      }
+    ],
+    "ism_template":[
+      {
+        "index_patterns":[
+          "verrazzano-application*"
+        ],
+        "priority":0
+      }
+    ]
+  }
+}

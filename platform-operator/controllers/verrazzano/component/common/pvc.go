@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package common
@@ -16,6 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	c "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	PVCListingError = "Failed listing persistent volumes: %v"
 )
 
 // RetainPersistentVolume locates the persistent volume associated with the provided pvc
@@ -120,7 +124,7 @@ func ResetVolumeReclaimPolicy(ctx spi.ComponentContext, componentName string) er
 
 	for i := range pvList.Items {
 		pv := pvList.Items[i] // avoids "Implicit memory aliasing in for loop" linter complaint
-		ctx.Log().Infof("ResetVolumeReclaimPolicy - PV %s status: %s", pv.Name, pv.Status.Phase)
+		ctx.Log().Debugf("ResetVolumeReclaimPolicy - PV %s status: %s", pv.Name, pv.Status.Phase)
 		if pv.Status.Phase != v1.VolumeBound {
 			continue
 		}
@@ -178,4 +182,28 @@ func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newCl
 		return nil
 	})
 	return err
+}
+
+// GetPVsBasedOnLabel return the list of PersistentVolumes based on a certain label key-value pair
+func GetPVsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolume, error) {
+	pvList := &v1.PersistentVolumeList{}
+	if err := ctx.Client().List(context.TODO(), pvList, c.MatchingLabels{labelKey: labelValue}); err != nil {
+		if errors.IsNotFound(err) {
+			return pvList.Items, nil
+		}
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
+	}
+	return pvList.Items, nil
+}
+
+// GetPVCsBasedOnLabel return the list of PersistentVolumeClaims based on a certain label key-value pair
+func GetPVCsBasedOnLabel(ctx spi.ComponentContext, labelKey, labelValue string) ([]v1.PersistentVolumeClaim, error) {
+	pvcList := &v1.PersistentVolumeClaimList{}
+	if err := ctx.Client().List(context.TODO(), pvcList, c.MatchingLabels{labelKey: labelValue}); err != nil {
+		if errors.IsNotFound(err) {
+			return pvcList.Items, nil
+		}
+		return nil, ctx.Log().ErrorfNewErr(PVCListingError, err)
+	}
+	return pvcList.Items, nil
 }

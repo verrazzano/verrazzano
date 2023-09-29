@@ -14,6 +14,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoLoggingNamespace is the namespace for logging components
+const VerrazzanoLoggingNamespace = "verrazzano-logging"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
@@ -81,10 +84,14 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 const OpensearchURLEnvVar = "OPENSEARCH_URL"
 
 // OpensearchIngress is the name of the ingress for Opensearch
-const OpensearchIngress = "vmi-system-os-ingest"
+const OpensearchIngress = "opensearch"
+
+const LegacyOpensearchIngress = "vmi-system-os-ingest"
 
 // OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
-const OpensearchDashboardsIngress = "vmi-system-osd"
+const OpensearchDashboardsIngress = "opensearch-dashboards"
+
+const LegacyOpensearchDashboardsIngress = "vmi-system-osd"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"
@@ -279,15 +286,6 @@ const ThanosInternalUserName = "verrazzano-thanos-internal"
 // VerrazzanoPlatformOperatorHelmName is the Helm release name of the Verrazzano Platform Operator
 const VerrazzanoPlatformOperatorHelmName = "verrazzano-platform-operator"
 
-// VerrazzanoCRNameAnnotation is the annotation for the verrazzano CR name
-const VerrazzanoCRNameAnnotation = "module.verrazzano.io/vz-cr-name"
-
-// VerrazzanoCRNamespaceAnnotation is the annotation for the verrazzano CR namespace
-const VerrazzanoCRNamespaceAnnotation = "module.verrazzano.io/vz-cr-namespace"
-
-// VerrazzanoOwnerLabel is the label for the verrazzano CR that owns the module resource
-const VerrazzanoOwnerLabel = "module.verrazzano.io/vz-owner"
-
 // VerrazzanoModuleOwnerLabel is the label for the module CR that owns the secret or configmap resource
 const VerrazzanoModuleOwnerLabel = "module.verrazzano.io/module-owner"
 
@@ -305,3 +303,6 @@ const DexIngress = "dex"
 
 // DexHostPrefix - the prefix of the Dex host
 const DexHostPrefix = "auth"
+
+// OpenSearchIntegrationConfigMap - the name of the OpenSearch integration configmap
+const OpenSearchIntegrationConfigMapName = "opensearch-integration"

@@ -4,21 +4,30 @@
 package opensearch
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"path"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
-	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
-
-	"k8s.io/apimachinery/pkg/types"
-
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const (
@@ -52,7 +61,7 @@ func (o opensearchComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch component
 func (o opensearchComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, opensearchoperator.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch component
@@ -103,24 +112,25 @@ func NewComponent() spi.Component {
 // PreInstall OpenSearch component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (o opensearchComponent) PreInstall(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	// create or update backup VMI secret
-	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
-		return err
-	}
-	ctx.Log().Debug("OpenSearch pre-install")
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch : %v", ComponentNamespace, err)
-	}
 	return nil
 }
 
 // Install OpenSearch component install processing
 func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
+	}
+	return nil
 }
 
 func (o opensearchComponent) IsOperatorUninstallSupported() bool {
@@ -139,22 +149,39 @@ func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
+
+	if err := o.deleteIntegrationConfigmap(context); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // PreUpgrade OpenSearch component pre-upgrade processing
 func (o opensearchComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	return common.EnsureVMISecret(ctx.Client())
+	return nil
 }
 
 // Upgrade OpenSearch component upgrade processing
 func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Component: %s, Failed to substitute template values for OpenSearchCluster CR: %v", ComponentName, err)
+	}
+	return err
 }
 
 func (o opensearchComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return nodesToObjectKeys(ctx.EffectiveCR()).IsAvailable(ctx.Log(), ctx.Client())
+	return nodesToObjectKeys(ctx).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check
@@ -168,6 +195,11 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return common.CheckIngressesAndCerts(ctx, o)
 }
 
@@ -177,6 +209,11 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -245,9 +282,17 @@ func (o opensearchComponent) GetIngressNames(ctx spi.ComponentContext) []types.N
 	var ingressNames []types.NamespacedName
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		name := constants.OpensearchIngress
+		isLegacyOS, err := common.IsLegacyOS(ctx)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OS to be disabled: %v", err)
+		}
+		if isLegacyOS {
+			name = constants.LegacyOpensearchIngress
+		}
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.OpensearchIngress,
+			Name:      name,
 		})
 	}
 
@@ -262,4 +307,31 @@ func (o opensearchComponent) GetCertificateNames(_ spi.ComponentContext) []types
 			Name:      osCertificateName,
 		},
 	}
+}
+
+// createIntegrationConfigmap creates the integration configmap needed to trigger integration operator reconciles
+func (o opensearchComponent) createIntegrationConfigmap(ctx spi.ComponentContext) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OpenSearchIntegrationConfigMapName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), cm, func() error {
+		// nothing to do, configmap is empty
+		return nil
+	})
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create or update OpenSearch integration configmap: %v", err)
+		return err
+	}
+	return nil
+}
+
+// createIntegrationConfigmap deletes the integration configmap needed to trigger integration operator reconciles
+func (o opensearchComponent) deleteIntegrationConfigmap(ctx spi.ComponentContext) error {
+	res := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: constants.OpenSearchIntegrationConfigMapName, Namespace: constants.VerrazzanoInstallNamespace}},
+	}
+	return resource.CleanupResources(ctx, res)
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	modulecatalog "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/catalog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -47,16 +46,15 @@ func GetVerrazzanoCR(ctx handlerspi.HandlerContext) (*vzapi.Verrazzano, error) {
 }
 
 func GetVerrazzanoNSN(ctx handlerspi.HandlerContext) (*types.NamespacedName, error) {
-	module := ctx.CR.(*moduleapi.Module)
-	var name, ns string
-	if module.Annotations != nil {
-		ns = module.Annotations[constants.VerrazzanoCRNamespaceAnnotation]
-		name = module.Annotations[constants.VerrazzanoCRNameAnnotation]
+	vzlist := &vzapi.VerrazzanoList{}
+	if err := ctx.Client.List(context.TODO(), vzlist); err != nil {
+		return nil, err
 	}
-	if name == "" || ns == "" {
-		return nil, fmt.Errorf("Module %s is missing annotations for verrazzano CR name and namespace", module.Name)
+	if len(vzlist.Items) != 1 {
+		return nil, fmt.Errorf("Failed, found %d Verrazzano CRs in the cluster.  There must be exactly 1 Verrazzano CR", len(vzlist.Items))
 	}
-	return &types.NamespacedName{Namespace: ns, Name: name}, nil
+	vz := vzlist.Items[0]
+	return &types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name}, nil
 }
 
 // AreDependenciesReady check if dependencies are ready using the Module condition

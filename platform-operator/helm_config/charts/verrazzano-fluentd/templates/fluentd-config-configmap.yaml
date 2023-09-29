@@ -973,7 +973,7 @@ data:
         chunk_limit_size 16M
         queue_limit_length 10
         chunk_full_threshold 0.9
-        overflow_action drop_oldest_chunk
+        overflow_action throw_exception
       </buffer>
     </match>
     <match **>
@@ -1013,7 +1013,7 @@ data:
         chunk_limit_size 16M
         queue_limit_length 10
         chunk_full_threshold 0.9
-        overflow_action drop_oldest_chunk
+        overflow_action throw_exception
       </buffer>
     </match>
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -29,18 +29,16 @@ const (
 	shortPollingInterval = 10 * time.Second
 	waitTimeout          = 20 * time.Minute
 	pollingInterval      = 30 * time.Second
-	vmoDeploymentName    = "verrazzano-monitoring-operator"
-	osStsName            = "vmi-system-es-master"
-	osStsPvcPrefix       = "elasticsearch-master-vmi-system-es-master"
-	osDataDepPrefix      = "vmi-system-es-data"
-	osIngestDeployment   = "vmi-system-es-ingest"
-	osDepPvcPrefix       = "vmi-system-es-data"
+	opsterDeploymentName = "opensearch-operator-controller-manager"
+	osMasterStsName      = "opensearch-es-master"
+	osDataStsName        = "opensearch-es-data"
+	osIngestStsName      = "opensearch-es-ingest"
 	idSearchExactURL     = "verrazzano-system/_search?from=0&size=1"
 	idSearchAllURL       = "verrazzano-system/_search?"
 )
 
-var esPods = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data"}
-var esPodsUp = []string{"vmi-system-es-master", "vmi-system-es-ingest", "vmi-system-es-data", "verrazzano-monitoring-operator", "vmi-system-osd"}
+var esPods = []string{"opensearch-es-master", "opensearch-es-ingest", "opensearch-es-data"}
+var esPodsUp = []string{"opensearch-es-master", "opensearch-es-ingest", "opensearch-es-data", opsterDeploymentName, "opensearch-dashboards"}
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
@@ -173,22 +171,22 @@ func NukeOpensearch() error {
 		return err
 	}
 
-	t.Logs.Infof("Scaling down VMO")
-	getScale, err := clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).GetScale(context.TODO(), vmoDeploymentName, metav1.GetOptions{})
+	t.Logs.Infof("Scaling down Opster Operator")
+	getScale, err := clientset.AppsV1().Deployments(constants.VerrazzanoLoggingNamespace).GetScale(context.TODO(), opsterDeploymentName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	newScale := *getScale
 	newScale.Spec.Replicas = 0
 
-	_, err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).UpdateScale(context.TODO(), vmoDeploymentName, &newScale, metav1.UpdateOptions{})
+	_, err = clientset.AppsV1().Deployments(constants.VerrazzanoLoggingNamespace).UpdateScale(context.TODO(), opsterDeploymentName, &newScale, metav1.UpdateOptions{})
 	if err != nil {
 		t.Logs.Infof("Error = %v", zap.Error(err))
 		return err
 	}
 
 	t.Logs.Infof("Deleting opensearch master sts")
-	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osStsName, metav1.DeleteOptions{})
+	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoLoggingNamespace).Delete(context.TODO(), osMasterStsName, metav1.DeleteOptions{})
 	if err != nil {
 		if !k8serror.IsNotFound(err) {
 			t.Logs.Errorf("Unable to delete opensearch master sts due to '%v'", zap.Error(err))
@@ -196,29 +194,27 @@ func NukeOpensearch() error {
 		}
 	}
 
-	t.Logs.Infof("Deleting opensearch data deployments")
-	for i := 0; i < 3; i++ {
-		err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDataDepPrefix, i), metav1.DeleteOptions{})
-		if err != nil {
-			if !k8serror.IsNotFound(err) {
-				t.Logs.Errorf("Unable to opensearch data deployment due to '%v'", zap.Error(err))
-				return err
-			}
+	t.Logs.Infof("Deleting opensearch data sts")
+	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoLoggingNamespace).Delete(context.TODO(), osDataStsName, metav1.DeleteOptions{})
+	if err != nil {
+		if !k8serror.IsNotFound(err) {
+			t.Logs.Errorf("Unable to delete opensearch data sts due to '%v'", zap.Error(err))
+			return err
 		}
 	}
 
-	t.Logs.Infof("Deleting opensearch ingest deployment")
-	err = clientset.AppsV1().Deployments(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osIngestDeployment, metav1.DeleteOptions{})
+	t.Logs.Infof("Deleting opensearch ingest sts")
+	err = clientset.AppsV1().StatefulSets(constants.VerrazzanoLoggingNamespace).Delete(context.TODO(), osIngestStsName, metav1.DeleteOptions{})
 	if err != nil {
 		if !k8serror.IsNotFound(err) {
-			t.Logs.Errorf("Unable to delete opensearch ingest deployment due to '%v'", zap.Error(err))
+			t.Logs.Errorf("Unable to delete opensearch ingest sts due to '%v'", zap.Error(err))
 			return err
 		}
 	}
 
 	t.Logs.Infof("Deleting opensearch master pvc if still present")
 	for i := 0; i < 3; i++ {
-		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osStsPvcPrefix, i), metav1.DeleteOptions{})
+		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoLoggingNamespace).Delete(context.TODO(), fmt.Sprintf("data-%s-%v", osMasterStsName, i), metav1.DeleteOptions{})
 		if err != nil {
 			if !k8serror.IsNotFound(err) {
 				t.Logs.Errorf("Unable to delete opensearch master pvc due to '%v'", zap.Error(err))
@@ -229,11 +225,7 @@ func NukeOpensearch() error {
 
 	t.Logs.Infof("Deleting opensearch data pvc")
 	for i := 0; i < 3; i++ {
-		if i == 0 {
-			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), osDepPvcPrefix, metav1.DeleteOptions{})
-		} else {
-			err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoSystemNamespace).Delete(context.TODO(), fmt.Sprintf("%s-%v", osDepPvcPrefix, i), metav1.DeleteOptions{})
-		}
+		err = clientset.CoreV1().PersistentVolumeClaims(constants.VerrazzanoLoggingNamespace).Delete(context.TODO(), fmt.Sprintf("data-%s-%v", osDataStsName, i), metav1.DeleteOptions{})
 		if err != nil {
 			if !k8serror.IsNotFound(err) {
 				t.Logs.Errorf("Unable to delete opensearch data pvc due to '%v'", zap.Error(err))
@@ -241,6 +233,7 @@ func NukeOpensearch() error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -361,13 +354,13 @@ var _ = t.Describe("OpenSearch Backup and Restore,", Label("f:platform-verrazzan
 
 		WhenVeleroInstalledIt("Ensure the pods are not running before starting a restore", func() {
 			Eventually(func() bool {
-				return checkPodsNotRunning(constants.VerrazzanoSystemNamespace, esPods)
+				return checkPodsNotRunning(constants.VerrazzanoLoggingNamespace, esPods)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are down")
 		})
 
 		WhenVeleroInstalledIt("After pods are down check if pvcs are deleted before starting a restore", func() {
 			Eventually(func() error {
-				return common.CheckPvcsTerminated("verrazzano-component=opensearch", constants.VerrazzanoSystemNamespace, t.Logs)
+				return common.CheckPvcsTerminated("opster.io/opensearch-cluster=opensearch", constants.VerrazzanoLoggingNamespace, t.Logs)
 			}, waitTimeout, pollingInterval).Should(BeNil(), "Check if pvcs are removed")
 		})
 
@@ -392,9 +385,9 @@ var _ = t.Describe("OpenSearch Backup and Restore,", Label("f:platform-verrazzan
 	})
 
 	t.Context("OpenSearch Data and Infra verification", func() {
-		WhenVeleroInstalledIt("Wait for all pods to come up in verrazzano-system", func() {
+		WhenVeleroInstalledIt("Wait for all pods to come up in verrazzano-logging", func() {
 			Eventually(func() bool {
-				return checkPodsRunning(constants.VerrazzanoSystemNamespace, esPodsUp)
+				return checkPodsRunning(constants.VerrazzanoLoggingNamespace, esPodsUp)
 			}, waitTimeout, pollingInterval).Should(BeTrue(), "Check if pods are up")
 		})
 		WhenVeleroInstalledIt("Is Restore good? Verify restore", func() {
