@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -36,7 +35,7 @@ const (
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
-	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.yaml"
+	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.goyaml"
 )
 
 var (
@@ -45,8 +44,6 @@ var (
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
 	//verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
 	addonControllerPod = []string{"caapv-controller-manager"}
-	clusterName        = "verrazzano"
-	clusterNamespace   = "default"
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -198,7 +195,7 @@ func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 		return nil, err
 	}
 
-	secret, err := clientset.CoreV1().Secrets(clusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(okeClusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
 	if err != nil {
 		log.Infof("Error fetching secret ", zap.Error(err))
 		return nil, err
@@ -324,7 +321,7 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 		Resource: "verrazzanofleetbindings",
 	}
 
-	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	return dclient.Resource(gvr).Namespace(okeClusterNamespace).Get(context.TODO(), okeClusterName, metav1.GetOptions{})
 }
 
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
@@ -365,37 +362,30 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() bool {
 				return isAddonControllerPodRunning()
 			}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
-		})
-	})
+	t.Context(fmt.Sprintf("Deploy VerrazzanoFleet resource '%s'", okeClusterName), func() {
 
-	t.Context(fmt.Sprintf("Deploy VerrazzanoFleet resource '%s'", clusterName), func() {
-
-		t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", clusterName), func() {
+		t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 			WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 				Eventually(func() error {
-					file, err := pkg.FindTestDataFile(AddonComponentsYamlPath)
-					if err != nil {
-						return err
-					}
-					return resource.CreateOrUpdateResourceFromFileInGeneratedNamespace(file, "default")
+					return ctx.applyVerrazzanoFleet()
 				}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Create verrazzanoFleet resource")
 			})
 
 			WhenClusterAPIInstalledIt("Verify if VerrazzanoFleetBinding resource created", func() {
 				Eventually(func() error {
-					return ensureVerrazzanoFleetBindingExists(clusterName, t.Logs)
+					return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
 				}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
 			})
 
 			WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 				Eventually(func() bool {
-					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, "verrazzano-install", t.Logs)
+					return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
 				}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 			})
 
 			WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
 				Eventually(func() error {
-					return ensureVerrazzano(clusterName, t.Logs)
+					return ensureVerrazzano(okeClusterName, t.Logs)
 				}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 			})
 		})

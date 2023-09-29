@@ -38,10 +38,16 @@ var (
 	//go:embed templates/ociclusteridentity.goyaml
 	ociClusterIdentity []byte
 
+	//go:embed templates/verrazzanofleet-none-profile.goyaml
+	verrazzanoFleet []byte
+
 	clusterTemplateMap = map[string][]byte{
 		Ocneoci: ocneociTemplate,
 		Oke:     okeTemplate,
 	}
+
+	okeClusterName      string
+	okeClusterNamespace string
 )
 
 type (
@@ -102,12 +108,18 @@ func (qc *QCContext) applyOCIClusterIdentity() error {
 	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(ociClusterIdentity, qc.Parameters)
 }
 
+func (qc *QCContext) applyVerrazzanoFleet() error {
+	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(verrazzanoFleet, qc.Parameters)
+}
+
 func (qc *QCContext) applyCluster() error {
 	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(qc.RawObjects, qc.Parameters)
 }
 
 func (qc *QCContext) getInputValues() ([]byte, input, error) {
 	params, err := qc.newParameters()
+	okeClusterName = qc.Parameters[ClusterID].(string)
+	okeClusterNamespace = qc.Namespace
 	if err != nil {
 		return nil, nil, err
 	}

@@ -4,8 +4,8 @@
 apiVersion: addons.cluster.x-k8s.io/v1alpha1
 kind: VerrazzanoFleet
 metadata:
-  name: vzcluster1
-  namespace: default
+  name: {{.CLUSTER_ID}}
+  namespace: {{.NAMESPACE}}
 spec:
   clusterSelector:
     name: verrazzano
