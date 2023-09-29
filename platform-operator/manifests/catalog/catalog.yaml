@@ -17,7 +17,7 @@ modules:
   - name: istio
     version: 1.17.2-1
   - name: rancher
-    version: 2.7.5-2
+    version: 2.7.5-3
   - name: cluster-api
     version: 1.5.0
   - name: verrazzano
