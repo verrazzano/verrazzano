@@ -8,10 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/bom"
 	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -65,17 +63,6 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 	t.Context("Verify upgrade-required checks", func() {
 		t.It("Upgrade-required validator test", func() {
 
-			// Check the supported
-			isSupportedVersion, err := minSupportedVersion()
-			if err != nil {
-				t.Fail(fmt.Sprintf("Error checking supported Verrazzano version: %s", err.Error()))
-				return
-			}
-			if !isSupportedVersion {
-				t.Logs.Infof("Test valid only for Verrazzano versions 1.3.0 and higher")
-				return
-			}
-
 			var vz *vzalpha1.Verrazzano
 			Eventually(func() (*vzalpha1.Verrazzano, error) {
 				vz, err = pkg.GetVerrazzano()
@@ -114,32 +101,7 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 			// This should fail with a webhook validation error
 			err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, vz)
 			t.Logs.Infof("Returned error: %s", err.Error())
-			Expect(err).Should(Not(BeNil()))
+			Expect(err).Should(HaveOccurred())
 		})
 	})
 })
-
-func minSupportedVersion() (bool, error) {
-	bomData, err := k8sutil.GetInstalledBOMData("")
-	if err != nil {
-		return false, err
-	}
-	installedBOM, err := bom.NewBOMFromJSON(bomData)
-	if err != nil {
-		return false, err
-	}
-	vpoVersion, err := semver.NewSemVersion(installedBOM.GetVersion())
-	if err != nil {
-		return false, err
-	}
-	supportedVersion, err := semver.NewSemVersion("v1.3.0")
-	if err != nil {
-		return false, err
-	}
-	if vpoVersion.IsLessThan(supportedVersion) {
-		t.Logs.Infof("Verrazzano is NOT at supported version for test: %s", vpoVersion.ToString())
-		return false, nil
-	}
-	t.Logs.Infof("Verrazzano is at supported version (1.3.0+) for test: %s", vpoVersion.ToString())
-	return true, nil
-}
