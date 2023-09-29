@@ -271,28 +271,26 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy Quick Create Clusters in parallel') {
-                    stage('Deploy Quick Create OKE Cluster') {
-                        when {
-                            expression { params.DEPLOY_OKE_CLUSTER == true }
+                stage('Deploy Quick Create OKE Cluster') {
+                    when {
+                        expression { params.DEPLOY_OKE_CLUSTER == true }
+                    }
+                    steps {
+                        runQuickCreateSuite('oke')
+                    }
+                    post {
+                        always {
+                            archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
+                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
                         }
-                        steps {
-                            runQuickCreateSuite('oke')
-                        }
-                        post {
-                            always {
-                                archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                                junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                            }
-                            failure {
-                                script {
-                                    dumpK8sCluster('oke-deploy-failure')
-                                }
-                            }
+                        failure {
+                            script {
+                            dumpK8sCluster('oke-deploy-failure')
                         }
                     }
                 }
             }
+        }
 
             post {
                 aborted {
