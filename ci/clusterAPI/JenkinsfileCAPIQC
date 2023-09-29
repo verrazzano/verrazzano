@@ -275,23 +275,6 @@ pipeline {
                     parallel {
                         stage('Deploy Quick Create OCNEOCI Cluster') {
                         echo "empty stage"
-                        /*    when {
-                                expression { params.DEPLOY_OCNEOCI_CLUSTER == true }
-                            }
-                            steps {
-                                runQuickCreateSuite('ocneoci')
-                            }
-                            post {
-                                always {
-                                    archiveArtifacts artifacts: '**/coverage.html,**/logs/*,**/test-cluster-dumps/**', allowEmptyArchive: true
-                                    junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                                }
-                                failure {
-                                    script {
-                                        dumpK8sCluster('ocne-deploy-failure')
-                                    }
-                                }
-                            }*/
                         }
                         stage('Deploy Quick Create OKE Cluster') {
                             when {
