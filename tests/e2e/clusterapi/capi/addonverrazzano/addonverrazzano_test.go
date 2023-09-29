@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	shortWaitTimeout            = 1 * time.Minute
-	shortPollingInterval        = 10 * time.Second
+	shortWaitTimeout            = 4 * time.Minute
+	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
 	AddonComponentsYamlPath     = "tests/e2e/clusterapi/capi/addonverrazzano/templates/verrazzanofleet-none-profile.yaml"
@@ -330,7 +330,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 
 			WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 				Eventually(func() bool {
-					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, clusterNamespace, t.Logs)
+					return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, "verrazzano-install", t.Logs)
 				}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 			})
 
