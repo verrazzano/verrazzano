@@ -47,9 +47,22 @@ var (
 	}
 )
 
+// ApplyManifestFile applies the file present in the thirdparty/manifest directory with the given args
+func ApplyManifestFile(ctx spi.ComponentContext, fileName string, args map[string]interface{}) error {
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), fileName)
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err := yamlApplier.ApplyFT(filePath, args)
+
+	return err
+}
+
 // BuildArgsForOpenSearchCR gets the required values from VZ CR and converts them to yaml templates
 func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
 	args := make(map[string]interface{})
+
+	args["clusterName"] = clusterName
+	args["namespace"] = constants.VerrazzanoLoggingNamespace
 
 	masterNode := getMasterNode(ctx)
 	if len(masterNode) <= 0 {
@@ -120,7 +133,7 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 
 	kvs, err := GetVMOImagesOverrides()
 	if err != nil {
-		return args, err
+		return args, ctx.Log().ErrorfNewErr("Failed to get Opensearch images from BOM: %v", err)
 	}
 
 	for _, kv := range kvs {
