@@ -4,10 +4,18 @@
 package opensearch
 
 import (
+	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"path"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -19,7 +27,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -142,6 +149,11 @@ func (o opensearchComponent) PostUninstall(context spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(context, fluentbitFilterAndParserTemplate, ComponentNamespace, true); err != nil {
 		return err
 	}
+
+	if err := o.deleteIntegrationConfigmap(context); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -183,6 +195,11 @@ func (o opensearchComponent) PostInstall(ctx spi.ComponentContext) error {
 	if err := common.CreateOrDeleteFluentbitFilterAndParser(ctx, fluentbitFilterAndParserTemplate, ComponentNamespace, false); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return common.CheckIngressesAndCerts(ctx, o)
 }
 
@@ -192,6 +209,11 @@ func (o opensearchComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	if err := common.CheckIngressesAndCerts(ctx, o); err != nil {
 		return err
 	}
+
+	if err := o.createIntegrationConfigmap(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -285,4 +307,31 @@ func (o opensearchComponent) GetCertificateNames(_ spi.ComponentContext) []types
 			Name:      osCertificateName,
 		},
 	}
+}
+
+// createIntegrationConfigmap creates the integration configmap needed to trigger integration operator reconciles
+func (o opensearchComponent) createIntegrationConfigmap(ctx spi.ComponentContext) error {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OpenSearchIntegrationConfigMapName,
+			Namespace: constants.VerrazzanoInstallNamespace,
+		},
+	}
+	_, err := controllerutil.CreateOrUpdate(context.TODO(), ctx.Client(), cm, func() error {
+		// nothing to do, configmap is empty
+		return nil
+	})
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create or update OpenSearch integration configmap: %v", err)
+		return err
+	}
+	return nil
+}
+
+// createIntegrationConfigmap deletes the integration configmap needed to trigger integration operator reconciles
+func (o opensearchComponent) deleteIntegrationConfigmap(ctx spi.ComponentContext) error {
+	res := []client.Object{
+		&corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: constants.OpenSearchIntegrationConfigMapName, Namespace: constants.VerrazzanoInstallNamespace}},
+	}
+	return resource.CleanupResources(ctx, res)
 }
