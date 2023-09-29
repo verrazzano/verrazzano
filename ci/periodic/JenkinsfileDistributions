@@ -121,6 +121,7 @@ pipeline {
             post {
                 always {
                     archiveArtifacts artifacts: '**/image-sizes.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '${WORKSPACE}/image-sizes.txt', allowEmptyArchive: true
                 }
             }
         }
