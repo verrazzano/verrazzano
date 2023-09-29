@@ -102,7 +102,9 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 
 			// This should fail with a webhook validation error
 			err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, vz, client.DryRunAll)
-			t.Logs.Infof("Returned error: %s", err.Error())
+			if err != nil {
+				t.Logs.Infof("Returned error: %s", err.Error())
+			}
 			Expect(err).Should(HaveOccurred())
 		})
 	})
