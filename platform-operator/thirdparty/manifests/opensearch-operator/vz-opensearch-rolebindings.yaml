@@ -7,7 +7,7 @@ apiVersion: opensearch.opster.io/v1
 kind: OpensearchUserRoleBinding
 metadata:
   name: vz-log-pusher-rb
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .namespace }}
 spec:
   opensearchCluster:
     name: opensearch
@@ -22,7 +22,7 @@ apiVersion: opensearch.opster.io/v1
 kind: OpensearchUserRoleBinding
 metadata:
   name: vz-opensearch-admin-rb
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .namespace }}
 spec:
   opensearchCluster:
     name: opensearch
@@ -37,7 +37,7 @@ apiVersion: opensearch.opster.io/v1
 kind: OpensearchUserRoleBinding
 metadata:
   name: vz-metrics-fetcher-rb
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .namespace }}
 spec:
   opensearchCluster:
     name: opensearch

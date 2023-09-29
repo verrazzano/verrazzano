@@ -7,7 +7,7 @@ apiVersion: opensearch.opster.io/v1
 kind: OpensearchRole
 metadata:
   name: vz-log-pusher
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .namespace }}
 spec:
   opensearchCluster:
     name: opensearch
@@ -33,7 +33,7 @@ apiVersion: opensearch.opster.io/v1
 kind: OpensearchRole
 metadata:
   name: vz-metrics-fetcher
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ .namespace }}
 spec:
   opensearchCluster:
     name: opensearch

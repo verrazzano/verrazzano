@@ -47,9 +47,35 @@ var (
 	}
 )
 
-// BuildArgsForOpenSearchCR gets the required values from VZ CR and converts them to yaml templates
-func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
+// ApplyManifestFile applies the file present in the thirdparty/manifest directory with the given args
+func ApplyManifestFile(ctx spi.ComponentContext, fileName string, args map[string]interface{}) error {
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), fileName)
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err := yamlApplier.ApplyFT(filePath, args)
+
+	return err
+}
+
+// ApplyOSRolesAndMappings applies the files which creates the required roles and mappings in OpenSearch
+func ApplyOSRolesAndMappings(ctx spi.ComponentContext) error {
 	args := make(map[string]interface{})
+
+	args["namespace"] = constants.VerrazzanoLoggingNamespace
+
+	if err := ApplyManifestFile(ctx, "opensearch-operator/vz-opensearch-roles.yaml", args); err != nil {
+		return err
+	}
+
+	return ApplyManifestFile(ctx, "opensearch-operator/vz-opensearch-rolebindings.yaml", args)
+}
+
+// BuildArgsForOpenSearchCR gets the required values from VZ CR and converts them to yaml templates
+func BuildArgsForOpenSearchCR(ctx spi.ComponentContext, enableDashboards bool) (map[string]interface{}, error) {
+	args := make(map[string]interface{})
+
+	args["clusterName"] = clusterName
+	args["namesapce"] = constants.VerrazzanoLoggingNamespace
 
 	masterNode := getMasterNode(ctx)
 	if len(masterNode) <= 0 {
@@ -58,7 +84,11 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 	effectiveCR := ctx.EffectiveCR()
 
 	args["isOpenSearchEnabled"] = vzcr.IsOpenSearchEnabled(effectiveCR)
-	args["isOpenSearchDashboardsEnabled"] = vzcr.IsOpenSearchDashboardsEnabled(effectiveCR)
+
+	// This function is called from both OS and OSD component
+	// We don't want to enable the dashboards when called from OS install/upgrade
+	// Enable dashboards if it is enabled and from Install/Upgrade of OpensearchDashboards component
+	args["isOpenSearchDashboardsEnabled"] = vzcr.IsOpenSearchDashboardsEnabled(effectiveCR) && enableDashboards
 
 	// Bootstrap pod overrides
 	args["bootstrapConfig"] = ""
@@ -120,7 +150,7 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 
 	kvs, err := GetVMOImagesOverrides()
 	if err != nil {
-		return args, err
+		return args, ctx.Log().ErrorfNewErr("Failed to get Opensearch images from BOM: %v", err)
 	}
 
 	for _, kv := range kvs {

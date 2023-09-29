@@ -9,6 +9,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
@@ -59,7 +60,7 @@ func (d opensearchDashboardsComponent) ShouldUseModule() bool {
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
 func (d opensearchDashboardsComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 	return watch.CombineWatchDescriptors(
-		watch.GetModuleInstalledWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName}),
-		watch.GetModuleUpdatedWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName}),
+		watch.GetModuleInstalledWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName, opensearch.ComponentName}),
+		watch.GetModuleUpdatedWatches([]string{opensearchoperator.ComponentName, fluentoperator.ComponentName, opensearch.ComponentName}),
 	)
 }

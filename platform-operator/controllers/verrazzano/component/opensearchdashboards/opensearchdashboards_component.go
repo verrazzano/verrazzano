@@ -6,6 +6,7 @@ package opensearchdashboards
 import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"path"
 
@@ -55,7 +56,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, opensearchoperator.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, opensearchoperator.ComponentName, fluentoperator.ComponentName, opensearch.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
@@ -116,7 +117,7 @@ func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) erro
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
 	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
-	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	args, err := common.BuildArgsForOpenSearchCR(ctx, true)
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,7 @@ func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) erro
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
-	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	args, err := common.BuildArgsForOpenSearchCR(ctx, true)
 	if err != nil {
 		return err
 	}

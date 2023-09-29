@@ -5,6 +5,7 @@ package opensearchoperator
 
 import (
 	"context"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -52,7 +53,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "manager.imagePullSecrets[0]",
-			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName, vmo.ComponentName},
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},

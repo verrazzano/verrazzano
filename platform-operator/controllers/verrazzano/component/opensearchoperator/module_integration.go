@@ -8,6 +8,7 @@ import (
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 )
 
 // GetWatchDescriptors returns the list of WatchDescriptors for objects being watched by the component
@@ -16,10 +17,12 @@ func (o opensearchOperatorComponent) GetWatchDescriptors() []controllerspi.Watch
 		watch.GetModuleInstalledWatches([]string{
 			nginx.ComponentName,
 			cmconstants.ClusterIssuerComponentName,
+			vmo.ComponentName,
 		}),
 		watch.GetModuleUpdatedWatches([]string{
 			nginx.ComponentName,
 			cmconstants.ClusterIssuerComponentName,
+			vmo.ComponentName,
 		}),
 	)
 }
