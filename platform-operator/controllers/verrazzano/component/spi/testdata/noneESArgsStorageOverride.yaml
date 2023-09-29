@@ -118,6 +118,7 @@ spec:
               memory: 3G
           roles:
             - master
+            - data
       plugins:
         enabled: false
     fluentOperator:
@@ -320,4 +321,6 @@ spec:
     weblogicOperator:
       enabled: false
     dex:
+      enabled: false
+    opensearchOperator:
       enabled: false

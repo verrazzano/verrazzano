@@ -14,24 +14,25 @@ import (
 )
 
 const (
-	rootDir                      = "/verrazzano"
-	platformDirSuffix            = "/platform-operator"
-	profilesDirSuffix            = "/platform-operator/manifests/profiles"
-	installDirSuffix             = "/platform-operator/scripts/install"
-	thirdPartyDirSuffix          = "/platform-operator/thirdparty/charts"
-	thirdPartyManifestsDirSuffix = "/platform-operator/thirdparty/manifests"
-	helmConfigDirSuffix          = "/platform-operator/helm_config"
-	helmChartsDirSuffix          = "/platform-operator/helm_config/charts"
-	helmVPOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
-	helmVMOChartsDirSuffix       = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
-	helmAppOpChartsDirSuffix     = "/platform-operator/helm_config/charts/verrazzano-application-operator"
-	helmClusterOpChartsDirSuffix = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
-	helmKialiChartsDirSuffix     = "/platform-operator/thirdparty/charts/kiali-server"
-	helmPromOpChartsDirSuffix    = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
-	helmOamChartsDirSuffix       = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
-	helmOverridesDirSuffix       = "/platform-operator/helm_config/overrides"
-	integrationChartsDirSuffix   = "/platform-operator/experimental/manifests/integration-charts"
-	catalogDirSuffix             = "/platform-operator/manifests/catalog"
+	rootDir                         = "/verrazzano"
+	platformDirSuffix               = "/platform-operator"
+	profilesDirSuffix               = "/platform-operator/manifests/profiles"
+	installDirSuffix                = "/platform-operator/scripts/install"
+	thirdPartyDirSuffix             = "/platform-operator/thirdparty/charts"
+	thirdPartyManifestsDirSuffix    = "/platform-operator/thirdparty/manifests"
+	helmConfigDirSuffix             = "/platform-operator/helm_config"
+	helmChartsDirSuffix             = "/platform-operator/helm_config/charts"
+	helmVPOChartsDirSuffix          = "/platform-operator/helm_config/charts/verrazzano-platform-operator"
+	helmVMOChartsDirSuffix          = "/platform-operator/helm_config/charts/verrazzano-monitoring-operator"
+	helmAppOpChartsDirSuffix        = "/platform-operator/helm_config/charts/verrazzano-application-operator"
+	helmClusterOpChartsDirSuffix    = "/platform-operator/helm_config/charts/verrazzano-cluster-operator"
+	helmKialiChartsDirSuffix        = "/platform-operator/thirdparty/charts/kiali-server"
+	helmPromOpChartsDirSuffix       = "/platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack"
+	helmOamChartsDirSuffix          = "/platform-operator/thirdparty/charts/oam-kubernetes-runtime"
+	helmOpenSearchOpChartsDirSuffix = "/platform-operator/thirdparty/charts/opensearch-operator"
+	helmOverridesDirSuffix          = "/platform-operator/helm_config/overrides"
+	integrationChartsDirSuffix      = "/platform-operator/experimental/manifests/integration-charts"
+	catalogDirSuffix                = "/platform-operator/manifests/catalog"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -104,9 +105,6 @@ type OperatorConfig struct {
 
 	// DryRun Run installs in a dry-run mode
 	DryRun bool
-
-	// Module Itegration feature flag toggles the VPO to use the new Verrazzano controllers with modules
-	ModuleIntegration bool
 }
 
 // The singleton instance of the operator config
@@ -125,7 +123,6 @@ var instance = OperatorConfig{
 	MySQLCheckPeriodSeconds:        60,
 	NamespacePeriodSeconds:         60,
 	MySQLRepairTimeoutSeconds:      120,
-	ModuleIntegration:              true,
 }
 
 // Set saves the operator config.  This should only be called at operator startup and during unit tests
@@ -184,6 +181,13 @@ func GetHelmClusterOpChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-cluster-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmClusterOpChartsDirSuffix)
+}
+
+func GetHelmOpenSearchOpChartsDir() string {
+	if TestHelmConfigDir != "" {
+		return filepath.Join(TestHelmConfigDir, "/charts/opensearch-operator")
+	}
+	return filepath.Join(instance.VerrazzanoRootDir, helmOpenSearchOpChartsDirSuffix)
 }
 
 // GetHelmPromOpChartsDir returns the Prometheus Operator helm charts dir

@@ -64,11 +64,29 @@ func AppendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 	effectiveCR := ctx.EffectiveCR()
 	// Overrides object to store any user overrides
 	overrides := authProxyValues{}
+	opensearchConfig := opensearchValues{
+		Namespace:  ComponentNamespace,
+		Protocol:   "http",
+		Service:    "vmi-system-os-ingest",
+		OSDService: "vmi-system-osd",
+	}
 
 	// Environment name
 	overrides.Config = &configValues{
 		EnvName:          vzconfig.GetEnvName(effectiveCR),
 		IngressClassName: vzconfig.GetIngressClassName(effectiveCR),
+		OpenSearch:       &opensearchConfig,
+	}
+
+	isLegacyOS, err := common.IsLegacyOS(ctx)
+	if err != nil {
+		return kvs, err
+	}
+	if !isLegacyOS {
+		overrides.Config.OpenSearch.Namespace = constants.VerrazzanoLoggingNamespace
+		overrides.Config.OpenSearch.Protocol = "https"
+		overrides.Config.OpenSearch.Service = "opensearch"
+		overrides.Config.OpenSearch.OSDService = "opensearch-dashboards"
 	}
 
 	// DNS Suffix

@@ -32,7 +32,7 @@ data:
   namespace: verrazzano-logging
   overrides: |-
     ingress:
-      openSearch:
+      opensearch:
         enable: true
         annotations:
           cert-manager.io/common-name: opensearch.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
@@ -53,7 +53,7 @@ data:
             hosts:
               - opensearch.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
 
-      openSearchDashboards:
+      opensearchDashboards:
         enable: true
         annotations:
           cert-manager.io/common-name: osd.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
@@ -73,7 +73,7 @@ data:
           - secretName: tls-osd-ingress
             hosts:
               - osd.logging.{{ .EnvironmentName }}.{{ .DNSSuffix }}
-    openSearchCluster:
+    opensearchCluster:
       enabled: true
       name: opensearch
       security:

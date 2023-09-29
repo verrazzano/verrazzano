@@ -8,21 +8,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
+	"text/template"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
-	clusterapi "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	rbac "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"text/template"
 )
-
-const rbacGroup = "rbac.authorization.k8s.io"
 
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
@@ -77,6 +77,13 @@ const (
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
+	defaultClusterAPIDir                      = "/verrazzano/.cluster-api"
+	clusterAPIDirEnv                          = "VERRAZZANO_CLUSTER_API_DIR"
+	providerLabel                             = "cluster.x-k8s.io/provider"
+	clusterAPIProvider                        = "cluster-api"
+	bootstrapOcneProvider                     = "bootstrap-ocne"
+	controlPlaneOcneProvider                  = "control-plane-ocne"
+	infrastructureOciProvider                 = "infrastructure-oci"
 )
 
 type ImageConfig struct {
@@ -93,12 +100,12 @@ type PodMatcherClusterAPI struct {
 	infrastructureProvider string
 }
 
-const (
-	defaultClusterAPIDir = "/verrazzano/.cluster-api"
-	clusterAPIDirEnv     = "VERRAZZANO_CLUSTER_API_DIR"
-)
-
 var clusterAPIDir = defaultClusterAPIDir
+var providerGVR = schema.GroupVersionResource{
+	Group:    "clusterctl.cluster.x-k8s.io",
+	Version:  "v1alpha3",
+	Resource: "providers",
+}
 
 // Functions needed for unit testing to set and reset .cluster-api directory
 func setClusterAPIDir(dir string) {
@@ -119,6 +126,7 @@ func getClusterAPIDir() string {
 func preInstall(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -130,6 +138,7 @@ func preInstall(ctx spi.ComponentContext) error {
 func preUpgrade(ctx spi.ComponentContext) error {
 	err := setEnvVariables()
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to set environment variables needed by cluster-api providers: %v", err)
 		return err
 	}
 
@@ -166,24 +175,32 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	// Get the image overrides and versions for the CAPI images.
 	overrides, err := createOverrides(ctx)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create image overrides: %v", err)
 		return err
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
 	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to apply template for creating clusterctl.yaml: %v", err)
 		return err
 	}
 
 	err = os.Mkdir(getClusterAPIDir(), 0755)
 	if err != nil {
 		if !os.IsExist(err) {
+			ctx.Log().ErrorfThrottled("Failed to create directory %s: %v", getClusterAPIDir(), err)
 			return err
 		}
 	}
 
 	// Create the clusterctl.yaml used when initializing CAPI.
-	return os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
+	err = os.WriteFile(getClusterAPIDir()+"/clusterctl.yaml", result.Bytes(), 0600)
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create file %s: %v", getClusterAPIDir()+"/clusterctl.yaml", err)
+	}
+
+	return err
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
@@ -227,9 +244,9 @@ func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersio
 }
 
 // MatchAndPrepareUpgradeOptions when a pod has an outdated cluster api controllers images and prepares upgrade options for outdated images.
-func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (clusterapi.ApplyUpgradeOptions, error) {
+func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentContext, overrides OverridesInterface) (capiUpgradeOptions, error) {
 	c.initializeImageVersionsOverrides(ctx.Log(), overrides)
-	applyUpgradeOptions := clusterapi.ApplyUpgradeOptions{}
+	applyUpgradeOptions := capiUpgradeOptions{}
 	podList := &v1.PodList{}
 	if err := ctx.Client().List(context.TODO(), podList, &client.ListOptions{Namespace: ComponentNamespace}); err != nil {
 		return applyUpgradeOptions, err
@@ -257,52 +274,109 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 }
 
 // isUpgradeOptionsNotEmpty returns true if any of the options is not empty
-func isUpgradeOptionsNotEmpty(upgradeOptions clusterapi.ApplyUpgradeOptions) bool {
+func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) != 0 ||
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
 		len(upgradeOptions.InfrastructureProviders) != 0
 }
 
-func getComponentsToUpgrade(c clusterapi.Client, options clusterapi.ApplyUpgradeOptions) ([]client.Object, error) {
-	var components []unstructured.Unstructured
+func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {
 	var componentObjects []client.Object
+
 	if options.CoreProvider != "" {
-		coreComponents, err := c.GetProviderComponents(clusterAPIProviderName, v1alpha3.CoreProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		coreComponents, err := getComponentsForProviderType(c, clusterAPIProvider, constants.VerrazzanoCAPINamespace)
 		if err != nil {
 			return componentObjects, err
 		}
-		components = append(components, coreComponents.Objs()...)
+		componentObjects = append(componentObjects, coreComponents...)
 	}
 
 	if len(options.BootstrapProviders) != 0 {
-		boostrapComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.BootstrapProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		boostrapComponents, err := getComponentsForProviderType(c, bootstrapOcneProvider, constants.VerrazzanoCAPINamespace)
 		if err != nil {
 			return componentObjects, err
 		}
-		components = append(components, boostrapComponents.Objs()...)
+		componentObjects = append(componentObjects, boostrapComponents...)
 	}
 
 	if len(options.ControlPlaneProviders) != 0 {
-		controlPlaneComponents, err := c.GetProviderComponents(ocneProviderName, v1alpha3.ControlPlaneProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		controlPlaneComponents, err := getComponentsForProviderType(c, controlPlaneOcneProvider, constants.VerrazzanoCAPINamespace)
 		if err != nil {
 			return componentObjects, err
 		}
-		components = append(components, controlPlaneComponents.Objs()...)
+		componentObjects = append(componentObjects, controlPlaneComponents...)
 	}
 
 	if len(options.InfrastructureProviders) != 0 {
-		infrastructureComponents, err := c.GetProviderComponents(
-			ociProviderName, v1alpha3.InfrastructureProviderType, clusterapi.ComponentsOptions{TargetNamespace: constants.VerrazzanoCAPINamespace})
+		infrastructureComponents, err := getComponentsForProviderType(c, infrastructureOciProvider, constants.VerrazzanoCAPINamespace)
 		if err != nil {
 			return componentObjects, err
 		}
-		components = append(components, infrastructureComponents.Objs()...)
-	}
-	for i := range components {
-		if components[i].GetObjectKind().GroupVersionKind().Group == rbacGroup {
-			componentObjects = append(componentObjects, &components[i])
-		}
+		componentObjects = append(componentObjects, infrastructureComponents...)
 	}
 	return componentObjects, nil
+}
+
+// getComponentsForProviderType - return a list of ClusterRoles, ClusterRoleBindings, Roles and RoleBindings that are associated with provider specified.
+func getComponentsForProviderType(c client.Client, providerName string, namespace string) ([]client.Object, error) {
+	var objs []client.Object
+
+	// ClusterRoles
+	clusterRoles := &rbac.ClusterRoleList{}
+	if err := c.List(context.TODO(), clusterRoles, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range clusterRoles.Items {
+		objs = append(objs, &clusterRoles.Items[i])
+	}
+
+	// ClusterRoleBindings
+	clusterRoleBindings := &rbac.ClusterRoleBindingList{}
+	if err := c.List(context.TODO(), clusterRoleBindings, &client.ListOptions{LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName})}); err != nil {
+		return objs, err
+	}
+	for i := range clusterRoleBindings.Items {
+		objs = append(objs, &clusterRoleBindings.Items[i])
+	}
+
+	// Roles
+	roles := &rbac.RoleList{}
+	if err := c.List(context.TODO(), roles, &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
+	}); err != nil {
+		return objs, err
+	}
+	for i := range roles.Items {
+		objs = append(objs, &roles.Items[i])
+	}
+
+	// RoleBindings
+	roleBindings := &rbac.RoleBindingList{}
+	if err := c.List(context.TODO(), roleBindings, &client.ListOptions{
+		Namespace:     namespace,
+		LabelSelector: labels.SelectorFromSet(labels.Set{providerLabel: providerName}),
+	}); err != nil {
+		return objs, err
+	}
+	for i := range roleBindings.Items {
+		objs = append(objs, &roleBindings.Items[i])
+	}
+
+	return objs, nil
+}
+
+// checkClusterAPIDeployment checks for the existence of a deployment for a cluster api provider
+func checkClusterAPIDeployment(ctx spi.ComponentContext, deploymentName string) (bool, error) {
+	deployment := &appsv1.Deployment{}
+	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: deploymentName}, deployment)
+	if errors.IsNotFound(err) {
+		return false, nil
+	}
+	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to get %s/%s deployment: %v", ComponentNamespace, deploymentName, err)
+		return false, err
+	}
+	return true, nil
 }

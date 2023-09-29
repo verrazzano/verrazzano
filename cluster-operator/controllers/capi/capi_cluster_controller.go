@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -19,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -48,15 +48,9 @@ type CAPIClusterReconciler struct {
 	VerrazzanoRegistrar *VerrazzanoRegistration
 }
 
-var gvk = schema.GroupVersionKind{
-	Group:   "cluster.x-k8s.io",
-	Version: "v1beta1",
-	Kind:    "Cluster",
-}
-
 func CAPIClusterClientObject() client.Object {
 	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(gvk)
+	obj.SetGroupVersionKind(capi.GVKCAPICluster)
 	return obj
 }
 
@@ -72,7 +66,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	r.Log.Infof("Reconciling CAPI cluster: %v", req.NamespacedName)
 
 	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(gvk)
+	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
 	err := r.Get(context.TODO(), req.NamespacedName, cluster)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrl.Result{}, err

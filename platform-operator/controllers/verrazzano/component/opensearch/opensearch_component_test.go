@@ -34,6 +34,7 @@ const (
 	podtemplatehash      = "pod-template-hash"
 	depKube              = "deployment.kubernetes.io/revision"
 	systemesingest       = "system-es-ingest"
+	testBomFilePath      = "../../../../verrazzano-bom.json"
 )
 
 var dnsComponents = vzapi.ComponentSpec{
@@ -61,7 +62,8 @@ func TestPreUpgrade(t *testing.T) {
 	// The actual pre-upgrade testing is performed by the underlying unit tests, this just adds coverage
 	// for the Component interface hook
 	config.TestHelmConfigDir = "../../../../helm_config"
-	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false))
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	err := NewComponent().PreUpgrade(spi.NewFakeContext(fake.NewClientBuilder().WithScheme(testScheme).Build(), &vzapi.Verrazzano{}, nil, false, profilesRelativePath))
 	assert.NoError(t, err)
 }
 
@@ -94,7 +96,7 @@ func TestShouldInstallBeforeUpgrade(t *testing.T) {
 //	THEN a string array containing different dependencies is returned
 func TestGetDependencies(t *testing.T) {
 	strArray := NewComponent().GetDependencies()
-	expArray := []string{"verrazzano-network-policies", "verrazzano-monitoring-operator", fluentoperator.ComponentName}
+	expArray := []string{"verrazzano-network-policies", "opensearch-operator", fluentoperator.ComponentName}
 	assert.Equal(t, expArray, strArray)
 
 }
@@ -642,11 +644,16 @@ func TestPreInstall(t *testing.T) {
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
 	c := createPreInstallTestClient()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Components: dnsComponents,
 		},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Install(ctx)
 	assert.NoError(t, err)
 }
@@ -772,13 +779,18 @@ func TestGetCertificateNames(t *testing.T) {
 //	THEN no error is returned
 func TestUpgrade(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(testScheme).Build()
+	config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
+	config.SetDefaultBomFilePath(testBomFilePath)
+	defer func() {
+		config.SetDefaultBomFilePath("")
+	}()
 	ctx := spi.NewFakeContext(c, &vzapi.Verrazzano{
 		Spec: vzapi.VerrazzanoSpec{
 			Version:    "v1.2.0",
 			Components: dnsComponents,
 		},
 		Status: vzapi.VerrazzanoStatus{Version: "1.1.0"},
-	}, nil, false)
+	}, nil, false, profilesRelativePath)
 	err := NewComponent().Upgrade(ctx)
 	assert.NoError(t, err)
 }

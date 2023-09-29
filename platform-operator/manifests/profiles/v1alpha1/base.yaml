@@ -250,6 +250,8 @@ spec:
       replicas: 1
     oam:
       enabled: true
+    opensearchOperator:
+      enabled: true
     prometheus:
       enabled: true
     prometheusOperator:

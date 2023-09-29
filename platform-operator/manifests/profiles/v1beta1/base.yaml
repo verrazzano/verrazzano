@@ -259,6 +259,8 @@ spec:
     opensearchDashboards:
       enabled: true
       replicas: 1
+    opensearchOperator:
+      enabled: true
     prometheus:
       enabled: true
     prometheusAdapter:

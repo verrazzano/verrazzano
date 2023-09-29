@@ -5,13 +5,13 @@ package helpers
 
 import (
 	"fmt"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -34,6 +34,13 @@ func CreateVerrazzanoObjectWithVersion() client.Object {
 	vz.Status = v1beta1.VerrazzanoStatus{
 		Version: pinnedVersion,
 	}
+	gvk := schema.GroupVersionKind{
+		Group:   "install.verrazzano.io",
+		Version: "v1beta1",
+		Kind:    "Verrazzano",
+	}
+	vz.SetGroupVersionKind(gvk)
+
 	return vz
 }
 

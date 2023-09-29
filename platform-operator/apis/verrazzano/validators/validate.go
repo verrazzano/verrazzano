@@ -139,6 +139,10 @@ func ValidateNewVersion(currStatusVerString string, currSpecVerString string, ne
 			newSpecVer.ToString(), bomVersion.ToString())
 	}
 
+	if currStatusVerString == "" {
+		return nil
+	}
+
 	// Make sure this isn't a rollback attempt from the currently installed version, which is currently unsupported
 	// - use case is, user rolls back to an earlier version of the platform operator and requests the older BOM version
 	currentStatusVersion, err := semver.NewSemVersion(strings.TrimSpace(currStatusVerString))

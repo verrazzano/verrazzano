@@ -14,6 +14,9 @@ const VerrazzanoInstallNamespace = "verrazzano-install"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoLoggingNamespace is the namespace for logging components
+const VerrazzanoLoggingNamespace = "verrazzano-logging"
+
 // Verrazzano is the name of the Verrazzano secret in the Verrazzano system namespace
 const Verrazzano = "verrazzano"
 
@@ -81,10 +84,14 @@ const ClusterNameEnvVar = "CLUSTER_NAME"
 const OpensearchURLEnvVar = "OPENSEARCH_URL"
 
 // OpensearchIngress is the name of the ingress for Opensearch
-const OpensearchIngress = "vmi-system-os-ingest"
+const OpensearchIngress = "opensearch"
+
+const LegacyOpensearchIngress = "vmi-system-os-ingest"
 
 // OpensearchdashboardsIngress is the name of the ingress for Opensearchdashboards
-const OpensearchDashboardsIngress = "vmi-system-osd"
+const OpensearchDashboardsIngress = "opensearch-dashboards"
+
+const LegacyOpensearchDashboardsIngress = "vmi-system-osd"
 
 // GrafanaIngress is the name of the ingress for Grafana
 const GrafanaIngress = "vmi-system-grafana"
@@ -296,3 +303,6 @@ const DexIngress = "dex"
 
 // DexHostPrefix - the prefix of the Dex host
 const DexHostPrefix = "auth"
+
+// OpenSearchIntegrationConfigMap - the name of the OpenSearch integration configmap
+const OpenSearchIntegrationConfigMapName = "opensearch-integration"

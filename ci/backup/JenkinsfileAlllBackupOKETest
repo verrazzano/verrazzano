@@ -358,11 +358,11 @@ pipeline {
                 DUMP_DIRECTORY="${TEST_DUMP_ROOT}/backup/opensearch"
             }
             steps {
-                println("Checking all pods in namespace verrazzano-system are ready before start of test")
-                waitForPodsToBeUp("verrazzano-system")
+                println("Checking all pods in namespace verrazzano-logging are ready before start of test")
+                waitForPodsToBeUp("verrazzano-logging")
                 runGinkgoRandomize('backup/opensearch')
-                println("Checking all pods in namespace verrazzano-system are ready after test completion")
-                waitForPodsToBeUp("verrazzano-system")
+                println("Checking all pods in namespace verrazzano-logging are ready after test completion")
+                waitForPodsToBeUp("verrazzano-logging")
             }
             post {
                 always {
@@ -488,11 +488,6 @@ pipeline {
         failure {
             script {
                 archiveArtifacts artifacts: '**/oke_kubeconfig,**/coverage.html,**/logs/**,**/build/resources/**,**/verrazzano_images.txt,**/*full-cluster*/**,**/bug-report/**', allowEmptyArchive: true
-                script {
-                    if (env.JOB_NAME == "verrazzano-uninstall-test/master" || env.JOB_NAME ==~ "verrazzano-uninstall-test/release-*") {
-                        slackSend ( message: "Job Failed - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}" )
-                    }
-                }
             }
         }
         cleanup {
@@ -523,7 +518,7 @@ def deleteBucket(bucketName) {
 
 def waitForPodsToBeUp(namespace) {
     sh """
-         kubectl wait -n ${namespace} --for=condition=ready pod --all --timeout 10m
+         kubectl wait --selector='!job-name' -n ${namespace} --for=condition=ready pod --all --timeout 10m
     """
 }
 

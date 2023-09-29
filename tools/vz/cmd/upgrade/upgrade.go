@@ -5,14 +5,11 @@ package upgrade
 
 import (
 	"fmt"
-	"time"
-
-	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/kubectlutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -20,6 +17,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
+	"time"
 )
 
 const (
@@ -66,6 +65,9 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 
 	// Hide the flag for overriding the default wait timeout for the platform-operator
 	cmd.PersistentFlags().MarkHidden(constants.VPOTimeoutFlag)
+
+	// Set Flag for setting args
+	cmd.PersistentFlags().StringArrayP(constants.SetFlag, constants.SetFlagShorthand, []string{}, constants.SetFlagHelp)
 
 	// Verifies that the CLI args are not set at the creation of a command
 	vzHelper.VerifyCLIArgsNil(cmd)
@@ -198,7 +200,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 
-		err = upgradeVerrazzano(vzHelper, vz, client, version, vpoTimeout)
+		err = upgradeVerrazzano(cmd, vzHelper, vz, client, version, vpoTimeout)
 		if err != nil {
 			return bugreport.AutoBugReport(cmd, vzHelper, err)
 		}
@@ -225,7 +227,7 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-func upgradeVerrazzano(vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client clipkg.Client, version string, vpoTimeout time.Duration) error {
+func upgradeVerrazzano(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client clipkg.Client, version string, vpoTimeout time.Duration) error {
 	// Wait for the platform operator to be ready before we update the verrazzano install resource
 	_, err := cmdhelpers.WaitForPlatformOperator(client, vzHelper, v1beta1.CondUpgradeComplete, vpoTimeout)
 	if err != nil {
@@ -246,7 +248,19 @@ func upgradeVerrazzano(vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano, client
 		vz, err = helpers.GetVerrazzanoResource(client, types.NamespacedName{Namespace: vz.Namespace, Name: vz.Name})
 		if err == nil {
 			vz.Spec.Version = version
+
+			vzWithSetFlags, err := mergeSetFlagsIntoVerrazzanoResource(cmd, vzHelper, vz)
+			if err != nil {
+				return err
+			}
+			if vzWithSetFlags != nil {
+				vz = vzWithSetFlags
+			}
+
 			err = helpers.UpdateVerrazzanoResource(client, vz)
+			if err != nil {
+				return err
+			}
 		}
 		if err != nil {
 			if retry == 5 {
@@ -281,4 +295,44 @@ func validateCmd(cmd *cobra.Command) error {
 		return fmt.Errorf("%s cannot be specified without also specifying %s", constants.ImagePrefixFlag, constants.ImageRegistryFlag)
 	}
 	return nil
+}
+
+// mergeSetFlagsIntoVerrazzanoResource - determines if any --set flags are used and merges them into the existing Verrazzano resource to be applied at upgrade
+func mergeSetFlagsIntoVerrazzanoResource(cmd *cobra.Command, vzHelper helpers.VZHelper, vz *v1beta1.Verrazzano) (*v1beta1.Verrazzano, error) {
+	// Check that set flags are set. Otherwise, nothing is returned and the Verrazzano resource is left untouched
+	setFlags, _ := cmd.PersistentFlags().GetStringArray(constants.SetFlag)
+	if len(setFlags) != 0 {
+		// Get the set arguments - returning a list of properties and value
+		pvs, err := cmdhelpers.GetSetArguments(cmd, vzHelper)
+		if err != nil {
+			return nil, err
+		}
+
+		// Generate yaml for the set flags passed on the command line
+		outYAML, err := cmdhelpers.GenerateYAMLForSetFlags(pvs)
+		if err != nil {
+			return nil, err
+		}
+
+		// Merge the set flags passed on the command line. The set flags take precedence over
+		// the yaml files passed on the command line.
+		mergedVZ, _, err := cmdhelpers.MergeSetFlagsUpgrade(vz.GroupVersionKind().GroupVersion(), vz, outYAML)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update requires a Verrazzano resource to apply changes, so here the client Object becomes a Verrazzano resource to be returned
+		vzMarshalled, err := yaml.Marshal(mergedVZ)
+		if err != nil {
+			return nil, err
+		}
+		newVZ := v1beta1.Verrazzano{}
+		err = yaml.Unmarshal(vzMarshalled, &newVZ)
+		if err != nil {
+			return nil, err
+		}
+
+		return &newVZ, err
+	}
+	return nil, nil
 }

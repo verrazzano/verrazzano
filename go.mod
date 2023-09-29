@@ -6,7 +6,7 @@ module github.com/verrazzano/verrazzano
 go 1.19
 
 require (
-	github.com/Jeffail/gabs/v2 v2.6.1
+	github.com/Jeffail/gabs/v2 v2.7.0
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/crossplane/crossplane-runtime v0.17.0
@@ -29,6 +29,7 @@ require (
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.1
+	github.com/verrazzano/pkg v0.0.2
 	github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
 	go.uber.org/zap v1.24.0

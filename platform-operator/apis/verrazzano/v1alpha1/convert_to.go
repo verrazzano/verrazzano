@@ -161,8 +161,19 @@ func convertComponentsTo(src ComponentSpec) (v1beta1.ComponentSpec, error) {
 		Verrazzano:                verrazzanoComponent,
 		ClusterAPI:                convertClusterAPIToV1Beta1(src.ClusterAPI),
 		ClusterAgent:              convertClusterAgentToV1Beta1(src.ClusterAgent),
+		OpenSearchOperator:        convertOpenSearchOperatorToV1Beta1(src.OpenSearchOperator),
 		Dex:                       convertDexToV1Beta1(src.Dex),
 	}, nil
+}
+
+func convertOpenSearchOperatorToV1Beta1(src *OpenSearchOperatorComponent) *v1beta1.OpenSearchOperatorComponent {
+	if src == nil {
+		return nil
+	}
+	return &v1beta1.OpenSearchOperatorComponent{
+		Enabled:          src.Enabled,
+		InstallOverrides: convertInstallOverridesToV1Beta1(src.InstallOverrides),
+	}
 }
 
 func ConvertClusterIssuerToV1Beta1(src *ClusterIssuerComponent) *v1beta1.ClusterIssuerComponent {

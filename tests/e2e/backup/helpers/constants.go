@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -58,10 +58,10 @@ metadata:
   namespace: {{ .VeleroNamespaceName }}
 spec:
   includedNamespaces:
-    - verrazzano-system
+    - verrazzano-logging
   labelSelector:
     matchLabels:
-      verrazzano-component: opensearch
+      opster.io/opensearch-cluster: opensearch
   defaultVolumesToRestic: false
   storageLocation: {{ .VeleroBackupStorageName }}
   hooks:
@@ -69,14 +69,14 @@ spec:
       - 
         name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
-          - verrazzano-system
+          - verrazzano-logging
         labelSelector:
           matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         post:
           - 
             exec:
-              container: es-master
+              container: opensearch
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
                 - -operation
@@ -97,22 +97,33 @@ metadata:
 spec:
   backupName: {{ .VeleroBackupName }}
   includedNamespaces:
-    - verrazzano-system
+    - verrazzano-logging
   labelSelector:
     matchLabels:
-      verrazzano-component: opensearch
+      opster.io/opensearch-cluster: opensearch
   restorePVs: false
   hooks:
     resources:
       - name: {{ .VeleroOpensearchHookResourceName }}
         includedNamespaces:
-          - verrazzano-system
+          - verrazzano-logging
         labelSelector:
           matchLabels:
-            statefulset.kubernetes.io/pod-name: vmi-system-es-master-0
+            statefulset.kubernetes.io/pod-name: opensearch-es-master-0
         postHooks:
+          - init:
+              timeout: 30m
+              initContainers:
+                - args:
+                    - /usr/share/opensearch/bin/verrazzano-backup-hook --operation=pre-restore --velero-backup-name={{ .VeleroBackupName }}
+                  command:
+                    - sh
+                    - -c
+                  image: iad.ocir.io/odsbuilddev/sandboxes/saket.m.mahto/opensearch-security:latest
+                  imagePullPolicy: Always
+                  name: pre-hook
           - exec:
-              container: es-master
+              container: opensearch
               command:
                 - /usr/share/opensearch/bin/verrazzano-backup-hook
                 - -operation

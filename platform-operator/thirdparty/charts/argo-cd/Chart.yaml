@@ -1,16 +1,16 @@
 annotations:
   artifacthub.io/changes: |
-    - kind: fixed
-      description: Align with upstream dex initContainers
+    - kind: changed
+      description: Upgrade Argo CD to v2.8.3
   artifacthub.io/signKey: |
     fingerprint: 2B8F22F57260EFA67BE1C5824B11F800CD9D2252
     url: https://argoproj.github.io/argo-helm/pgp_keys.asc
 apiVersion: v2
-appVersion: v2.7.2
+appVersion: v2.8.3
 dependencies:
 - condition: redis-ha.enabled
   name: redis-ha
-  repository: file://redis-ha
+  repository: https://dandydeveloper.github.io/charts/
   version: 4.23.0
 description: A Helm chart for Argo CD, a declarative, GitOps continuous delivery tool
   for Kubernetes.
@@ -20,7 +20,7 @@ keywords:
 - argoproj
 - argocd
 - gitops
-kubeVersion: '>=1.22.0-0'
+kubeVersion: '>=1.23.0-0'
 maintainers:
 - name: argoproj
   url: https://argoproj.github.io/
@@ -28,4 +28,4 @@ name: argo-cd
 sources:
 - https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
 - https://github.com/argoproj/argo-cd
-version: 5.34.3
+version: 5.45.3
