@@ -35,10 +35,10 @@ const (
 
 var (
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
-	verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
-	addonControllerPod             = []string{"caapv-controller-manager"}
-	clusterName                    = "cluster-test-1"
-	clusterNamespace               = "default"
+	//verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
+	addonControllerPod = []string{"caapv-controller-manager"}
+	clusterName        = "cluster-test-1"
+	clusterNamespace   = "default"
 )
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	start := time.Now()
@@ -78,7 +78,7 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 	}
 }
 
-func isVerrazzanoPodRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
+/*func isVerrazzanoPodRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
 	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
 		t.Logs.Info("Failed to get k8s client for workload cluster")
@@ -99,7 +99,7 @@ func isVerrazzanoPodRunning(clusterName, namespace string, log *zap.SugaredLogge
 	}
 
 	return vpo && vpoWebhook
-}
+}*/
 
 func isAddonControllerPodRunning() bool {
 	result, err := pkg.PodsRunning(AddonControllerPodNamespace, addonControllerPod)
@@ -301,7 +301,7 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
 
-	t.Context(fmt.Sprintf("Verify addon controller pod"), func() {
+	t.Context("Verify addon controller pod", func() {
 		WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
 			Eventually(func() bool {
 				return isAddonControllerPodRunning()
