@@ -829,7 +829,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.42.0-20230925061552-cd357656y",
+              "tag": "1.42.0-20230925061552-cd357656",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -851,7 +851,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.42.0-20230925061552-cd357656x",
+              "tag": "1.42.0-20230925061552-cd357656",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
