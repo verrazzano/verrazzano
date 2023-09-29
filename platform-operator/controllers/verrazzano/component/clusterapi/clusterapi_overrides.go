@@ -33,6 +33,7 @@ type defaultProviders struct {
 	OCNEControlPlane capiProvider `json:"ocneControlPlane,omitempty"`
 	Core             capiProvider `json:"core,omitempty"`
 	OCI              capiProvider `json:"oci,omitempty"`
+	VerrazzanoAddon  capiProvider `json:"verrazzanoAddon,omitempty"`
 }
 
 type capiProvider struct {
@@ -81,6 +82,13 @@ type OverridesInterface interface {
 	GetOCNEControlPlaneVersion() string
 	GetOCNEControlPlaneOverridesVersion() string
 	GetOCNEControlPlaneBomVersion() string
+	GetVerrazzanoAddonRepository() string
+	GetVerrazzanoAddonControllerFullImagePath() string
+	GetVerrazzanoAddonTag() string
+	GetVerrazzanoAddonURL() string
+	GetVerrazzanoAddonVersion() string
+	GetVerrazzanoAddonOverridesVersion() string
+	GetVerrazzanoAddonBomVersion() string
 	IncludeImagesHeader() bool
 }
 
@@ -185,6 +193,30 @@ func (c capiOverrides) GetOCNEControlPlaneOverridesVersion() string {
 }
 
 func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
+	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
+}
+
+func (c capiOverrides) GetVerrazzanoAddonRepository() string {
+	return getRepositoryForProvider(c, c.DefaultProviders.OCNEControlPlane)
+}
+
+func (c capiOverrides) GetVerrazzanoAddonTag() string {
+	return c.DefaultProviders.OCNEControlPlane.Image.Tag
+}
+
+func (c capiOverrides) GetVerrazzanoAddonURL() string {
+	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "cluster-api-provider-ocne")
+}
+
+func (c capiOverrides) GetVerrazzanoAddonVersion() string {
+	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
+}
+
+func (c capiOverrides) GetVerrazzanoAddonOverridesVersion() string {
+	return c.DefaultProviders.OCNEControlPlane.Version
+}
+
+func (c capiOverrides) GetVerrazzanoAddonBomVersion() string {
 	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
 }
 
@@ -311,7 +343,8 @@ func getBaseOverrides() (*capiOverrides, error) {
 	overrides.DefaultProviders.OCNEBootstrap.MetadataFile = "bootstrap-components.yaml"
 	overrides.DefaultProviders.OCNEControlPlane.Name = controlPlaneOcneProvider
 	overrides.DefaultProviders.OCNEControlPlane.MetadataFile = "control-plane-components.yaml"
-
+	overrides.DefaultProviders.VerrazzanoAddon.Name = verrazzanoAddonProvider
+	overrides.DefaultProviders.VerrazzanoAddon.MetadataFile = "addon-components.yaml"
 	return overrides, err
 }
 
@@ -359,6 +392,14 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 		return err
 	}
 	updateImage(imageConfig, controlPlane)
+
+	// Populate verrazzanoAddon provider values
+	addon := &overrides.DefaultProviders.VerrazzanoAddon.Image
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-addon", "capi-addon", "cluster-api-verrazzano-addon-controller")
+	if err != nil {
+		return err
+	}
+	updateImage(imageConfig, addon)
 
 	return nil
 }

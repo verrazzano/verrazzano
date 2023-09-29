@@ -65,6 +65,9 @@ providers:
   - name: "ocne"
     url: "{{.GetOCNEControlPlaneURL}}"
     type: "ControlPlaneProvider"
+  - name: "verrazzano"
+    url: "{{.GetVerrazzanoAddonURL}}"
+    type: "AddonProvider"
 `
 
 const (
@@ -84,6 +87,7 @@ const (
 	bootstrapOcneProvider                     = "bootstrap-ocne"
 	controlPlaneOcneProvider                  = "control-plane-ocne"
 	infrastructureOciProvider                 = "infrastructure-oci"
+	verrazzanoAddonProvider                   = "addon-verrazzano"
 )
 
 type ImageConfig struct {

@@ -40,6 +40,7 @@ const (
 	ocneProviderName                 = "ocne"
 	ociProviderName                  = "oci"
 	clusterAPIProviderName           = "cluster-api"
+	verrazzanoAddonProviderName      = "verrazzano"
 )
 
 var capiDeployments = []types.NamespacedName{
@@ -253,6 +254,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
 	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
 	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
+	addonArgValue := fmt.Sprintf("%s:%s", verrazzanoAddonProviderName, overridesContext.)
 	cmd := exec.Command("clusterctl", "init",
 		"--target-namespace", ComponentNamespace,
 		"--core", coreArgValue,

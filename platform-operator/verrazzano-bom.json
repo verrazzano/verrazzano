@@ -253,6 +253,22 @@
       ]
     },
     {
+      "name": "capi-addon",
+      "version": "v1.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-addon",
+          "images": [
+            {
+              "image": "cluster-api-verrazzano-addon-controller",
+              "tag": "cluster-api-verrazzano-addon-controller"
+            }
+           ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano",
       "version": "VERRAZZANO_VERSION",
       "subcomponents": [
