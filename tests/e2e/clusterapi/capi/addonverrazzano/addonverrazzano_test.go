@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	shortWaitTimeout            = 10 * time.Minute
-	shortPollingInterval        = 30 * time.Second
+	shortWaitTimeout            = 1 * time.Minute
+	shortPollingInterval        = 10 * time.Second
 	waitTimeout                 = 30 * time.Minute
 	pollingInterval             = 30 * time.Second
 	vzPollingInterval           = 60 * time.Second
