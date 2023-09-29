@@ -6,6 +6,7 @@ package update
 import (
 	"context"
 	"fmt"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -76,7 +77,7 @@ func GetCRV1beta1() *v1beta1.Verrazzano {
 // First it waits for CR to be "Ready" before using the specified CRModifier modifies the CR.
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
-func UpdateCR(m CRModifier) error {
+func UpdateCR(m CRModifier, updateOpts ...client.UpdateOption) error {
 	// Get the CR
 	cr := GetCR()
 
@@ -98,7 +99,8 @@ func UpdateCR(m CRModifier) error {
 	if err != nil {
 		return err
 	}
-	return verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr)
+
+	return verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, cr, updateOpts...)
 }
 
 // UpdateCRV1beta1WithRetries updates the CR with the given CRModifierV1beta1.
@@ -153,7 +155,7 @@ func addWarningHandlerIfNecessary(m interface{}, config *rest.Config) {
 // First it waits for CR to be "Ready" before using the specified CRModifierV1beta1 modifies the CR.
 // Then, it updates the modified.
 // Any error during the process will cause Ginkgo Fail.
-func UpdateCRV1beta1(m CRModifierV1beta1) error {
+func UpdateCRV1beta1(m CRModifierV1beta1, opts ...metav1.UpdateOptions) error {
 	// GetCRV1beta1 gets the CR using v1beta1 client.
 	cr := GetCRV1beta1()
 
@@ -176,7 +178,12 @@ func UpdateCRV1beta1(m CRModifierV1beta1) error {
 		return err
 	}
 	vzClient := client.VerrazzanoV1beta1().Verrazzanos(cr.Namespace)
-	_, err = vzClient.Update(context.TODO(), cr, metav1.UpdateOptions{})
+
+	updateOpts := metav1.UpdateOptions{}
+	if len(opts) > 0 {
+		updateOpts = opts[0]
+	}
+	_, err = vzClient.Update(context.TODO(), cr, updateOpts)
 	return err
 }
 

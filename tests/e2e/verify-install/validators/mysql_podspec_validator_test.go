@@ -9,6 +9,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -108,13 +109,13 @@ func generateJSONValuesObj() *apiextensionsv1.JSON {
 // runValidatorTestV1Beta1 Attempt to generate the MySQL values webhook warning, with an illegal edit so the overall edit is rejected
 func runMySQLPodspecEditWarningTestV1Beta1() {
 	updater := &mysqlPodSpecUpdater{}
-	checkExpectations(update.UpdateCRV1beta1(updater), updater)
+	checkExpectations(update.UpdateCRV1beta1(updater, dryRunUpdateOpts), updater)
 }
 
 // runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
 func runMySQLPodspecEditWarningTestV1Alpha1() {
 	updater := &mysqlPodSpecUpdater{}
-	checkExpectations(update.UpdateCR(updater), updater)
+	checkExpectations(update.UpdateCR(updater, client.DryRunAll), updater)
 }
 
 func checkExpectations(err error, updater *mysqlPodSpecUpdater) {
