@@ -28,8 +28,6 @@ import (
 const (
 	shortWaitTimeout            = 1 * time.Minute
 	shortPollingInterval        = 10 * time.Second
-	waitTimeout                 = 30 * time.Minute
-	pollingInterval             = 30 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
 	AddonComponentsYamlPath     = "tests/e2e/clusterapi/capi/addonverrazzano/templates/verrazzanofleet-none-profile.yaml"
@@ -57,7 +55,7 @@ var afterSuite = t.AfterSuiteFunc(func() {
 
 var _ = AfterSuite(afterSuite)
 
-var t = framework.NewTestFramework("cluster-api")
+var t = framework.NewTestFramework("addon verrazzano")
 
 // 'It' Wrapper to only run spec if the ClusterAPI is supported on the current Verrazzano version
 func WhenClusterAPIInstalledIt(description string, f func()) {
