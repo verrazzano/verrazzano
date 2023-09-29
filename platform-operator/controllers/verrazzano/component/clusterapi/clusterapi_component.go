@@ -5,7 +5,6 @@ package clusterapi
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"os/exec"
 
@@ -19,9 +18,7 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -201,16 +198,23 @@ func (c clusterAPIComponent) IsOperatorInstallSupported() bool {
 	return true
 }
 
-// IsInstalled checks to see if ClusterAPI is installed
+// IsInstalled checks to see if ClusterAPI providers are installed
 func (c clusterAPIComponent) IsInstalled(ctx spi.ComponentContext) (bool, error) {
-	deployment := &appsv1.Deployment{}
-	err := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: ComponentNamespace, Name: capiCMDeployment}, deployment)
-	if errors.IsNotFound(err) {
-		return false, nil
+	found, err := checkClusterAPIDeployment(ctx, capiCMDeployment)
+	if !found || err != nil {
+		return found, err
 	}
-	if err != nil {
-		ctx.Log().Errorf("Failed to get %s/%s deployment: %v", ComponentNamespace, capiCMDeployment, err)
-		return false, err
+	found, err = checkClusterAPIDeployment(ctx, capiociCMDeployment)
+	if !found || err != nil {
+		return found, err
+	}
+	found, err = checkClusterAPIDeployment(ctx, capiOcneBootstrapCMDeployment)
+	if !found || err != nil {
+		return found, err
+	}
+	found, err = checkClusterAPIDeployment(ctx, capiOcneControlPlaneCMDeployment)
+	if !found || err != nil {
+		return found, err
 	}
 	return true, nil
 }
@@ -240,6 +244,7 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 
 	overrides, err := createOverrides(ctx)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create overrides for installing cluster-api providers: %v", err)
 		return err
 	}
 
@@ -287,6 +292,7 @@ func (c clusterAPIComponent) PreUpgrade(ctx spi.ComponentContext) error {
 func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	overrides, err := createOverrides(ctx)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to create overrides for upgrading cluster-api providers: %v", err)
 		return err
 	}
 
@@ -296,6 +302,7 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 	// Set up the upgrade options for the CAPI apply upgrade.
 	applyUpgradeOptions, err := podMatcher.matchAndPrepareUpgradeOptions(ctx, overridesContext)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("Failed to setup upgrade options for cluster-api providers: %v", err)
 		return err
 	}
 	if isUpgradeOptionsNotEmpty(applyUpgradeOptions) {

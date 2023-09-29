@@ -344,6 +344,24 @@ func TestIsInstalled(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
 			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiociCMDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiOcneControlPlaneCMDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiOcneBootstrapCMDeployment,
+			},
 		}).Build()
 	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
