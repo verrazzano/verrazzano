@@ -8,7 +8,7 @@ metadata:
   namespace: default
 spec:
   clusterSelector:
-    name: cluster-test-1
+    name: verrazzano
   verrazzano:
     spec:
       profile: none

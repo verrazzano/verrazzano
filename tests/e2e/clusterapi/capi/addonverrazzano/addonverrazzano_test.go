@@ -37,7 +37,7 @@ var (
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
 	//verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
 	addonControllerPod = []string{"caapv-controller-manager"}
-	clusterName        = "cluster-test-1"
+	clusterName        = "verrazzano"
 	clusterNamespace   = "default"
 )
 var beforeSuite = t.BeforeSuiteFunc(func() {

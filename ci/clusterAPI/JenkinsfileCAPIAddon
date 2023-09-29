@@ -370,6 +370,19 @@ def runQuickCreateSuite(clusterType) {
             """
         }
     }
+
+
+def runAddonTestSuite() {
+    catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+        script {
+            sh """
+            cd ${GO_REPO_PATH}/verrazzano/tests/e2e
+            if [ -d "quickcreate" ]; then
+                ginkgo -vv --progress --keep-going --no-color ${GINKGO_REPORT_ARGS} -tags="${params.TAGGED_TESTS}" --focus-file="${params.INCLUDED_TESTS}" --skip-file="${params.EXCLUDED_TESTS}" clusterapi/capi/addonverrazzano/..."
+            fi
+            """
+        }
+    }
 }
 
 def runGinkgoRandomize(testSuitePath, kubeConfig = '') {
