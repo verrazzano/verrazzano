@@ -30,7 +30,7 @@ const (
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
-	AddonComponentsYamlPath     = "tests/e2e/clusterapi/capi/addonverrazzano/templates/verrazzanofleet-none-profile.yaml"
+	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.goyaml"
 )
 
 var (

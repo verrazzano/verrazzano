@@ -118,7 +118,7 @@ func (qc *QCContext) applyCluster() error {
 
 func (qc *QCContext) getInputValues() ([]byte, input, error) {
 	params, err := qc.newParameters()
-	okeClusterName = qc.Parameters[ClusterID].(string)
+	okeClusterName = params[ClusterID].(string)
 	okeClusterNamespace = qc.Namespace
 	if err != nil {
 		return nil, nil, err
