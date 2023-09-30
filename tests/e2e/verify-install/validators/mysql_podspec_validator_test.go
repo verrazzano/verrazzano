@@ -109,7 +109,7 @@ func generateJSONValuesObj() *apiextensionsv1.JSON {
 // runValidatorTestV1Beta1 Attempt to generate the MySQL values webhook warning, with an illegal edit so the overall edit is rejected
 func runMySQLPodspecEditWarningTestV1Beta1() {
 	updater := &mysqlPodSpecUpdater{}
-	checkExpectations(update.UpdateCRV1beta1(updater, dryRunUpdateOpts), updater)
+	checkExpectations(update.UpdateCRV1beta1(updater, client.DryRunAll), updater)
 }
 
 // runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
