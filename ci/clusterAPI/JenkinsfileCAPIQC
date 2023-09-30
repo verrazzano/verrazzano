@@ -271,7 +271,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy Quick Create Clusters in parallel') {
                         stage('Deploy Quick Create OKE Cluster') {
                             when {
                                 expression { params.DEPLOY_OKE_CLUSTER == true }
@@ -291,7 +290,6 @@ pipeline {
                                 }
                             }
                         }
-                }
             }
 
             post {
