@@ -42,6 +42,7 @@ var nsGvr = schema.GroupVersionResource{
 // The cluster used is the one set by default in the environment
 func CreateOrUpdateResourceFromFile(file string, log *zap.SugaredLogger) error {
 	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	log.Infof("------------Inside create or update resource from file")
 	if err != nil {
 		log.Errorf("Error getting kubeconfig, error: %v", err)
 		return err

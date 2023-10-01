@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -81,25 +82,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
 	createCluster()
-	/*Eventually(func() error {
-		pwd, _ := os.Getwd()
-		t.Logs.Infof("----------Finding the addon components template, %v", pwd)
-		file, err := pkg.FindTestDataFile("templates/addon-components.goyaml")
-		if err != nil {
-			t.Logs.Infof("----------Finding the addon components template - COULD NOT FIND THE TEMPLATE PATH")
-			return err
-		}
-		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-	}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")*/
 
-	Eventually(func() error {
-		t.Logs.Infof("Applying Verrazzano Addon Components")
-		return ctx.applyVerrazzanoAddonComponents()
-	}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
-
-	Eventually(func() bool {
-		return isAddonControllerPodRunning()
-	}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
 })
 var afterSuite = t.AfterSuiteFunc(func() {
 	if ctx == nil {
@@ -380,6 +363,24 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 }
 
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
+
+	WhenClusterAPIInstalledIt("Deploy addon component", func() {
+		Eventually(func() {
+			pwd, _ := os.Getwd()
+			t.Logs.Infof("----------Finding the addon components template, %v", pwd)
+			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
+			if err != nil {
+				t.Logs.Infof("----------Finding the addon components template - COULD NOT FIND THE TEMPLATE PATH")
+			}
+			resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+		}, shortPollingInterval, shortWaitTimeout).ShouldNot(HaveOccurred(), "Deploy addon controller")
+	})
+	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
+		Eventually(func() bool {
+			return isAddonControllerPodRunning()
+		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
+	})
+
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {

@@ -41,9 +41,6 @@ var (
 	//go:embed templates/verrazzanofleet-none-profile.goyaml
 	verrazzanoFleet []byte
 
-	//go:embed templates/addon-components.goyaml
-	addonComponents []byte
-
 	clusterTemplateMap = map[string][]byte{
 		Ocneoci: ocneociTemplate,
 		Oke:     okeTemplate,
@@ -113,10 +110,6 @@ func (qc *QCContext) applyOCIClusterIdentity() error {
 
 func (qc *QCContext) applyVerrazzanoFleet() error {
 	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(verrazzanoFleet, qc.Parameters)
-}
-
-func (qc *QCContext) applyVerrazzanoAddonComponents() error {
-	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(addonComponents, qc.Parameters)
 }
 
 func (qc *QCContext) applyCluster() error {
