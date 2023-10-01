@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -194,7 +195,8 @@ func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 		log.Errorf("Failed to get clientset with error: %v", err)
 		return nil, err
 	}
-
+	secrets, err := clientset.CoreV1().Secrets(okeClusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	log.Infof("-----------------------Secrets" + secrets.String())
 	secret, err := clientset.CoreV1().Secrets(okeClusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
 	if err != nil {
 		log.Infof("Error fetching secret ", zap.Error(err))
@@ -320,7 +322,8 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleetbindings",
 	}
-
+	list, err := dclient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
+	log.Infof("----------ALL FLEET BINDINGS------%v", list.Items)
 	return dclient.Resource(gvr).Namespace(okeClusterNamespace).Get(context.TODO(), okeClusterName, metav1.GetOptions{})
 }
 
@@ -355,7 +358,7 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 
 }
 
-/*var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
+var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
 	t.Context("Deploy and verify addon controller pod", func() {
 		WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
 			Eventually(func() error {
@@ -402,4 +405,4 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 		})
 
 	})
-})*/
+})
