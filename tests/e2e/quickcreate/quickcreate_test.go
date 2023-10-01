@@ -196,7 +196,7 @@ func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 		return nil, err
 	}
 
-	secret, err := clientset.CoreV1().Secrets(okeClusterName).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(okeClusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
 	if err != nil {
 		log.Infof("Error fetching secret ", zap.Error(err))
 		return nil, err
