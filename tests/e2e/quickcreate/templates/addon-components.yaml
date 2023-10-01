@@ -798,7 +798,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          image: ghcr.io/verrazzano/cluster-api-verrazzano-addon-controller:v1.0.0-06dbf45
+          image: ghcr.io/verrazzano/cluster-api-verrazzano-addon-controller:v1.0.0-20230928185132-24160e8
           imagePullPolicy: IfNotPresent
           livenessProbe:
             httpGet:
