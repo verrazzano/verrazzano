@@ -145,12 +145,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	result, err := verrazzanoReconcileFn(ctx, cluster, r)
-	if err != nil {
-		return result, err
-	}
-
-	return ctrl.Result{}, nil
+	return verrazzanoReconcileFn(ctx, cluster, r)
 }
 
 // createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
