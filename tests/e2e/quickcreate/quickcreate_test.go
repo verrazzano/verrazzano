@@ -69,6 +69,33 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(err).To(BeNil())
 
 	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, okeClusterName, okeClusterNamespace)
+	var _ = t.Describe("using the quick create api", func() {
+		t.Context("with a kubeconfig", func() {
+			kcpath, err := k8sutil.GetKubeConfigLocation()
+			if err != nil {
+				t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+			}
+			t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
+		})
+
+		t.Context("Deploy and verify addon controller pod", func() {
+			WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
+				Eventually(func() error {
+					file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
+					if err != nil {
+						return err
+					}
+					return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+				}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
+			})
+
+			WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
+				Eventually(func() bool {
+					return isAddonControllerPodRunning()
+				}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
+			})
+		})
+	})
 })
 var afterSuite = t.AfterSuiteFunc(func() {
 	if ctx == nil {
@@ -91,16 +118,6 @@ var afterSuite = t.AfterSuiteFunc(func() {
 })
 var _ = BeforeSuite(beforeSuite)
 var _ = AfterSuite(afterSuite)
-
-var _ = t.Describe("using the quick create api", func() {
-	t.Context("with a kubeconfig", func() {
-		kcpath, err := k8sutil.GetKubeConfigLocation()
-		if err != nil {
-			t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-		}
-		t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
-	})
-})
 
 func createCluster() {
 	err := ctx.applyCluster()
@@ -359,50 +376,29 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 }
 
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
-	t.Context("Deploy and verify addon controller pod", func() {
-		WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
+	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
+		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
-				file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
-				if err != nil {
-					return err
-				}
-				return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-			}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
+				return ctx.applyVerrazzanoFleet()
+			}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Create verrazzanoFleet resource")
 		})
 
-		WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
+		WhenClusterAPIInstalledIt("Verify if VerrazzanoFleetBinding resource created", func() {
+			Eventually(func() error {
+				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
+		})
+
+		WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 			Eventually(func() bool {
-				return isAddonControllerPodRunning()
-			}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
-		})
-		t.Context(fmt.Sprintf("Deploy VerrazzanoFleet resource '%s'", okeClusterName), func() {
-
-			t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
-				WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
-					Eventually(func() error {
-						return ctx.applyVerrazzanoFleet()
-					}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Create verrazzanoFleet resource")
-				})
-
-				WhenClusterAPIInstalledIt("Verify if VerrazzanoFleetBinding resource created", func() {
-					Eventually(func() error {
-						return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
-					}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
-				})
-
-				WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
-					Eventually(func() bool {
-						return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
-					}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
-				})
-
-				WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
-					Eventually(func() error {
-						return ensureVerrazzano(okeClusterName, t.Logs)
-					}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
-				})
-			})
+				return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
+			}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 		})
 
+		WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
+			Eventually(func() error {
+				return ensureVerrazzano(okeClusterName, t.Logs)
+			}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
+		})
 	})
 })
