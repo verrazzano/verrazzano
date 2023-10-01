@@ -69,27 +69,30 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(err).To(BeNil())
 
 	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, okeClusterName, okeClusterNamespace)
-	kcpath, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
+	supported, err := pkg.IsVerrazzanoMinVersion(minimumVersion, kubeconfigPath)
+	if err != nil {
+		t.Logs.Errorf("Error getting Verrazzano version: %v", err)
+	}
+	if !supported {
+		t.Logs.Infof("Skipping test because Verrazzano version is less than %s", minimumVersion)
+		return
+	}
+	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
+	createCluster()
+	Eventually(func() error {
+		file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
+		if err != nil {
+			return err
+		}
+		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+	}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
 
-	WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
-		Eventually(func() error {
-			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
-			if err != nil {
-				return err
-			}
-			return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
-	})
-
-	WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
-		Eventually(func() bool {
-			return isAddonControllerPodRunning()
-		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
-	})
+	Eventually(func() bool {
+		return isAddonControllerPodRunning()
+	}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
 })
 var afterSuite = t.AfterSuiteFunc(func() {
 	if ctx == nil {
@@ -133,10 +136,10 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 			Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 		})
 	}
-	supported, err := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
+	supported, err := pkg.IsVerrazzanoMinVersion("1.6.0", kubeconfigPath)
 	if err != nil {
 		t.It(description, func() {
-			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.7.0: %s", err.Error()))
+			Fail(fmt.Sprintf("Failed to check Verrazzano version 1.6.0: %s", err.Error()))
 		})
 	}
 	if supported {
