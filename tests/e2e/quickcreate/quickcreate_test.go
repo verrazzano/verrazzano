@@ -69,32 +69,26 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	Expect(err).To(BeNil())
 
 	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, okeClusterName, okeClusterNamespace)
-	var _ = t.Describe("using the quick create api", func() {
-		t.Context("with a kubeconfig", func() {
-			kcpath, err := k8sutil.GetKubeConfigLocation()
+	kcpath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
+
+	WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
+		Eventually(func() error {
+			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
 			if err != nil {
-				t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+				return err
 			}
-			t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
-		})
+			return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
+	})
 
-		t.Context("Deploy and verify addon controller pod", func() {
-			WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
-				Eventually(func() error {
-					file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
-					if err != nil {
-						return err
-					}
-					return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-				}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
-			})
-
-			WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
-				Eventually(func() bool {
-					return isAddonControllerPodRunning()
-				}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
-			})
-		})
+	WhenClusterAPIInstalledIt("Verify addon controller pod is running on admin cluster", func() {
+		Eventually(func() bool {
+			return isAddonControllerPodRunning()
+		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
 	})
 })
 var afterSuite = t.AfterSuiteFunc(func() {
