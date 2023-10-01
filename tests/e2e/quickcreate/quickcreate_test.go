@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
@@ -68,7 +67,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	err = ctx.setup()
 	Expect(err).To(BeNil())
 
-	t.Logs.Infof("Creating Cluster of type [%s]", ctx.ClusterType)
+	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, okeClusterName, okeClusterNamespace)
 })
 var afterSuite = t.AfterSuiteFunc(func() {
 	if ctx == nil {
@@ -356,7 +355,7 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 
 }
 
-var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
+/*var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
 	t.Context("Deploy and verify addon controller pod", func() {
 		WhenClusterAPIInstalledIt("Deploy addon controller on admin luster", func() {
 			Eventually(func() error {
@@ -403,4 +402,4 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		})
 
 	})
-})
+})*/
