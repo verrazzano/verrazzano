@@ -83,7 +83,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
 	createCluster()
 	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
+		file, err := pkg.FindTestDataFile("tests/e2e/quickcreate/templates/addon-components.yaml")
 		if err != nil {
 			return err
 		}
