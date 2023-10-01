@@ -83,8 +83,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
 	createCluster()
 	Eventually(func() error {
-		file, err := pkg.FindTestDataFile("tests/e2e/quickcreate/templates/addon-components.yaml")
+		pwd, _ := os.Getwd()
+		t.Logs.Infof("----------Finding the addon components template, %v", pwd)
+		file, err := pkg.FindTestDataFile("e2e/quickcreate/templates/addon-components.yaml")
 		if err != nil {
+			t.Logs.Infof("----------Finding the addon components template - COULD NOT FIND THE TEMPLATE PATH")
 			return err
 		}
 		return resource.CreateOrUpdateResourceFromFile(file, t.Logs)
