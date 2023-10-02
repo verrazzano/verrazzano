@@ -24,6 +24,15 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(vmc *clusterapi
 		return false, err
 	}
 
+	// check for existence of verrazzano-system namespace
+	exists, err := isNamespaceCreated(r.Client, r.RancherIngressHost, clusterID, constants.VerrazzanoSystemNamespace, r.log)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return false, nil
+	}
+
 	// If the managed cluster is not active, we should not attempt to push resources
 	if isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log); !isActive || err != nil {
 		return false, err

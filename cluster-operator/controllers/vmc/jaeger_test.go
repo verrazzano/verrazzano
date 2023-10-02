@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -281,7 +281,7 @@ func createVZWithOSDisabledAndJaegerOverride(json string) *vzapi.Verrazzano {
 func newIngress() *k8net.Ingress {
 	ingress := &k8net.Ingress{}
 	ingress.Namespace = constants.VerrazzanoSystemNamespace
-	ingress.Name = vmiIngest
+	ingress.Name = operatorOSIngress
 	rule := k8net.IngressRule{Host: "jaeger.unit-test.com"}
 	ingress.Spec.Rules = append(ingress.Spec.Rules, rule)
 	return ingress

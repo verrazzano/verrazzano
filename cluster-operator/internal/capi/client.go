@@ -6,12 +6,20 @@ package capi
 import (
 	"context"
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
+
+var GVKCAPICluster = schema.GroupVersionKind{
+	Group:   "cluster.x-k8s.io",
+	Version: "v1beta1",
+	Kind:    "Cluster",
+}
 
 // GetClusterClient creates a controller-runtime client for a given CAPI cluster reference, if the kubeconfig for that cluster is available.
 func GetClusterClient(ctx context.Context, cli clipkg.Client, cluster types.NamespacedName, scheme *runtime.Scheme) (clipkg.Client, error) {

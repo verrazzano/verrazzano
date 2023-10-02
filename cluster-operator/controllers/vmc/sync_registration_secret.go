@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const vmiIngest = "vmi-system-os-ingest"
 const operatorOSIngress = "opensearch"
 const defaultSecretName = "verrazzano"
 
@@ -78,16 +77,10 @@ func (r *VerrazzanoManagedClusterReconciler) mutateRegistrationSecret(secret *co
 
 	// Decide which ES URL to use.
 	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-opensearch:8775", use VMI ES ingress URL.
-	// If the fluentd OPENSEARCH_URL is the default "http://verrazzano-authproxy-opensearch-logging:8775", use Operator OS ingress URL.
 	// If the fluentd OPENSEARCH_URL is not the default, meaning it is a custom ES, use the external ES URL.
 	esURL := fluentdESURL
 	if esURL == constants.DefaultOpensearchURL {
-		esURL, err = r.getESURL(vzList, vmiIngest)
-		if err != nil {
-			return err
-		}
-	} else if esURL == constants.DefaultOperatorOSURL || esURL == constants.DefaultOperatorOSURLWithNS {
-		esURL, err = r.getESURL(vzList, operatorOSIngress)
+		esURL, err = r.getESURL(vzList)
 		if err != nil {
 			return err
 		}
@@ -199,17 +192,17 @@ func (r *VerrazzanoManagedClusterReconciler) getVzESURLSecret(vzList *vzapi.Verr
 }
 
 // Get the opensearch URL.
-func (r *VerrazzanoManagedClusterReconciler) getESURL(vzList vzapi.VerrazzanoList, ingressName string) (URL string, err error) {
+func (r *VerrazzanoManagedClusterReconciler) getESURL(vzList vzapi.VerrazzanoList) (URL string, err error) {
 	if len(vzList.Items) == 0 {
 		return "", nil
 	}
-	if ingressName == vmiIngest && !vzcr.IsOpenSearchEnabled(&vzList.Items[0]) {
+	if !vzcr.IsOpenSearchEnabled(&vzList.Items[0]) {
 		return "", nil
 	}
 	var Ingress k8net.Ingress
 	nsn := types.NamespacedName{
 		Namespace: constants.VerrazzanoSystemNamespace,
-		Name:      ingressName,
+		Name:      operatorOSIngress,
 	}
 	if err := r.Get(context.TODO(), nsn, &Ingress); err != nil {
 		return "", fmt.Errorf("failed to fetch the OpenSearch ingress %s/%s, %v", nsn.Namespace, nsn.Name, err)

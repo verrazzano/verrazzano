@@ -70,7 +70,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-os-ingest"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "opensearch"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: esURL},
@@ -94,7 +94,7 @@ func TestGetInstanceInfo(t *testing.T) {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "vmi-system-osd"},
+					ObjectMeta: metav1.ObjectMeta{Namespace: constants.VerrazzanoSystemNamespace, Name: "opensearch-dashboards"},
 					Spec: networkingv1.IngressSpec{
 						Rules: []networkingv1.IngressRule{
 							{Host: kibanaURL},
@@ -128,6 +128,9 @@ func TestGetInstanceInfo(t *testing.T) {
 			}
 			return nil
 		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "system", Namespace: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(nil).Times(2)
 	// Expect a call to get the managed cluster registration secret by Jaeger component code, return not found
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: constants.MCRegistrationSecret,
@@ -233,6 +236,9 @@ func TestGetInstanceInfoManagedCluster(t *testing.T) {
 			}
 			return nil
 		})
+	mock.EXPECT().
+		Get(gomock.Any(), types.NamespacedName{Name: "system", Namespace: constants.VerrazzanoSystemNamespace}, gomock.Not(gomock.Nil()), gomock.Any()).
+		Return(nil).Times(2)
 	// Expect a call to get the managed cluster registration secret by Jaeger component code, return secret
 	mock.EXPECT().
 		Get(gomock.Any(), types.NamespacedName{Name: constants.MCRegistrationSecret,
