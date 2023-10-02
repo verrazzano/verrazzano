@@ -130,7 +130,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err = r.setVMCStatusFields(ctx, cluster, vmc); err != nil {
+	if err = r.setVMCClusterRef(ctx, cluster, vmc); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -152,7 +152,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return verrazzanoReconcileFn(ctx, cluster, r)
 }
 
-func (r *CAPIClusterReconciler) setVMCStatusFields(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+func (r *CAPIClusterReconciler) setVMCClusterRef(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	vmc.Status.ClusterRef = &clustersv1alpha1.ClusterReference{
 		APIVersion: cluster.GetAPIVersion(),
 		Kind:       cluster.GetKind(),
