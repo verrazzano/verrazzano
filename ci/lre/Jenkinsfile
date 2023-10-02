@@ -62,6 +62,7 @@ pipeline {
         DEV_LRE_SUSPECT_LIST = credentials('dev_lre_suspect_list')
         PIPELINE_OWNERS = credentials('lretests-owners')
         DEV_LRE_KUBECONFIG = credentials('dev-lre-kubeconfig')
+        DEV_LRE_RANCHER_ADMIN_PSW = credentials('dev-lre-rancher-admin-password')
         KUBECONFIG = "${WORKSPACE}/.kube/config"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
         TEST_ENV = "LRE"
@@ -125,7 +126,7 @@ pipeline {
                         RANCHER_TOKEN=$(curl -s -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
                         -H 'Content-Type: application/json' \
                         "https://rancher.lre.dev.v8odev01iad.oraclevcn.com/v3-public/localProviders/local?action=login" \
-                        -d "{\"username\":\"admin\", \"password\":\"Placeholder\"}" | jq -r ".token")
+                        -d "{\"username\":\"admin\", \"password\":\"$DEV_LRE_RANCHER_ADMIN_PSW\"}" | jq -r ".token")
 
                         curl -s -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
                         -H "Authorization: Bearer $RANCHER_TOKEN" \
