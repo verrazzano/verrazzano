@@ -34,7 +34,7 @@ const (
 	waitTimeOut     = 30 * time.Minute
 	pollingInterval = 30 * time.Second
 
-	shortWaitTimeout            = 15 * time.Minute
+	shortWaitTimeout            = 10 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
