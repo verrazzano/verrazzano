@@ -4,11 +4,11 @@
 apiVersion: addons.cluster.x-k8s.io/v1alpha1
 kind: VerrazzanoFleet
 metadata:
-  name: c-ddck5
-  namespace: c-ddck5
+  name: vzfleetmc
+  namespace: {{.NAMESPACE}}
 spec:
   clusterSelector:
-    name: c-ddck5
+    name: {{.CLUSTER_ID}}
   verrazzano:
     spec:
       components:

@@ -38,7 +38,7 @@ var (
 	//go:embed templates/ociclusteridentity.goyaml
 	ociClusterIdentity []byte
 
-	//go:embed templates/verrazzanofleet-none-profile.goyaml
+	//go:embed templates/verrazzanofleet-mc-profile.goyaml
 	verrazzanoFleet []byte
 
 	clusterTemplateMap = map[string][]byte{

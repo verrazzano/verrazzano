@@ -27,6 +27,7 @@ import (
 	"os"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
 	"text/tabwriter"
 	"time"
 )
@@ -40,6 +41,8 @@ const (
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	AddonControllerPodNamespace = "caapv-system"
+	nodeLabel                   = "node-role.kubernetes.io/node"
+	controlPlaneLabel           = "node-role.kubernetes.io/control-plane"
 	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.goyaml"
 )
 
@@ -339,6 +342,12 @@ func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger)
 		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
 	}
 
+	log.Infof("----------- Node in workload cluster ---------------------")
+	err = showNodeInfo(client, clusterName, log)
+	if err != nil {
+		return err
+	}
+
 	log.Infof("----------- Pods running on workload cluster ---------------------")
 	return showPodInfo(client, clusterName, log)
 }
@@ -371,6 +380,41 @@ func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.Suga
 				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName,
 				time.Until(podData.GetCreationTimestamp().Time).Abs()))
 		}
+	}
+	writer.Flush()
+	return nil
+}
+
+// ShowNodeInfo displays the nodes of workload OCNE cluster as a formatted table.
+func showNodeInfo(client *kubernetes.Clientset, clustername string, log *zap.SugaredLogger) error {
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tRole\tVersion\tInternalIP\tExternalIP\tOSImage\tKernelVersion\tContainerRuntime\tAge")
+	nodeList, err := client.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of nodes from cluster '%s'", clustername))
+	}
+	for _, node := range nodeList.Items {
+		labels := node.GetLabels()
+		_, nodeOK := labels[nodeLabel]
+		_, controlPlaneOK := labels[nodeLabel]
+		var role, internalIP string
+		if nodeOK {
+			role = strings.Split(nodeLabel, "/")[len(strings.Split(nodeLabel, "/"))-1]
+		}
+		if controlPlaneOK {
+			role = strings.Split(controlPlaneLabel, "/")[len(strings.Split(controlPlaneLabel, "/"))-1]
+		}
+
+		addresses := node.Status.Addresses
+		for _, address := range addresses {
+			if address.Type == "InternalIP" {
+				internalIP = address.Address
+				break
+			}
+		}
+		fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v",
+			node.GetName(), role, node.Status.NodeInfo.KubeletVersion, internalIP, "None", node.Status.NodeInfo.OSImage, node.Status.NodeInfo.KernelVersion,
+			node.Status.NodeInfo.ContainerRuntimeVersion, time.Until(node.GetCreationTimestamp().Time).Abs()))
 	}
 	writer.Flush()
 	return nil
