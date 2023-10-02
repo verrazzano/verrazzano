@@ -5,6 +5,10 @@ package opensearchdashboards
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+	"path"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
@@ -13,8 +17,9 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/fluentoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -50,7 +55,7 @@ func (d opensearchDashboardsComponent) ShouldInstallBeforeUpgrade() bool {
 
 // GetDependencies returns the dependencies of the OpenSearch-Dashbaords component
 func (d opensearchDashboardsComponent) GetDependencies() []string {
-	return []string{networkpolicies.ComponentName, vmo.ComponentName, fluentoperator.ComponentName}
+	return []string{networkpolicies.ComponentName, opensearchoperator.ComponentName, fluentoperator.ComponentName}
 }
 
 // GetMinVerrazzanoVersion returns the minimum Verrazzano version required by the OpenSearch-Dashboards component
@@ -105,24 +110,25 @@ func NewComponent() spi.Component {
 // PreInstall OpenSearch-Dashboards component pre-install processing; create and label required namespaces, copy any
 // required secrets
 func (d opensearchDashboardsComponent) PreInstall(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	if err := common.EnsureVMISecret(ctx.Client()); err != nil {
-		return err
-	}
-	// create or update backup VMI secret
-	if err := common.EnsureBackupSecret(ctx.Client()); err != nil {
-		return err
-	}
-	ctx.Log().Debug("OpenSearch-Dashboards pre-install")
-	if err := common.CreateAndLabelVMINamespaces(ctx); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed creating/labeling namespace %s for OpenSearch-Dashboards : %v", ComponentNamespace, err)
-	}
 	return nil
 }
 
 // Install OpenSearch-Dashboards component install processing
 func (d opensearchDashboardsComponent) Install(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
+	}
+	return nil
 }
 
 func (d opensearchDashboardsComponent) IsOperatorUninstallSupported() bool {
@@ -146,17 +152,29 @@ func (d opensearchDashboardsComponent) PostUninstall(context spi.ComponentContex
 
 // PreUpgrade OpenSearch-Dashboards component pre-upgrade processing
 func (d opensearchDashboardsComponent) PreUpgrade(ctx spi.ComponentContext) error {
-	// create or update  VMI secret
-	return common.EnsureVMISecret(ctx.Client())
+	return nil
 }
 
 // Upgrade OpenSearch-Dashboards component upgrade processing
 func (d opensearchDashboardsComponent) Upgrade(ctx spi.ComponentContext) error {
-	return common.CreateOrUpdateVMI(ctx, updateFunc)
+	ctx.Log().Progressf("Component: %s, Creating/Updating OpensearchCluster CR", ComponentName)
+	args, err := common.BuildArgsForOpenSearchCR(ctx)
+	if err != nil {
+		return err
+	}
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err = yamlApplier.ApplyFT(filePath, args)
+
+	if err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Component: %s, Failed to substitute template values for OpenSearchCluster CR: %v", ComponentName, err)
+	}
+	return nil
 }
 
 func (d opensearchDashboardsComponent) IsAvailable(ctx spi.ComponentContext) (reason string, available vzapi.ComponentAvailability) {
-	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments()}).IsAvailable(ctx.Log(), ctx.Client())
+	return (&ready.AvailabilityObjects{DeploymentNames: getOSDDeployments(ctx)}).IsAvailable(ctx.Log(), ctx.Client())
 }
 
 // IsReady component check
@@ -178,7 +196,6 @@ func (d opensearchDashboardsComponent) PostInstall(ctx spi.ComponentContext) err
 func (d opensearchDashboardsComponent) PostUpgrade(ctx spi.ComponentContext) error {
 	ctx.Log().Debugf("OpenSearch-Dashboards component post-upgrade")
 	return common.CheckIngressesAndCerts(ctx, d)
-
 }
 
 // IsEnabled OpenSearch-Dashboards specific enabled check for installation
@@ -240,9 +257,17 @@ func (d opensearchDashboardsComponent) GetIngressNames(ctx spi.ComponentContext)
 	var ingressNames []types.NamespacedName
 
 	if vzcr.IsNGINXEnabled(ctx.EffectiveCR()) {
+		name := constants.OpensearchDashboardsIngress
+		isLegacyOSD, err := common.IsLegacyOSD(ctx)
+		if err != nil {
+			ctx.Log().ErrorfThrottled("Failed to get VMI, considering legacy OSD to be disabled: %v", err)
+		}
+		if isLegacyOSD {
+			name = constants.LegacyOpensearchDashboardsIngress
+		}
 		ingressNames = append(ingressNames, types.NamespacedName{
 			Namespace: ComponentNamespace,
-			Name:      constants.OpensearchDashboardsIngress,
+			Name:      name,
 		})
 	}
 

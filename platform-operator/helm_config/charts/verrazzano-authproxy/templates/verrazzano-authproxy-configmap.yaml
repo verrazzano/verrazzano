@@ -200,6 +200,11 @@ data:
     local oidcIssuerUri = nil
     local oidcIssuerUriLocal = nil
 
+    local opensearchProtocol = "{{ $.Values.config.opensearch.protocol }}"
+    local opensearchService = "{{ $.Values.config.opensearch.service }}"
+    local osdService = "{{ $.Values.config.opensearch.osdService }}"
+    local opensearchNamespace = "{{ $.Values.config.opensearch.namespace }}"
+
     function me.getRoles(idToken)
         local id_token = jwt:load_jwt(idToken)
         if id_token and id_token.payload and id_token.payload.realm_access and id_token.payload.realm_access.roles then
@@ -586,7 +591,7 @@ data:
     end
 
     function me.makeLoggingComponentBackendUrl(serviceName, port)
-        return 'https://'..serviceName..'.verrazzano-logging.svc.cluster.local'..':'..port
+        return opensearchProtocol..'://'..serviceName..'.'..opensearchNamespace..'.svc.cluster.local'..':'..port
     end
 
     function me.getBackendServerUrlFromName(backend)
@@ -609,13 +614,13 @@ data:
         elseif backend == 'thanos-ruler' then
             serverUrl = me.makeMonitoringComponentBackendUrl('http', 'thanos-ruler', '9090')
         elseif backend == 'kibana' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')
+            serverUrl = me.makeLoggingComponentBackendUrl(osdService, '5601')
         elseif backend == 'osd' then
-            serverUrl = me.makeVmiBackendUrl('osd', '5601')    
+            serverUrl = me.makeLoggingComponentBackendUrl(osdService, '5601')
         elseif backend == 'elasticsearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')
+            serverUrl = me.makeLoggingComponentBackendUrl(opensearchService, '9200')
         elseif backend == 'opensearch' then
-            serverUrl = me.makeVmiBackendUrl('os-ingest', '9200')    
+            serverUrl = me.makeLoggingComponentBackendUrl(opensearchService, '9200')
         elseif backend == 'opensearch-logging' then
             serverUrl = me.makeLoggingComponentBackendUrl('opensearch', '9200')
         elseif backend == 'osd-logging' then

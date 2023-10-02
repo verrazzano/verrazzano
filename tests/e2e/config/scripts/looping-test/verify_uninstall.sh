@@ -11,6 +11,10 @@ fi
 SCRIPT_DIR="$1"
 DIFF_FOUND=false
 
+# Account for capi related clusterroles/clusterroleindings that are not deleted during capi delete
+sed -i "/capi-.*ClusterRole.*/d" ${SCRIPT_DIR}/post-uninstall-resources/default.txt
+sed -i "/capoci-.*ClusterRole.*/d" ${SCRIPT_DIR}/post-uninstall-resources/default.txt
+
 DIFF=$(diff ${SCRIPT_DIR}/pre-install-resources/default.txt ${SCRIPT_DIR}/post-uninstall-resources/default.txt | grep "^>")
 echo "Remaining resources:"
 echo $DIFF

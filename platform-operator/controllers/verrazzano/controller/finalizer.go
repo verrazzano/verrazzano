@@ -12,7 +12,7 @@ import (
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/rancher"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	custom2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/controller/custom"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,8 +26,17 @@ func (r Reconciler) GetName() string {
 	return finalizerName
 }
 
-// PreRemoveFinalizer is called when the resource is being deleted, before the finalizer
-// is removed.  Use this method to delete Kubernetes resources, etc.
+// PreRemoveFinalizer is called when the resource is being deleted, before the finalizer is removed.
+// This code will do a full Verrazzano uninstall by deleting all the Module CRs. This code
+// idempotent and can be called any number of times from the controller-runtime.  It doesn't matter if the Verrazzano CR
+// gets modified while uninstall already in progress, because the Reconcile method will not be called again for that particular
+// Verrazzano CR once the CR deletion timestamp is set.
+//
+// Uninstall has 3 phases, pre-work, work, and post-work.  The global pre-work and post-work can block the entire controller,
+// depending on what is being done.  The work phase deletes the Module CRs then checks if they are gone.
+// Those delete operations are non-blocking, other than the time it takes to call the Kubernetes API server.
+//
+// Once the Modules are gone and the post-work is done, then the finalizer is removed, causing the Verrazzano CR to be deleted from etcd.
 func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileContext, u *unstructured.Unstructured) result.Result {
 	// Convert the unstructured to a Verrazzano CR
 	actualCR := &vzv1alpha1.Verrazzano{}
@@ -103,7 +112,7 @@ func (r Reconciler) PostRemoveFinalizer(controllerCtx controllerspi.ReconcileCon
 
 // preUninstall does all the global preUninstall
 func (r Reconciler) preUninstall(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano, effectiveCR *vzv1alpha1.Verrazzano) result.Result {
-	if res := custom2.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
+	if res := custom.PreUninstallRancher(r.Client, log, actualCR, effectiveCR); res.ShouldRequeue() {
 		return res
 	}
 
@@ -146,7 +155,7 @@ func (r Reconciler) preUninstallMC(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := custom2.DeleteMCResources(componentCtx); err != nil {
+	if err := custom.DeleteMCResources(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -161,12 +170,12 @@ func (r Reconciler) postUninstallCleanup(log vzlog.VerrazzanoLogger, componentCt
 	}
 
 	log.Once("Global post-uninstall: deleting Istio CA Root Cert")
-	if err := custom2.DeleteIstioCARootCert(componentCtx); err != nil {
+	if err := custom.DeleteIstioCARootCert(componentCtx); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
 	log.Once("Global post-uninstall: node exporter cleanup")
-	if err := custom2.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
+	if err := custom.NodeExporterCleanup(componentCtx.Client(), componentCtx.Log()); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
@@ -175,10 +184,10 @@ func (r Reconciler) postUninstallCleanup(log vzlog.VerrazzanoLogger, componentCt
 	// installed explicitly.
 	if !rancherProvisioned {
 		log.Once("Global post-uninstall: running Rancher cleanup")
-		if err := custom2.RunRancherPostUninstall(componentCtx); err != nil {
+		if err := custom.RunRancherPostUninstall(componentCtx); err != nil {
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
 	log.Once("Global post-uninstall: deleting namespaces")
-	return custom2.DeleteNamespaces(componentCtx, rancherProvisioned)
+	return custom.DeleteNamespaces(componentCtx, rancherProvisioned)
 }

@@ -61,6 +61,9 @@ const VerrazzanoMultiClusterNamespace = "verrazzano-mc"
 // VerrazzanoMonitoringNamespace is the namespace for monitoring components
 const VerrazzanoMonitoringNamespace = "verrazzano-monitoring"
 
+// VerrazzanoLoggingNamespace is the namespace for logging components
+const VerrazzanoLoggingNamespace = "verrazzano-logging"
+
 // CertManagerNamespace - the CertManager namespace
 const CertManagerNamespace = "cert-manager"
 

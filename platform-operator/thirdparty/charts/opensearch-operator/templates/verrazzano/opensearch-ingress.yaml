@@ -2,34 +2,34 @@
 # Create ingress for OpenSearch and OpenSearch Dashboards with Verrazzano authproxy as backend
 # Required to access OpenSearch and OpenSearch Dashboards through Verrazzano Keycloak
 
-{{- if .Values.ingress.openSearch.enable }}
+{{- if .Values.ingress.opensearch.enable }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: opensearch
   namespace: verrazzano-system
-{{- with .Values.ingress.openSearch.annotations }}
+{{- with .Values.ingress.opensearch.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
-  {{- if .Values.ingress.openSearch.ingressClassName }}
-  ingressClassName: {{ .Values.ingress.openSearch.ingressClassName }}
+  {{- if .Values.ingress.opensearch.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.opensearch.ingressClassName }}
   {{- end }}
   rules:
-    - host: {{ .Values.ingress.openSearch.host | quote }}
+    - host: {{ .Values.ingress.opensearch.host | quote }}
       http:
         paths:
           - pathType: ImplementationSpecific
-            path: {{ .Values.ingress.openSearch.path }}
+            path: {{ .Values.ingress.opensearch.path }}
             backend:
               service:
-                name: {{ .Values.ingress.openSearch.serviceName }}
+                name: {{ .Values.ingress.opensearch.serviceName }}
                 port:
-                  number: {{ .Values.ingress.openSearch.portNumber }}
-{{- if .Values.ingress.openSearch.tls }}
+                  number: {{ .Values.ingress.opensearch.portNumber }}
+{{- if .Values.ingress.opensearch.tls }}
   tls:
-  {{- range .Values.ingress.openSearch.tls }}
+  {{- range .Values.ingress.opensearch.tls }}
     - hosts:
       {{- range .hosts }}
         - {{ . }}
@@ -40,34 +40,34 @@ spec:
 {{- end }}
 
 ---
-{{- if and (.Values.ingress.openSearchDashboards.enable) (.Values.openSearchCluster.dashboards.enable) }}
+{{- if .Values.ingress.opensearchDashboards.enable }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: opensearch-dashboards
   namespace: verrazzano-system
-{{- with .Values.ingress.openSearchDashboards.annotations }}
+{{- with .Values.ingress.opensearchDashboards.annotations }}
   annotations:
 {{ toYaml . | indent 4 }}
 {{- end }}
 spec:
-  {{- if .Values.ingress.openSearchDashboards.ingressClassName }}
-  ingressClassName: {{ .Values.ingress.openSearchDashboards.ingressClassName }}
+  {{- if .Values.ingress.opensearchDashboards.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.opensearchDashboards.ingressClassName }}
   {{- end }}
   rules:
-    - host: {{ .Values.ingress.openSearchDashboards.host | quote }}
+    - host: {{ .Values.ingress.opensearchDashboards.host | quote }}
       http:
         paths:
           - pathType: ImplementationSpecific
-            path: {{ .Values.ingress.openSearchDashboards.path }}
+            path: {{ .Values.ingress.opensearchDashboards.path }}
             backend:
               service:
-                name: {{ .Values.ingress.openSearchDashboards.serviceName }}
+                name: {{ .Values.ingress.opensearchDashboards.serviceName }}
                 port:
-                  number: {{ .Values.ingress.openSearchDashboards.portNumber }}
-{{- if .Values.ingress.openSearchDashboards.tls }}
+                  number: {{ .Values.ingress.opensearchDashboards.portNumber }}
+{{- if .Values.ingress.opensearchDashboards.tls }}
   tls:
-  {{- range .Values.ingress.openSearchDashboards.tls }}
+  {{- range .Values.ingress.opensearchDashboards.tls }}
     - hosts:
       {{- range .hosts }}
         - {{ . }}

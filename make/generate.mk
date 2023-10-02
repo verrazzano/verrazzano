@@ -8,6 +8,8 @@ platform-manifests: controller-gen
 	# Add copyright headers to the kubebuilder generated CRDs
 	./hack/add-crd-header.sh
 	./hack/update-codegen.sh "verrazzano:v1beta1,v1alpha1"  "boilerplate.go.txt"
+	# The module CRD must be added to the VPO helm chart after code generation
+	./hack/download_module_crd.sh
 
 # Generate manifests e.g. CRD, RBAC etc.
 .PHONY: application-manifests

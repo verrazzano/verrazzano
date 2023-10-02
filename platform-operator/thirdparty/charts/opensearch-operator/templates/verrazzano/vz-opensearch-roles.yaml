@@ -10,7 +10,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   opensearchCluster:
-    name: {{ .Values.openSearchCluster.name }}
+    name: opensearch
   clusterPermissions:
     - "cluster:monitor/main"
     - "cluster:monitor/state"
@@ -36,7 +36,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   opensearchCluster:
-    name: {{ .Values.openSearchCluster.name }}
+    name: opensearch
   clusterPermissions:
     - "cluster:monitor/state"
     - "cluster:monitor/nodes/stats"

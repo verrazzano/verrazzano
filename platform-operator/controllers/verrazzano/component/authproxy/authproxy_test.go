@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	"github.com/verrazzano/verrazzano-monitoring-operator/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/nginxutil"
@@ -480,6 +481,7 @@ func TestGetOverrides(t *testing.T) {
 }
 
 func createFakeClientWithIngressAndClientSecret() client.Client {
+	_ = vmov1.AddToScheme(testScheme)
 	fakeService := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{Name: vpoconst.NGINXControllerServiceName, Namespace: nginxutil.IngressNGINXNamespace()},
 		Spec: corev1.ServiceSpec{
@@ -500,7 +502,7 @@ func createFakeClientWithIngressAndClientSecret() client.Client {
 			"clientSecret": []byte("blahblah"),
 		},
 	}
-	return fake.NewClientBuilder().WithObjects(fakeService, fakeSecret).Build()
+	return fake.NewClientBuilder().WithScheme(testScheme).WithObjects(fakeService, fakeSecret).Build()
 }
 
 // cleanTempFiles - Clean up the override temp files in the temp dir

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"io"
+	"k8s.io/utils/strings/slices"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -27,6 +28,7 @@ import (
 const catalogPath = "../../../manifests/catalog/catalog.yaml"
 const bomPath = "../../../verrazzano-bom.json"
 const testBOMPath = "../testdata/test_bom.json"
+
 const targetBranch = "master"
 
 var remoteBOMPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/verrazzano-bom.json", targetBranch)
@@ -131,14 +133,14 @@ func TestGetVersionForAllRegistryComponents(t *testing.T) {
 
 // TestCompareBOMWithRemote ensures that if the BOM on the feature branch has been updated,
 // the corresponding catalog module version has also been upgraded
-// IF the BOM on this branch has been updated since the common ancestor commit with the target branch
 // GIVEN the BOM and catalog from the branch and the BOM and catalog from the target branch
+// IF the BOM on this branch has been updated since the common ancestor commit with the target branch
 // ENSURE that if the BOM entry for a module has been updated, the module version has also been updated
 func TestCompareBOMWithRemote(t *testing.T) {
 	// check if the BOM on this branch has been updated since the common ancestor commit with the target branch
 	// don't run check if not
 	// this is so that merges to the BOM on the target branch don't fail this test on other feature branches
-	if checkBOMModifiedInBranch(t) {
+	if slices.Contains(getTargetBranchDiff(t), "platform-operator/verrazzano-bom.json") {
 		config.SetDefaultBomFilePath(bomPath)
 
 		// get the local bom
@@ -147,18 +149,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NotNil(t, localBOM)
 
 		// get the remote bom from the target branch
-		req, err := retryablehttp.NewRequest("GET", remoteBOMPath, nil)
-		assert.NoError(t, err)
-		client := retryablehttp.NewClient()
-		resp, err := client.Do(req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		bodyRaw, err := io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, bodyRaw)
-		remoteBOM, err := bom.NewBOMFromJSON(bodyRaw)
-		assert.NoError(t, err)
-		assert.NotNil(t, remoteBOM)
+		remoteBOM := getRemoteBOM(t)
 
 		// get the local catalog
 		localCatalog, err := NewCatalog(catalogPath)
@@ -166,17 +157,7 @@ func TestCompareBOMWithRemote(t *testing.T) {
 		assert.NotNil(t, localCatalog)
 
 		// get the remote catalog from the target branch
-		req, err = retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
-		assert.NoError(t, err)
-		resp, err = client.Do(req)
-		assert.NoError(t, err)
-		assert.NotNil(t, resp)
-		bodyRaw, err = io.ReadAll(resp.Body)
-		assert.NoError(t, err)
-		assert.NotEmpty(t, bodyRaw)
-		remoteCatalog, err := NewCatalogfromYAML(bodyRaw)
-		assert.NoError(t, err)
-		assert.NotNil(t, remoteCatalog)
+		remoteCatalog := getRemoteCatalog(t)
 
 		for _, module := range localCatalog.Modules {
 			// if this is a new module that doesn't exist in the remote catalog, continue
@@ -189,10 +170,14 @@ func TestCompareBOMWithRemote(t *testing.T) {
 				assert.NoError(t, err)
 				remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
 				assert.NoError(t, err)
-				assert.Truef(t, localVersion.IsGreatherThan(remoteVersion),
+				compare, err := localVersion.CompareToPrereleaseInts(remoteVersion)
+				assert.NoErrorf(t, err, "Unexpected error comparing prerelease fields for module %s.\n"+
+					"Version on local branch: %s, Version on target branch %s: %s",
+					module.Name, localVersion.ToString(), targetBranch, remoteVersion.ToString())
+				assert.Equalf(t, compare, 1,
 					"BOM entry for module %s on this branch has been modified from the one on %s.\n"+
 						"The catalog module version %s must also be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
-						"Increment the prerelease version for module %s in the catalog k (platform-operator/manifests/catalog/catalog.yaml)"+
+						"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
 						"and update the corresponding BOM component version.",
 					module.Name, targetBranch, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
 			}
@@ -200,18 +185,68 @@ func TestCompareBOMWithRemote(t *testing.T) {
 	}
 }
 
-func checkBOMModifiedInBranch(t *testing.T) bool {
+// TestCompareChartsWithRemote ensures that if any of the chart or values overrides files on the feature branch
+// has been updated, the corresponding catalog module version has also been upgraded
+// GIVEN a list of all the files updated on a target branch
+// IF any of the chart or values overrides files have been updated since the common ancestor commit with the target branch
+// ENSURE that the corresponding module version is also greater than the version on the target branch
+func TestCompareChartsWithRemote(t *testing.T) {
+	config.SetDefaultBomFilePath(bomPath)
+
+	// get the local catalog
+	localCatalog, err := NewCatalog(catalogPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, localCatalog)
+
+	// get the remote catalog from the target branch
+	remoteCatalog := getRemoteCatalog(t)
+
+	// generate the file diff against the target branch
+	changes := getTargetBranchDiff(t)
+
+	for _, module := range localCatalog.Modules {
+		// if this is a new module that doesn't exist in the remote catalog, continue
+		if remoteCatalog.GetVersion(module.Name) == "" ||
+			module.Version == constants.BomVerrazzanoVersion {
+			continue
+		}
+		var changedFiles []string
+		for _, change := range changes {
+			if (module.Chart != "" && strings.HasPrefix(change, module.Chart)) ||
+				(len(module.ValuesFiles) > 0 && slices.Contains(module.ValuesFiles, change)) {
+				changedFiles = append(changedFiles, change)
+			}
+		}
+		if len(changedFiles) != 0 {
+			localVersion, err := semver.NewSemVersion(localCatalog.GetVersion(module.Name))
+			assert.NoError(t, err)
+			remoteVersion, err := semver.NewSemVersion(remoteCatalog.GetVersion(module.Name))
+			assert.NoError(t, err)
+			compare, err := localVersion.CompareToPrereleaseInts(remoteVersion)
+			assert.NoErrorf(t, err, "Unexpected error comparing prerelease fields for module %s.\n"+
+				"Version on local branch: %s, Version on target branch %s: %s",
+				module.Name, localVersion.ToString(), targetBranch, remoteVersion.ToString())
+			assert.Equalf(t, compare, 1,
+				"The following chart or values overrides files for module %s on this branch has been modified from the files on %s:\n%v\n"+
+					"The catalog module version %s must be modifed to be greater than remote catalog module version %s on target branch %s.\n"+
+					"Increment the prerelease version for module %s in the catalog (platform-operator/manifests/catalog/catalog.yaml) "+
+					"and update the corresponding BOM component version.",
+				module.Name, targetBranch, changedFiles, localVersion.ToString(), remoteVersion.ToString(), targetBranch, module.Name)
+		}
+	}
+}
+
+func getTargetBranchDiff(t *testing.T) []string {
 	arg := fmt.Sprintf("+refs/heads/%s:refs/remotes/origin/%s", targetBranch, targetBranch)
 	_, err := exec.Command("git", "config", "--add", "remote.origin.fetch", arg).Output()
 	assert.NoError(t, err)
 	_, err = exec.Command("git", "fetch").Output()
 	assert.NoError(t, err)
 	cmd := exec.Command("git", "diff", "--name-only", fmt.Sprintf("remotes/origin/%s...", targetBranch)) // #nosec G204
-	assert.NoError(t, err)
 	stdout, stderr, err := runner.Run(cmd)
 	assert.NoError(t, err)
 	assert.Emptyf(t, err, "StdErr should be empty: %s", string(stderr))
-	return strings.Contains(string(stdout), "platform-operator/verrazzano-bom.json")
+	return strings.Split(string(stdout), "\n")
 }
 
 func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.Bom) bool {
@@ -245,4 +280,36 @@ func checkIfModuleUpdated(t *testing.T, module Module, localBOM, remoteBOM bom.B
 		}
 	}
 	return false
+}
+
+func getRemoteCatalog(t *testing.T) Catalog {
+	req, err := retryablehttp.NewRequest("GET", remoteCatalogPath, nil)
+	assert.NoError(t, err)
+	client := retryablehttp.NewClient()
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	bodyRaw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, bodyRaw)
+	remoteCatalog, err := NewCatalogfromYAML(bodyRaw)
+	assert.NoError(t, err)
+	assert.NotNil(t, remoteCatalog)
+	return remoteCatalog
+}
+
+func getRemoteBOM(t *testing.T) bom.Bom {
+	req, err := retryablehttp.NewRequest("GET", remoteBOMPath, nil)
+	assert.NoError(t, err)
+	client := retryablehttp.NewClient()
+	resp, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.NotNil(t, resp)
+	bodyRaw, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, bodyRaw)
+	remoteBOM, err := bom.NewBOMFromJSON(bodyRaw)
+	assert.NoError(t, err)
+	assert.NotNil(t, remoteBOM)
+	return remoteBOM
 }
