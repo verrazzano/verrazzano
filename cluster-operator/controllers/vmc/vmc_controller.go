@@ -39,6 +39,7 @@ import (
 )
 
 const finalizerName = "managedcluster.verrazzano.io"
+const importedProviderDisplayName = "Imported"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, RoleBinding, and a Secret which
@@ -108,7 +109,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	r.log = log
-	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	log.Oncef("Reconciling VerrazzanoManagedCluster resource %v", req.NamespacedName)
 	res, err := r.doReconcile(ctx, log, cr)
 	if err != nil {
 		// Never return an error since it has already been logged and we don't want the
@@ -625,7 +626,17 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// Update the VMC's status.state
 	if err := r.updateState(vmc); err != nil {
+		return err
+	}
+
+	// Update the VMC's status.imported
+	imported := vmc.Status.ClusterRef == nil
+	vmc.Status.Imported = &imported
+
+	// Update the VMC's status.provider
+	if err := r.updateProvider(vmc); err != nil {
 		return err
 	}
 
@@ -642,9 +653,44 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 	existingVMC.Status.State = vmc.Status.State
 	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
+	existingVMC.Status.Imported = vmc.Status.Imported
+	existingVMC.Status.Provider = vmc.Status.Provider
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
+}
+
+func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// This VMC represents an imported cluster.
+	if vmc.Status.ClusterRef == nil {
+		vmc.Status.Provider = importedProviderDisplayName
+		return nil
+	}
+
+	// This VMC represents a CAPI cluster. Get the provider and update the VMC.
+	clusterNamespacedName := types.NamespacedName{
+		Name:      vmc.Status.ClusterRef.Name,
+		Namespace: vmc.Status.ClusterRef.Namespace,
+	}
+	capiCluster, err := capi.GetCluster(context.TODO(), r.Client, clusterNamespacedName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+	// FIXME: what should I be setting here as the "Provider"
+	provider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
+	if !found {
+		r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
+		return nil
+	}
+	if err != nil {
+		r.log.Progressf("error while looking for spec.infrastructureRef.kind field for cluster %s: %v", clusterNamespacedName, err)
+		return nil
+	}
+	vmc.Status.Provider = provider
+	return nil
 }
 
 // updateState sets the vmc.Status.State for the given VMC.
@@ -689,13 +735,12 @@ func (r *VerrazzanoManagedClusterReconciler) updateStateFromLastAgentConnectTime
 // getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
 func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
 	// Get the CAPI Cluster CR
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
 	clusterNamespacedName := types.NamespacedName{
 		Name:      clusterRef.Name,
 		Namespace: clusterRef.Namespace,
 	}
-	if err := r.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
+	cluster, err := capi.GetCluster(context.TODO(), r.Client, clusterNamespacedName)
+	if err != nil {
 		if errors.IsNotFound(err) {
 			return "", nil
 		}

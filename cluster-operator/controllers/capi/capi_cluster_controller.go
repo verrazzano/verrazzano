@@ -129,6 +129,9 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err = r.setVMCStatusFields(ctx, cluster, vmc); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
@@ -146,6 +149,15 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
 	return verrazzanoReconcileFn(ctx, cluster, r)
+
+func (r *CAPIClusterReconciler) setVMCStatusFields(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	vmc.Status.ClusterRef = &clustersv1alpha1.ClusterReference{
+		APIVersion: cluster.GetAPIVersion(),
+		Kind:       cluster.GetKind(),
+		Name:       cluster.GetName(),
+		Namespace:  cluster.GetNamespace(),
+	}
+	return r.Client.Status().Update(ctx, vmc, &client.UpdateOptions{})
 }
 
 // createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
