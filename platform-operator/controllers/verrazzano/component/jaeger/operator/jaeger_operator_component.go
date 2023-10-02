@@ -263,6 +263,11 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
+	err = common.ApplyCRDYaml(ctx, c.ChartDir)
+	if err != nil {
+		return err
+	}
+
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 
