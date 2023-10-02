@@ -40,9 +40,11 @@ const (
 	shortWaitTimeout            = 10 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
-	AddonControllerPodNamespace = "caapv-system"
+	addonControllerPodNamespace = "caapv-system"
 	nodeLabel                   = "node-role.kubernetes.io/node"
 	controlPlaneLabel           = "node-role.kubernetes.io/control-plane"
+	addonControllerPod          = "caapv-controller-manager"
+	addonControllerPodLabel     = "cluster.x-k8s.io/provider"
 	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.goyaml"
 )
 
@@ -51,7 +53,6 @@ var (
 	ctx                            *QCContext
 	verrazzanoPlatformOperatorPods = []string{"verrazzano-platform-operator", "verrazzano-platform-operator-webhook"}
 	//verrazzanoModuleOperatorPod    = []string{"verrazzano-module-operator"}
-	addonControllerPod = []string{"caapv-controller-manager"}
 )
 
 var beforeSuite = t.BeforeSuiteFunc(func() {
@@ -168,14 +169,6 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 
 	return vpo && vpoWebhook
 }*/
-
-func isAddonControllerPodRunning() bool {
-	result, err := pkg.PodsRunning(AddonControllerPodNamespace, addonControllerPod)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", AddonControllerPodNamespace, err))
-	}
-	return result
-}
 
 func ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, namespace string, log *zap.SugaredLogger) bool {
 	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
@@ -487,9 +480,14 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
 	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
-		Eventually(func() bool {
-			return isAddonControllerPodRunning()
+		Eventually(func() {
+
 		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
+	})
+	WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+		Eventually(func() error {
+			return displayWorkloadClusterResources(okeClusterName, t.Logs)
+		}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 	})
 
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
@@ -505,6 +503,12 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(okeClusterName, t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
 		WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 			Eventually(func() bool {
 				return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
@@ -517,10 +521,5 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 		})
 
-		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
-			Eventually(func() error {
-				return displayWorkloadClusterResources(okeClusterName, t.Logs)
-			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
-		})
 	})
 })
