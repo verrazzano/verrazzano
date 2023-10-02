@@ -121,7 +121,18 @@ pipeline {
                     sh """
                         mkdir -p ${WORKSPACE}/.kube
                         rm -rf ${KUBECONFIG}
-                        cp ${DEV_LRE_KUBECONFIG} ${KUBECONFIG}
+
+                        RANCHER_TOKEN=$(curl -s -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
+                        -H 'Content-Type: application/json' \
+                        "https://rancher.lre.dev.v8odev01iad.oraclevcn.com/v3-public/localProviders/local?action=login" \
+                        -d "{\"username\":\"admin\", \"password\":\"Placeholder\"}" | jq -r ".token")
+
+                        curl -s -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
+                        -H "Authorization: Bearer $RANCHER_TOKEN" \
+                        -H 'Content-Type: application/json' \
+                        "https://rancher.lre.dev.v8odev01iad.oraclevcn.com/v3/clusters/local?action=generateKubeconfig" \
+                        | jq -r ".config" > ${KUBECONFIG}
+
                         cat ${KUBECONFIG}
                     """
                 }
