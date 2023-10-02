@@ -679,18 +679,47 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 		}
 		return err
 	}
-	// FIXME: what should I be setting here as the "Provider"
-	provider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
-	if !found {
-		r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
-		return nil
-	}
+	provider, err := r.getCAPIProviderDisplayString(capiCluster)
 	if err != nil {
-		r.log.Progressf("error while looking for spec.infrastructureRef.kind field for cluster %s: %v", clusterNamespacedName, err)
-		return nil
+		return err
 	}
 	vmc.Status.Provider = provider
 	return nil
+}
+
+// getCAPIProviderDisplayString returns the string to populate the VMC's status.provider field, based on information taken from the
+// provided CAPI Cluster.
+// FIXME: proper error handling here
+// TODO: handle clusterclass case
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *unstructured.Unstructured) (string, error) {
+	clusterNamespacedName := types.NamespacedName{
+		Name:      capiCluster.GetName(),
+		Namespace: capiCluster.GetNamespace(),
+	}
+
+	infraProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
+	if !found {
+		r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
+	}
+	if err != nil {
+		r.log.Progressf("error while looking for spec.infrastructureRef.kind field for cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
+	}
+
+	cpProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "controlPlaneRef", "kind")
+	if !found {
+		r.log.Progressf("could not find spec.controlPlaneRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
+	}
+	if err != nil {
+		r.log.Progressf("error while looking for spec.controlPlaneRef.kind field for cluster %s: %v", clusterNamespacedName, err)
+		return "", nil
+	}
+
+	// TODO: Use specialized strings for OKE and OCNE special cases
+	provider := fmt.Sprintf("%s on %s infrastructure", cpProvider, infraProvider)
+	return provider, nil
 }
 
 // updateState sets the vmc.Status.State for the given VMC.
