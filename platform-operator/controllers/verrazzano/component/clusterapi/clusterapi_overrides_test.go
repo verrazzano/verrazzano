@@ -79,7 +79,7 @@ func TestBomOverrides(t *testing.T) {
 
 	addon := overrides.DefaultProviders.VerrazzanoAddon
 	assert.Equal(t, "verrazzano", addon.Image.Repository)
-	assert.Equal(t, "v1.0.0-20230815141941-9a36ded", addon.Image.Tag)
+	assert.Equal(t, "v1.0.0-20231002161731-24160e8", addon.Image.Tag)
 	assert.Equal(t, "", addon.Image.Registry)
 	assert.Equal(t, "v1.0.0", addon.Image.BomVersion)
 	assert.Equal(t, "", addon.Version)
@@ -426,7 +426,7 @@ func TestBomOverridesWithPortInHost(t *testing.T) {
 
 	addon := overrides.DefaultProviders.VerrazzanoAddon
 	assert.Equal(t, "verrazzano", addon.Image.Repository)
-	assert.Equal(t, "v1.0.0-20230815141941-9a36ded", addon.Image.Tag)
+	assert.Equal(t, "v1.0.0-20231002161731-24160e8", addon.Image.Tag)
 	assert.Equal(t, "", addon.Image.Registry)
 	assert.Equal(t, "v1.0.0", addon.Image.BomVersion)
 	assert.Equal(t, "", addon.Version)
