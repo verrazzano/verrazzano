@@ -38,8 +38,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const finalizerName = "managedcluster.verrazzano.io"
-const importedProviderDisplayName = "Imported"
+const (
+	finalizerName = "managedcluster.verrazzano.io"
+	importedProviderDisplayName = "Imported"
+	ocneProviderDisplayName = "Oracle OCNE on OCI"
+	okeProviderDisplayName = "Oracle OKE"
+)
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, RoleBinding, and a Secret which
@@ -697,6 +701,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 		Namespace: capiCluster.GetNamespace(),
 	}
 
+	// Get infrastructure provider
 	infraProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
 	if !found {
 		r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
@@ -707,6 +712,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 		return "", nil
 	}
 
+	// Get control plane provider
 	cpProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "controlPlaneRef", "kind")
 	if !found {
 		r.log.Progressf("could not find spec.controlPlaneRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
@@ -717,8 +723,14 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 		return "", nil
 	}
 
-	// TODO: Use specialized strings for OKE and OCNE special cases
-	provider := fmt.Sprintf("%s on %s infrastructure", cpProvider, infraProvider)
+	// Use specialized strings for OKE and OCNE special cases
+	if infraProvider == capi.OCNEInfrastructureProvider && cpProvider == capi.OCNEControlPlaneProvider {
+		return ocneProviderDisplayName, nil
+	} else if infraProvider == capi.OKEInfrastructureProvider && cpProvider == capi.OKEControlPlaneProvider {
+		return okeProviderDisplayName, nil
+	}
+	// Otherwise, return this generic format for the provider display string
+	provider := fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider)
 	return provider, nil
 }
 

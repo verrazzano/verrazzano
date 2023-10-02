@@ -12,6 +12,13 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	OCNEControlPlaneProvider = "OCNEControlPlane"
+	OCNEInfrastructureProvider = "OCICluster"
+	OKEControlPlaneProvider = "OCIManagedControlPlane"
+	OKEInfrastructureProvider = "OCIManagedCluster"
+)
+
 var GVKCAPICluster = schema.GroupVersionKind{
 	Group:   "cluster.x-k8s.io",
 	Version: "v1beta1",
