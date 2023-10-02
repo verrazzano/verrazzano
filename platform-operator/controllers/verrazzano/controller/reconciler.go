@@ -336,14 +336,14 @@ func (r Reconciler) isUpgradeRequired(actualCR *vzv1alpha1.Verrazzano) (bool, er
 		if err != nil {
 			return false, err
 		}
-		return specVersion.IsLessThan(bomVersion), nil
+		return bomVersion.IsGreatherThan(specVersion), nil
 	}
 	if len(actualCR.Status.Version) > 0 {
 		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
 		if err != nil {
 			return false, err
 		}
-		return statusVersion.IsLessThan(bomVersion), nil
+		return bomVersion.IsGreatherThan(statusVersion), nil
 	}
 	return false, nil
 }
