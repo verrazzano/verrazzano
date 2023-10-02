@@ -8,16 +8,17 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/verrazzano"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzalpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	dump "github.com/verrazzano/verrazzano/tests/e2e/pkg/test/clusterdump"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var t = framework.NewTestFramework("verify-upgrade-required")
@@ -100,8 +101,10 @@ var _ = t.Describe("Verify upgrade required when new version is available", Labe
 			}
 
 			// This should fail with a webhook validation error
-			err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, vz)
-			t.Logs.Infof("Returned error: %s", err.Error())
+			err = verrazzano.UpdateV1Alpha1(context.TODO(), vzClient, vz, client.DryRunAll)
+			if err != nil {
+				t.Logs.Infof("Returned error: %s", err.Error())
+			}
 			Expect(err).Should(HaveOccurred())
 		})
 	})

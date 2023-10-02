@@ -61,7 +61,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: OCIManagedMachinePool
 metadata:
     name: {{$node.Name}}
-    namespace: default
+    namespace: {{$.Namespace}}
 spec:
     version: {{$.Kubernetes.Version}}
     initialNodeLabels:

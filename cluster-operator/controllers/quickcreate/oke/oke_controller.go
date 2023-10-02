@@ -68,7 +68,7 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OKEQ
 	}
 	// If provisioning has not successfully started, attempt to create the OKE control plane
 	if shouldProvision(q) {
-		if err := controller.ApplyTemplates(r.Client, props, clusterTemplate); err != nil {
+		if err := controller.ApplyTemplates(r.Client, props, q.Namespace, clusterTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
 		q.Status = vmcv1alpha1.OKEQuickCreateStatus{
@@ -79,7 +79,7 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OKEQ
 	}
 	// If OCI Network is loaded, create the nodes and update phase to completed
 	if props.HasOCINetwork() {
-		if err := controller.ApplyTemplates(r.Client, props, nodesTemplate); err != nil {
+		if err := controller.ApplyTemplates(r.Client, props, q.Namespace, nodesTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
 		q.Status.Phase = vmcv1alpha1.QuickCreatePhaseComplete
