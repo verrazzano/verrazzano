@@ -95,6 +95,7 @@ type OverridesInterface interface {
 	GetVerrazzanoAddonRepository() string
 	GetVerrazzanoAddonControllerFullImagePath() string
 	GetVerrazzanoAddonTag() string
+	GetVerrazzanoAddonOverridesURL() string
 	GetVerrazzanoAddonVersion() string
 	GetVerrazzanoAddonURL() string
 	IncludeImagesHeader() bool
@@ -256,6 +257,10 @@ func (c capiOverrides) GetVerrazzanoAddonURL() string {
 	return getURLForProvider(c.DefaultProviders.VerrazzanoAddon, "addon-verrazzano")
 }
 
+func (c capiOverrides) GetVerrazzanoAddonOverridesURL() string {
+	return c.DefaultProviders.VerrazzanoAddon.URL
+}
+
 func (c capiOverrides) GetVerrazzanoAddonVersion() string {
 	return getProviderVersion(c.DefaultProviders.VerrazzanoAddon)
 }
@@ -263,9 +268,9 @@ func (c capiOverrides) GetVerrazzanoAddonVersion() string {
 // IncludeImagesHeader returns true if the overrides for any of the default providers is not specified.
 // Otherwise, returns false.
 func (c capiOverrides) IncludeImagesHeader() bool {
-	if !c.ClusterAPIOverridesExists() || !c.OCIOverridesExists() || !c.OCNEControlPlaneOverridesExists() || !c.OCNEBootstrapOverridesExists() ||
-    len(c.GetVerrazzanoAddonVersion()) == 0 {
-	    return true
+	if !c.ClusterAPIOverridesExists() || !c.OCIOverridesExists() || !c.OCNEControlPlaneOverridesExists() ||
+		!c.OCNEBootstrapOverridesExists() || len(c.GetVerrazzanoAddonVersion()) == 0 {
+		return true
 	}
 	return false
 }
