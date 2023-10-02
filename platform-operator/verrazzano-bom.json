@@ -129,13 +129,13 @@
           "name": "istiod",
           "images": [
             {
-              "image": "pilot-jenkins",
-              "tag": "1.19.0-20230922184000-1da49eb0",
+              "image": "pilot",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "values.pilot.image"
             },
             {
-              "image": "proxyv2-jenkins",
-              "tag": "1.19.0-20230922184000-1da49eb0",
+              "image": "proxyv2",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -261,8 +261,8 @@
           "name": "verrazzano",
           "images": [
             {
-              "image": "proxyv2-jenkins",
-              "tag": "1.19.0-20230922184000-1da49eb0",
+              "image": "proxyv2",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -331,8 +331,8 @@
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
-              "image": "proxyv2-jenkins",
-              "tag": "1.19.0-20230922184000-1da49eb0",
+              "image": "proxyv2",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
