@@ -55,6 +55,8 @@ endif
 
 VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
 
+ISTIO_ISTIOCTL_IMAGE ?= ghcr.io/verrazzano/istio-istioctl:1.19.0-20231002202943-1a85d369
+
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
 GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.buildDate=${BUILDDATE}
@@ -135,11 +137,13 @@ docker-build-common:
 	@echo Building verrazzano-platform-operator image ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
 	@echo using verrazzano-application-operator image ${VERRAZZANO_APPLICATION_OPERATOR_IMAGE}
 	@echo using verrazzano-cluster-operator image ${VERRAZZANO_CLUSTER_OPERATOR_IMAGE}
+	@echo using istio-istioctl image ${ISTIO_ISTIOCTL_IMAGE}
 	# the TPL file needs to be copied into this dir so it is in the docker build context
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_PLATFORM_OPERATOR_IMAGE="${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" \
 		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
+		--build-arg ISTIO_ISTIOCTL_IMAGE="${ISTIO_ISTIOCTL_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
