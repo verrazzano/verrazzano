@@ -4,78 +4,161 @@
 modules:
   - name: ingress-controller
     version: 1.7.1
+    chart: platform-operator/thirdparty/charts/ingress-nginx
+    valuesFiles:
+      - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
   - name: cert-manager
     version: 1.9.1-1
+    chart: platform-operator/thirdparty/charts/cert-manager
+    valuesFiles:
+      - platform-operator/helm_config/overrides/cert-manager-values.yaml
   - name: cert-manager-webhook-oci
     version: 0.1.0-1
+    chart: platform-operator/thirdparty/charts/cert-manager-webhook-oci
   - name: cluster-issuer
     version: VERRAZZANO_VERSION
   - name: dex
     version: 2.37.0
+    chart: platform-operator/thirdparty/charts/dex
+    valuesFiles:
+      - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
     version: 0.12.2-1
+    chart: platform-operator/thirdparty/charts/external-dns
+    valuesFiles:
+      - platform-operator/helm_config/overrides/external-dns-values.yaml
   - name: istio
     version: 1.17.2-1
   - name: rancher
-    version: 2.7.5-2
+    version: 2.7.5-3
+    chart: platform-operator/thirdparty/charts/rancher
+    valuesFiles:
+      - platform-operator/helm_config/overrides/rancher-values.yaml
   - name: cluster-api
     version: 1.5.0
   - name: verrazzano
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano
   - name: fluentd
     version: 1.14.5-1
+    chart: platform-operator/helm_config/charts/verrazzano-fluentd
   - name: verrazzano-console
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-console
   - name: verrazzano-monitoring-operator
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-monitoring-operator
   - name: oam-kubernetes-runtime
     version: 0.3.3-1
+    chart: platform-operator/thirdparty/charts/oam-kubernetes-runtime
+    valuesFiles:
+      - platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
   - name: verrazzano-cluster-operator
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-cluster-operator
   - name: verrazzano-cluster-agent
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-cluster-agent
   - name: verrazzano-application-operator
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-application-operator
   - name: weblogic-operator
-    version: 4.1.2
+    version: 4.1.2-1
+    chart: platform-operator/thirdparty/charts/weblogic-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/weblogic-values.yaml
   - name: coherence-operator
     version: 3.2.11
+    chart: platform-operator/thirdparty/charts/coherence-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/coherence-values.yaml
   - name: fluent-operator
     version: 2.2.0-1
+    chart: platform-operator/thirdparty/charts/fluent-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/fluent-operator-values.yaml
   - name: fluentbit-opensearch-output
     version: 2.0.11
+    chart: platform-operator/helm_config/charts/fluentbit-opensearch-output
   - name: kiali-server
     version: 1.66.1-1
+    chart: platform-operator/thirdparty/charts/kiali-server
+    valuesFiles:
+      - platform-operator/helm_config/overrides/kiali-server-values.yaml
   - name: mysql
     version: 8.0.32
+    chart: platform-operator/thirdparty/charts/mysql
+    valuesFiles:
+      - platform-operator/helm_config/overrides/mysql-values.yaml
   - name: mysql-operator
     version: 8.0.32
+    chart: platform-operator/thirdparty/charts/mysql-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/mysql-operator-values.yaml
   - name: keycloak
     version: 20.0.1-1
+    chart: platform-operator/thirdparty/charts/keycloak
+    valuesFiles:
+      - platform-operator/helm_config/overrides/keycloak-values.yaml
   - name: prometheus-operator
     version: 0.64.1-1
+    chart: platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack
+    valuesFiles:
+      - platform-operator/helm_config/overrides/prometheus-operator-values.yaml
   - name: prometheus-adapter
     version: 0.10.0-1
+    chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter
+    valuesFiles:
+      - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
   - name: kube-state-metrics
     version: 2.10.0
+    chart: platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics
+    valuesFiles:
+      - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml
   - name: prometheus-pushgateway
     version: 1.6.2
+    chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway
+    valuesFiles:
+      - platform-operator/helm_config/overrides/prometheus-pushgateway-values.yaml
   - name: prometheus-node-exporter
     version: 1.6.1
+    chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter
+    valuesFiles:
+      - platform-operator/helm_config/overrides/prometheus-node-exporter-values.yaml
   - name: jaeger-operator
     version: 1.42.0-1
+    chart: platform-operator/thirdparty/charts/jaegertracing/jaeger-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/jaeger-operator-values.yaml
+      - platform-operator/helm_config/overrides/jaeger-production-strategy-values.yaml
   - name: velero
     version: 1.9.1-1
+    chart: platform-operator/thirdparty/charts/velero
+    valuesFiles:
+      - platform-operator/helm_config/overrides/velero-override-static-values.yaml
   - name: rancher-backup
     version: 3.1.0-1
+    chart: platform-operator/thirdparty/charts/rancher-backup
+    valuesFiles:
+      - platform-operator/helm_config/overrides/rancher-backup-override-static-values.yaml
   - name: argocd
     version: 2.8.3
+    chart: platform-operator/thirdparty/charts/argo-cd
+    valuesFiles:
+      - platform-operator/helm_config/overrides/argocd-values.yaml
   - name: thanos
     version: 0.32.2
+    chart: platform-operator/thirdparty/charts/thanos
+    valuesFiles:
+      - platform-operator/helm_config/overrides/thanos-values.yaml
   - name: verrazzano-network-policies
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-network-policies
   - name: opensearch-operator
     version: 2.4.0
+    chart: platform-operator/thirdparty/charts/opensearch-operator
+    valuesFiles:
+      - platform-operator/helm_config/overrides/opensearch-operator-values.yaml
   - name: opensearch
     version: 2.3.0-2
   - name: opensearch-dashboards
@@ -84,5 +167,7 @@ modules:
     version: 7.5.17-1
   - name: verrazzano-grafana-dashboards
     version: VERRAZZANO_VERSION
+    chart: platform-operator/helm_config/charts/verrazzano-grafana-dashboards
   - name: verrazzano-authproxy
     version: VERRAZZANO_VERSION
+    chart: platform-operator/thirdparty/charts/verrazzano-authproxy

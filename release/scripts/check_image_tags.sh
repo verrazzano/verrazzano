@@ -39,6 +39,16 @@ if [ -f $BOM_FILE ]; then
     MISMATCH=true
   fi
 
+  echo Checking Jaeger image tags in $BOM_FILE
+  # All Jaeger images (excluding the jaeger-operator image) should have the same tag
+  UNIQUE_JAEGER_IMAGE_TAGS=$(jq -r '.components[] | select(.name == "jaeger-operator") | .subcomponents[] | select(.name != "jaeger-operator") | .images[] | .tag' $BOM_FILE | sort | uniq)
+  UNIQUE_JAEGER_IMAGE_TAGS_COUNT=$(echo "$UNIQUE_JAEGER_IMAGE_TAGS" | wc -l)
+  if [ $UNIQUE_JAEGER_IMAGE_TAGS_COUNT -gt 1 ]; then
+    echo "Expected all Jaeger image tags (excluding jaeger-operator) to match but found these unique tags:"
+    echo "$UNIQUE_JAEGER_IMAGE_TAGS"
+    MISMATCH=true
+  fi
+
   if [ $MISMATCH == true ]; then
     echo FATAL: One or more mismatched image tags found
     exit 1
