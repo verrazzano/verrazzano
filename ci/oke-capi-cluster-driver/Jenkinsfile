@@ -473,6 +473,7 @@ def setUpEnvVarsForOKECAPIClusterCreation() {
     sh "echo Setting up inputs for the OKE CAPI cluster driver tests"
     env.VCN_ID=sh(returnStdout: true, script: """ oci network vcn list --compartment-id ${env.TF_VAR_compartment_id} --display-name ${env.TF_VAR_label_prefix}-oke-vcn | jq -r '.data[0].id' """).trim()
     env.SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-workers | jq -r '.data[0].id' """).trim()
+    env.LB_SUBNET_ID=sh(returnStdout: true, script: """ oci network subnet list --compartment-id ${env.TF_VAR_compartment_id} --vcn-id ${env.VCN_ID} --display-name ${env.TF_VAR_label_prefix}-pub_lb | jq -r '.data[0].id' """).trim()
 
     // required environment variables for the Ginkgo test suite
     env.OCI_REGION="${env.TF_VAR_region}"
@@ -485,7 +486,7 @@ def setUpEnvVarsForOKECAPIClusterCreation() {
     env.OCI_COMPARTMENT_ID="${env.TF_VAR_compartment_id}"
     env.WORKER_NODE_SUBNET="${env.SUBNET_ID}"
     env.CONTROL_PLANE_SUBNET="${env.SUBNET_ID}"
-    env.LOAD_BALANCER_SUBNET="${env.SUBNET_ID}"
+    env.LOAD_BALANCER_SUBNET="${env.LB_SUBNET_ID}"
 
     // optional parameters
     env.DOCKER_ROOT_DIR="${params.DOCKER_ROOT_DIR}"
