@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -480,9 +481,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
 	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
-		Eventually(func() {
-
-		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Verify addon controller pod is running")
+		update.ValidatePods(addonControllerPod, addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
 	WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 		Eventually(func() error {
