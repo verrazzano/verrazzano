@@ -1,6 +1,8 @@
 # Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+ARG ISTIO_ISTIOCTL_IMAGE
+
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
 FROM $BASE_IMAGE AS build_base
 
@@ -13,15 +15,21 @@ COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/verrazzano-plat
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
     && chmod +x scripts/*.sh
+
+# istioctl image to copy the istioctl binary to the final image
+FROM $ISTIO_ISTIOCTL_IMAGE AS istio_istioctl
+
 # Create the verrazzano-platform-operator image
 FROM $BASE_IMAGE AS final
 
 ARG VERRAZZANO_PLATFORM_OPERATOR_IMAGE
 
-# copy olcne repos needed to install kubectl, istioctl
+# copy olcne repos needed to install kubectl
 COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos/*.repo /etc/yum.repos.d/
 
-RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.26.6-1.el8 istio-istioctl-1.17.2-3.el8 \
+COPY --from=istio_istioctl /usr/local/bin/istioctl /usr/local/bin/istioctl
+
+RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.26.6-1.el8 \
     && microdnf clean all \
     && rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano \
