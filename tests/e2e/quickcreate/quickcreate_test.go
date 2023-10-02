@@ -21,6 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"os"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -215,21 +217,35 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	if err != nil {
 		return nil, err
 	}
-	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
-	if err != nil {
-		return nil, errors.Wrap(err, "Failed to create temporary file")
-	}
+	/*	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
+		if err != nil {
+			return nil, errors.Wrap(err, "Failed to create temporary file")
+		}
 
-	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-		return nil, errors.Wrap(err, "failed to write to destination file")
-	}
-
-	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+			return nil, errors.Wrap(err, "failed to write to destination file")
+		}
+	*/
+	k8sRestConfig, err := GetRESTConfigGivenString(capiK8sConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get k8s rest config")
 	}
 
 	return k8sutil.GetKubernetesClientsetWithConfig(k8sRestConfig)
+}
+
+func GetRESTConfigGivenString(kubeconfig []byte) (*rest.Config, error) {
+	config, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		return nil, err
+	}
+	setConfigQPSBurst(config)
+	return config, nil
+}
+
+func setConfigQPSBurst(config *rest.Config) {
+	config.Burst = 150
+	config.QPS = 100
 }
 
 func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
@@ -336,18 +352,19 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 	if err != nil {
 		return nil, err
 	}
-	tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
-	if err != nil {
-		log.Errorf("Failed to create temporary file : %v", zap.Error(err))
-		return nil, err
-	}
+	/*	tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
+		if err != nil {
+			log.Errorf("Failed to create temporary file : %v", zap.Error(err))
+			return nil, err
+		}
 
-	if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-		log.Errorf("failed to write to destination file : %v", zap.Error(err))
-		return nil, err
-	}
+		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+			log.Errorf("failed to write to destination file : %v", zap.Error(err))
+			return nil, err
+		}*/
 
-	k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+	//k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+	k8sRestConfig, err := GetRESTConfigGivenString(capiK8sConfig)
 	if err != nil {
 		log.Errorf("failed to obtain k8s rest config : %v", zap.Error(err))
 		return nil, err
@@ -365,14 +382,18 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
 
 	WhenClusterAPIInstalledIt("Deploy addon component", func() {
-		Eventually(func() {
+		Eventually(func() bool {
 			pwd, _ := os.Getwd()
 			t.Logs.Infof("----------Finding the addon components template, %v", pwd)
 			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
 			if err != nil {
 				t.Logs.Infof("----------Finding the addon components template - COULD NOT FIND THE TEMPLATE PATH")
 			}
-			resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+			if err != nil {
+				return false
+			}
+			return true
 		}, shortPollingInterval, shortWaitTimeout).ShouldNot(HaveOccurred(), "Deploy addon controller")
 	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
