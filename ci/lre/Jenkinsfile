@@ -126,7 +126,7 @@ pipeline {
                         RANCHER_TOKEN=\$(curl -vvv -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
                         -H 'Content-Type: application/json' \
                         "https://rancher.lre.dev.v8odev01iad.oraclevcn.com/v3-public/localProviders/local?action=login" \
-                        -d "{\"username\":\"admin\", \"password\":\"${DEV_LRE_RANCHER_ADMIN_PSW}\"}")
+                        -d '{"username":"admin", "password":"${DEV_LRE_RANCHER_ADMIN_PSW}"}')
 
                         curl -s -k --noproxy rancher.lre.dev.v8odev01iad.oraclevcn.com -X POST \
                         -H "Authorization: Bearer \${RANCHER_TOKEN}" \
