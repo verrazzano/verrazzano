@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,6 +27,7 @@ import (
 	"os"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"text/tabwriter"
 	"time"
 )
 
@@ -330,6 +332,50 @@ func getVerrazzano(clusterName, namespace, vzinstallname string, log *zap.Sugare
 	return dclient.Resource(gvr).Namespace(namespace).Get(context.TODO(), vzinstallname, metav1.GetOptions{})
 }
 
+// DisplayWorkloadClusterResources displays the pods of workload OCNE cluster as a formatted table.
+func displayWorkloadClusterResources(clusterName string, log *zap.SugaredLogger) error {
+	client, err := getCapiClusterK8sClient(clusterName, log)
+	if err != nil {
+		return errors.Wrap(err, "Failed to get k8s client for workload cluster")
+	}
+
+	log.Infof("----------- Pods running on workload cluster ---------------------")
+	return showPodInfo(client, clusterName, log)
+}
+
+// ShowPodInfo displays the pods of workload OCNE cluster as a formatted table.
+func showPodInfo(client *kubernetes.Clientset, clusterName string, log *zap.SugaredLogger) error {
+	nsList, err := client.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get list of namespaces from cluster '%s'", clusterName))
+	}
+	writer := tabwriter.NewWriter(os.Stdout, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintln(writer, "Name\tNamespace\tStatus\tIP\tNode\tAge")
+	//var dnsPod, ccmPod, calicokubePod *v1.Pod
+	for _, ns := range nsList.Items {
+		podList, err := client.CoreV1().Pods(ns.Name).List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			return errors.Wrap(err, fmt.Sprintf("failed to get list of pods from cluster '%s'", clusterName))
+		}
+		for _, pod := range podList.Items {
+			podData, err := client.CoreV1().Pods(ns.Name).Get(context.TODO(), pod.Name, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					log.Infof("No pods in namespace '%s'", ns.Name)
+				} else {
+					return errors.Wrap(err, fmt.Sprintf("failed to get pod '%s' from cluster '%s'", pod.Name, clusterName))
+				}
+			}
+
+			fmt.Fprintf(writer, "%v\n", fmt.Sprintf("%v\t%v\t%v\t%v\t%v\t%v",
+				podData.GetName(), podData.GetNamespace(), podData.Status.Phase, podData.Status.PodIP, podData.Spec.NodeName,
+				time.Until(podData.GetCreationTimestamp().Time).Abs()))
+		}
+	}
+	writer.Flush()
+	return nil
+}
+
 func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	dclient, err := k8sutil.GetDynamicClient()
 	if err != nil {
@@ -425,6 +471,12 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() error {
 				return ensureVerrazzano(okeClusterName, t.Logs)
 			}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(okeClusterName, t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 	})
 })
