@@ -82,7 +82,10 @@ type OverridesInterface interface {
 	GetOCNEControlPlaneVersion() string
 	GetOCNEControlPlaneOverridesVersion() string
 	GetOCNEControlPlaneBomVersion() string
+	GetVerrazzanoAddonOverridesVersion() string
+	GetVerrazzanoAddonBomVersion() string
 	GetVerrazzanoAddonRepository() string
+	GetVerrazzanoAddonControllerFullImagePath() string
 	GetVerrazzanoAddonTag() string
 	GetVerrazzanoAddonVersion() string
 	GetVerrazzanoAddonURL() string
@@ -193,6 +196,14 @@ func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
 	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
 }
 
+func (c capiOverrides) GetVerrazzanoAddonOverridesVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Version
+}
+
+func (c capiOverrides) GetVerrazzanoAddonBomVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Image.BomVersion
+}
+
 func (c capiOverrides) GetVerrazzanoAddonRepository() string {
 	return getRepositoryForProvider(c, c.DefaultProviders.VerrazzanoAddon)
 }
@@ -213,7 +224,8 @@ func (c capiOverrides) GetVerrazzanoAddonVersion() string {
 // Otherwise, returns false.
 func (c capiOverrides) IncludeImagesHeader() bool {
 	if len(c.GetClusterAPIOverridesVersion()) == 0 || len(c.GetOCIOverridesVersion()) == 0 ||
-		len(c.GetOCNEBootstrapOverridesVersion()) == 0 || len(c.GetOCNEControlPlaneOverridesVersion()) == 0 {
+		len(c.GetOCNEBootstrapOverridesVersion()) == 0 || len(c.GetOCNEControlPlaneOverridesVersion()) == 0 ||
+		len(c.GetVerrazzanoAddonVersion()) == 0 {
 		return true
 	}
 	return false
@@ -233,6 +245,10 @@ func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
 
 func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
 	return fmt.Sprintf("%s/%s:%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
+}
+
+func (c capiOverrides) GetVerrazzanoAddonControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetVerrazzanoAddonRepository(), clusterAPIVerrazzanoAddonControllerImage, c.GetVerrazzanoAddonTag())
 }
 
 // getRepositoryForProvider - return the repository in the format that clusterctl
