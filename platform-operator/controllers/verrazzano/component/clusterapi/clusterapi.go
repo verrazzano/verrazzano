@@ -27,25 +27,25 @@ import (
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
 images:
-  {{- if not .GetClusterAPIOverridesVersion }}
+  {{- if not .ClusterAPIOverridesExists }}
   cluster-api:
     repository: {{.GetClusterAPIRepository}}
     tag: {{.GetClusterAPITag}}
   {{ end }}
 
-  {{- if not .GetOCIOverridesVersion }}
+  {{- if not .OCIOverridesExists }}
   infrastructure-oci:
     repository: {{.GetOCIRepository}}
     tag: {{.GetOCITag}}
   {{ end }}
 
-  {{- if not .GetOCNEBootstrapOverridesVersion }}
+  {{- if not .OCNEBootstrapOverridesExists }}
   bootstrap-ocne:
     repository: {{.GetOCNEBootstrapRepository}}
     tag: {{.GetOCNEBootstrapTag}}
   {{ end }}
 
-  {{- if not .GetOCNEControlPlaneOverridesVersion }}
+  {{- if not .OCNEControlPlaneOverridesExists }}
   control-plane-ocne:
     repository: {{.GetOCNEControlPlaneRepository}}
     tag: {{.GetOCNEControlPlaneTag}}
@@ -191,7 +191,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
+	result, err := applyTemplate(ctx, clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
 		ctx.Log().ErrorfThrottled("Failed to apply template for creating clusterctl.yaml: %v", err)
 		return err
@@ -215,10 +215,11 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
-func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, error) {
+func applyTemplate(ctx spi.ComponentContext, templateContent string, params interface{}) (bytes.Buffer, error) {
 	// Parse the template file
 	capiYaml, err := template.New("capi").Parse(templateContent)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("template error: %v", err)
 		return bytes.Buffer{}, err
 	}
 
@@ -226,6 +227,7 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	var buf bytes.Buffer
 	err = capiYaml.Execute(&buf, &params)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("template execution error: %v", err)
 		return bytes.Buffer{}, err
 	}
 
@@ -243,13 +245,20 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.Verraz
 	return nil
 }
 
-// applyUpgradeVersion returns true and corresponding version if either version overrides or bom version is specified. Otherwise, return false and empty version.
-func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersion, imageName, actualImage, expectedImage string) (bool, string) {
+// applyUpgradeVersion returns true and corresponding version if either URL overrides, version overrides or bom version is specified. Otherwise, return false and empty version.
+func applyUpgradeVersion(log vzlog.VerrazzanoLogger, URLOverrides, versionOverrides, bomVersion, imageName, actualImage, expectedImage string) (bool, string) {
+	if len(URLOverrides) > 0 {
+		// Version is expected as the penultimate component of the overrides URL
+		splitURL := strings.Split(URLOverrides, "/")
+		version := splitURL[len(splitURL)-2]
+		log.Infof("URL Overrides version \"%v\" extracted from URL Overriddes %v", version, URLOverrides)
+		return true, version
+	}
 	if len(versionOverrides) > 0 {
 		return true, versionOverrides
 	}
 	if strings.Contains(actualImage, imageName) && actualImage != expectedImage {
-		log.Infof("Image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
+		log.Infof("Image %v is out of date, actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
 		return true, bomVersion
 	}
 	return false, ""
@@ -267,16 +276,16 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetClusterAPIOverridesVersion(), overrides.GetClusterAPIBomVersion(), clusterAPIControllerImage, co.Image, c.coreProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetClusterAPIOverridesURL(), overrides.GetClusterAPIOverridesVersion(), overrides.GetClusterAPIBomVersion(), clusterAPIControllerImage, co.Image, c.coreProvider); ok {
 				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, version)
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEBootstrapOverridesVersion(), overrides.GetOCNEBootstrapBomVersion(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEBootstrapOverridesURL(), overrides.GetOCNEBootstrapOverridesVersion(), overrides.GetOCNEBootstrapBomVersion(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider); ok {
 				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEControlPlaneOverridesVersion(), overrides.GetOCNEControlPlaneBomVersion(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEControlPlaneOverridesURL(), overrides.GetOCNEControlPlaneOverridesVersion(), overrides.GetOCNEControlPlaneBomVersion(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider); ok {
 				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesURL(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
 				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, version))
 			}
 			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetVerrazzanoAddonOverridesVersion(), overrides.GetVerrazzanoAddonBomVersion(), clusterAPIVerrazzanoAddonControllerImage, co.Image, c.addonProvider); ok {
