@@ -440,7 +440,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 				return false
 			}
 			return true
-		}, shortPollingInterval, shortWaitTimeout).ShouldNot(HaveOccurred(), "Deploy addon controller")
+		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
 	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		Eventually(func() bool {
