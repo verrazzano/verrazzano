@@ -6,6 +6,7 @@ package capi
 import (
 	"context"
 	"fmt"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -149,6 +150,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
 	return verrazzanoReconcileFn(ctx, cluster, r)
+}
 
 func (r *CAPIClusterReconciler) setVMCStatusFields(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	vmc.Status.ClusterRef = &clustersv1alpha1.ClusterReference{
