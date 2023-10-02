@@ -76,6 +76,14 @@ func TestBomOverrides(t *testing.T) {
 	assert.Equal(t, OciImageVersion, oci.Image.BomVersion)
 	assert.Equal(t, "", oci.Version)
 	assert.Equal(t, "", oci.URL)
+
+	addon := overrides.DefaultProviders.VerrazzanoAddon
+	assert.Equal(t, "verrazzano", addon.Image.Repository)
+	assert.Equal(t, "v1.0.0-20230815141941-9a36ded", addon.Image.Tag)
+	assert.Equal(t, "", addon.Image.Registry)
+	assert.Equal(t, "v1.0.0", addon.Image.BomVersion)
+	assert.Equal(t, "", addon.Version)
+	assert.Equal(t, "", addon.URL)
 }
 
 // TestUserOverrides tests getting the override values for the Cluster API component
@@ -415,6 +423,14 @@ func TestBomOverridesWithPortInHost(t *testing.T) {
 	assert.Equal(t, OciImageVersion, oci.Image.BomVersion)
 	assert.Equal(t, "", oci.Version)
 	assert.Equal(t, "", oci.URL)
+
+	addon := overrides.DefaultProviders.VerrazzanoAddon
+	assert.Equal(t, "verrazzano", addon.Image.Repository)
+	assert.Equal(t, "v1.0.0-20230815141941-9a36ded", addon.Image.Tag)
+	assert.Equal(t, "", addon.Image.Registry)
+	assert.Equal(t, "v1.0.0", addon.Image.BomVersion)
+	assert.Equal(t, "", addon.Version)
+	assert.Equal(t, "", addon.URL)
 }
 
 // TestUserOverridesRegistryWithPort tests getting the override values for the Cluster API component, with registry in the
