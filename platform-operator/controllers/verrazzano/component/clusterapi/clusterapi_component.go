@@ -82,10 +82,10 @@ func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
 
-	log.Debugf("Component %s is executing the command: %s", ComponentName, cmd.String())
+	log.Progressf("Component %s is executing the command: %s", ComponentName, cmd.String())
 	err := cmd.Run()
 	if err != nil {
-		log.Infof("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		log.ErrorfThrottled("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
 	}
 	return err
 }
@@ -254,13 +254,14 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
 	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
 	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
-	addonArgValue := fmt.Sprintf("%s:%s", verrazzanoAddonProviderName, overridesContext.)
+	addonArgValue := fmt.Sprintf("%s:%s", verrazzanoAddonProviderName, overridesContext.GetVerrazzanoAddonVersion())
 	cmd := exec.Command("clusterctl", "init",
 		"--target-namespace", ComponentNamespace,
 		"--core", coreArgValue,
 		"--control-plane", controlPlaneArgValue,
 		"--infrastructure", infrastructureArgValue,
-		"--bootstrap", bootstrapArgValue)
+		"--bootstrap", bootstrapArgValue,
+		"--addon", addonArgValue)
 
 	return runCAPICmd(cmd, ctx.Log())
 }

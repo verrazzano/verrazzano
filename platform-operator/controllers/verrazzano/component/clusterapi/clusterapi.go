@@ -27,6 +27,10 @@ import (
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
 images:
+  addon-verrazzano:
+    repository: {{.GetVerrazzanoAddonRepository}}
+    tag: {{.GetVerrazzanoAddonTag}}
+
   {{- if not .GetClusterAPIOverridesVersion }}
   cluster-api:
     repository: {{.GetClusterAPIRepository}}
@@ -75,7 +79,6 @@ const (
 	expClusterResourceSet                     = "EXP_CLUSTER_RESOURCE_SET"
 	expMachinePool                            = "EXP_MACHINE_POOL"
 	initOCIClientsOnStartup                   = "INIT_OCI_CLIENTS_ON_STARTUP"
-	goproxy                                   = "GOPROXY"
 	clusterAPIControllerImage                 = "cluster-api-controller"
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"

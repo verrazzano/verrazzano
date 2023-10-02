@@ -83,12 +83,9 @@ type OverridesInterface interface {
 	GetOCNEControlPlaneOverridesVersion() string
 	GetOCNEControlPlaneBomVersion() string
 	GetVerrazzanoAddonRepository() string
-	GetVerrazzanoAddonControllerFullImagePath() string
 	GetVerrazzanoAddonTag() string
-	GetVerrazzanoAddonURL() string
 	GetVerrazzanoAddonVersion() string
-	GetVerrazzanoAddonOverridesVersion() string
-	GetVerrazzanoAddonBomVersion() string
+	GetVerrazzanoAddonURL() string
 	IncludeImagesHeader() bool
 }
 
@@ -197,27 +194,19 @@ func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
 }
 
 func (c capiOverrides) GetVerrazzanoAddonRepository() string {
-	return getRepositoryForProvider(c, c.DefaultProviders.OCNEControlPlane)
+	return getRepositoryForProvider(c, c.DefaultProviders.VerrazzanoAddon)
 }
 
 func (c capiOverrides) GetVerrazzanoAddonTag() string {
-	return c.DefaultProviders.OCNEControlPlane.Image.Tag
+	return c.DefaultProviders.VerrazzanoAddon.Image.Tag
 }
 
 func (c capiOverrides) GetVerrazzanoAddonURL() string {
-	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "cluster-api-provider-ocne")
+	return getURLForProvider(c.DefaultProviders.VerrazzanoAddon, "addon-verrazzano")
 }
 
 func (c capiOverrides) GetVerrazzanoAddonVersion() string {
-	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
-}
-
-func (c capiOverrides) GetVerrazzanoAddonOverridesVersion() string {
-	return c.DefaultProviders.OCNEControlPlane.Version
-}
-
-func (c capiOverrides) GetVerrazzanoAddonBomVersion() string {
-	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
+	return getProviderVersion(c.DefaultProviders.VerrazzanoAddon)
 }
 
 // IncludeImagesHeader returns true if the overrides version for any of the default providers is not specified.
