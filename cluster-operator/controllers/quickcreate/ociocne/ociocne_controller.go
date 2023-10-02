@@ -74,7 +74,7 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNE
 	}
 	// If provisioning has not successfully started, attempt to provisioning the cluster
 	if shouldProvision(q) {
-		if err := controller.ApplyTemplates(r.Client, ocne, clusterTemplate, nodesTemplate, ocneTemplate); err != nil {
+		if err := controller.ApplyTemplates(r.Client, ocne, q.Namespace, clusterTemplate, nodesTemplate, ocneTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
 		q.Status = vmcv1alpha1.OCNEOCIQuickCreateStatus{
@@ -85,7 +85,7 @@ func (r *ClusterReconciler) syncCluster(ctx context.Context, q *vmcv1alpha1.OCNE
 	}
 	// If OCI Network is loaded, update the quick create to completed phase
 	if ocne.HasOCINetwork() {
-		if err := controller.ApplyTemplates(r.Client, ocne, addonsTemplate); err != nil {
+		if err := controller.ApplyTemplates(r.Client, ocne, q.Namespace, addonsTemplate); err != nil {
 			return controller.RequeueDelay(), err
 		}
 		// If the cluster only has control plane nodes, set them for scheduling
