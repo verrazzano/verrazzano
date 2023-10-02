@@ -5,7 +5,6 @@ package capi
 
 import (
 	"context"
-	"fmt"
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/vmc"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
@@ -54,6 +53,12 @@ func SetDefaultClusterRancherUnregistrationFunction() {
 }
 
 func (r *RancherRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+	// only process CAPI cluster instances not managed by Rancher/container driver
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		return ctrl.Result{}, nil
+	}
+
 	err := ready.DeploymentsAreAvailable(r.Client, []types.NamespacedName{{
 		Namespace: common.CattleSystem,
 		Name:      common.RancherName,
@@ -62,14 +67,8 @@ func (r *RancherRegistration) doReconcile(ctx context.Context, cluster *unstruct
 		return vzctrl.LongRequeue(), nil
 	}
 
-	if registrationInitiated != getClusterRegistrationStatus(ctx, r.Client, cluster) {
-		// wait for kubeconfig and complete registration on workload cluster
-		if result, err := clusterRancherRegistrationFn(ctx, r, cluster); err != nil {
-			return result, err
-		}
-	}
-
-	return ctrl.Result{}, nil
+	// wait for kubeconfig and complete registration on workload cluster
+	return clusterRancherRegistrationFn(ctx, r, cluster)
 }
 
 // GetRancherAPIResources returns the set of resources required for interacting with Rancher
@@ -98,10 +97,15 @@ func (r *RancherRegistration) GetRancherAPIResources(cluster *unstructured.Unstr
 
 // UnregisterRancherCluster performs the operations required to de-register the cluster from Rancher
 func UnregisterRancherCluster(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) error {
+	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
+	if ok {
+		return nil
+	}
+
 	clusterID := getClusterID(ctx, r.Client, cluster)
 	if len(clusterID) == 0 {
-		// no cluster id found
-		return fmt.Errorf("No cluster ID found for cluster %s", cluster.GetName())
+		// no cluster id found, nothing to do
+		return nil
 	}
 	rc, log, err := r.GetRancherAPIResources(cluster)
 	if err != nil {
@@ -130,12 +134,9 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 	}
 
 	clusterID := getClusterID(ctx, r.Client, cluster)
+
+	// register with Rancher
 	registryYaml, clusterID, registryErr := vmc.RegisterManagedClusterWithRancher(rc, cluster.GetName(), clusterID, log)
-	// persist the cluster ID, if present, even if the registry yaml was not returned
-	err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationRetrieved)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
 	// handle registry failure error
 	if registryErr != nil {
 		r.Log.Error(err, "failed to obtain registration manifest from Rancher")
@@ -146,12 +147,19 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 		return vzctrl.ShortRequeue(), nil
 	}
 
-	// apply registration yaml to managed cluster
-	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
-	err = yamlApplier.ApplyS(registryYaml)
-	if err != nil {
-		r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
-		return ctrl.Result{}, err
+	if registrationInitiated != getClusterRegistrationStatus(ctx, r.Client, cluster) {
+		// apply registration yaml to managed cluster
+		yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
+		err = yamlApplier.ApplyS(registryYaml)
+		if err != nil {
+			r.Log.Infof("Failed applying Rancher registration yaml in workload cluster")
+			return ctrl.Result{}, err
+		}
+		err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationInitiated)
+		if err != nil {
+			r.Log.Infof("Failed to perist cluster status")
+			return ctrl.Result{}, err
+		}
 	}
 
 	// get and label the cattle-system namespace
@@ -163,12 +171,6 @@ func ensureRancherRegistration(ctx context.Context, r *RancherRegistration, clus
 		ns.Labels[constants.LabelVerrazzanoNamespace] = common.CattleSystem
 		return nil
 	}); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	err = persistClusterStatus(ctx, r.Client, cluster, r.Log, clusterID, registrationInitiated)
-	if err != nil {
-		r.Log.Infof("Failed to perist cluster status")
 		return ctrl.Result{}, err
 	}
 
