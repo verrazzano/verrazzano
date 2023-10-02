@@ -13,19 +13,20 @@ import (
 	"time"
 
 	"github.com/coreos/go-oidc/v3/oidc"
+	"golang.org/x/oauth2"
 )
 
 // AuthenticateToken verifies a given bearer token against the OIDC key and verifies the issuer is correct
-func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string) (bool, error) {
+func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string) (*oidc.IDToken, error) {
 	verifier, err := a.loadVerifier()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	idToken, err := verifier.Verify(ctx, token)
 	if err != nil {
 		a.Log.Errorf("Failed to verify JWT token: %v", err)
-		return false, err
+		return nil, err
 	}
 
 	// Do issuer check for external URL
@@ -33,10 +34,40 @@ func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string)
 	if idToken.Issuer != a.oidcConfig.ExternalURL && idToken.Issuer != a.oidcConfig.ServiceURL {
 		err := fmt.Errorf("failed to verify issuer, got %s, expected %s or %s", idToken.Issuer, a.oidcConfig.ServiceURL, a.oidcConfig.ExternalURL)
 		a.Log.Errorf("Failed to validate JWT issuer: %v", err)
-		return false, err
+		return nil, err
 	}
 
-	return true, nil
+	return idToken, nil
+}
+
+func (a *OIDCAuthenticator) ExchangeCodeForToken(req *http.Request, rw http.ResponseWriter, codeVerifier string) (string, error) {
+	// TODO Create this once?
+	oauthConfig := oauth2.Config{
+		ClientID:    a.oidcConfig.ClientID,
+		Endpoint:    a.ExternalProvider.Endpoint(),
+		RedirectURL: a.oidcConfig.CallbackURL,
+		Scopes:      []string{oidc.ScopeOpenID, "profile", "email"},
+	}
+	codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier)
+
+	ctx, err := a.createContextWithHTTPClient()
+	if err != nil {
+		a.Log.Errorf("Error creating context: %v", err)
+		return "", err
+	}
+	oauth2Token, err := oauthConfig.Exchange(ctx, req.URL.Query().Get("code"), codeVerifierParam)
+	if err != nil {
+		a.Log.Errorf("Failed exchanging code for token: %v", err)
+		return "", err
+	}
+	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
+	if !ok {
+		errStr := "ID token not found in oauth token"
+		a.Log.Error(errStr)
+		return "", fmt.Errorf(errStr)
+	}
+
+	return rawIDToken, nil
 }
 
 // getTokenFromAuthHeader returns the bearer token from the authorization header

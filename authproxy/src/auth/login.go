@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
+	"github.com/verrazzano/verrazzano/authproxy/src/cookie"
 	"github.com/verrazzano/verrazzano/pkg/certs"
 	"golang.org/x/oauth2"
 	"k8s.io/client-go/util/cert"
@@ -69,7 +71,25 @@ func (a *OIDCAuthenticator) performLoginRedirect(req *http.Request, rw http.Resp
 		RedirectURL: a.oidcConfig.CallbackURL,
 		Scopes:      []string{oidc.ScopeOpenID, "profile", "email"},
 	}
-	http.Redirect(rw, req, oauthConfig.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+
+	// Create the PKCE challenge
+	code, err := randomBase64(56)
+	if err != nil {
+		return fmt.Errorf("Could not redirect for login - failed to generate random base64: %v", err)
+	}
+	sha := sha256.New()
+	sha.Write([]byte(code))
+	challenge := oauth2.SetAuthURLParam("code_challenge", base64.RawURLEncoding.EncodeToString(sha.Sum(nil)))
+	challengeMethod := oauth2.SetAuthURLParam("code_challenge_method", "S256")
+
+	vzState := &cookie.VZState{
+		State:        state,
+		Nonce:        nonce,
+		CodeVerifier: code,
+		RedirectURI:  req.RequestURI,
+	}
+	cookie.SetStateCookie(rw, vzState)
+	http.Redirect(rw, req, oauthConfig.AuthCodeURL(state, oidc.Nonce(nonce), challengeMethod, challenge), http.StatusFound)
 	return nil
 }
 

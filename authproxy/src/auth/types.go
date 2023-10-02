@@ -16,9 +16,10 @@ import (
 
 // Authenticator is the interface implemented by OIDCAuthenticator
 type Authenticator interface {
-	AuthenticateToken(ctx context.Context, token string) (bool, error)
+	AuthenticateToken(ctx context.Context, token string) (*oidc.IDToken, error)
 	AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error)
 	SetCallbackURL(url string)
+	ExchangeCodeForToken(req *http.Request, rw http.ResponseWriter, codeVerifier string) (string, error)
 }
 
 // OIDCAuthenticator authenticates incoming requests against the Identity Provider

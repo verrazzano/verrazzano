@@ -71,7 +71,8 @@ func (a *OIDCAuthenticator) AuthenticateRequest(req *http.Request, rw http.Respo
 		return false, fmt.Errorf("failed to get token from authorization header: %v", err)
 	}
 
-	return a.AuthenticateToken(req.Context(), token)
+	_, err = a.AuthenticateToken(req.Context(), token)
+	return err == nil, err
 }
 
 // SetCallbackURL sets the OIDC Callback URL for redirects

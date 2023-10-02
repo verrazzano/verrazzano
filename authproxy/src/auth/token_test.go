@@ -50,14 +50,14 @@ func TestAuthenticateToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			validated, err := authenticator.AuthenticateToken(context.TODO(), tt.token)
+			idToken, err := authenticator.AuthenticateToken(context.TODO(), tt.token)
 			if tt.expectValidation {
 				assert.NoError(t, err)
-				assert.True(t, validated)
+				assert.NotNil(t, idToken)
 				return
 			}
 			assert.Error(t, err)
-			assert.False(t, validated)
+			assert.Nil(t, idToken)
 		})
 	}
 }
