@@ -307,12 +307,6 @@ func PodsRunningInClusterWithClient(namespace string, namePrefixes []string, cli
 // SpecificPodsRunningInClusterWithClient checks if all the pods identified by labels and are ready and running in the given cluster
 func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *kubernetes.Clientset) (bool, error) {
 	pods, err := ListPodsWithLabelsInCluster(namespace, labels, client)
-	if len(pods.Items) == 1 {
-		Log(Info, fmt.Sprintf("POD Name: %v,  Pod NS %v, Pod Status Message %v , Pod Status %v, %v, %v, %v, %v, %v", pods.Items[0].Name, pods.Items[0].Namespace, pods.Items[0].Status.Message, pods.Items[0].Status.ContainerStatuses[0].Image, pods.Items[0].Status.ContainerStatuses[1].State, pods.Items[0].Status.Conditions, pods.Items[0].Status.ContainerStatuses, pods.Items[0].Status.Reason, pods.Items[0].Status.Phase))
-	} else if len(pods.Items) == 2 {
-		Log(Info, fmt.Sprintf("POD Name: %v,  Pod NS %v, Pod Status Message %v , Pod Status %v, %v, %v, %v, %v, %v", pods.Items[1].Name, pods.Items[1].Namespace, pods.Items[1].Status.Message, pods.Items[1].Status.ContainerStatuses[1].Image, pods.Items[1].Status.ContainerStatuses[1].State, pods.Items[1].Status.Conditions, pods.Items[1].Status.ContainerStatuses, pods.Items[1].Status.Reason, pods.Items[1].Status.Phase))
-
-	}
 
 	if err != nil {
 		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
@@ -331,6 +325,9 @@ func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *ku
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready Reason: %v", pod.Status.Reason))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready Message: %v", pod.Status.Message))
+
 			}
 		}
 	}
