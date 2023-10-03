@@ -5,6 +5,7 @@ package capi
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -51,4 +52,18 @@ func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespa
 	return cluster, nil
 }
 
-// maybe TODO: GetClusterClassFromCluster
+// GetClusterClassFromCluster returns the ClusterClass associated with the provided CAPI Cluster.
+func GetClusterClassFromCluster(ctx context.Context, cli clipkg.Client, cluster *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	clusterClassName, found, err := unstructured.NestedString(cluster.Object, "spec", "topology", "class")
+	if !found {
+		return nil, fmt.Errorf("spec.topology.class field not found in Cluster %s/%s with error: %v", cluster.GetNamespace(), cluster.GetName(), err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	clusterClassNamespacedName := types.NamespacedName{
+		Name:      clusterClassName,
+		Namespace: cluster.GetNamespace(),
+	}
+	return GetClusterClass(ctx, cli, clusterClassNamespacedName)
+}

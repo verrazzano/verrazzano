@@ -694,7 +694,6 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 // getCAPIProviderDisplayString returns the string to populate the VMC's status.provider field, based on information taken from the
 // provided CAPI Cluster.
 // FIXME: proper error handling here
-// TODO: handle clusterclass case
 func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *unstructured.Unstructured) (string, error) {
 	clusterNamespacedName := types.NamespacedName{
 		Name:      capiCluster.GetName(),
@@ -702,29 +701,11 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 	}
 
 	// If this CAPI Cluster was created using ClusterClass, then parse capiCluster differently.
-	topology, found, _ := unstructured.NestedFieldNoCopy(capiCluster.Object, "spec", "topology")
+	_, found, _ := unstructured.NestedFieldNoCopy(capiCluster.Object, "spec", "topology")
 	if found {
-		topologyObj, ok := topology.(map[string]interface{})
-		if !ok {
-			r.log.Progressf("failed to parse topology field of CAPI cluster %s", clusterNamespacedName)
-			return "", nil
-		}
-		clusterClassName, found, err := unstructured.NestedString(topologyObj, "class")
-		if !found {
-			r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
-			return "", nil
-		}
+		clusterClass, err := capi.GetClusterClassFromCluster(context.TODO(), r.Client, capiCluster)
 		if err != nil {
-			r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
-			return "", nil
-		}
-		clusterClassNamespacedName := types.NamespacedName{
-			Name:      clusterClassName,
-			Namespace: capiCluster.GetNamespace(),
-		}
-		clusterClass, err := capi.GetClusterClass(context.TODO(), r.Client, clusterClassNamespacedName)
-		if err != nil {
-			r.log.Progressf("could not find ClusterClass %s: %v", clusterClassNamespacedName, err)
+			r.log.Progressf("could not find ClusterClass %s/%s: %v", clusterClass.GetNamespace(), clusterClass.GetName(), err)
 			return "", nil
 		}
 		return r.getCAPIProviderDisplayStringClusterClass(clusterClass)
