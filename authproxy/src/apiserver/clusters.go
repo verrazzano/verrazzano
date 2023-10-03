@@ -6,8 +6,6 @@ package apiserver
 import (
 	"context"
 	"fmt"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/util/cert"
 	"net/http"
 	"net/url"
 	"strings"
@@ -16,7 +14,9 @@ import (
 	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/constants"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/cert"
 )
 
 const (

@@ -5,11 +5,11 @@ package main
 
 import (
 	"flag"
-	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"os"
 
 	"github.com/verrazzano/verrazzano/authproxy/src/config"
 	"github.com/verrazzano/verrazzano/authproxy/src/proxy"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	vzlog "github.com/verrazzano/verrazzano/pkg/log"
 	"go.uber.org/zap"
