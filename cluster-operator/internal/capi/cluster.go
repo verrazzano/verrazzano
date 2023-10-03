@@ -25,6 +25,7 @@ var GVKCAPICluster = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
+// GetCluster returns the requested CAPI Cluster as an unstructured pointer.
 func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(GVKCAPICluster)
