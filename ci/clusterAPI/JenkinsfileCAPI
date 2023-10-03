@@ -1,6 +1,8 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import hudson.AbortException
+
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 // def agentLabel = "largeexperimental"
@@ -369,6 +371,10 @@ pipeline {
                                 // This will deploy an OCNE cluster
                                 // Then proceed to create image pull secrets required for jenkins
                                 // Also deploy Verrazzano
+                                def availableNLB = checkNLBAvailability()
+                                if (availableNLB <= 0) {
+                                    throw new AbortException("Test aborted due to insufficient network load balancers: " + availableNLB)
+                                }
                                 set_capi_variables()
                                 runGinkgo('clusterapi/capi')
                             }
@@ -941,5 +947,11 @@ def dumpCAPIClusterDetails() {
         clusterctl describe cluster -n ${CLUSTER_NAMESPACE} ${CLUSTER_NAMESPACE} --grouping=false --echo --show-conditions all --show-templates --show-resourcesets  --show-machinesets > ${WORKSPACE}/capi-conditions/logs/capi-cluster-conditions.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "capi cluster conditions dumped successfully to capi-cluster-conditions.out"
         echo "------------------------------------------"
+    """
+}
+
+def checkNLBAvailability() {
+    sh """
+        echo ${GO_REPO_PATH}/verrazzano/ci/scripts/get_resource_availability.sh network-load-balancer-api max-nlb-flexible-count
     """
 }
