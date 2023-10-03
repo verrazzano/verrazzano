@@ -16,6 +16,7 @@ import (
 	cmconst "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -56,7 +57,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "manager.imagePullSecrets[0]",
-			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName, vmo.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName, vmo.ComponentName, mysql.ComponentName},
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},

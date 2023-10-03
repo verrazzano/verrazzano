@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	cmconst "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -116,11 +117,12 @@ func TestMonitorOverrides(t *testing.T) {
 // THEN the OpenSearchOperator Component dependencies are returned
 func TestGetDependencies(t *testing.T) {
 	dependencies := NewComponent().GetDependencies()
-	assert.Len(t, dependencies, 4)
+	assert.Len(t, dependencies, 5)
 	assert.Equal(t, networkpolicies.ComponentName, dependencies[0])
 	assert.Equal(t, cmconst.ClusterIssuerComponentName, dependencies[1])
 	assert.Equal(t, nginx.ComponentName, dependencies[2])
 	assert.Equal(t, vmo.ComponentName, dependencies[3])
+	assert.Equal(t, mysql.ComponentName, dependencies[4])
 }
 
 // TestOpenSearchOperatorEnabled tests if OpenSearchOperator is enabled
