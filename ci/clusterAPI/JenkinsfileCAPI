@@ -953,5 +953,5 @@ def dumpCAPIClusterDetails() {
 def checkNLBAvailability() {
     def availableNLB = sh(script: '${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/get_resource_availability.sh network-load-balancer-api max-nlb-flexible-count', returnStdout: true)
     println("Number of available NLB: " + availableNLB)
-    return Integer.parseInt(availableNLB)
+    return Integer.parseInt(availableNLB.trim())
 }
