@@ -56,7 +56,7 @@ func NewComponent() spi.Component {
 			ChartNamespace:            ComponentNamespace,
 			IgnoreNamespaceOverride:   true,
 			ImagePullSecretKeyname:    secret.DefaultImagePullSecretKeyName,
-			MinVerrazzanoVersion:      constants.VerrazzanoVersion2_0_0,
+			MinVerrazzanoVersion:      constants.VerrazzanoVersion1_7_0,
 			ValuesFile:                filepath.Join(config.GetHelmOverridesDir(), helmValuesFile),
 			Dependencies:              []string{networkpolicies.ComponentName, common.IstioComponentName, nginx.ComponentName, cmconstants.CertManagerComponentName},
 			SupportsOperatorInstall:   true,

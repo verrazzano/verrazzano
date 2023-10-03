@@ -34,9 +34,9 @@ var t = framework.NewTestFramework("dex")
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	var err error
 	kubeConfigPath := getKubeConfigOrAbort()
-	isDexSupported, err = pkg.IsVerrazzanoMinVersion(constants.VerrazzanoVersion2_0_0, kubeConfigPath)
+	isDexSupported, err = pkg.IsVerrazzanoMinVersion(constants.VerrazzanoVersion1_7_0, kubeConfigPath)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("Failed to check Verrazzano min version %s: %v", constants.VerrazzanoVersion2_0_0, err))
+		AbortSuite(fmt.Sprintf("Failed to check Verrazzano min version %s: %v", constants.VerrazzanoVersion1_7_0, err))
 	}
 
 	inClusterVZ, err = pkg.GetVerrazzanoInstallResourceInClusterV1beta1(kubeConfigPath)

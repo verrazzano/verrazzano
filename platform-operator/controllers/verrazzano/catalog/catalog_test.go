@@ -29,7 +29,7 @@ const catalogPath = "../../../manifests/catalog/catalog.yaml"
 const bomPath = "../../../verrazzano-bom.json"
 const testBOMPath = "../testdata/test_bom.json"
 
-const targetBranch = "master"
+const targetBranch = "release-1.7"
 
 var remoteBOMPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/verrazzano-bom.json", targetBranch)
 var remoteCatalogPath = fmt.Sprintf("https://raw.githubusercontent.com/verrazzano/verrazzano/%s/platform-operator/manifests/catalog/catalog.yaml", targetBranch)
