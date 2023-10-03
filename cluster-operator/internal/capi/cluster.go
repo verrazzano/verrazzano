@@ -51,4 +51,4 @@ func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespa
 	return cluster, nil
 }
 
-// TODO: GetClusterClassFromCluster
+// maybe TODO: GetClusterClassFromCluster
