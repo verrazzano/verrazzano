@@ -722,11 +722,11 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 			Name:      clusterClassName,
 			Namespace: capiCluster.GetNamespace(),
 		}
+		clusterClass, err := capi.GetClusterClass(context.TODO(), r.Client, clusterClassNamespacedName)
 		if err != nil {
 			r.log.Progressf("could not find ClusterClass %s: %v", clusterClassNamespacedName, err)
 			return "", nil
 		}
-		clusterClass, err := capi.GetClusterClass(context.TODO(), r.Client, clusterClassNamespacedName)
 		return r.getCAPIProviderDisplayStringClusterClass(clusterClass)
 	}
 
@@ -792,6 +792,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringCluster
 		r.log.Progressf("error while looking for spec.controlPlane.ref.kind field for cluster %s: %v", clusterClassNamespacedName, err)
 		return "", nil
 	}
+
 	return fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider), nil
 }
 
