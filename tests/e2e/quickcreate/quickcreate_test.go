@@ -39,7 +39,7 @@ const (
 	waitTimeOut     = 30 * time.Minute
 	pollingInterval = 30 * time.Second
 
-	shortWaitTimeout            = 10 * time.Minute
+	shortWaitTimeout            = 5 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	addonControllerPodNamespace = "caapv-system"
@@ -527,7 +527,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 				return false
 			}
 			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-			_ = CreateImagePullSecrets(t.Logs)
+			//_ = CreateImagePullSecrets(t.Logs)
 			if err != nil {
 				return false
 			}
@@ -563,13 +563,13 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 			Eventually(func() bool {
 				return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
-			}, waitTimeOut, vzPollingInterval).Should(BeTrue(), "verify VPO")
+			}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 		})
 
 		WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
 			Eventually(func() error {
 				return ensureVerrazzano(okeClusterName, t.Logs)
-			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
+			}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
