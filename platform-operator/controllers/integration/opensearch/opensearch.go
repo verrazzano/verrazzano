@@ -12,10 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"net/http"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,9 +50,6 @@ func (o *OSClient) ConfigureISM(log vzlog.VerrazzanoLogger, client clipkg.Client
 	if !*vz.Spec.Components.Elasticsearch.Enabled {
 		return nil
 	}
-	if !o.IsOpenSearchReady(client) {
-		return nil
-	}
 	opensearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
 	if err != nil {
 		return err
@@ -76,10 +70,6 @@ func (o *OSClient) DeleteDefaultISMPolicy(log vzlog.VerrazzanoLogger, client cli
 	if !*vz.Spec.Components.Elasticsearch.Enabled || !vz.Spec.Components.Elasticsearch.DisableDefaultPolicy {
 		return nil
 	}
-	if !o.IsOpenSearchReady(client) {
-		return nil
-	}
-
 	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
 	if err != nil {
 		return err
@@ -122,9 +112,6 @@ func (o *OSClient) SyncDefaultISMPolicy(log vzlog.VerrazzanoLogger, client clipk
 	if !*vz.Spec.Components.Elasticsearch.Enabled || vz.Spec.Components.Elasticsearch.DisableDefaultPolicy {
 		return nil
 	}
-	if !o.IsOpenSearchReady(client) {
-		return nil
-	}
 	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
 	if err != nil {
 		return err
@@ -161,28 +148,6 @@ func (o *OSClient) SetAutoExpandIndices(log vzlog.VerrazzanoLogger, client clipk
 		return fmt.Errorf("expected acknowledgement for index settings update but did not get. Actual response  %v", updatedIndexSettings)
 	}
 	return nil
-}
-
-// IsOpenSearchReady returns true when all OpenSearch pods are ready, false otherwise
-func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
-	statefulSets := appsv1.StatefulSetList{}
-	listOptions := clipkg.ListOptions{Namespace: "verrazzano-logging"}
-	if err := client.List(context.TODO(), &statefulSets, &listOptions); err != nil {
-		if errors.IsNotFound(err) {
-			// StatefulSet not found
-			return false
-		}
-		return false
-	}
-	if len(statefulSets.Items) == 0 {
-		zap.S().Warn("waiting for OpenSearch statefulset to be created.")
-		return false
-	}
-	if len(statefulSets.Items) > 1 {
-		zap.S().Errorf("invalid number of OpenSearch statefulset created %v.", len(statefulSets.Items))
-		return false
-	}
-	return statefulSets.Items[0].Status.ReadyReplicas == statefulSets.Items[0].Status.Replicas
 }
 
 func GetOpenSearchHTTPEndpoint(client clipkg.Client) (string, error) {
