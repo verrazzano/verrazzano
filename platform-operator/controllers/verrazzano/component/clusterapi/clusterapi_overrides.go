@@ -33,6 +33,7 @@ type defaultProviders struct {
 	OCNEControlPlane capiProvider `json:"ocneControlPlane,omitempty"`
 	Core             capiProvider `json:"core,omitempty"`
 	OCI              capiProvider `json:"oci,omitempty"`
+	VerrazzanoAddon  capiProvider `json:"verrazzanoAddon,omitempty"`
 }
 
 type capiProvider struct {
@@ -89,6 +90,14 @@ type OverridesInterface interface {
 	GetOCNEControlPlaneOverridesVersion() string
 	GetOCNEControlPlaneBomVersion() string
 	OCNEControlPlaneOverridesExists() bool
+	GetVerrazzanoAddonOverridesVersion() string
+	GetVerrazzanoAddonBomVersion() string
+	GetVerrazzanoAddonRepository() string
+	GetVerrazzanoAddonControllerFullImagePath() string
+	GetVerrazzanoAddonTag() string
+	GetVerrazzanoAddonOverridesURL() string
+	GetVerrazzanoAddonVersion() string
+	GetVerrazzanoAddonURL() string
 	IncludeImagesHeader() bool
 }
 
@@ -228,10 +237,39 @@ func (c capiOverrides) OCNEControlPlaneOverridesExists() bool {
 	return len(c.GetOCNEControlPlaneOverridesVersion()) > 0 || len(c.GetOCNEControlPlaneOverridesURL()) > 0
 }
 
+func (c capiOverrides) GetVerrazzanoAddonOverridesVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Version
+}
+
+func (c capiOverrides) GetVerrazzanoAddonBomVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Image.BomVersion
+}
+
+func (c capiOverrides) GetVerrazzanoAddonRepository() string {
+	return getRepositoryForProvider(c, c.DefaultProviders.VerrazzanoAddon)
+}
+
+func (c capiOverrides) GetVerrazzanoAddonTag() string {
+	return c.DefaultProviders.VerrazzanoAddon.Image.Tag
+}
+
+func (c capiOverrides) GetVerrazzanoAddonURL() string {
+	return getURLForProvider(c.DefaultProviders.VerrazzanoAddon, "addon-verrazzano")
+}
+
+func (c capiOverrides) GetVerrazzanoAddonOverridesURL() string {
+	return c.DefaultProviders.VerrazzanoAddon.URL
+}
+
+func (c capiOverrides) GetVerrazzanoAddonVersion() string {
+	return getProviderVersion(c.DefaultProviders.VerrazzanoAddon)
+}
+
 // IncludeImagesHeader returns true if the overrides for any of the default providers is not specified.
 // Otherwise, returns false.
 func (c capiOverrides) IncludeImagesHeader() bool {
-	if !c.ClusterAPIOverridesExists() || !c.OCIOverridesExists() || !c.OCNEControlPlaneOverridesExists() || !c.OCNEBootstrapOverridesExists() {
+	if !c.ClusterAPIOverridesExists() || !c.OCIOverridesExists() || !c.OCNEControlPlaneOverridesExists() ||
+		!c.OCNEBootstrapOverridesExists() || len(c.GetVerrazzanoAddonVersion()) == 0 {
 		return true
 	}
 	return false
@@ -251,6 +289,10 @@ func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
 
 func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
 	return fmt.Sprintf("%s/%s:%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
+}
+
+func (c capiOverrides) GetVerrazzanoAddonControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetVerrazzanoAddonRepository(), clusterAPIVerrazzanoAddonControllerImage, c.GetVerrazzanoAddonTag())
 }
 
 // getRepositoryForProvider - return the repository in the format that clusterctl
@@ -350,7 +392,8 @@ func getBaseOverrides() (*capiOverrides, error) {
 	overrides.DefaultProviders.OCNEBootstrap.MetadataFile = "bootstrap-components.yaml"
 	overrides.DefaultProviders.OCNEControlPlane.Name = controlPlaneOcneProvider
 	overrides.DefaultProviders.OCNEControlPlane.MetadataFile = "control-plane-components.yaml"
-
+	overrides.DefaultProviders.VerrazzanoAddon.Name = verrazzanoAddonProvider
+	overrides.DefaultProviders.VerrazzanoAddon.MetadataFile = "addon-components.yaml"
 	return overrides, err
 }
 
@@ -398,6 +441,14 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 		return err
 	}
 	updateImage(imageConfig, controlPlane)
+
+	// Populate verrazzanoAddon provider values
+	addon := &overrides.DefaultProviders.VerrazzanoAddon.Image
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-addon", "capi-addon", "cluster-api-verrazzano-addon-controller")
+	if err != nil {
+		return err
+	}
+	updateImage(imageConfig, addon)
 
 	return nil
 }

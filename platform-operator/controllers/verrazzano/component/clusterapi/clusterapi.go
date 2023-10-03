@@ -50,6 +50,12 @@ images:
     repository: {{.GetOCNEControlPlaneRepository}}
     tag: {{.GetOCNEControlPlaneTag}}
   {{ end }}
+
+  {{- if not .GetVerrazzanoAddonOverridesVersion }}
+  addon-verrazzano:
+    repository: {{.GetVerrazzanoAddonRepository}}
+    tag: {{.GetVerrazzanoAddonTag}}
+  {{ end }}
 {{ end }}
 
 providers:
@@ -65,6 +71,9 @@ providers:
   - name: "ocne"
     url: "{{.GetOCNEControlPlaneURL}}"
     type: "ControlPlaneProvider"
+  - name: "verrazzano"
+    url: "{{.GetVerrazzanoAddonURL}}"
+    type: "AddonProvider"
 `
 
 const (
@@ -72,11 +81,11 @@ const (
 	expClusterResourceSet                     = "EXP_CLUSTER_RESOURCE_SET"
 	expMachinePool                            = "EXP_MACHINE_POOL"
 	initOCIClientsOnStartup                   = "INIT_OCI_CLIENTS_ON_STARTUP"
-	goproxy                                   = "GOPROXY"
 	clusterAPIControllerImage                 = "cluster-api-controller"
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
+	clusterAPIVerrazzanoAddonControllerImage  = "cluster-api-verrazzano-addon-controller"
 	defaultClusterAPIDir                      = "/verrazzano/.cluster-api"
 	clusterAPIDirEnv                          = "VERRAZZANO_CLUSTER_API_DIR"
 	providerLabel                             = "cluster.x-k8s.io/provider"
@@ -84,6 +93,7 @@ const (
 	bootstrapOcneProvider                     = "bootstrap-ocne"
 	controlPlaneOcneProvider                  = "control-plane-ocne"
 	infrastructureOciProvider                 = "infrastructure-oci"
+	verrazzanoAddonProvider                   = "addon-verrazzano"
 )
 
 type ImageConfig struct {
@@ -98,6 +108,7 @@ type PodMatcherClusterAPI struct {
 	bootstrapProvider      string
 	controlPlaneProvider   string
 	infrastructureProvider string
+	addonProvider          string
 }
 
 var clusterAPIDir = defaultClusterAPIDir
@@ -230,6 +241,7 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.Verraz
 	c.infrastructureProvider = overrides.GetOCIControllerFullImagePath()
 	c.bootstrapProvider = overrides.GetOCNEBootstrapControllerFullImagePath()
 	c.controlPlaneProvider = overrides.GetOCNEControlPlaneControllerFullImagePath()
+	c.addonProvider = overrides.GetVerrazzanoAddonControllerFullImagePath()
 	return nil
 }
 
@@ -276,6 +288,9 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesURL(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
 				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, version))
 			}
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetVerrazzanoAddonOverridesURL(), overrides.GetVerrazzanoAddonOverridesVersion(), overrides.GetVerrazzanoAddonBomVersion(), clusterAPIVerrazzanoAddonControllerImage, co.Image, c.addonProvider); ok {
+				applyUpgradeOptions.AddonProviders = append(applyUpgradeOptions.AddonProviders, fmt.Sprintf(formatString, ComponentNamespace, verrazzanoAddonProviderName, version))
+			}
 		}
 	}
 
@@ -287,7 +302,8 @@ func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) != 0 ||
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
-		len(upgradeOptions.InfrastructureProviders) != 0
+		len(upgradeOptions.InfrastructureProviders) != 0 ||
+		len(upgradeOptions.AddonProviders) != 0
 }
 
 func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {
@@ -323,6 +339,14 @@ func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]clie
 			return componentObjects, err
 		}
 		componentObjects = append(componentObjects, infrastructureComponents...)
+	}
+
+	if len(options.AddonProviders) != 0 {
+		addonComponents, err := getComponentsForProviderType(c, verrazzanoAddonProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, addonComponents...)
 	}
 	return componentObjects, nil
 }

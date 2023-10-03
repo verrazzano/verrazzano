@@ -618,14 +618,14 @@ pipeline {
                         runGinkgoEx('examples/helidonconfig')
                     }
                 }
-                /*stage('examples bobs books') {
+                stage('examples bobs books') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/examples-bobs"
                     }
                     steps {
                         runGinkgoEx('examples/bobsbooks')
                     }
-                }*/
+                }
                 stage('examples weblogic cluster') {
                     environment {
                         DUMP_DIRECTORY="${TEST_DUMP_ROOT}/weblogic-cluster"
