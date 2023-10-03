@@ -136,7 +136,7 @@ func (r *Reconciler) updateRelatedPod(ctx context.Context, trait *vzapi.MetricsT
 		TypeMeta:   metav1.TypeMeta{APIVersion: child.GetAPIVersion(), Kind: child.GetKind()},
 		ObjectMeta: metav1.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName()},
 	}
-	return r.updatePod(ctx, trait, workload, traitDefaults, log, pod)
+	return r.updatePod(ctx, trait, workload, traitDefaults, log, *pod)
 }
 
 // NewTraitDefaultsForWLSDomainWorkload creates metrics trait default values for a WLS domain workload.
@@ -255,7 +255,7 @@ func (r *Reconciler) fetchWLSDomainCredentialsSecretName(ctx context.Context, wo
 	return &secretName, nil
 }
 
-func (r *Reconciler) updateRelatedPods(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger, namespace string, ownerKind string, ownerName string, ownerApiVersion string) (controllerutil.OperationResult, error) {
+func (r *Reconciler) updateRelatedPods(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger, namespace string, ownerKind string, ownerName string, ownerAPIVersion string) (controllerutil.OperationResult, error) {
 	pods := &k8score.PodList{}
 	err := r.List(ctx, pods, client.InNamespace(namespace))
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -269,8 +269,8 @@ func (r *Reconciler) updateRelatedPods(ctx context.Context, trait *vzapi.Metrics
 
 	for _, pod := range pods.Items {
 		for _, podOwnerRef := range pod.GetOwnerReferences() {
-			if podOwnerRef.APIVersion == ownerApiVersion && podOwnerRef.Kind == ownerKind && podOwnerRef.Name == ownerName {
-				_, _, err := r.updatePod(ctx, trait, workload, traitDefaults, log, &pod)
+			if podOwnerRef.APIVersion == ownerAPIVersion && podOwnerRef.Kind == ownerKind && podOwnerRef.Name == ownerName {
+				_, _, err := r.updatePod(ctx, trait, workload, traitDefaults, log, pod)
 				if err != nil && !apierrors.IsNotFound(err) {
 					return controllerutil.OperationResultNone, fmt.Errorf("failed to update labels for pod %s of %s %s: %v", vznav.GetNamespacedNameFromObjectMeta(pod.ObjectMeta).Name, ownerKind, ownerName, err)
 				}
@@ -284,9 +284,9 @@ func (r *Reconciler) updateRelatedPods(ctx context.Context, trait *vzapi.Metrics
 }
 
 // updatePod updates the labels and annotations of a workload pod.
-func (r *Reconciler) updatePod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger, pod *k8score.Pod) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
+func (r *Reconciler) updatePod(ctx context.Context, trait *vzapi.MetricsTrait, workload *unstructured.Unstructured, traitDefaults *vzapi.MetricsTraitSpec, log vzlog.VerrazzanoLogger, pod k8score.Pod) (vzapi.QualifiedResourceRelation, controllerutil.OperationResult, error) {
 	rel := vzapi.QualifiedResourceRelation{APIVersion: pod.APIVersion, Kind: pod.Kind, Namespace: pod.GetNamespace(), Name: pod.GetName(), Role: sourceRole}
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, pod, func() error {
+	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pod, func() error {
 		// If the statefulset was not found don't attempt to create or update it.
 		if pod.CreationTimestamp.IsZero() {
 			log.Debug("Workload child pod not found")
