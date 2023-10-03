@@ -280,14 +280,14 @@ func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 		return secretCreateResponse.CommandError
 	}
 
-	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n verrazzano-install", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
-	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-	bcmd.CommandArgs = cmdArgs
-	secretCreateResponse = helpers.Runner(&bcmd, log)
-	if secretCreateResponse.CommandError != nil {
-		return secretCreateResponse.CommandError
-	}
+	/*	cmdArgs = []string{}
+		dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n verrazzano-install", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
+		cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+		bcmd.CommandArgs = cmdArgs
+		secretCreateResponse = helpers.Runner(&bcmd, log)
+		if secretCreateResponse.CommandError != nil {
+			return secretCreateResponse.CommandError
+		}*/
 
 	cmdArgs = []string{}
 	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry github-packages --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), DockerRepo, DockerCredsUser, DockerCredsPassword)
@@ -548,7 +548,11 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
-
+	WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
+		Eventually(func() error {
+			return CreateImagePullSecrets(okeClusterName, t.Logs)
+		}, shortWaitTimeout, shortPollingInterval)
+	})
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
@@ -560,11 +564,6 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() error {
 				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
-		})
-		WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
-			Eventually(func() error {
-				return CreateImagePullSecrets(okeClusterName, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval)
 		})
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
