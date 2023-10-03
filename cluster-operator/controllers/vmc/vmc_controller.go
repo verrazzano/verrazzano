@@ -7,6 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -733,15 +734,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 		return "", nil
 	}
 
-	// Use specialized strings for OKE and OCNE special cases
-	if infraProvider == capi.OCNEInfrastructureProvider && cpProvider == capi.OCNEControlPlaneProvider {
-		return ocneProviderDisplayName, nil
-	} else if infraProvider == capi.OKEInfrastructureProvider && cpProvider == capi.OKEControlPlaneProvider {
-		return okeProviderDisplayName, nil
-	}
-	// Otherwise, return this generic format for the provider display string
-	provider := fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider)
-	return provider, nil
+	return r.formProviderDisplayString(infraProvider, cpProvider), nil
 }
 
 // getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
@@ -774,7 +767,25 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringCluster
 		return "", nil
 	}
 
-	return fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider), nil
+	// Remove the "Template" suffix from the provider names
+	infraProvider = strings.TrimSuffix(infraProvider, "Template")
+	cpProvider = strings.TrimSuffix(cpProvider, "Template")
+
+	return r.formProviderDisplayString(infraProvider, cpProvider), nil
+}
+
+// formProviderDisplayString forms the display string for the VMC's status.provider field, given the infrastructure and
+// control plane provider strings
+func (r *VerrazzanoManagedClusterReconciler) formProviderDisplayString(infraProvider, cpProvider string) string {
+	// Use specialized strings for OKE and OCNE special cases
+	if infraProvider == capi.OCNEInfrastructureProvider && cpProvider == capi.OCNEControlPlaneProvider {
+		return ocneProviderDisplayName
+	} else if infraProvider == capi.OKEInfrastructureProvider && cpProvider == capi.OKEControlPlaneProvider {
+		return okeProviderDisplayName
+	}
+	// Otherwise, return this generic format for the provider display string
+	provider := fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider)
+	return provider
 }
 
 // updateState sets the vmc.Status.State for the given VMC.
