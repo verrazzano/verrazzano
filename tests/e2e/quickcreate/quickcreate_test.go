@@ -554,15 +554,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
-				err := CreateImagePullSecrets(okeClusterName, t.Logs)
-				if err != nil {
-					return err
-				}
-				err = ctx.applyVerrazzanoFleet()
-				if err != nil {
-					return err
-				}
-				return nil
+				return ctx.applyVerrazzanoFleet()
 			}, shortWaitTimeout, shortPollingInterval).ShouldNot(HaveOccurred(), "Create verrazzanoFleet resource")
 		})
 
@@ -571,7 +563,11 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
 		})
-
+		WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
+			Eventually(func() error {
+				return CreateImagePullSecrets(okeClusterName, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval)
+		})
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
 				return displayWorkloadClusterResources(okeClusterName, t.Logs)
