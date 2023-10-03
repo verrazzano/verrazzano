@@ -31,7 +31,7 @@ func UpdatePrometheusAnnotations(ctx spi.ComponentContext, prometheusNamespace s
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), "no matches for kind") || strings.Contains(err.Error(), "no kind is registered") {
-			ctx.Log().Info("Prometheus CRD not installed, skip updating annotations for Keycloak on the Prometheus instance")
+			ctx.Log().Debug("Prometheus CRD not installed, skip updating annotations for Keycloak on the Prometheus instance")
 			return nil
 		}
 		return ctx.Log().ErrorfNewErr("Failed to list Prometheus in the %s namespace: %v", prometheusNamespace, err)
@@ -42,7 +42,7 @@ func UpdatePrometheusAnnotations(ctx spi.ComponentContext, prometheusNamespace s
 	err = ctx.Client().Get(context.TODO(), types.NamespacedName{Name: keycloakHTTPService, Namespace: constants.KeycloakNamespace}, &svc)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			ctx.Log().Info("keycloak-http service not found, skip updating annotations for Keycloak on the Prometheus instance")
+			ctx.Log().Debug("keycloak-http service not found, skip updating annotations for Keycloak on the Prometheus instance")
 			return nil
 		}
 		return ctx.Log().ErrorfNewErr("Failed to get keycloak-http service: %v", err)
