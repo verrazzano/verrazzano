@@ -255,6 +255,13 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
+	ctx.Log().Debugf("Applying jaeger crd yaml with dir: %s", c.ChartDir) //debug
+	err = common.ApplyCRDYaml(ctx, c.ChartDir)
+	if err != nil {
+		return err
+	}
+	ctx.Log().Debugf("Done applying jaeger crd yaml") //debug
+
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
@@ -263,13 +270,6 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		// Create Jaeger secret with the OpenSearch credentials
 		return createJaegerSecret(ctx)
 	}
-
-	ctx.Log().Debugf("Applying jaeger crd yaml with dir: %s", c.ChartDir) //debug
-	err = common.ApplyCRDYaml(ctx, c.ChartDir)
-	if err != nil {
-		return err
-	}
-	ctx.Log().Debugf("Done applying jaeger crd yaml") //debug
 
 	return c.HelmComponent.PreUpgrade(ctx)
 }
