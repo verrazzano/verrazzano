@@ -40,7 +40,7 @@ const (
 	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
 	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment              = "capoci-controller-manager"
-	capiVerrazzanoAddonCMDeployment  = "caapv-controller-manager"
+	capiVerrazzanoAddonCMDeployment  = "capi-verrazzano-addon-controller-manager"
 	ocneProviderName                 = "ocne"
 	ociProviderName                  = "oci"
 	clusterAPIProviderName           = "cluster-api"
@@ -91,7 +91,7 @@ func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
 
-	log.Progressf("Component %s is executing the command: %s", ComponentName, cmd.String())
+	log.Progressf("Running clusterctl command: %s", cmd.String())
 	err := cmd.Run()
 	if err != nil {
 		log.ErrorfThrottled("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())

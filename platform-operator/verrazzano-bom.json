@@ -262,7 +262,7 @@
           "images": [
             {
               "image": "cluster-api-verrazzano-addon-controller",
-              "tag": "v1.0.0-20231002161731-24160e8"
+              "tag": "v1.0.0-20231003142344-a400ef3"
             }
            ]
         }
