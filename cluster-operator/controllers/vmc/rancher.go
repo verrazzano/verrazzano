@@ -283,7 +283,7 @@ func isManagedClusterActiveInRancher(rc *rancherutil.RancherConfig, clusterID st
 // the Rancher TLS secret and if that is not found it looks for the Verrazzano system TLS secret.
 func getCACertFromManagedCluster(rc *rancherutil.RancherConfig, clusterID string, log vzlog.VerrazzanoLogger) (string, error) {
 	// first look for the Rancher TLS secret
-	caCert, err := getCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.RancherTLSCA, cons.RancherTLSCAKey, log)
+	caCert, err := GetCACertFromManagedClusterSecret(rc, clusterID, rancherNamespace, cons.RancherTLSCA, cons.RancherTLSCAKey, log)
 	if err != nil {
 		return "", err
 	}
@@ -293,7 +293,7 @@ func getCACertFromManagedCluster(rc *rancherutil.RancherConfig, clusterID string
 	}
 
 	// didn't find the Rancher secret so next look for the verrazzano-tls secret
-	caCert, err = getCACertFromManagedClusterSecret(rc, clusterID, cons.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, mcconstants.CaCrtKey, log)
+	caCert, err = GetCACertFromManagedClusterSecret(rc, clusterID, cons.VerrazzanoSystemNamespace, constants.VerrazzanoIngressSecret, mcconstants.CaCrtKey, log)
 	if err != nil {
 		return "", err
 	}
@@ -305,8 +305,8 @@ func getCACertFromManagedCluster(rc *rancherutil.RancherConfig, clusterID string
 	return "", nil
 }
 
-// getCACertFromManagedClusterSecret attempts to get the CA cert from a secret on the managed cluster using the Rancher API proxy
-func getCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID, namespace, secretName, secretKey string, log vzlog.VerrazzanoLogger) (string, error) {
+// GetCACertFromManagedClusterSecret attempts to get the CA cert from a secret on the managed cluster using the Rancher API proxy
+func GetCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID, namespace, secretName, secretKey string, log vzlog.VerrazzanoLogger) (string, error) {
 	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s/secrets/%s" //nolint:gosec //#gosec G101
 
 	// use the Rancher API proxy on the managed cluster to fetch the secret
@@ -341,6 +341,37 @@ func getCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID,
 	}
 
 	return "", nil
+}
+
+// isNamespaceCreated attempts to ascertain whether the given namesapce is created in the cluster
+func isNamespaceCreated(client client.Client, ingressHost, clusterID, namespace string, log vzlog.VerrazzanoLogger) (bool, error) {
+	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s" //nolint:gosec //#gosec G101
+
+	rc, err := rancherutil.NewAdminRancherConfig(client, ingressHost, log)
+	if err != nil || rc == nil {
+		return false, err
+	}
+
+	// use the Rancher API proxy on the managed cluster to fetch the secret
+	baseReqURL := rc.BaseURL + k8sClustersPath + clusterID
+	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
+
+	reqURL := fmt.Sprintf(k8sAPISecretPattern, baseReqURL, namespace)
+	response, _, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+
+	if response != nil {
+		if response.StatusCode == http.StatusNotFound {
+			return false, nil
+		}
+		if response.StatusCode != http.StatusOK {
+			return false, fmt.Errorf("tried to get namespace %s via Rancher from clsuter %s but failed, response code: %d", namespace, clusterID, response.StatusCode)
+		}
+	}
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }
 
 // getRegistrationYAMLFromRancher creates a registration token in Rancher for the managed cluster and uses the

@@ -6,10 +6,11 @@ package capi
 import (
 	"context"
 	"fmt"
-
+	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -24,6 +25,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -75,19 +77,12 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// only process CAPI cluster instances not managed by Rancher/container driver
-	_, ok := cluster.GetLabels()[clusterProvisionerLabel]
-	if ok {
-		r.Log.Infof("CAPI cluster %v created by Rancher is registered via VMC processing", req.NamespacedName)
-		return ctrl.Result{}, nil
-	}
-
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
 			err = r.unregisterCluster(ctx, cluster)
 			if err != nil {
-				return ctrl.Result{}, err
+				r.Log.Warnf("Unable to unregister cluster %s: %v.  Cluster deletion will proceed.", cluster.GetName(), err)
 			}
 		}
 
@@ -112,29 +107,116 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, nil
 	}
 
-	// add a finalizer to the CAPI cluster if it doesn't already exist
-	if err = r.ensureFinalizer(cluster); err != nil {
+	// obtain and persist the API endpoint IP address for the admin cluster
+	err = r.createAdminAccessConfigMap(ctx)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	vmcName := r.getVMCName(cluster)
+	// ensure a base VMC
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vmcName,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	if _, err = r.createOrUpdateWorkloadClusterVMC(ctx, cluster, vmc, func() error {
+		vmc.Spec = clustersv1alpha1.VerrazzanoManagedClusterSpec{
+			Description: fmt.Sprintf("%s VerrazzanoManagedCluster Resource", cluster.GetName()),
+		}
+		return nil
+	}); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
 		r.Log.Debugf("Attempting cluster regisration with Rancher")
-		return r.RancherRegistrar.doReconcile(ctx, cluster)
+		result, err := r.RancherRegistrar.doReconcile(ctx, cluster)
+		if err != nil {
+			return result, err
+		}
+	}
+
+	// add a finalizer to the CAPI cluster if it doesn't already exist
+	if err = r.ensureFinalizer(cluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	return r.VerrazzanoRegistrar.doReconcile(ctx, cluster)
+	return verrazzanoReconcileFn(ctx, cluster, r)
 }
 
+// createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
+func (r *CAPIClusterReconciler) createOrUpdateWorkloadClusterVMC(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster, f controllerutil.MutateFn) (*clustersv1alpha1.VerrazzanoManagedCluster, error) {
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, vmc, f); err != nil {
+		r.Log.Errorf("Failed to create or update the VMC for cluster %s: %v", cluster.GetName(), err)
+		return nil, err
+	}
+
+	return vmc, nil
+}
+
+// createAdminAccessConfigMap creates the config map required for the creation of the admin accessing kubeconfig
+func (r *CAPIClusterReconciler) createAdminAccessConfigMap(ctx context.Context) error {
+	ep := &v1.Endpoints{}
+	if err := r.Get(ctx, types.NamespacedName{Name: "kubernetes", Namespace: "default"}, ep); err != nil {
+		return err
+	}
+	apiServerIP := ep.Subsets[0].Addresses[0].IP
+
+	// create the admin server IP config map
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "verrazzano-admin-cluster",
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	if _, err := ctrl.CreateOrUpdate(ctx, r.Client, cm, func() error {
+		if cm.Data == nil {
+			cm.Data = make(map[string]string)
+		}
+		cm.Data["server"] = fmt.Sprintf("https://%s:6443", apiServerIP)
+
+		return nil
+	}); err != nil {
+		r.Log.Errorf("Failed to create the Verrazzano admin cluster config map: %v", err)
+		return err
+	}
+	return nil
+}
+
+// unregisterCluster removes the cluster from Rancher and/or Verrazzano.
 func (r *CAPIClusterReconciler) unregisterCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
 	var err error
 	if r.RancherEnabled {
 		err = clusterRancherUnregistrationFn(ctx, r.RancherRegistrar, cluster)
-	} else {
-		err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster)
+		if err != nil {
+			return err
+		}
 	}
-	return err
+	if err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster); err != nil {
+		return err
+	}
+
+	// remove the VMC
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName(),
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	err = r.Delete(ctx, vmc)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.Log.Infof("VMC for cluster %s not found - nothing to do", cluster.GetName())
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 // ensureFinalizer adds a finalizer to the CAPI cluster if the finalizer is not already present
@@ -159,6 +241,18 @@ func (r *CAPIClusterReconciler) removeFinalizer(cluster *unstructured.Unstructur
 	return nil
 }
 
+func (r *CAPIClusterReconciler) getVMCName(cluster *unstructured.Unstructured) string {
+	// check for existence of a Rancher cluster management resource
+	rancherMgmtCluster := &unstructured.Unstructured{}
+	rancherMgmtCluster.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("Cluster"))
+	err := r.Get(context.TODO(), types.NamespacedName{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}, rancherMgmtCluster)
+	if err != nil {
+		return cluster.GetName()
+	}
+	// return the display Name
+	return rancherMgmtCluster.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
+}
+
 // getClusterClient returns a controller runtime client configured for the workload cluster
 func getClusterClient(restConfig *rest.Config) (client.Client, error) {
 	scheme := runtime.NewScheme()
@@ -166,6 +260,8 @@ func getClusterClient(restConfig *rest.Config) (client.Client, error) {
 	_ = v1.AddToScheme(scheme)
 	_ = netv1.AddToScheme(scheme)
 	_ = appsv1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+
 	return client.New(restConfig, client.Options{Scheme: scheme})
 }
 

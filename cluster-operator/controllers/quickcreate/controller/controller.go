@@ -74,8 +74,8 @@ func RequeueDelay() ctrl.Result {
 	}
 }
 
-func ApplyTemplates(cli clipkg.Client, props any, templates ...[]byte) error {
-	applier := k8sutil.NewYAMLApplier(cli, "")
+func ApplyTemplates(cli clipkg.Client, props any, ns string, templates ...[]byte) error {
+	applier := k8sutil.NewYAMLApplier(cli, ns)
 	for _, tmpl := range templates {
 		if err := applier.ApplyBT(tmpl, props); err != nil {
 			return err
