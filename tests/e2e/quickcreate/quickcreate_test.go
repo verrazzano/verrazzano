@@ -572,5 +572,10 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(okeClusterName, t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
 	})
 })
