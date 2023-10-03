@@ -103,6 +103,9 @@ func TestHandleLegacyOpenSearch(t *testing.T) {
 
 	// delete master node PVC
 	mock.EXPECT().
+		List(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+	mock.EXPECT().
 		List(gomock.Any(), gomock.Any()).
 		Return(nil)
 

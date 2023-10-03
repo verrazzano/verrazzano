@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	securitySecretName  = "securityconfig-secret"
+	SecuritySecretName  = "securityconfig-secret"
 	securityNamespace   = constants.VerrazzanoLoggingNamespace
 	securityConfigYaml  = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml          = "config.yml"
@@ -427,7 +427,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 	// Get the security config secret and
 	// extract the config.yml and internals_users.yml data
 	var scr corev1.Secret
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr)
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, &scr)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Do nothing and return if secret doesn't exist
