@@ -13,10 +13,10 @@ import (
 )
 
 const (
-	OCNEControlPlaneProvider = "OCNEControlPlane"
+	OCNEControlPlaneProvider   = "OCNEControlPlane"
 	OCNEInfrastructureProvider = "OCICluster"
-	OKEControlPlaneProvider = "OCIManagedControlPlane"
-	OKEInfrastructureProvider = "OCIManagedCluster"
+	OKEControlPlaneProvider    = "OCIManagedControlPlane"
+	OKEInfrastructureProvider  = "OCIManagedCluster"
 )
 
 var GVKCAPICluster = schema.GroupVersionKind{

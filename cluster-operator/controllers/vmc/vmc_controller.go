@@ -39,10 +39,10 @@ import (
 )
 
 const (
-	finalizerName = "managedcluster.verrazzano.io"
+	finalizerName               = "managedcluster.verrazzano.io"
 	importedProviderDisplayName = "Imported"
-	ocneProviderDisplayName = "Oracle OCNE on OCI"
-	okeProviderDisplayName = "Oracle OKE"
+	ocneProviderDisplayName     = "Oracle OCNE on OCI"
+	okeProviderDisplayName      = "Oracle OKE"
 )
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
