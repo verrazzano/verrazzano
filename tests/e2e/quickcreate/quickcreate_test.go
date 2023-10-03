@@ -252,27 +252,17 @@ func setConfigQPSBurst(config *rest.Config) {
 	config.QPS = 100
 }
 
-func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
+func CreateImagePullSecrets(log *zap.SugaredLogger) error {
 	log.Infof("Creating image pull secrets on workload cluster ...")
 
-	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
+	k8sConfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
-		return err
-	}
-	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
-	if err != nil {
-		log.Error("Failed to create temporary file ", zap.Error(err))
-		return err
-	}
-
-	if err = os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-		log.Error("failed to write to destination file ", zap.Error(err))
 		return err
 	}
 
 	var cmdArgs []string
 	var bcmd helpers.BashCommand
-	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
+	dockerSecretCommand := fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n %s", k8sConfig, ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword, okeClusterNamespace)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	secretCreateResponse := helpers.Runner(&bcmd, log)
@@ -280,17 +270,8 @@ func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 		return secretCreateResponse.CommandError
 	}
 
-	/*	cmdArgs = []string{}
-		dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n verrazzano-install", tmpFile.Name(), ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword)
-		cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
-		bcmd.CommandArgs = cmdArgs
-		secretCreateResponse = helpers.Runner(&bcmd, log)
-		if secretCreateResponse.CommandError != nil {
-			return secretCreateResponse.CommandError
-		}*/
-
 	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry github-packages --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), DockerRepo, DockerCredsUser, DockerCredsPassword)
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry %s --docker-server=%s --docker-username=%s --docker-password=%s -n %s", k8sConfig, ImagePullSecret, DockerRepo, DockerCredsUser, DockerCredsPassword, okeClusterNamespace)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	secretCreateResponse = helpers.Runner(&bcmd, log)
@@ -299,7 +280,16 @@ func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	}
 
 	cmdArgs = []string{}
-	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry ocr --docker-server=%s --docker-username=%s --docker-password=%s", tmpFile.Name(), DockerRepo, DockerCredsUser, DockerCredsPassword)
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry github-packages --docker-server=%s --docker-username=%s --docker-password=%s -n %s", k8sConfig, DockerRepo, DockerCredsUser, DockerCredsPassword, okeClusterNamespace)
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse = helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s create secret docker-registry ocr --docker-server=%s --docker-username=%s --docker-password=%s -n %s", k8sConfig, DockerRepo, DockerCredsUser, DockerCredsPassword, okeClusterNamespace)
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	secretCreateResponse = helpers.Runner(&bcmd, log)
@@ -532,13 +522,12 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 
 	WhenClusterAPIInstalledIt("Deploy addon component", func() {
 		Eventually(func() bool {
-			pwd, _ := os.Getwd()
-			t.Logs.Infof("----------Finding the addon components template, %v", pwd)
 			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
 			if err != nil {
-				t.Logs.Infof("----------Finding the addon components template - COULD NOT FIND THE TEMPLATE PATH")
+				return false
 			}
 			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+			_ = CreateImagePullSecrets(t.Logs)
 			if err != nil {
 				return false
 			}
@@ -548,11 +537,11 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
-	WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
+	/*	WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
 		Eventually(func() error {
 			return CreateImagePullSecrets(okeClusterName, t.Logs)
 		}, shortWaitTimeout, shortPollingInterval)
-	})
+	})*/
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
