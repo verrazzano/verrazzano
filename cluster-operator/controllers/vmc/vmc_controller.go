@@ -701,6 +701,35 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 		Namespace: capiCluster.GetNamespace(),
 	}
 
+	// If this CAPI Cluster was created using ClusterClass, then parse capiCluster differently.
+	topology, found, _ := unstructured.NestedFieldNoCopy(capiCluster.Object, "spec", "topology")
+	if found {
+		topologyObj, ok := topology.(map[string]interface{})
+		if !ok {
+			r.log.Progressf("failed to parse topology field of CAPI cluster %s", clusterNamespacedName)
+			return "", nil
+		}
+		clusterClassName, found, err := unstructured.NestedString(topologyObj, "class")
+		if !found {
+			r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
+			return "", nil
+		}
+		if err != nil {
+			r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
+			return "", nil
+		}
+		clusterClassNamespacedName := types.NamespacedName{
+			Name:      clusterClassName,
+			Namespace: capiCluster.GetNamespace(),
+		}
+		if err != nil {
+			r.log.Progressf("could not find ClusterClass %s: %v", clusterClassNamespacedName, err)
+			return "", nil
+		}
+		clusterClass, err := capi.GetClusterClass(context.TODO(), r.Client, clusterClassNamespacedName)
+		return r.getCAPIProviderDisplayStringClusterClass(clusterClass)
+	}
+
 	// Get infrastructure provider
 	infraProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
 	if !found {
@@ -732,6 +761,38 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 	// Otherwise, return this generic format for the provider display string
 	provider := fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider)
 	return provider, nil
+}
+
+// getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
+// associated with this managed cluster.
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *unstructured.Unstructured) (string, error) {
+	clusterClassNamespacedName := types.NamespacedName{
+		Name:      clusterClass.GetName(),
+		Namespace: clusterClass.GetNamespace(),
+	}
+
+	// Get infrastructure provider
+	infraProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "infrastructure", "ref", "kind")
+	if !found {
+		r.log.Progressf("could not find spec.infrastructure.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
+		return "", nil
+	}
+	if err != nil {
+		r.log.Progressf("error while looking for spec.infrastructure.ref.kind field for cluster %s: %v", clusterClass, err)
+		return "", nil
+	}
+
+	// Get control plane provider
+	cpProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "controlPlane", "ref", "kind")
+	if !found {
+		r.log.Progressf("could not find spec.controlPlane.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
+		return "", nil
+	}
+	if err != nil {
+		r.log.Progressf("error while looking for spec.controlPlane.ref.kind field for cluster %s: %v", clusterClassNamespacedName, err)
+		return "", nil
+	}
+	return fmt.Sprintf("%s on %s Infrastructure", cpProvider, infraProvider), nil
 }
 
 // updateState sets the vmc.Status.State for the given VMC.

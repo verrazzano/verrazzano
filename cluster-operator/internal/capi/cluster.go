@@ -25,6 +25,12 @@ var GVKCAPICluster = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
+var GVKCAPIClusterClass = schema.GroupVersionKind{
+	Group:   "cluster.x-k8s.io",
+	Version: "v1beta1",
+	Kind:    "ClusterClass",
+}
+
 // GetCluster returns the requested CAPI Cluster as an unstructured pointer.
 func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
 	cluster := &unstructured.Unstructured{}
@@ -34,3 +40,15 @@ func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName ty
 	}
 	return cluster, nil
 }
+
+// GetClusterClass returns the requested CAPI ClusterClass as an unstructured pointer.
+func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(GVKCAPIClusterClass)
+	if err := cli.Get(context.TODO(), clusterClassNamespacedName, cluster); err != nil {
+		return nil, err
+	}
+	return cluster, nil
+}
+
+// TODO: GetClusterClassFromCluster
