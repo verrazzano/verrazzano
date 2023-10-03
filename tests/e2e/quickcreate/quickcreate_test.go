@@ -563,13 +563,13 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 			Eventually(func() bool {
 				return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
-			}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
+			}, waitTimeOut, vzPollingInterval).Should(BeTrue(), "verify VPO")
 		})
 
 		WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
 			Eventually(func() error {
 				return ensureVerrazzano(okeClusterName, t.Logs)
-			}, shortWaitTimeout, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
+			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 		})
 
 	})
