@@ -315,6 +315,10 @@ func TestWorkloadFetchError(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 		&vzapi.MetricsTrait{
+			TypeMeta: k8smeta.TypeMeta{
+				APIVersion: vzapi.SchemeGroupVersion.Identifier(),
+				Kind:       vzapi.MetricsTraitKind,
+			},
 			ObjectMeta: k8smeta.ObjectMeta{
 				Namespace: "test-namespace",
 				Name:      "test-trait-name",
