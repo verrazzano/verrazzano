@@ -280,13 +280,22 @@ var _ = t.Describe("Cluster API", Label("f:platform-lcm.install"), func() {
 			// from the internet instead of from the container image.
 			Eventually(func() error {
 				return updateClusterAPIOverrides(fmt.Sprintf(urlOverrides,
-					fmt.Sprintf(ociInfraURLFmt, ociComp.Version),
-					fmt.Sprintf(ocneBootstrapURLFmt, ocneComp.Version),
-					fmt.Sprintf(ocneControlPlaneURLFmt, ocneComp.Version),
-					fmt.Sprintf(coreURLFmt, coreComp.Version)))
+					fmt.Sprintf(ociInfraURLFmt, "v0.11.0"),
+					fmt.Sprintf(ocneBootstrapURLFmt, "v1.6.1"),
+					fmt.Sprintf(ocneControlPlaneURLFmt, "v1.6.1"),
+					fmt.Sprintf(coreURLFmt, "v1.4.2")))
 			}, waitTimeout, pollingInterval).Should(BeNil())
 			Eventually(isGenerationMet, waitTimeout, pollingInterval).Should(BeTrue(), "%s lastReconciledGeneration did not meet %v", capiComponentName)
 			Eventually(isStatusReady, waitTimeout, pollingInterval).Should(BeTrue(), "Did not reach Ready status")
+
+			_, err := pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneControlPlaneCMDeployment, managerContainerName, "v1.6.1")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiOcneBootstrapCMDeployment, managerContainerName, "v1.6.1")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiociCMDeployment, managerContainerName, "v0.11.0")
+			Expect(err).ShouldNot(HaveOccurred())
+			_, err = pkg.ValidateDeploymentContainerImage(verrazzanoCAPINamespace, capiCMDeployment, managerContainerName, "v1.4.2")
+			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})
 

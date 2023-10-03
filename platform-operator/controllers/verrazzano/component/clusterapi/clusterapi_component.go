@@ -5,7 +5,10 @@ package clusterapi
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"os/exec"
 
 	"github.com/verrazzano/verrazzano/pkg/constants"
@@ -37,9 +40,11 @@ const (
 	capiOcneBootstrapCMDeployment    = "capi-ocne-bootstrap-controller-manager"
 	capiOcneControlPlaneCMDeployment = "capi-ocne-control-plane-controller-manager"
 	capiociCMDeployment              = "capoci-controller-manager"
+	capiVerrazzanoAddonCMDeployment  = "caapv-controller-manager"
 	ocneProviderName                 = "ocne"
 	ociProviderName                  = "oci"
 	clusterAPIProviderName           = "cluster-api"
+	verrazzanoAddonProviderName      = "verrazzano"
 )
 
 var capiDeployments = []types.NamespacedName{
@@ -59,6 +64,10 @@ var capiDeployments = []types.NamespacedName{
 		Name:      capiociCMDeployment,
 		Namespace: ComponentNamespace,
 	},
+	{
+		Name:      capiVerrazzanoAddonCMDeployment,
+		Namespace: ComponentNamespace,
+	},
 }
 
 type capiUpgradeOptions struct {
@@ -66,6 +75,7 @@ type capiUpgradeOptions struct {
 	BootstrapProviders      []string
 	ControlPlaneProviders   []string
 	InfrastructureProviders []string
+	AddonProviders          []string
 }
 
 // capiRunCmdFunc - required for unit tests
@@ -81,10 +91,10 @@ func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	cmd.Stdout = stdoutBuffer
 	cmd.Stderr = stderrBuffer
 
-	log.Debugf("Component %s is executing the command: %s", ComponentName, cmd.String())
+	log.Progressf("Component %s is executing the command: %s", ComponentName, cmd.String())
 	err := cmd.Run()
 	if err != nil {
-		log.Infof("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		log.ErrorfThrottled("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
 	}
 	return err
 }
@@ -253,12 +263,14 @@ func (c clusterAPIComponent) Install(ctx spi.ComponentContext) error {
 	controlPlaneArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEControlPlaneVersion())
 	infrastructureArgValue := fmt.Sprintf("%s:%s", ociProviderName, overridesContext.GetOCIVersion())
 	bootstrapArgValue := fmt.Sprintf("%s:%s", ocneProviderName, overridesContext.GetOCNEBootstrapVersion())
+	addonArgValue := fmt.Sprintf("%s:%s", verrazzanoAddonProviderName, overridesContext.GetVerrazzanoAddonVersion())
 	cmd := exec.Command("clusterctl", "init",
 		"--target-namespace", ComponentNamespace,
 		"--core", coreArgValue,
 		"--control-plane", controlPlaneArgValue,
 		"--infrastructure", infrastructureArgValue,
-		"--bootstrap", bootstrapArgValue)
+		"--bootstrap", bootstrapArgValue,
+		"--addon", addonArgValue)
 
 	return runCAPICmd(cmd, ctx.Log())
 }
@@ -338,9 +350,37 @@ func (c clusterAPIComponent) Upgrade(ctx spi.ComponentContext) error {
 			args = append(args, "--infrastructure")
 			args = append(args, applyUpgradeOptions.InfrastructureProviders[0])
 		}
+		if len(applyUpgradeOptions.AddonProviders) > 0 {
+			args = append(args, "--addon")
+			args = append(args, applyUpgradeOptions.AddonProviders[0])
+		}
+
 		cmd := exec.Command("clusterctl", args...)
-		return runCAPICmd(cmd, ctx.Log())
+		err = runCAPICmd(cmd, ctx.Log())
+		if err != nil {
+			return err
+		}
 	}
+
+	// Initial versions of cluster-api install did not install the Verrazzano cluster-api addon.  If that is the case, we need
+	// to install the addon instead of upgrade the addon.
+	deployment := appsv1.Deployment{}
+	namespacedName := types.NamespacedName{
+		Namespace: ComponentNamespace,
+		Name:      capiVerrazzanoAddonCMDeployment,
+	}
+	if err := ctx.Client().Get(context.TODO(), namespacedName, &deployment); err != nil {
+		if errors.IsNotFound(err) {
+			addonArgValue := fmt.Sprintf("%s:%s", verrazzanoAddonProviderName, overridesContext.GetVerrazzanoAddonVersion())
+			cmd := exec.Command("clusterctl", "init",
+				"--target-namespace", ComponentNamespace,
+				"--addon", addonArgValue)
+			return runCAPICmd(cmd, ctx.Log())
+		}
+		ctx.Log().ErrorfThrottled("Failed to get deployment %v: %v", namespacedName, err)
+		return err
+	}
+
 	return nil
 }
 

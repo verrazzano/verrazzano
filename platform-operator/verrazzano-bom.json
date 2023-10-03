@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.17.2-1",
+      "version": "1.19.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5-5",
+      "version": "2.7.6-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -155,16 +155,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.5-20231002174229-785a82496",
-              "rancherUI": "v2.7.2-13/release-2.7.2",
+              "rancherUI": "v2.7.2-14/release-2.7.2",
               "ocneDriverVersion": "v0.26.0",
               "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
-              "tag": "v2.7.6-20231002174753-f8e9b331c",
+              "tag": "v2.7.6-20231003140340-bd483bcd0",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20231002174753-f8e9b331c"
+              "tag": "v2.7.6-20231003140340-bd483bcd0"
             }
           ]
         },
@@ -253,6 +253,22 @@
       ]
     },
     {
+      "name": "capi-addon",
+      "version": "v1.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-addon",
+          "images": [
+            {
+              "image": "cluster-api-verrazzano-addon-controller",
+              "tag": "v1.0.0-20231002161731-24160e8"
+            }
+           ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano",
       "version": "VERRAZZANO_VERSION",
       "subcomponents": [
@@ -262,7 +278,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -332,7 +348,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
