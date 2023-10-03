@@ -79,7 +79,7 @@ func Install(log vzlog.VerrazzanoLogger, overrideStrings string, overridesFiles 
 
 // Uninstall does an Istio uninstall removing the default revision installation. Istio CRDs are not removed.
 func Uninstall(log vzlog.VerrazzanoLogger) (stdout []byte, stderr []byte, err error) {
-	args := []string{"x", "uninstall", "--revision", "default", "-y"}
+	args := []string{"uninstall", "--revision", "default", "-y"}
 
 	// Perform istioctl call of type uninstall
 	stdout, stderr, err = runIstioctl(log, args, "uninstall", true)
