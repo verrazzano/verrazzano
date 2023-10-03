@@ -694,7 +694,6 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 
 // getCAPIProviderDisplayString returns the string to populate the VMC's status.provider field, based on information taken from the
 // provided CAPI Cluster.
-// FIXME: proper error handling here
 func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *unstructured.Unstructured) (string, error) {
 	clusterNamespacedName := types.NamespacedName{
 		Name:      capiCluster.GetName(),
@@ -706,12 +705,16 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 	if found {
 		clusterClass, err := capi.GetClusterClassFromCluster(context.TODO(), r.Client, capiCluster)
 		if err != nil {
-			r.log.Progressf("could not find ClusterClass %s/%s: %v", clusterClass.GetNamespace(), clusterClass.GetName(), err)
-			return "", nil
+			if errors.IsNotFound(err) {
+				r.log.Progressf("could not find ClusterClass %s/%s: %v", clusterClass.GetNamespace(), clusterClass.GetName(), err)
+				return "", nil
+			}
+			return "", err
 		}
-		return r.getCAPIProviderDisplayStringClusterClass(clusterClass)
+		return r.getCAPIProviderDisplayStringClusterClass(clusterClass), nil
 	}
 
+	// This cluster does not use ClusterClass.
 	// Get infrastructure provider
 	infraProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
 	if !found {
@@ -739,7 +742,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 
 // getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
 // associated with this managed cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *unstructured.Unstructured) (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *unstructured.Unstructured) string {
 	clusterClassNamespacedName := types.NamespacedName{
 		Name:      clusterClass.GetName(),
 		Namespace: clusterClass.GetNamespace(),
@@ -749,29 +752,29 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringCluster
 	infraProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "infrastructure", "ref", "kind")
 	if !found {
 		r.log.Progressf("could not find spec.infrastructure.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
-		return "", nil
+		return ""
 	}
 	if err != nil {
 		r.log.Progressf("error while looking for spec.infrastructure.ref.kind field for cluster %s: %v", clusterClass, err)
-		return "", nil
+		return ""
 	}
 
 	// Get control plane provider
 	cpProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "controlPlane", "ref", "kind")
 	if !found {
 		r.log.Progressf("could not find spec.controlPlane.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
-		return "", nil
+		return ""
 	}
 	if err != nil {
 		r.log.Progressf("error while looking for spec.controlPlane.ref.kind field for cluster %s: %v", clusterClassNamespacedName, err)
-		return "", nil
+		return ""
 	}
 
 	// Remove the "Template" suffix from the provider names
 	infraProvider = strings.TrimSuffix(infraProvider, "Template")
 	cpProvider = strings.TrimSuffix(cpProvider, "Template")
 
-	return r.formProviderDisplayString(infraProvider, cpProvider), nil
+	return r.formProviderDisplayString(infraProvider, cpProvider)
 }
 
 // formProviderDisplayString forms the display string for the VMC's status.provider field, given the infrastructure and
