@@ -9,6 +9,8 @@ metadata:
 spec:
   clusterSelector:
     name: {{.CLUSTER_ID}}
+  imagePullSecrets:
+    - name: verrazzano-container-registry
   verrazzano:
     spec:
       components:
