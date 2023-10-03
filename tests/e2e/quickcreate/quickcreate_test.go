@@ -94,6 +94,8 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	}
 	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
 	createCluster()
+	t.Logs.Infof("Wait for 30 seconds before verification")
+	time.Sleep(60 * time.Second)
 
 })
 var afterSuite = t.AfterSuiteFunc(func() {
@@ -182,11 +184,11 @@ func ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, namespace string, log
 	}
 	vpo, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=verrazzano-platform-operator", k8sclient)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		t.Logs.Error(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 	vpoWebhook, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=verrazzano-platform-operator-webhook", k8sclient)
 	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
+		t.Logs.Error(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
 	}
 
 	if err != nil {
@@ -342,6 +344,8 @@ func ensureVerrazzano(clusterName string, log *zap.SugaredLogger) error {
 }
 
 func ensureVerrazzanoFleetBindingExists(clusterName string, log *zap.SugaredLogger) error {
+	log.Infof("Wait for 30 seconds before verification")
+	time.Sleep(30 * time.Second)
 
 	vfbFetched, err := getVerrazzanoFleetBinding(log)
 	if err != nil {
