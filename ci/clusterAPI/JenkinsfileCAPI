@@ -371,8 +371,8 @@ pipeline {
                                 // This will deploy an OCNE cluster
                                 // Then proceed to create image pull secrets required for jenkins
                                 // Also deploy Verrazzano
-                                def availableNLB = checkNLBAvailability()
-                                if (availableNLB <= 0) {
+                                def canProceed = waitForNLBAvailability()
+                                if (!canProceed) {
                                     throw new AbortException("Test aborted due to insufficient network load balancers: " + availableNLB)
                                 }
                                 set_capi_variables()
@@ -950,8 +950,22 @@ def dumpCAPIClusterDetails() {
     """
 }
 
+def waitForNLBAvailability() {
+    start = System.currentTimeMillis()
+    time = 15*60*1000
+    while(System.currentTimeMillis() - start < time)
+    {
+        println("Waiting for NLB availability....")
+        if(checkNLBAvailability())
+            return true
+
+        sleep (10)
+    }
+    return false
+}
+
 def checkNLBAvailability() {
     def availableNLB = sh(script: '${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/get_resource_availability.sh network-load-balancer-api max-nlb-flexible-count', returnStdout: true).trim()
     println("Number of available NLB: " + availableNLB)
-    return Integer.parseInt(availableNLB)
+    return Integer.parseInt(availableNLB) >= 1
 }
