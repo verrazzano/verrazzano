@@ -99,7 +99,7 @@ precommit: precommit-check precommit-build unit-test-coverage ## run all precomm
 precommit-nocover: precommit-check precommit-build unit-test ## run precommit checks without code coverage check
 
 .PHONY: precommit-check
-precommit-check: check-tidy check check-tests copyright-check ## run precommit checks without unit testing
+precommit-check: check-tidy check check-tests copyright-check check-bom-tags ## run precommit checks without unit testing
 
 .PHONY: precommit-build
 precommit-build:  ## go build the project
@@ -143,6 +143,10 @@ copyright-check-local: copyright-test  ## check copyright notices are correct in
 .PHONY: copyright-check-branch
 copyright-check-branch: copyright-check ## check copyright notices are correct in parent branch
 	go run tools/copyright/copyright.go --verbose --enforce-current $(shell git diff --name-only ${PARENT_BRANCH})
+
+.PHONY: check-bom-tags
+check-bom-tags: ## check for any image tag problems in the BOM
+	release/scripts/check_image_tags.sh platform-operator/verrazzano-bom.json
 
 #
 # Quality checks on acceptance tests

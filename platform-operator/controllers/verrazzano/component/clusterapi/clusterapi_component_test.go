@@ -875,6 +875,42 @@ func getReadyDeployments() *fake.ClientBuilder {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
+
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiVerrazzanoAddonCMDeployment,
+				Labels:    map[string]string{providerLabel: verrazzanoAddonProvider},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{providerLabel: verrazzanoAddonProvider},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				ReadyReplicas:     1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiVerrazzanoAddonCMDeployment + "-95d8c5d91-m6mbr",
+				Labels: map[string]string{
+					podTemplateHashLabel: "95d8c5d91",
+					providerLabel:        verrazzanoAddonProvider,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        capiVerrazzanoAddonCMDeployment + "-95d8c5d91",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
+			},
+		},
 	)
 }
 

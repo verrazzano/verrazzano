@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package validators
 
@@ -8,6 +8,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 )
 
@@ -58,7 +59,7 @@ var _ update.CRModifierV1beta1 = jaegerIllegalUpdater{}
 // runValidatorTestV1Beta1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1beta1 API
 func runValidatorTestV1Beta1() {
 	Eventually(func() string {
-		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
+		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{}, client.DryRunAll)
 		if err == nil {
 			return "Did not get an error on illegal update"
 		}
@@ -70,7 +71,7 @@ func runValidatorTestV1Beta1() {
 // runValidatorTestV1Alpha1 Attempt to use an illegal overrides value on the Jaeger operator configuration using the v1alpha1 API
 func runValidatorTestV1Alpha1() {
 	Eventually(func() string {
-		err := update.UpdateCRV1beta1(jaegerIllegalUpdater{})
+		err := update.UpdateCR(jaegerIllegalUpdater{}, client.DryRunAll)
 		if err == nil {
 			return "Did not get an error on illegal update"
 		}
