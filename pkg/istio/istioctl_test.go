@@ -169,11 +169,10 @@ func (r uninstallRunner) Run(cmd *exec.Cmd) (stdout []byte, stderr []byte, err e
 	assert := assert.New(r.t)
 	assert.Contains(cmd.Path, "istioctl", "command should contain istioctl")
 	assert.Contains(cmd.Args[0], "istioctl", "args should contain istioctl")
-	assert.Contains(cmd.Args[1], "x", "args should contain x")
-	assert.Contains(cmd.Args[2], "uninstall", "args should contain uninstall")
-	assert.Contains(cmd.Args[3], "--revision", "args should contain --revision")
-	assert.Contains(cmd.Args[4], "default", "args should contain default")
-	assert.Contains(cmd.Args[5], "-y", "args should contain -y")
+	assert.Contains(cmd.Args[1], "uninstall", "args should contain uninstall")
+	assert.Contains(cmd.Args[2], "--revision", "args should contain --revision")
+	assert.Contains(cmd.Args[3], "default", "args should contain default")
+	assert.Contains(cmd.Args[4], "-y", "args should contain -y")
 
 	return []byte("success"), []byte(""), nil
 }
