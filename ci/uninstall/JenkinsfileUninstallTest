@@ -308,6 +308,7 @@ def runInitialInstall(iteration) {
                 sh """
                     echo "CLUSTER_SNAPSHOT_DIR: ${CLUSTER_SNAPSHOT_DIR}"
                     echo "Branch: ${BRANCH_NAME}"
+                    echo "Operator Image: ${VERRAZZANO_OPERATOR_IMAGE}"
                     cd ${GO_REPO_PATH}/verrazzano
                     ci/scripts/prepare_jenkins_at_environment.sh ${params.CREATE_KIND_USE_CALICO} ${params.WILDCARD_DNS_DOMAIN}
                 """
