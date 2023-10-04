@@ -536,7 +536,6 @@ pipeline {
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
-                        verifyJaeger()
                     }
                 }
             }
@@ -617,6 +616,11 @@ pipeline {
                         stage ('mc examples helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('mc jarger verify-install'){
+                            steps {
+                                verifyJaeger()
                             }
                         }
                         stage ('mc jaeger helidon') {
