@@ -536,10 +536,6 @@ pipeline {
                 stage('verify-infra vmi') {
                     steps {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
-                    }
-                }
-                stage('verify-jaeger') {
-                    steps {
                         verifyJaeger()
                     }
                 }
