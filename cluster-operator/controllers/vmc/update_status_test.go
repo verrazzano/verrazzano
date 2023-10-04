@@ -5,6 +5,7 @@ package vmc
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,10 +26,11 @@ import (
 )
 
 const (
-	testCAPIClusterName = "test-capi-cluster"
-	testCAPINamespace   = "c-12345"
-	testVMCName         = "test-vmc"
-	testVMCNamespace    = "verrazzano-mc"
+	testCAPIClusterName  = "test-capi-cluster"
+	testClusterClassName = "test-cluster-class"
+	testCAPINamespace    = "c-12345"
+	testVMCName          = "test-vmc"
+	testVMCNamespace     = "verrazzano-mc"
 )
 
 // TestUpdateStatus tests the updateStatus function
@@ -118,6 +120,94 @@ func TestUpdateStatus(t *testing.T) {
 	asserts.NoError(err)
 }
 
+// TestUpdateProvider tests that updateProvider correctly sets the VMC's status.provider field
+func TestUpdateProvider(t *testing.T) {
+	a := assert.New(t)
+	scheme := runtime.NewScheme()
+	_ = v1alpha1.AddToScheme(scheme)
+
+	tests := []struct {
+		testName             string
+		vmc                  *v1alpha1.VerrazzanoManagedCluster
+		capiCluster          *unstructured.Unstructured
+		clusterClass         *unstructured.Unstructured
+		controlPlaneProvider string
+		infraProvider        string
+		expectedVMCProvider  string
+		err                  error
+	}{
+		{
+			"imported cluster",
+			newVMC(testVMCName, testVMCNamespace),
+			nil,
+			nil,
+			"",
+			"",
+			importedProviderDisplayName,
+			nil,
+		},
+		{
+			"CAPI Cluster without ClusterClass and a generic provider",
+			newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace),
+			newCAPICluster(testCAPIClusterName, testCAPINamespace),
+			nil,
+			"SomeControlPlaneProvider",
+			"SomeInfraProvider",
+			"SomeControlPlaneProvider on SomeInfraProvider Infrastructure",
+			nil,
+		},
+		{
+			"CAPI Cluster without ClusterClass and Oracle OKE Provider",
+			newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace),
+			newCAPICluster(testCAPIClusterName, testCAPINamespace),
+			nil,
+			capi.OKEControlPlaneProvider,
+			capi.OKEInfrastructureProvider,
+			okeProviderDisplayName,
+			nil,
+		},
+		{
+			"CAPI Cluster with ClusterClass and Oracle OCNE Provider",
+			newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace),
+			newCAPIClusterWithClassReference(testCAPIClusterName, testClusterClassName, testCAPINamespace),
+			newCAPIClusterClass(testClusterClassName, testCAPINamespace),
+			capi.OCNEControlPlaneProvider,
+			capi.OCNEInfrastructureProvider,
+			ocneProviderDisplayName,
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			objects := []client.Object{tt.vmc}
+			if tt.capiCluster != nil {
+				unstructured.SetNestedField(tt.capiCluster.Object, tt.infraProvider, "spec", "infrastructureRef", "kind")
+				unstructured.SetNestedField(tt.capiCluster.Object, tt.controlPlaneProvider, "spec", "controlPlaneRef", "kind")
+				objects = append(objects, tt.capiCluster)
+			}
+			if tt.clusterClass != nil {
+				unstructured.SetNestedField(tt.clusterClass.Object, tt.infraProvider + "Template", "spec", "infrastructure", "ref", "kind")
+				unstructured.SetNestedField(tt.clusterClass.Object, tt.controlPlaneProvider + "Template", "spec", "controlPlane", "ref", "kind")
+				objects = append(objects, tt.clusterClass)
+			}
+			fmt.Printf("++++ objects = %v\n", objects)
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			r := &VerrazzanoManagedClusterReconciler{
+				Client: fakeClient,
+				log:    vzlog.DefaultLogger(),
+			}
+
+			// WHEN updateProvider is called
+			// THEN expect the VMC's status provider to be tt.expectedVMCProvider
+			err := r.updateProvider(tt.vmc)
+
+			a.Equal(tt.err, err)
+			a.Equal(tt.expectedVMCProvider, tt.vmc.Status.Provider)
+		})
+	}
+}
+
 // TestUpdateStateCAPI tests that updateState correctly updates the status.state of the VMC when
 // the VMC has a reference to a CAPI cluster
 func TestUpdateStateCAPI(t *testing.T) {
@@ -158,7 +248,7 @@ func TestUpdateStateCAPI(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			// GIVEN CAPI cluster with a phase of tt.capiPhase
+			// GIVEN a CAPI cluster with a phase of tt.capiPhase
 			//   and a VMC with a clusterRef to that CAPI cluster and an unset status state
 			// WHEN updateState is called
 			// THEN expect the VMC's status state to be tt.expectedVMCState
@@ -201,10 +291,42 @@ func newVMCWithClusterRef(name, namespace, clusterName, clusterNamespace string)
 	return vmc
 }
 
+// newVMC returns a VMC struct pointer
+func newVMC(name, namespace string) *v1alpha1.VerrazzanoManagedCluster {
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return vmc
+}
+
+// newCAPICluster creates a new CAPI Cluster as an unstructured object.
 func newCAPICluster(name, namespace string) *unstructured.Unstructured {
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
 	cluster.SetName(name)
 	cluster.SetNamespace(namespace)
 	return cluster
+}
+
+// newCAPIClusterWithClassReference creates a CAPI Cluster with a reference to a ClusterClass.
+func newCAPIClusterWithClassReference(name, className, namespace string) *unstructured.Unstructured {
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
+	cluster.SetName(name)
+	cluster.SetNamespace(namespace)
+	unstructured.SetNestedField(cluster.Object, className, "spec", "topology", "class")
+	return cluster
+}
+
+// newCAPIClusterClass creates a new ClusterClass as an unstructured object.
+// Sets the inrastructure and control plane providers.
+func newCAPIClusterClass(name, namespace string) *unstructured.Unstructured {
+	clusterClass := &unstructured.Unstructured{}
+	clusterClass.SetGroupVersionKind(capi.GVKCAPIClusterClass)
+	clusterClass.SetName(name)
+	clusterClass.SetNamespace(namespace)
+	return clusterClass
 }
