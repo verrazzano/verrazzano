@@ -6,13 +6,14 @@ package opensearchoperator
 import (
 	"context"
 	"fmt"
-	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"strings"
 
+	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
+	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -173,6 +174,17 @@ func createPVCFromPV(ctx spi.ComponentContext, volume v1.PersistentVolume, newCl
 
 // deleteMasterNodePVC deletes the leftover PVCs for the master node
 func deleteMasterNodePVC(ctx spi.ComponentContext) error {
+	// Check if the master sts is deleted first
+	stsList := &appsv1.StatefulSetList{}
+	if err := ctx.Client().List(context.TODO(), stsList, c.MatchingLabels{constants.VerrazzanoComponentLabelKey: clusterName}); err != nil {
+		return ctx.Log().ErrorfThrottledNewErr("Failed listing master sts for opensearch component")
+	}
+
+	if len(stsList.Items) > 0 {
+		return ctx.Log().ErrorfNewErr("Waiting for master sts to be deleted")
+	}
+
+	// If all master sts are deleted and pvc still remains, delete them
 	pvcList := &v1.PersistentVolumeClaimList{}
 	if err := ctx.Client().List(context.TODO(), pvcList); err != nil {
 		return ctx.Log().ErrorfNewErr("Failed listing persistent volume claims: %v", err)
