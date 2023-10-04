@@ -373,6 +373,7 @@ pipeline {
                                 // Also deploy Verrazzano
                                 def canProceed = waitForNLBAvailability()
                                 if (!canProceed) {
+                                    currentBuild.description = "Build aborted due to lack of resources"
                                     throw new AbortException("Test aborted due to insufficient network load balancers: " + availableNLB)
                                 }
                                 set_capi_variables()
