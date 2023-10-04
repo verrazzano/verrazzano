@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "iteration": 1696408517713,
   "links": [],
   "panels": [
     {
@@ -107,7 +106,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_status{cluster=\"$clustername\"})/count(opensearch_cluster_status{cluster=\"$clustername\"})",
+          "expr": "sum(opensearch_cluster_status{cluster=\"opensearch\"})/count(opensearch_cluster_status{cluster=\"opensearch\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -174,7 +173,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_nodes_number{cluster=\"$clustername\"})/count(opensearch_cluster_nodes_number{cluster=\"$clustername\"})",
+          "expr": "sum(opensearch_cluster_nodes_number{cluster=\"opensearch\"})/count(opensearch_cluster_nodes_number{cluster=\"opensearch\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -243,7 +242,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_datanodes_number{cluster=\"$clustername\"})/count(opensearch_cluster_datanodes_number{cluster=\"$clustername\"})",
+          "expr": "sum(opensearch_cluster_datanodes_number{cluster=\"opensearch\"})/count(opensearch_cluster_datanodes_number{cluster=\"opensearch\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -300,7 +299,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"$clustername\"}))",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"opensearch\"}))",
           "interval": "",
           "legendFormat": "index count",
           "refId": "A"
@@ -369,7 +368,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_cluster_pending_tasks_number{cluster=\"$clustername\"})/count(opensearch_cluster_pending_tasks_number{cluster=\"$clustername\"})",
+          "expr": "sum(opensearch_cluster_pending_tasks_number{cluster=\"opensearch\"})/count(opensearch_cluster_pending_tasks_number{cluster=\"opensearch\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -440,7 +439,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"active\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"opensearch\", type=\"active\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -495,7 +494,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"active_primary\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"opensearch\", type=\"active_primary\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -558,7 +557,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"unassigned\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"opensearch\", type=\"unassigned\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -621,7 +620,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"initializing\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"opensearch\", type=\"initializing\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -684,7 +683,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_shards_number{cluster=\"$clustername\", type=\"relocating\"})",
+          "expr": "max(opensearch_cluster_shards_number{cluster=\"opensearch\", type=\"relocating\"})",
           "interval": "",
           "legendFormat": "",
           "refId": "A"
@@ -741,7 +740,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_index_shards_number{cluster=\"$clustername\",type=\"active\"}) by (index)",
+          "expr": "max(opensearch_index_shards_number{cluster=\"opensearch\",type=\"active\"}) by (index)",
           "interval": "",
           "legendFormat": "{{index}}",
           "refId": "A"
@@ -852,7 +851,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"$clustername\"}))",
+          "expr": "count(count by (index) (opensearch_index_replicas_number{cluster=\"opensearch\"}))",
           "interval": "",
           "legendFormat": "index count",
           "refId": "A"
@@ -947,7 +946,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_indices_store_size_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\"}",
+          "expr": "opensearch_indices_store_size_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|opensearch\"}",
           "interval": "",
           "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
@@ -1054,7 +1053,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"opensearch\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1162,7 +1161,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\",cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"opensearch\"}[5m])/rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\",cluster=\"opensearch\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1276,7 +1275,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\",context=\"total\"}[1h])) by (pod)",
+          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"opensearch\",job=~\"vmi-system-es-data|opensearch-es-data\",context=\"total\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -1371,7 +1370,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"opensearch\",job=~\"vmi-system-es-data|opensearch-es-data\"})",
           "interval": "",
           "legendFormat": "total documents",
           "refId": "A"
@@ -1495,7 +1494,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}-opensearch_fs_total_free_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}) by (node)",
+          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}-opensearch_fs_total_free_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1590,14 +1589,14 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1 - (opensearch_fs_path_available_bytes{cluster=\"$clustername\"} /opensearch_fs_path_total_bytes{cluster=\"$clustername\"}))* 100)",
+          "expr": "max((1 - (opensearch_fs_path_available_bytes{cluster=\"opensearch\"} /opensearch_fs_path_total_bytes{cluster=\"opensearch\"}))* 100)",
           "interval": "",
           "legendFormat": "current_disk_watermark",
           "refId": "A"
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"$clustername\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_low_pct{cluster=\"opensearch\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_low_pct",
@@ -1605,7 +1604,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"$clustername\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_high_pct{cluster=\"opensearch\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_high_pct",
@@ -1613,7 +1612,7 @@
         },
         {
           "exemplar": true,
-          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"$clustername\"})",
+          "expr": "max(opensearch_cluster_routing_allocation_disk_watermark_flood_stage_pct{cluster=\"opensearch\"})",
           "hide": false,
           "interval": "",
           "legendFormat": "disk_watermark_flood_stage_pct",
@@ -1726,7 +1725,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}/opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}))*100) by (node)",
+          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}/opensearch_fs_total_total_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}))*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1838,7 +1837,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"})*100) by (node)",
+          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"})*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1948,7 +1947,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}) by (node)",
+          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2045,7 +2044,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[15m])) by (node)",
+          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[15m])) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2253,7 +2252,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[1h])) by (pod)",
+          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -2352,7 +2351,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_threadpool_threads_number{cluster=\"$clustername\", name!=\"management\", type=\"active\"}) by (name)",
+          "expr": "sum(opensearch_threadpool_threads_number{cluster=\"opensearch\", name!=\"management\", type=\"active\"}) by (name)",
           "interval": "",
           "legendFormat": "{{name}}",
           "refId": "A"
@@ -2449,7 +2448,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"$clustername\"})",
+          "expr": "group by (node)(opensearch_process_file_descriptors_max_number{cluster=\"opensearch\"})",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2548,7 +2547,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[5m])) by (node,gc)",
+          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"opensearch\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[5m])) by (node,gc)",
           "interval": "",
           "legendFormat": "{{node}}:{{gc}}",
           "refId": "A"
@@ -2667,7 +2666,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"opensearch\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2776,7 +2775,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"opensearch\"}[5m])/rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"opensearch\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2835,95 +2834,15 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": [
-      {
-        "allValue": null,
-        "current": {
-          "selected": false,
-          "text": "opensearch",
-          "value": "opensearch"
-        },
-        "datasource": null,
-        "definition": "label_values(opensearch_cluster_status{}, cluster)",
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": "Cluster",
-        "multi": false,
-        "name": "clustername",
-        "options": [
-          {
-            "selected": true,
-            "text": "opensearch",
-            "value": "opensearch"
-          },
-          {
-            "selected": false,
-            "text": "system",
-            "value": "system"
-          }
-        ],
-        "query": {
-          "query": "label_values(opensearch_cluster_status{}, cluster)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 0,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      },
-      {
-        "allValue": null,
-        "current": {
-          "selected": true,
-          "text": "verrazzano-logging",
-          "value": "verrazzano-logging"
-        },
-        "datasource": null,
-        "definition": "label_values(opensearch_cluster_status{cluster=\"$clustername\"}, namespace)",
-        "description": null,
-        "error": null,
-        "hide": 0,
-        "includeAll": false,
-        "label": "Namespace",
-        "multi": false,
-        "name": "namespace",
-        "options": [
-          {
-            "selected": true,
-            "text": "verrazzano-logging",
-            "value": "verrazzano-logging"
-          }
-        ],
-        "query": {
-          "query": "label_values(opensearch_cluster_status{cluster=\"$clustername\"}, namespace)",
-          "refId": "StandardVariableQuery"
-        },
-        "refresh": 0,
-        "regex": "",
-        "skipUrlSync": false,
-        "sort": 0,
-        "tagValuesQuery": "",
-        "tags": [],
-        "tagsQuery": "",
-        "type": "query",
-        "useTags": false
-      }
-    ]
+    "list": []
   },
   "time": {
-    "from": "now-12h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "OpenSearch Summary Dashboard",
   "uid": "pIZicTl7z",
-  "version": 4
+  "version": 2
 }
