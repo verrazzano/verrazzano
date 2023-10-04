@@ -111,10 +111,10 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not modified the version in the Verrazzano CR to match the BOM.
-	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
-		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
-		return result.NewResultShortRequeueDelayIfError(err)
-	}
+	//if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
+	//	controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
+	//	return result.NewResultShortRequeueDelayIfError(err)
+	//}
 
 	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
 	// Always use actualCR when updating status
