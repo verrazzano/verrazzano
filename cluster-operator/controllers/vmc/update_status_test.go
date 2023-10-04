@@ -187,8 +187,8 @@ func TestUpdateProvider(t *testing.T) {
 				objects = append(objects, tt.capiCluster)
 			}
 			if tt.clusterClass != nil {
-				unstructured.SetNestedField(tt.clusterClass.Object, tt.infraProvider + "Template", "spec", "infrastructure", "ref", "kind")
-				unstructured.SetNestedField(tt.clusterClass.Object, tt.controlPlaneProvider + "Template", "spec", "controlPlane", "ref", "kind")
+				unstructured.SetNestedField(tt.clusterClass.Object, tt.infraProvider+"Template", "spec", "infrastructure", "ref", "kind")
+				unstructured.SetNestedField(tt.clusterClass.Object, tt.controlPlaneProvider+"Template", "spec", "controlPlane", "ref", "kind")
 				objects = append(objects, tt.clusterClass)
 			}
 			fmt.Printf("++++ objects = %v\n", objects)
