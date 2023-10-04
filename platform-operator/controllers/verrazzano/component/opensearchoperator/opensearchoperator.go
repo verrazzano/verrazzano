@@ -16,6 +16,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -112,7 +113,7 @@ func (o opensearchOperatorComponent) deleteRelatedResource(ctx spi.ComponentCont
 		resourceClient := client.Resource(gvr)
 		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			if meta.IsNoMatchError(err) {
+			if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
 				continue
 			}
 			return ctx.Log().ErrorfThrottledNewErr("failed to list %s: %v", gvr.String(), err)
@@ -121,6 +122,9 @@ func (o opensearchOperatorComponent) deleteRelatedResource(ctx spi.ComponentCont
 		for _, obj := range objList.Items {
 			err = resourceClient.Namespace(ComponentNamespace).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 			if err != nil {
+				if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+					continue
+				}
 				return ctx.Log().ErrorfThrottledNewErr("failed to delete %s: %v", gvr.String(), err)
 			}
 		}
@@ -139,7 +143,7 @@ func (o opensearchOperatorComponent) areRelatedResourcesDeleted(ctx spi.Componen
 		resourceClient := client.Resource(gvr)
 		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			if meta.IsNoMatchError(err) {
+			if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
 				continue
 			}
 			return ctx.Log().ErrorfThrottledNewErr("failed to list %s: %v", gvr.String(), err)
