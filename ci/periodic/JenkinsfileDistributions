@@ -159,6 +159,11 @@ pipeline {
                      }
                }
             }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/image-sizes-objectstore.txt', allowEmptyArchive: true
+                }
+            }
         }
 
         stage('Private Registry Tests') {

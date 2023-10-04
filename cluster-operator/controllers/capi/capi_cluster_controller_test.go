@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -44,8 +45,15 @@ func TestClusterRancherRegistration(t *testing.T) {
 			ReadyReplicas: 1,
 		},
 	}
+	ep := &v1.Endpoints{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubernetes",
+			Namespace: "default",
+		},
+		Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}}}},
+	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName), rancherDeployment).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName), rancherDeployment, ep).Build()
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
 
@@ -54,6 +62,11 @@ func TestClusterRancherRegistration(t *testing.T) {
 		return ctrl.Result{}, nil
 	})
 	defer SetDefaultClusterRancherRegistrationFunction()
+
+	SetVerrazzanoReconcileFunction(func(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error) {
+		return ctrl.Result{}, nil
+	})
+	defer SetDefaultVerrazzanoReconcileFunction()
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
@@ -121,6 +134,7 @@ func TestClusterUnregistration(t *testing.T) {
 func newScheme() *runtime.Scheme {
 	scheme := runtime.NewScheme()
 	clientgoscheme.AddToScheme(scheme)
+	v1alpha1.AddToScheme(scheme)
 
 	return scheme
 }
@@ -137,12 +151,17 @@ func newCAPIClusterReconciler(c client.Client) CAPIClusterReconciler {
 		Client: c,
 		Log:    zap.S(),
 	}
+	verrazzanoRegistrar := &VerrazzanoRegistration{
+		Client: c,
+		Log:    zap.S(),
+	}
 	return CAPIClusterReconciler{
-		Client:           c,
-		Scheme:           newScheme(),
-		Log:              zap.S(),
-		RancherEnabled:   true,
-		RancherRegistrar: rancherRegistrar,
+		Client:              c,
+		Scheme:              newScheme(),
+		Log:                 zap.S(),
+		RancherEnabled:      true,
+		RancherRegistrar:    rancherRegistrar,
+		VerrazzanoRegistrar: verrazzanoRegistrar,
 	}
 }
 

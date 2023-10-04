@@ -50,7 +50,7 @@ func TestApplyTemplate(t *testing.T) {
 	overrides, err := createOverrides(compContext)
 	assert.NoError(t, err)
 	assert.NotNil(t, overrides)
-	clusterctl, err := applyTemplate(clusterctlYamlTemplate, overrides)
+	clusterctl, err := applyTemplate(compContext, clusterctlYamlTemplate, overrides)
 	assert.NoError(t, err)
 	assert.NotEmpty(t, clusterctl)
 	assert.NotContains(t, clusterctl.String(), "{{.")
@@ -88,7 +88,6 @@ func TestToSkipSettingUpgradeOptions(t *testing.T) {
   },
   "defaultProviders": {
     "ocneBootstrap": {
-      "url": "/test/bootstrap.yaml",
       "image": {
         "registry": "myreg.io",
         "tag": "v1.0"

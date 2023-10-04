@@ -111,21 +111,21 @@ func (o opensearchOperatorComponent) PreInstall(ctx spi.ComponentContext) error 
 	if err := handleLegacyOpenSearch(ctx); err != nil {
 		return err
 	}
-	//log.Debugf("Merging security configs")
-	//if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
-	//	return err
-	//}
+	log.Debugf("Merging security configs")
+	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+		return err
+	}
 	return o.HelmComponent.PreInstall(ctx)
 }
 
-//func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
-//	log := ctx.Log()
-//	log.Debugf("Merging security configs")
-//	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
-//		return err
-//	}
-//	return o.HelmComponent.PreUpgrade(ctx)
-//}
+func (o opensearchOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	log := ctx.Log()
+	log.Debugf("Merging security configs")
+	if err := common.MergeSecretData(ctx, config.GetThirdPartyManifestsDir()); err != nil {
+		return err
+	}
+	return o.HelmComponent.PreUpgrade(ctx)
+}
 
 func (o opensearchOperatorComponent) Install(ctx spi.ComponentContext) error {
 	return o.HelmComponent.Install(ctx)

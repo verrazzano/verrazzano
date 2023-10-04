@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.17.2-1",
+      "version": "1.19.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.5-2",
+      "version": "2.7.6-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -154,17 +154,17 @@
           "images": [
             {
               "image": "rancher",
-              "dashboard": "v2.7.5-20230926234922-a9bd183c2",
-              "rancherUI": "v2.7.2-13/release-2.7.2",
-              "ocneDriverVersion": "v0.25.0",
-              "ocneDriverChecksum": "efccb537e6d47faecd9ce408c061d335435d99c37507f7cdffca72e577967504",
-              "tag": "v2.7.6-20230927213822-680d85acc",
+              "dashboard": "v2.7.5-20231002174229-785a82496",
+              "rancherUI": "v2.7.2-14/release-2.7.2",
+              "ocneDriverVersion": "v0.26.0",
+              "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
+              "tag": "v2.7.6-20231003172048-ea6e3cecc",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20230927213822-680d85acc"
+              "tag": "v2.7.6-20231003172048-ea6e3cecc"
             }
           ]
         },
@@ -202,7 +202,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.4.6",
+      "version": "v1.5.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -210,7 +210,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.4.6-20230919163417-54657bc14"
+              "tag": "v1.5.0-20230928052211-8b35f229e"
             }
           ]
         }
@@ -253,6 +253,22 @@
       ]
     },
     {
+      "name": "capi-addon",
+      "version": "v1.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-addon",
+          "images": [
+            {
+              "image": "cluster-api-verrazzano-addon-controller",
+              "tag": "v1.0.0-20231003142344-a400ef3"
+            }
+           ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano",
       "version": "VERRAZZANO_VERSION",
       "subcomponents": [
@@ -262,7 +278,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -332,7 +348,7 @@
             },
             {
               "image": "proxyv2",
-              "tag": "1.17.2-20230927050615-82dac91e",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -468,7 +484,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.1.2",
+      "version": "4.1.2-1",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -538,7 +554,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "1.66.1-1",
+      "version": "1.73.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -546,7 +562,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.66.1-20230922084106-c7e9a3fe",
+              "tag": "v1.73.0-20231003191318-6f003675",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }

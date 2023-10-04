@@ -18,8 +18,14 @@ type Catalog struct {
 }
 
 type Module struct {
-	Name    string `json:"name"`
-	Version string `json:"version"`
+	Name         string `json:"name"`
+	Version      string `json:"version"`
+	HelmMetadata `json:",inline"`
+}
+
+type HelmMetadata struct {
+	Chart       string   `json:"chart,omitempty"`
+	ValuesFiles []string `json:"valuesFiles,omitempty"`
 }
 
 // NewCatalog takes a path and returns a new Catalog object

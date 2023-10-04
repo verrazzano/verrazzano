@@ -45,7 +45,7 @@ deployment:
   image_name: quay.io/kiali/kiali
   image_pull_policy: "Always"
   image_pull_secrets: []
-  image_version: v1.66.1 # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
+  image_version: v1.73.0 # version like "v1.39" (see: https://quay.io/repository/kiali/kiali?tab=tags) or a digest hash
   ingress:
     additional_labels: {}
     class_name: "nginx"
@@ -75,7 +75,7 @@ deployment:
   service_annotations: {}
   service_type: ""
   tolerations: []
-  version_label: v1.66.1 # v1.39 # v1.39.0 # see: https://quay.io/repository/kiali/kiali?tab=tags
+  version_label: v1.73.0 # v1.39 # v1.39.0 # see: https://quay.io/repository/kiali/kiali?tab=tags
   view_only_mode: false
 
 external_services:
@@ -101,7 +101,7 @@ kiali_feature_flags:
     clusters: []
   disabled_features: []
   validations:
-    ignore: ["KIA1201"]
+    ignore: ["KIA1301"]
 
 login_token:
   signing_key: ""

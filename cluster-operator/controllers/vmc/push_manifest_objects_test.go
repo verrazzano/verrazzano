@@ -89,6 +89,12 @@ func TestPushManifestObjects(t *testing.T) {
 			mock:    addInactiveClusterMock(mocks.NewMockRequestSender(mocker), vmc.Status.RancherRegistration.ClusterID),
 		},
 		{
+			name:    "test no verrazzano-system namespace",
+			vmc:     vmc,
+			updated: false,
+			mock:    addNoVerrazzanoSystemNSMock(mocks.NewMockRequestSender(mocker), vmc.Status.RancherRegistration.ClusterID),
+		},
+		{
 			name:    "test active",
 			vmc:     vmc,
 			updated: true,
@@ -153,11 +159,29 @@ func generateClientObjects() client.WithWatch {
 				Name:      GetRegistrationSecretName("cluster"),
 			},
 		},
+		&networkv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      rancherNamespace,
+				Namespace: rancherIngressName,
+			},
+			Spec: networkv1.IngressSpec{Rules: []networkv1.IngressRule{{Host: "rancher.unit-test.com"}}},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: rancherNamespace,
+				Name:      rancherAdminSecret,
+			},
+			Data: map[string][]byte{
+				"password": []byte("super-secret"),
+			},
+		},
 	).Build()
 }
 
 func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string) *mocks.MockRequestSender {
 	addTokenMock(httpMock)
+
+	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, true)
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -172,9 +196,15 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 	return httpMock
 }
 
+func addNoVerrazzanoSystemNSMock(httpMock *mocks.MockRequestSender, clusterID string) *mocks.MockRequestSender {
+	addTokenMock(httpMock)
+	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
+	return httpMock
+}
+
 func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
 	httpMock = addTokenMock(httpMock)
-
+	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, true)
 	agentSecret, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 	a.NoError(err)
 	agentSecret.Namespace = constants.VerrazzanoSystemNamespace
@@ -216,6 +246,26 @@ func addTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
 				Request:    &http.Request{Method: http.MethodPost},
 			}
 			return resp, nil
+		}).AnyTimes()
+	return httpMock
+}
+
+func addVerrazzanoSystemNamespaceMock(httpMock *mocks.MockRequestSender, clusterID string, exists bool) *mocks.MockRequestSender {
+	status := http.StatusOK
+	if !exists {
+		status = http.StatusNotFound
+	}
+	httpMock.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(k8sClustersPath+clusterID+"/api/v1/namespaces/verrazzano-system")).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(`{"kind":"table", "apiVersion":"meta.k8s.io/v1"}`)))
+			resp = &http.Response{
+				StatusCode: status,
+				Body:       r,
+			}
+			return resp, nil
 		})
+
 	return httpMock
 }
