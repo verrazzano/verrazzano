@@ -5,7 +5,6 @@ package vmc
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -191,7 +190,6 @@ func TestUpdateProvider(t *testing.T) {
 				unstructured.SetNestedField(tt.clusterClass.Object, tt.controlPlaneProvider+"Template", "spec", "controlPlane", "ref", "kind")
 				objects = append(objects, tt.clusterClass)
 			}
-			fmt.Printf("++++ objects = %v\n", objects)
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: fakeClient,
