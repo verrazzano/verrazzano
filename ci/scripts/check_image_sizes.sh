@@ -71,8 +71,8 @@ done <<< "$IMAGE_DATA_GENERATED"
 # Check if imagenames in generated file are not in object store
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
   if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
-    NEW_IMAGE_FOUND="true"
     if [[ "$IMAGENAME" != *"Commit ID-"* ]]; then
+    NEW_IMAGE_FOUND="true"
     echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt." >> ${WORKSPACE}/newimagefound.txt
     fi
   fi
