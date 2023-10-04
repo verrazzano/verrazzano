@@ -393,7 +393,9 @@ pipeline {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
-                        jaegerSuite('pre-upgrade verify jaeger')
+                        stage ('pre-upgrade verify jaeger'){
+                            jaegerSuite()
+                        }
                         stage ('mc examples helidon') {
                             when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
@@ -567,7 +569,9 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
-                        jaegerSuite('post-upgrade verify jaeger')
+                        stage('post-upgrade verify jaeger'){
+                            jaegerSuite()
+                        }
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
@@ -2099,21 +2103,16 @@ def performDescribeVerrazzanoResource() {
     }
 }
 
-def verifyJaeger(){
+
+def jaegerSuite(){
     steps {
         runGinkgoRandomize('multicluster/verify-jaeger/install')
     }
     steps {
         runGinkgoRandomize('multicluster/verify-jaeger/system')
     }
-}
-
-def jaegerSuite(name){
-    stage (name) {
-        steps {
-            verifyJaeger()
-            runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
-        }
+    steps {
+        runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
     }
 }
 
