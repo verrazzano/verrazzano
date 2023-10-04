@@ -538,15 +538,8 @@ pipeline {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
                     }
                 }
-                stage('verify-jaeger-install') {
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-jaeger/install')
-                    }
-                }
-                stage('verify-jaeger-system') {
-                    steps {
-                        runGinkgoRandomize('multicluster/verify-jaeger/system')
-                    }
+                stage('verify-jaeger') {
+                    verifyJaeger()
                 }
             }
             post {
@@ -2111,3 +2104,13 @@ def performDescribeVerrazzanoResource() {
         }
     }
 }
+
+def verifyJaeger(){
+    steps {
+        runGinkgoRandomize('multicluster/verify-jaeger/install')
+    }
+    steps {
+        runGinkgoRandomize('multicluster/verify-jaeger/system')
+    }
+}
+
