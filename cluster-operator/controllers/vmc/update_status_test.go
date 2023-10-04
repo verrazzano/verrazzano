@@ -122,24 +122,64 @@ func TestUpdateStatus(t *testing.T) {
 // the VMC has a reference to a CAPI cluster
 func TestUpdateStateCAPI(t *testing.T) {
 	a := assert.New(t)
-
 	scheme := runtime.NewScheme()
 	_ = v1alpha1.AddToScheme(scheme)
-
 	vmc := newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace)
-	capiCluster := newCAPICluster(testCAPIClusterName, testCAPINamespace)
-	capiPhase := string(v1alpha1.StateProvisioned)
-	unstructured.SetNestedField(capiCluster.Object, capiPhase, "status", "phase")
 
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(capiCluster, vmc).Build()
-	r := &VerrazzanoManagedClusterReconciler{
-		Client: fakeClient,
-		log:    vzlog.DefaultLogger(),
+	tests := []struct {
+		testName         string
+		capiCluster      *unstructured.Unstructured
+		capiPhase        string
+		expectedVMCState string
+		err              error
+	}{
+		{
+			"valid CAPI phase",
+			newCAPICluster(testCAPIClusterName, testCAPINamespace),
+			string(v1alpha1.StateProvisioned),
+			string(v1alpha1.StateProvisioned),
+			nil,
+		},
+		{
+			"empty CAPI phase",
+			newCAPICluster(testCAPIClusterName, testCAPINamespace),
+			"",
+			string(v1alpha1.StateUnknown),
+			nil,
+		},
+		{
+			"nonexistent CAPI cluster",
+			nil,
+			"",
+			"",
+			nil,
+		},
 	}
 
-	err := r.updateState(vmc)
-	a.NoError(err)
-	a.Equal(capiPhase, string(vmc.Status.State))
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			// GIVEN CAPI cluster with a phase of tt.capiPhase
+			//   and a VMC with a clusterRef to that CAPI cluster and an unset status state
+			// WHEN updateState is called
+			// THEN expect the VMC's status state to be tt.expectedVMCState
+			vmc.Status.State = ""
+			objects := []client.Object{vmc}
+			if tt.capiCluster != nil {
+				unstructured.SetNestedField(tt.capiCluster.Object, tt.capiPhase, "status", "phase")
+				objects = append(objects, tt.capiCluster)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			r := &VerrazzanoManagedClusterReconciler{
+				Client: fakeClient,
+				log:    vzlog.DefaultLogger(),
+			}
+
+			err := r.updateState(vmc)
+
+			a.Equal(tt.err, err)
+			a.Equal(tt.expectedVMCState, string(vmc.Status.State))
+		})
+	}
 }
 
 // newVMCWithClusterRef returns a VMC struct pointer, with the status.clusterRef field set to point to a CAPI Cluster
