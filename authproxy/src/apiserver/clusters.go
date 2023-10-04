@@ -71,7 +71,6 @@ func (a *APIRequest) reformatManagedClusterRequest(req *http.Request, clusterNam
 // reformatClusterPath reformats the cluster path given request data
 func (a *APIRequest) reformatClusterPath(req *http.Request, clusterName, newClusterPrefix string) error {
 	req.RequestURI = ""
-	req.Host = a.APIServerURL
 
 	path := strings.Replace(req.URL.Path, fmt.Sprintf("/clusters/%s", clusterName), newClusterPrefix, 1)
 	newReq, err := url.JoinPath(a.APIServerURL, path)
@@ -87,6 +86,7 @@ func (a *APIRequest) reformatClusterPath(req *http.Request, clusterName, newClus
 	}
 	formattedURL.RawQuery = req.URL.RawQuery
 	req.URL = formattedURL
+	req.Host = formattedURL.Hostname()
 	return nil
 }
 
