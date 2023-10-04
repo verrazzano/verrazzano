@@ -586,40 +586,6 @@ func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vm
 	}
 }
 
-// setStatusCondition updates the VMC status conditions based and replaces already created status conditions
-// the onTime flag updates the status condition if the time has changed
-func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition, onTime bool) {
-	r.log.Debugf("Entered setStatusCondition for VMC %s for condition %s = %s, existing conditions = %v",
-		vmc.Name, condition.Type, condition.Status, vmc.Status.Conditions)
-	var matchingCondition *clustersv1alpha1.Condition
-	var conditionExists bool
-	for i, existingCondition := range vmc.Status.Conditions {
-		if condition.Type == existingCondition.Type &&
-			condition.Status == existingCondition.Status &&
-			condition.Message == existingCondition.Message &&
-			(!onTime || condition.LastTransitionTime == existingCondition.LastTransitionTime) {
-			// the exact same condition already exists, don't update
-			conditionExists = true
-			break
-		}
-		if condition.Type == existingCondition.Type {
-			// use the index here since "existingCondition" is a copy and won't point to the object in the slice
-			matchingCondition = &vmc.Status.Conditions[i]
-			break
-		}
-	}
-	if !conditionExists {
-
-		if matchingCondition == nil {
-			vmc.Status.Conditions = append(vmc.Status.Conditions, condition)
-		} else {
-			matchingCondition.Message = condition.Message
-			matchingCondition.Status = condition.Status
-			matchingCondition.LastTransitionTime = condition.LastTransitionTime
-		}
-	}
-}
-
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
 func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.Verrazzano, error) {
 	// Get the Verrazzano resource
