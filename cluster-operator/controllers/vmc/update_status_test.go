@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -262,7 +263,7 @@ func TestUpdateStateCAPI(t *testing.T) {
 
 	tests := []struct {
 		testName         string
-		capiCluster      *unstructured.Unstructured
+		capiCluster      *v1beta1.Cluster
 		capiPhase        string
 		expectedVMCState string
 		err              error
@@ -346,31 +347,52 @@ func newVMC(name, namespace string) *v1alpha1.VerrazzanoManagedCluster {
 	return vmc
 }
 
-// newCAPICluster creates a new CAPI Cluster as an unstructured object.
-func newCAPICluster(name, namespace string) *unstructured.Unstructured {
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
-	cluster.SetName(name)
-	cluster.SetNamespace(namespace)
-	return cluster
+// newCAPICluster returns a CAPI Cluster
+func newCAPICluster(name, namespace string) *v1beta1.Cluster {
+	cluster := v1beta1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Cluster",
+			APIVersion: "cluster.x-k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return &cluster
 }
 
-// newCAPIClusterWithClassReference creates a CAPI Cluster with a reference to a ClusterClass.
-func newCAPIClusterWithClassReference(name, className, namespace string) *unstructured.Unstructured {
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
-	cluster.SetName(name)
-	cluster.SetNamespace(namespace)
-	unstructured.SetNestedField(cluster.Object, className, "spec", "topology", "class")
-	return cluster
+// newCAPIClusterWithClassReference returns a CAPI Cluster which references a ClusterClass
+func newCAPIClusterWithClassReference(name, className, namespace string) *v1beta1.Cluster {
+	cluster := v1beta1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Cluster",
+			APIVersion: "cluster.x-k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1beta1.ClusterSpec{
+			Topology: &v1beta1.Topology{
+				Class: className,
+			},
+		},
+	}
+	return &cluster
 }
 
-// newCAPIClusterClass creates a new ClusterClass as an unstructured object.
-// Sets the inrastructure and control plane providers.
-func newCAPIClusterClass(name, namespace string) *unstructured.Unstructured {
-	clusterClass := &unstructured.Unstructured{}
-	clusterClass.SetGroupVersionKind(capi.GVKCAPIClusterClass)
-	clusterClass.SetName(name)
-	clusterClass.SetNamespace(namespace)
-	return clusterClass
+// newCAPIClusterClass returns a CAPI ClusterClass
+func newCAPIClusterClass(name, namespace string) *v1beta1.ClusterClass {
+	clusterClass := v1beta1.ClusterClass{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterClass",
+			APIVersion: "cluster.x-k8s.io/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+	return &clusterClass
 }

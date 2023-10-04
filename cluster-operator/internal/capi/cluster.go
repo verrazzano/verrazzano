@@ -26,12 +26,6 @@ var GVKCAPICluster = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
-var GVKCAPIClusterClass = schema.GroupVersionKind{
-	Group:   "cluster.x-k8s.io",
-	Version: "v1beta1",
-	Kind:    "ClusterClass",
-}
-
 // GetCluster returns the requested CAPI Cluster.
 func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*v1beta1.Cluster, error) {
 	cluster := &v1beta1.Cluster{}

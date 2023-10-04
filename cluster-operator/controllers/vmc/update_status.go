@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 const (
@@ -89,15 +90,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 
 // getCAPIProviderDisplayString returns the string to populate the VMC's status.provider field, based on information taken from the
 // provided CAPI Cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *unstructured.Unstructured) (string, error) {
-	clusterNamespacedName := types.NamespacedName{
-		Name:      capiCluster.GetName(),
-		Namespace: capiCluster.GetNamespace(),
-	}
-
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *v1beta1.Cluster) (string, error) {
 	// If this CAPI Cluster was created using ClusterClass, then parse capiCluster differently.
-	_, found, _ := unstructured.NestedFieldNoCopy(capiCluster.Object, "spec", "topology")
-	if found {
+	if capiCluster.Spec.Topology != nil {
 		clusterClass, err := capi.GetClusterClassFromCluster(context.TODO(), r.Client, capiCluster)
 		if err != nil {
 			if errors.IsNotFound(err) {
@@ -111,25 +106,21 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 
 	// This cluster does not use ClusterClass.
 	// Get infrastructure provider
-	infraProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "infrastructureRef", "kind")
-	if !found {
-		r.log.Progressf("could not find spec.infrastructureRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
+	if capiCluster.Spec.InfrastructureRef == nil {
+		return "", fmt.Errorf("clusterAPI cluster %s/%s has an unset spec.infrastructureRef field", capiCluster.Namespace, capiCluster.Name)
 	}
-	if err != nil {
-		r.log.Progressf("error while looking for spec.infrastructureRef.kind field for cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
+	infraProvider := capiCluster.Spec.InfrastructureRef.Kind
+	if infraProvider == "" {
+		return "", fmt.Errorf("clusterAPI cluster %s/%s has an empty infrastructure provider", capiCluster.Namespace, capiCluster.Name)
 	}
 
 	// Get control plane provider
-	cpProvider, found, err := unstructured.NestedString(capiCluster.Object, "spec", "controlPlaneRef", "kind")
-	if !found {
-		r.log.Progressf("could not find spec.controlPlaneRef.kind field inside cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
+	if capiCluster.Spec.ControlPlaneRef == nil {
+		return "", fmt.Errorf("clusterAPI cluster %s/%s has an unset spec.controlPlaneRef field", capiCluster.Namespace, capiCluster.Name)
 	}
-	if err != nil {
-		r.log.Progressf("error while looking for spec.controlPlaneRef.kind field for cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
+	cpProvider := capiCluster.Spec.ControlPlaneRef.Kind
+	if cpProvider == "" {
+		return "", fmt.Errorf("clusterAPI cluster %s/%s has an empty control plane provider", capiCluster.Namespace, capiCluster.Name)
 	}
 
 	return r.formProviderDisplayString(infraProvider, cpProvider), nil
@@ -137,7 +128,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 
 // getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
 // associated with this managed cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *unstructured.Unstructured) string {
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *v1beta1.ClusterClass) string {
 	clusterClassNamespacedName := types.NamespacedName{
 		Name:      clusterClass.GetName(),
 		Namespace: clusterClass.GetNamespace(),
