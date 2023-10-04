@@ -15,8 +15,7 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 71,
-  "iteration": 1684918839561,
+  "iteration": 1696408517713,
   "links": [],
   "panels": [
     {
@@ -948,7 +947,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "opensearch_indices_store_size_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\"}",
+          "expr": "opensearch_indices_store_size_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\"}",
           "interval": "",
           "legendFormat": "{{kubernetes_pod_name}}",
           "refId": "A"
@@ -1055,7 +1054,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1163,7 +1162,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch\",cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_indexing_index_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_indexing_index_count{job=~\"vmi-system-es-data|opensearch-es-data\",cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -1277,7 +1276,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\",context=\"total\"}[1h])) by (pod)",
+          "expr": "sum(rate(opensearch_index_doc_number{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\",context=\"total\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -1372,7 +1371,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-data\"})",
+          "expr": "sum(opensearch_indices_merges_total_docs_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|opensearch-es-data\"})",
           "interval": "",
           "legendFormat": "total documents",
           "refId": "A"
@@ -1496,7 +1495,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}-opensearch_fs_total_free_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}) by (node)",
+          "expr": "max(opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}-opensearch_fs_total_free_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1727,7 +1726,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}/opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-data|opensearch-masters\"}))*100) by (node)",
+          "expr": "max((1-(opensearch_fs_total_available_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}/opensearch_fs_total_total_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|opensearch-es-data|opensearch-es-master\"}))*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1839,7 +1838,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"})*100) by (node)",
+          "expr": "max((opensearch_jvm_mem_heap_used_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}/opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"})*100) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -1949,7 +1948,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}) by (node)",
+          "expr": "max(opensearch_jvm_mem_heap_max_bytes{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2046,7 +2045,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}[15m])) by (node)",
+          "expr": "max(avg_over_time(opensearch_jvm_mem_heap_used_bytes{instance=~\".*:9200\", cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[15m])) by (node)",
           "interval": "",
           "legendFormat": "{{node}}",
           "refId": "A"
@@ -2254,7 +2253,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master|opensearch-data|opensearch-masters|opensearch-ingest\"}[1h])) by (pod)",
+          "expr": "max(rate(opensearch_indices_search_fetch_count{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-os-ingest|vmi-system-es-master|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[1h])) by (pod)",
           "interval": "",
           "legendFormat": "{{pod}}",
           "refId": "A"
@@ -2549,7 +2548,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-data|opensearch-masters|opensearch-ingest\"}[5m])) by (node,gc)",
+          "expr": "max(irate(opensearch_jvm_gc_collection_time_seconds{cluster=\"$clustername\",job=~\"vmi-system-es-data|vmi-system-es-master|vmi-system-os-ingest|opensearch-es-data|opensearch-es-master|opensearch-es-ingest\"}[5m])) by (node,gc)",
           "interval": "",
           "legendFormat": "{{node}}:{{gc}}",
           "refId": "A"
@@ -2668,7 +2667,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2777,7 +2776,7 @@
       "targets": [
         {
           "exemplar": true,
-          "expr": "rate(opensearch_indices_search_query_time_seconds{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-data\", cluster=\"$clustername\"}[5m])",
+          "expr": "rate(opensearch_indices_search_query_time_seconds{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])/rate(opensearch_indices_search_query_count{job=~\"vmi-system-es-data|opensearch-es-data\", cluster=\"$clustername\"}[5m])",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 2,
@@ -2882,7 +2881,7 @@
       {
         "allValue": null,
         "current": {
-          "selected": false,
+          "selected": true,
           "text": "verrazzano-logging",
           "value": "verrazzano-logging"
         },
@@ -2919,12 +2918,12 @@
     ]
   },
   "time": {
-    "from": "now-6h",
+    "from": "now-12h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "OpenSearch Summary Dashboard",
   "uid": "pIZicTl7z",
-  "version": 3
+  "version": 4
 }
