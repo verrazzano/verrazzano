@@ -25,6 +25,7 @@ spec:
         {{- toYaml .Values.deployment.pod_labels | nindent 8 }}
         {{- end }}
       annotations:
+        traffic.sidecar.istio.io/excludeOutboundPorts: 443,6443
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         {{- if .Values.server.metrics_enabled }}
         prometheus.io/scrape: "true"
