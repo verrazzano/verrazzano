@@ -105,7 +105,7 @@ precommit-check: check-tidy check check-tests copyright-check check-bom-tags ## 
 precommit-build:  ## go build the project
 	go build ./...
 
-unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm|platform-operator/experimental|platform-operator/controllers/module|platform-operator/controllers/verrazzano/controller
+unit-test-coverage: export COVERAGE_EXCLUSIONS ?= tests/e2e|tools/psr|tools/charts-manager/vcm|platform-operator/experimental|platform-operator/controllers/module|platform-operator/controllers/verrazzano/controller|platform-operator/controllers/verrazzano/catalog
 .PHONY: unit-test-coverage
 unit-test-coverage:  ## run unit tests with coverage
 	${SCRIPT_DIR}/coverage.sh html
@@ -116,7 +116,11 @@ unit-test-coverage-ratcheting:  ## run unit tests with coverage ratcheting
 
 .PHONY: unit-test
 unit-test:  ## run all unit tests in project
-	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr|tools/charts-manager/vcm")
+	go test $$(go list ./... | grep -Ev "/tests/e2e|/tools/psr|tools/charts-manager/vcm|/platform-operator/controllers/verrazzano/catalog")
+
+.PHONY: unit-test-catalog
+unit-test-catalog:
+	cd platform-operator/controllers/verrazzano/catalog; go test .
 
 #
 #  Compliance check targets

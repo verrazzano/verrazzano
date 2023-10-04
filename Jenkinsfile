@@ -306,6 +306,7 @@ pipeline {
                     make unit-test-coverage-ratcheting
                     echo "Checking versions..."
                     release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
+                    make unit-test-catalog
                 """
                     }
                     post {
