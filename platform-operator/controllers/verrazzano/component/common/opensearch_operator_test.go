@@ -41,8 +41,8 @@ func TestMergeSecurityConfigs(t *testing.T) {
 
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = securitySecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = SecuritySecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{configYaml: []byte(testConfigData), usersYaml: []byte(testUsersData)}
 		return nil
@@ -70,7 +70,7 @@ func TestMergeSecurityConfigsGetConfigError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).Return(fmt.Errorf("test-error"))
 	err := MergeSecretData(fakeCtx, config.GetThirdPartyManifestsDir())
 	asserts.Error(err)
 }
@@ -85,8 +85,8 @@ func TestMergeSecurityConfigsGetAdminError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = securitySecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = SecuritySecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{configYaml: []byte(testConfigData), usersYaml: []byte(testUsersData)}
 		return nil
@@ -107,8 +107,8 @@ func TestMergeSecurityConfigsUpdateError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = securitySecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = SecuritySecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{configYaml: []byte(testConfigData), usersYaml: []byte(testUsersData)}
 		return nil
@@ -136,8 +136,8 @@ func TestMergeSecurityConfigsHashError(t *testing.T) {
 	mock := mocks.NewMockClient(mocker)
 	fakeCtx := spi.NewFakeContext(mock, nil, nil, false)
 	mock.EXPECT().
-		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
-		secret.Name = securitySecretName
+		Get(gomock.Any(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, gomock.Not(gomock.Nil()), gomock.Any()).DoAndReturn(func(ctx context.Context, name types.NamespacedName, secret *corev1.Secret, opts ...client.GetOption) error {
+		secret.Name = SecuritySecretName
 		secret.Namespace = securityNamespace
 		secret.Data = map[string][]byte{configYaml: []byte(testConfigData), usersYaml: []byte(testUsersData)}
 		return nil
