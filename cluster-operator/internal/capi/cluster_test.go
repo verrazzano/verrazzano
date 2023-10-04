@@ -101,9 +101,9 @@ func newCAPIClusterWithClassReference(name, className, namespace string) *unstru
 }
 
 func newCAPIClusterClass(name, namespace string) *unstructured.Unstructured {
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(GVKCAPIClusterClass)
-	cluster.SetName(name)
-	cluster.SetNamespace(namespace)
-	return cluster
+	clusterClass := &unstructured.Unstructured{}
+	clusterClass.SetGroupVersionKind(GVKCAPIClusterClass)
+	clusterClass.SetName(name)
+	clusterClass.SetNamespace(namespace)
+	return clusterClass
 }
