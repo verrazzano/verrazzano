@@ -539,7 +539,9 @@ pipeline {
                     }
                 }
                 stage('verify-jaeger') {
-                    verifyJaeger()
+                    steps {
+                        verifyJaeger()
+                    }
                 }
             }
             post {
