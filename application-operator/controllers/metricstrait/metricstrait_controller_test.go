@@ -454,7 +454,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 	mock.EXPECT().
 		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, list *k8sapps.ReplicaSetList, opts ...client.ListOption) error {
-			list.Items = []k8sapps.ReplicaSet{{ObjectMeta: k8smeta.ObjectMeta{Name: "test-rs"}, TypeMeta: k8smeta.TypeMeta{Kind: "ReplicSet", APIVersion: "v1"}}}
+			list.Items = []k8sapps.ReplicaSet{{ObjectMeta: k8smeta.ObjectMeta{Name: "test-rs", OwnerReferences: []k8smeta.OwnerReference{{APIVersion: testDeployment.APIVersion, Kind: testDeployment.Kind, Name: testDeployment.Name}}}, TypeMeta: k8smeta.TypeMeta{Kind: "ReplicSet", APIVersion: "v1"}}}
 			return nil
 		})
 	// Expect a call to get the Podlist for deployment

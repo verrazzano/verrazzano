@@ -85,10 +85,16 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 	}
 
 	for _, replicaSet := range replicaSets.Items {
-		res, err := r.updateRelatedPods(ctx, trait, workload, traitDefaults, log, ref.Namespace, replicaSet.Kind, replicaSet.Name, replicaSet.APIVersion)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return ref, res, err
+		for _, replicaSetOwnerRef := range replicaSet.GetOwnerReferences() {
+			if replicaSetOwnerRef.APIVersion == deployment.APIVersion && replicaSetOwnerRef.Kind == deployment.Kind && replicaSetOwnerRef.Name == deployment.Name {
+				res, err := r.updateRelatedPods(ctx, trait, workload, traitDefaults, log, ref.Namespace, replicaSet.Kind, replicaSet.Name, replicaSet.APIVersion)
+				if err != nil {
+					return ref, res, err
+				}
+			}
+
 		}
+
 	}
 
 	return ref, controllerutil.OperationResultUpdated, nil
