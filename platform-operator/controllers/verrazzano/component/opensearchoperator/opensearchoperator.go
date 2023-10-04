@@ -103,20 +103,20 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 func (o opensearchOperatorComponent) deleteRelatedResource() error {
 	client, err := k8sutil.GetDynamicClient()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create dynamic client: %v", err)
 	}
 
 	for _, gvr := range gvrList {
 		resourceClient := client.Resource(gvr)
 		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to list %s: %v", gvr.String(), err)
 		}
 
 		for _, obj := range objList.Items {
 			err = resourceClient.Namespace(ComponentNamespace).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to delete %s: %v", gvr.String(), err)
 			}
 		}
 	}
