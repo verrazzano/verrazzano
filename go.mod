@@ -214,7 +214,6 @@ replace (
 	github.com/fluent/fluent-operator/v2 => github.com/verrazzano/fluent-operator/v2 v2.2.0
 	github.com/go-logr/logr => github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
-	github.com/onsi/gomega => github.com/onsi/gomega v1.27.7
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
