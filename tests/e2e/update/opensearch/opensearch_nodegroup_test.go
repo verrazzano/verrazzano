@@ -22,8 +22,8 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update master node group", func() {
 		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoLoggingNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.MasterRole)},
+		update.ValidatePods(string(vmov1.MasterRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.MasterRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 		// disabling the master node-pool once testing is done.
 		m = OpensearchMasterNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
@@ -36,8 +36,8 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update ingest node group", func() {
 		m := OpensearchIngestNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.IngestRole), NodeGroupLabel, constants.VerrazzanoLoggingNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.IngestRole)},
+		update.ValidatePods(string(vmov1.IngestRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.IngestRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 		// disabling this node-pool once testing is done.
 		m = OpensearchIngestNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
@@ -50,8 +50,8 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update data node group", func() {
 		m := OpensearchDataNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
-		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoLoggingNamespace, 3, false)
-		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
+		update.ValidatePods(string(vmov1.DataRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
+		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 	})
 })

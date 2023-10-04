@@ -21,8 +21,6 @@ import (
 const (
 	waitTimeout     = 20 * time.Minute
 	pollingInterval = 10 * time.Second
-
-	NodeGroupLabel = "node-group"
 )
 
 type OpensearchCleanUpModifier struct {
