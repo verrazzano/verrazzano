@@ -5,23 +5,24 @@ package opensearch
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/release"
-	"helm.sh/helm/v3/pkg/time"
 	"testing"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzclusters "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	globalconst "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/helm"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/stretchr/testify/assert"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/time"
 	istioclinet "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	istioclisec "istio.io/client-go/pkg/apis/security/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -440,7 +441,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
-	expected := nodesToObjectKeys(vz)
+	c := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(newVMI()).Build()
+	ctx := spi.NewFakeContext(c, vz, nil, false)
+	expected := nodesToObjectKeys(ctx)
 	actual := &ready.AvailabilityObjects{}
 	assert.Equal(t, expected, actual)
 
@@ -454,8 +457,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
+	ctx = spi.NewFakeContext(c, vztwo, nil, false)
 	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node2"}}, DeploymentNames: []types.NamespacedName{{Namespace: vzsys, Name: "vmi-system-node1-0"}, {Namespace: vzsys, Name: "vmi-system-node3"}}, DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vztwo)
+	expected = nodesToObjectKeys(ctx)
 	assert.Equal(t, expected, actual)
 
 	// nil replicas should have no availability objects
@@ -472,8 +476,9 @@ func TestNodesToObjectKeys(t *testing.T) {
 			},
 		},
 	}
+	ctx = spi.NewFakeContext(c, vzthree, nil, false)
 	actual = &ready.AvailabilityObjects{StatefulsetNames: []types.NamespacedName(nil), DeploymentNames: []types.NamespacedName(nil), DeploymentSelectors: []client.ListOption(nil), DaemonsetNames: []types.NamespacedName(nil)}
-	expected = nodesToObjectKeys(vzthree)
+	expected = nodesToObjectKeys(ctx)
 	assert.Equal(t, expected, actual)
 }
 
@@ -602,6 +607,7 @@ func TestIsOSNodeReady(t *testing.T) {
 		},
 	}
 	singleMasterClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		&appsv1.StatefulSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ComponentNamespace,
@@ -660,6 +666,7 @@ func TestIsOSNodeReady(t *testing.T) {
 	rs2 := rs.DeepCopy()
 	rs2.Name = "vmi-system-es-data-1-95d8c5d96"
 	dataNodeClient := fake.NewClientBuilder().WithScheme(testScheme).WithObjects(
+		newVMI(),
 		dataDeployment,
 		dataDeployment2,
 		readyPod,
@@ -700,5 +707,17 @@ func TestIsOSNodeReady(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.ready, isOSNodeReady(tt.ctx, tt.node, tt.name))
 		})
+	}
+}
+
+func newVMI() *vmov1.VerrazzanoMonitoringInstance {
+	return &vmov1.VerrazzanoMonitoringInstance{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      system,
+			Namespace: globalconst.VerrazzanoSystemNamespace,
+		},
+		Spec: vmov1.VerrazzanoMonitoringInstanceSpec{
+			Opensearch: vmov1.Opensearch{Enabled: true},
+		},
 	}
 }

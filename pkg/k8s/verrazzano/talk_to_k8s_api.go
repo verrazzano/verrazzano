@@ -56,12 +56,12 @@ func convertV1Beta1ListToV1Alpha1(vzListV1Beta1 *v1beta1.VerrazzanoList) (*v1alp
 
 // UpdateV1Alpha1 takes in a v1alpha1 Verrazzano struct and sends an update request to the K8s API server
 // for that resource. This function internally converts the Verrazzano to v1beta1 before sending the update request.
-func UpdateV1Alpha1(ctx context.Context, client client.Client, vzV1Alpha1 *v1alpha1.Verrazzano) error {
+func UpdateV1Alpha1(ctx context.Context, client client.Client, vzV1Alpha1 *v1alpha1.Verrazzano, updateOpts ...client.UpdateOption) error {
 	vzV1Beta1 := &v1beta1.Verrazzano{}
 	if err := vzV1Alpha1.ConvertTo(vzV1Beta1); err != nil {
 		return err
 	}
-	if err := client.Update(ctx, vzV1Beta1); err != nil {
+	if err := client.Update(ctx, vzV1Beta1, updateOpts...); err != nil {
 		return err
 	}
 	return nil

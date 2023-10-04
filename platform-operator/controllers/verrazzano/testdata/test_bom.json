@@ -220,6 +220,22 @@
       ]
     },
     {
+      "name": "capi-addon",
+      "version": "v1.0.0",
+      "subcomponents": [
+        {
+          "repository": "verrazzano",
+          "name": "capi-addon",
+          "images": [
+            {
+              "image": "cluster-api-verrazzano-addon-controller",
+              "tag": "v1.0.0-20231002161731-24160e8"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "verrazzano",
       "version": "2.0.0",
       "subcomponents": [
@@ -431,21 +447,20 @@
     },
     {
       "name": "mysql",
-      "version": "8.1.0",
+      "version": "8.0.30",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "mysql-upgrade",
           "images": [
             {
-              "image": "community-server",
-              "tag": "8.1.0",
+              "image": "mysql-server",
+              "tag": "8.0.30",
               "helmFullImageKey": "legacyUpgrade.container.image"
             },
             {
-              "repository": "oracle",
               "image": "oraclelinux",
-              "tag": "8-slim",
+              "tag": "7-slim",
               "helmFullImageKey": "legacyUpgrade.initContainer.image"
             }
           ]
@@ -456,8 +471,8 @@
           "name": "additional-mysql",
           "images": [
             {
-              "image": "community-router",
-              "tag": "8.1.0"
+              "image": "mysql-router",
+              "tag": "8.0.30"
             }
           ]
         }

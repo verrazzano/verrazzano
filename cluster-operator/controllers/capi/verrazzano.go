@@ -26,9 +26,24 @@ type VerrazzanoRegistration struct {
 	Log *zap.SugaredLogger
 }
 
-// doReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
-func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstructured.Unstructured) (ctrl.Result, error) {
+type VerrazzanoReconcileFnType func(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error)
+
+var verrazzanoReconcileFn VerrazzanoReconcileFnType = doVerrazzanoReconcile
+
+func SetVerrazzanoReconcileFunction(f VerrazzanoReconcileFnType) {
+	verrazzanoReconcileFn = f
+}
+
+func SetDefaultVerrazzanoReconcileFunction() {
+	verrazzanoReconcileFn = doVerrazzanoReconcile
+}
+
+// doVerrazzanoReconcile performs the reconciliation of the CAPI cluster to register it with Verrazzano
+func doVerrazzanoReconcile(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error) {
+	v := r.VerrazzanoRegistrar
 	v.Log.Debugf("Registering cluster %s with Verrazzano", cluster.GetName())
+
+	// register the cluster if Verrazzano installed on workload cluster
 	workloadClient, err := getWorkloadClusterClient(v.Client, v.Log, cluster)
 	if err != nil {
 		v.Log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
@@ -37,11 +52,20 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 
 	// ensure Verrazzano is installed and ready in workload cluster
 	ready, err := v.isVerrazzanoReady(ctx, workloadClient)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if !ready {
-		v.Log.Debugf("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
-		return vzctrl.LongRequeue(), err
+		v.Log.Infof("Verrazzano not installed or not ready in cluster %s", cluster.GetName())
+		return vzctrl.LongRequeue(), nil
 	}
 
+	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.GetName(),
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
 	// if verrazzano-tls-ca exists, the cluster is untrusted
 	err = workloadClient.Get(ctx, types.NamespacedName{Name: constants.PrivateCABundle,
 		Namespace: constants.VerrazzanoSystemNamespace}, &v1.Secret{})
@@ -74,18 +98,19 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 		}); err != nil {
 			return ctrl.Result{}, err
 		}
-	}
 
-	// obtain the API endpoint IP address for the admin cluster
-	err = v.createAdminAccessConfigMap(ctx)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// create the VMC if it does not exist
-	vmc, err := v.createWorkloadClusterVMC(ctx, cluster)
-	if err != nil {
-		return ctrl.Result{}, err
+		if _, err := r.createOrUpdateWorkloadClusterVMC(ctx, cluster, vmc, func() error {
+			if vmc.Labels == nil {
+				vmc.Labels = make(map[string]string)
+			}
+			vmc.Labels[rancher.CreatedByLabel] = rancher.CreatedByVerrazzano
+			vmc.Spec = clustersv1alpha1.VerrazzanoManagedClusterSpec{
+				CASecret: fmt.Sprintf("ca-secret-%s", cluster.GetName()),
+			}
+			return nil
+		}); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// wait for VMC status to indicate the VMC is ready
@@ -114,62 +139,6 @@ func (v *VerrazzanoRegistration) doReconcile(ctx context.Context, cluster *unstr
 	}
 
 	return ctrl.Result{}, nil
-}
-
-// createWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
-func (v *VerrazzanoRegistration) createWorkloadClusterVMC(ctx context.Context, cluster *unstructured.Unstructured) (*clustersv1alpha1.VerrazzanoManagedCluster, error) {
-	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.GetName(),
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-	}
-	if _, err := ctrl.CreateOrUpdate(ctx, v.Client, vmc, func() error {
-		if vmc.Labels == nil {
-			vmc.Labels = make(map[string]string)
-		}
-		vmc.Labels[rancher.CreatedByLabel] = rancher.CreatedByVerrazzano
-		vmc.Spec = clustersv1alpha1.VerrazzanoManagedClusterSpec{
-			CASecret:    fmt.Sprintf("ca-secret-%s", cluster.GetName()),
-			Description: fmt.Sprintf("%s VerrazzanoManagedCluster Resource", cluster.GetName()),
-		}
-
-		return nil
-	}); err != nil {
-		v.Log.Errorf("Failed to create or update the VMC for cluster %s: %v", cluster.GetName(), err)
-		return nil, err
-	}
-
-	return vmc, nil
-}
-
-// createAdminAccessConfigMap creates the config map required for the creation of the admin accessing kubeconfig
-func (v *VerrazzanoRegistration) createAdminAccessConfigMap(ctx context.Context) error {
-	ep := &v1.Endpoints{}
-	if err := v.Get(ctx, types.NamespacedName{Name: "kubernetes", Namespace: "default"}, ep); err != nil {
-		return err
-	}
-	apiServerIP := ep.Subsets[0].Addresses[0].IP
-
-	// create the admin server IP config map
-	cm := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "verrazzano-admin-cluster",
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-	}
-	if _, err := ctrl.CreateOrUpdate(ctx, v.Client, cm, func() error {
-		if cm.Data == nil {
-			cm.Data = make(map[string]string)
-		}
-		cm.Data["server"] = fmt.Sprintf("https://%s:6443", apiServerIP)
-
-		return nil
-	}); err != nil {
-		v.Log.Errorf("Failed to create the Verrazzano admin cluster config map: %v", err)
-		return err
-	}
-	return nil
 }
 
 // getWorkloadClusterCACert retrieves the API endpoint CA certificate from the workload cluster
@@ -239,21 +208,6 @@ func UnregisterVerrazzanoCluster(ctx context.Context, v *VerrazzanoRegistration,
 	err = yamlApplier.DeleteS(string(manifest))
 	if err != nil {
 		v.Log.Errorf("Failed deleting resources of cluster manifest from workload cluster %s", cluster.GetName())
-		return err
-	}
-
-	// remove the VMC
-	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.GetName(),
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-	}
-	err = v.Delete(ctx, vmc)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			v.Log.Infof("VMC for cluster %s not found - nothing to do", cluster.GetName())
-		}
 		return err
 	}
 

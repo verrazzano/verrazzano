@@ -10,7 +10,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   opensearchCluster:
-    name: {{ .Values.openSearchCluster.name }}
+    name: opensearch
   backendRoles:
     - vz_log_pusher
   roles:
@@ -25,7 +25,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   opensearchCluster:
-    name: {{ .Values.openSearchCluster.name }}
+    name: opensearch
   backendRoles:
     - vz_opensearch_admin
   roles:
@@ -40,7 +40,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   opensearchCluster:
-    name: {{ .Values.openSearchCluster.name }}
+    name: opensearch
   backendRoles:
     - vz_metrics_fetcher
   users:

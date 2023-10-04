@@ -40,6 +40,7 @@ spec:
               memory: 1G
           roles:
             - master
+            - data
     fluentd:
       enabled: false
     fluentOperator:
@@ -65,6 +66,8 @@ spec:
     mySQLOperator:
       enabled: false
     oam:
+      enabled: false
+    opensearchOperator:
       enabled: false
     prometheus:
       enabled: false

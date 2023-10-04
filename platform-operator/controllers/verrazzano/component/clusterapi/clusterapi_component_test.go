@@ -5,9 +5,8 @@ package clusterapi
 
 import (
 	"context"
-	rbac "k8s.io/api/rbac/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -20,27 +19,18 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbac "k8s.io/api/rbac/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 const (
-	bootstrapOcneProvider     = "bootstrap-ocne"
-	controlPlaneOcneProvider  = "control-plane-ocne"
-	clusterAPIProvider        = "cluster-api"
-	infrastructureOciProvider = "infrastructure-oci"
-
 	deploymentRevisionAnnotation = "deployment.kubernetes.io/revision"
 	podTemplateHashLabel         = "pod-template-hash"
-	providerLabel                = "cluster.x-k8s.io/provider"
 )
-
-func fakeClusterAPINew(_ string, _ ...client.Option) (client.Client, error) {
-	return &FakeClusterAPIClient{}, nil
-}
 
 // TestNewComponent tests the NewComponent function
 // GIVEN a call to NewComponent
@@ -354,6 +344,24 @@ func TestIsInstalled(t *testing.T) {
 				Namespace: ComponentNamespace,
 				Name:      capiCMDeployment,
 			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiociCMDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiOcneControlPlaneCMDeployment,
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiOcneBootstrapCMDeployment,
+			},
 		}).Build()
 	var comp clusterAPIComponent
 	compContext := spi.NewFakeContext(fakeClient, &v1alpha1.Verrazzano{}, nil, false)
@@ -401,8 +409,8 @@ func TestPreInstall(t *testing.T) {
 //	WHEN ClusterAPI is installed
 //	THEN no error is returned
 func TestInstall(t *testing.T) {
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
 
@@ -419,8 +427,7 @@ func TestInstall(t *testing.T) {
 //	WHEN ClusterAPI is Uninstalled
 //	THEN no error is returned
 func TestUninstall(t *testing.T) {
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(k8scheme.Scheme).WithObjects().Build()
@@ -535,12 +542,12 @@ func TestUpgrade(t *testing.T) {
 				Name:       "test-role",
 				Namespace:  ComponentNamespace,
 				Finalizers: []string{"test-finalizer"},
+				Labels:     map[string]string{providerLabel: controlPlaneOcneProvider},
 			},
 		},
 	).Build()
 
-	SetCAPIInitFunc(fakeClusterAPINew)
-	defer ResetCAPIInitFunc()
+	capiRunCmdFunc = fakeCAPICmdRunner
 	config.SetDefaultBomFilePath(testBomFilePath)
 	config.TestHelmConfigDir = TestHelmConfigDir
 
@@ -868,5 +875,45 @@ func getReadyDeployments() *fake.ClientBuilder {
 				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
 			},
 		},
+
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiVerrazzanoAddonCMDeployment,
+				Labels:    map[string]string{providerLabel: verrazzanoAddonProvider},
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{providerLabel: verrazzanoAddonProvider},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				ReadyReplicas:     1,
+				Replicas:          1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ComponentNamespace,
+				Name:      capiVerrazzanoAddonCMDeployment + "-95d8c5d91-m6mbr",
+				Labels: map[string]string{
+					podTemplateHashLabel: "95d8c5d91",
+					providerLabel:        verrazzanoAddonProvider,
+				},
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace:   ComponentNamespace,
+				Name:        capiVerrazzanoAddonCMDeployment + "-95d8c5d91",
+				Annotations: map[string]string{deploymentRevisionAnnotation: "1"},
+			},
+		},
 	)
+}
+
+func fakeCAPICmdRunner(cmd *exec.Cmd) error {
+	return nil
 }

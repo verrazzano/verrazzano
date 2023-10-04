@@ -24,7 +24,7 @@ func TestGenerateConfigMapFromHelmChartFiles(t *testing.T) {
 	vpoHelmChartConfigMap := generateVPOConfigMap(t)
 	assert.Equal(t, vpoHelmChartConfigMapName, vpoHelmChartConfigMap.Name)
 	assert.Equal(t, constants.VerrazzanoInstallNamespace, vpoHelmChartConfigMap.Namespace)
-	assert.Equal(t, 13, len(vpoHelmChartConfigMap.Data))
+	assert.Equal(t, 14, len(vpoHelmChartConfigMap.Data))
 	assert.Contains(t, vpoHelmChartConfigMap.Data, "crds...install.verrazzano.io_verrazzanos.yaml")
 	assert.Contains(t, vpoHelmChartConfigMap.Data, "templates...clusterrole.yaml")
 	assert.Contains(t, vpoHelmChartConfigMap.Data, "templates...clusterrolebinding.yaml")

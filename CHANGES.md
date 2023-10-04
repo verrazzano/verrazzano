@@ -5,13 +5,12 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.1.2
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
-- MySQL v8.1.0
-- MySQL Operator v8.1.0
 - Kube State Metrics v2.10.0
 - NGINX Prometheus Exporter v0.11.0
 - Prometheus Pushgateway v1.6.2
 - Prometheus Node Exporter v1.6.1
-
+- Alertmanager v0.26.0
+- Istio v1.19.0
 
 Features:
 

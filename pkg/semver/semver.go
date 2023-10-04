@@ -122,6 +122,42 @@ func (v *SemVersion) CompareTo(from *SemVersion) int {
 	return result
 }
 
+// CompareToPrereleaseInts Compares the current version to another version treating the Prerelease field as an int
+// - if from > this, -1 is returned
+// - if from < this, 1 is returned
+// - if they are equal, 0 is returned
+// - if the prerelease field can not be converted to an int, it will return an error
+func (v *SemVersion) CompareToPrereleaseInts(from *SemVersion) (int, error) {
+	var result int
+	var err error
+	if result = compareVersion(from.Major, v.Major); result == 0 {
+		if result = compareVersion(from.Minor, v.Minor); result == 0 {
+			if result = compareVersion(from.Patch, v.Patch); result == 0 {
+				fromPrereleaseStr := from.Prerelease
+				if fromPrereleaseStr == "" {
+					fromPrereleaseStr = "0"
+				}
+				vPrereleaseStr := v.Prerelease
+				if vPrereleaseStr == "" {
+					vPrereleaseStr = "0"
+				}
+				fromPrerelease, err := strconv.Atoi(fromPrereleaseStr)
+				if err != nil {
+					return 0, err
+				}
+				vPrerelease, err := strconv.Atoi(vPrereleaseStr)
+				if err != nil {
+					return 0, err
+				}
+				if result = compareVersion(int64(fromPrerelease), int64(vPrerelease)); result == 0 {
+					result = compareVersionSubstring(from.Build, v.Build)
+				}
+			}
+		}
+	}
+	return result, err
+}
+
 // IsEqualTo Returns true if to == from
 func (v *SemVersion) IsEqualTo(from *SemVersion) bool {
 	return v.CompareTo(from) == 0

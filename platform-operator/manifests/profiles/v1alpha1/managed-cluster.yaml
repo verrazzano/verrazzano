@@ -10,6 +10,8 @@ spec:
       enabled: false
     elasticsearch:
       enabled: false
+    opensearchOperator:
+      enabled: false
     grafana:
       enabled: false
     kibana:

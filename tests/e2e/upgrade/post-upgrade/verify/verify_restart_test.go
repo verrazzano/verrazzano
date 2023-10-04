@@ -6,6 +6,9 @@ package verify
 import (
 	"fmt"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"strings"
 	"time"
 
@@ -188,6 +191,19 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
+					isVersionAbove1_7_0, err := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if !isVersionAbove1_7_0 && (deploymentName == "opensearch-operator-controller-manager" || deploymentName == "opensearch-dashboards") {
+						// skip opensearchOperator and new osd pod for version lower than 1.7.0
+						return true
+					}
+					if isVersionAbove1_7_0 && deploymentName == "vmi-system-osd" {
+						// skip legacy osd pod for version greater than 1.7.0
+						return true
+					}
 					if deploymentName == "mysql" && isVersionAbove1_4_0 {
 						// skip mysql for version greater than 1.4.0
 						return true
@@ -209,6 +225,9 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 			t.Entry("Checking Deployment vmi-system-osd", constants.VerrazzanoSystemNamespace, verrazzano.ComponentName, "vmi-system-osd"),
 			t.Entry("Checking Deployment prometheus-operator-kube-p-operator", vzconst.PrometheusOperatorNamespace, promoperator.ComponentName, "prometheus-operator-kube-p-operator"),
 			t.Entry("Checking Deployment weblogic-operator", constants.VerrazzanoSystemNamespace, weblogic.ComponentName, "weblogic-operator"),
+
+			t.Entry("Checking Deployment opensearch-operator-controller-manager", constants.VerrazzanoLoggingNamespace, opensearchoperator.ComponentName, "opensearch-operator-controller-manager"),
+			t.Entry("Checking Deployment opensearch-dashboards", constants.VerrazzanoLoggingNamespace, opensearchdashboards.ComponentName, "opensearch-dashboards"),
 
 			t.Entry("Checking Deployment cert-manager", vzconst.CertManagerNamespace, cmconstants.CertManagerComponentName, "cert-manager"),
 			t.Entry("Checking Deployment cert-manager-cainjector", vzconst.CertManagerNamespace, cmconstants.CertManagerComponentName, "cert-manager-cainjector"),
@@ -285,6 +304,19 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
 						return false
 					}
+					isVersionAbove1_7_0, err := pkg.IsVerrazzanoMinVersion("1.7.0", kubeconfigPath)
+					if err != nil {
+						pkg.Log(pkg.Error, fmt.Sprintf("failed to find the verrazzano version: %v", err))
+						return false
+					}
+					if !isVersionAbove1_7_0 && (stsName == "opensearch-es-master") {
+						// skip operator based os sts for version lower than 1.7.0
+						return true
+					}
+					if isVersionAbove1_7_0 && stsName == "vmi-system-es-master" {
+						// skip legacy os sts for version greater than 1.7.0
+						return true
+					}
 					if stsName == "mysql" && !isVersionAbove1_4_0 {
 						// skip mysql for version less than 1.4.0
 						return true
@@ -296,9 +328,41 @@ var _ = t.Describe("Checking if Verrazzano system components are ready, post-upg
 					return sts.Status.ReadyReplicas > 0
 				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("Statefulset %s for component %s is not ready", stsName, componentName))
 			},
-			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, appoper.ComponentName, "vmi-system-es-master"),
+			t.Entry("Checking StatefulSet opensearch-es-master", constants.VerrazzanoLoggingNamespace, opensearchoperator.ComponentName, "opensearch-es-master"),
+			t.Entry("Checking StatefulSet vmi-system-es-master", constants.VerrazzanoSystemNamespace, opensearch.ComponentName, "vmi-system-es-master"),
 			t.Entry("Checking StatefulSet keycloak", keycloak.ComponentNamespace, keycloak.ComponentName, "keycloak"),
 			t.Entry("Checking StatefulSet mysql", mysql.ComponentNamespace, mysql.ComponentName, "mysql"),
+		)
+	})
+
+	Context("Checking optional StatefulSets for post-upgrade", func() {
+		t.DescribeTable("StatefulSet should be ready post-upgrade",
+			func(namespace string, componentName string, stsName string) {
+				// Currently we have no way of determining if some components are installed by looking at the status (grafana)
+				// Because of this, make this test non-managed cluster only.
+				if vzcr.Spec.Profile == vzapi.ManagedCluster {
+					return
+				}
+				Eventually(func() bool {
+					if isDisabled(componentName) {
+						t.Logs.Infof("Skipping disabled component %s", componentName)
+						return true
+					}
+					sts, err := pkg.GetStatefulSet(namespace, stsName)
+					if err != nil {
+						// Deployment is optional, ignore if not found
+						// For example es-data and es-ingest won't be there for dev profile
+						if errors.IsNotFound(err) {
+							t.Logs.Infof("Skipping optional statefulSets %s since it is not found", stsName)
+							return true
+						}
+						return false
+					}
+					return sts.Status.ReadyReplicas > 0
+				}, mediumWait, pollingInterval).Should(BeTrue(), fmt.Sprintf("StatefulSet %s for component %s is not ready", stsName, componentName))
+			},
+			t.Entry("Checking StatefulSet opensearch-es-data", constants.VerrazzanoLoggingNamespace, opensearchoperator.ComponentName, "opensearch-es-data"),
+			t.Entry("Checking StatefulSet opensearch-es-ingest", constants.VerrazzanoLoggingNamespace, opensearchoperator.ComponentName, "opensearch-es-ingest"),
 		)
 	})
 

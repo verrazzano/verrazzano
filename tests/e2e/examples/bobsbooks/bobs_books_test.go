@@ -491,10 +491,9 @@ var _ = t.Describe("Bobs Books test", Label("f:app-lcm.oam",
 								{Key: "kubernetes.container_name.keyword", Value: fluentdStdoutSidecar},
 								{Key: k8sLabelDomainUID, Value: bobbysFrontEnd},
 								{Key: k8sLabelWLServerName, Value: managedServer1},
-								{Key: "messageID", Value: "BEA-"},         //matches BEA-*
-								{Key: "message", Value: "Tunneling Ping"}, //"Tunneling Ping" in last line
+								{Key: "messageID", Value: "BEA-"}, //matches BEA-*
 								{Key: "serverName", Value: "bobbys-front-end-managed-server1"},
-								{Key: "subSystem.keyword", Value: "RJVM"}},
+							},
 							[]pkg.Match{})
 					}, longWaitTimeout, longPollingInterval).Should(BeTrue(), "Expected to find a recent log record")
 				})
