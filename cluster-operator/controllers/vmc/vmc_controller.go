@@ -576,6 +576,16 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusConditionReady(vmc *cluste
 	r.setStatusCondition(vmc, clustersv1alpha1.Condition{Status: corev1.ConditionTrue, Type: clustersv1alpha1.ConditionReady, Message: msg, LastTransitionTime: &now}, false)
 }
 
+func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log vzlog.VerrazzanoLogger) {
+	fullMsg := fmt.Sprintf("%s: %v", msg, err)
+	log.ErrorfThrottled(fullMsg)
+	r.setStatusConditionNotReady(ctx, vmc, fullMsg)
+	statusErr := r.updateStatus(ctx, vmc)
+	if statusErr != nil {
+		log.ErrorfThrottled("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
+	}
+}
+
 // setStatusCondition updates the VMC status conditions based and replaces already created status conditions
 // the onTime flag updates the status condition if the time has changed
 func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1alpha1.VerrazzanoManagedCluster, condition clustersv1alpha1.Condition, onTime bool) {
@@ -607,16 +617,6 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 			matchingCondition.Status = condition.Status
 			matchingCondition.LastTransitionTime = condition.LastTransitionTime
 		}
-	}
-}
-
-func (r *VerrazzanoManagedClusterReconciler) handleError(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster, msg string, err error, log vzlog.VerrazzanoLogger) {
-	fullMsg := fmt.Sprintf("%s: %v", msg, err)
-	log.ErrorfThrottled(fullMsg)
-	r.setStatusConditionNotReady(ctx, vmc, fullMsg)
-	statusErr := r.updateStatus(ctx, vmc)
-	if statusErr != nil {
-		log.ErrorfThrottled("Failed to update status for VMC %s: %v", vmc.Name, statusErr)
 	}
 }
 
