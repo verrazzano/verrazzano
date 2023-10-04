@@ -357,6 +357,7 @@ pipeline {
                                 verifyRegisterManagedClusters(true)
                             }
                         }
+
                     }
                 }
                 stage ('Pre-upgrade Acceptance Tests') {
@@ -537,6 +538,16 @@ pipeline {
                         runGinkgoRandomizeParallel('verify-infra/vmi')
                     }
                 }
+                stage('verify-jaeger-install') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-jaeger/install')
+                    }
+                }
+                stage('verify-jaeger-system') {
+                    steps {
+                        runGinkgoRandomize('multicluster/verify-jaeger/system')
+                    }
+                }
             }
             post {
                 always {
@@ -615,6 +626,11 @@ pipeline {
                         stage ('mc examples helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
+                            }
+                        }
+                        stage ('mc jaeger helidon') {
+                            steps {
+                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
                             }
                         }
                         stage ('mc coherence workload') {
