@@ -111,7 +111,7 @@ func (h *Handler) findPathHandler(req *http.Request) handlerFuncType {
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", httputil.ObfuscateRequestData(req))
+	h.Log.Debugf("Incoming request: %+v", httputil.ObfuscateRequestData(req))
 
 	err := h.initializeAuthenticator()
 	if err != nil {

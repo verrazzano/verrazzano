@@ -87,7 +87,7 @@ func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 		http.Error(rw, "Failed to reformat request for the Kubernetes API server", http.StatusUnprocessableEntity)
 		return nil, err
 	}
-	a.Log.Debug("Outgoing request: %+v", httputil.ObfuscateRequestData(reformattedReq.Request))
+	a.Log.Debugf("Outgoing request: %+v", httputil.ObfuscateRequestData(reformattedReq.Request))
 
 	return reformattedReq, nil
 }
