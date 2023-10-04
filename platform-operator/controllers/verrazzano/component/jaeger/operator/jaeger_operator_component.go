@@ -255,12 +255,11 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 		}
 	}
 
-	ctx.Log().Debugf("Applying jaeger crd yaml with dir: %s", c.ChartDir)
 	err = common.ApplyCRDYaml(ctx, c.ChartDir)
 	if err != nil {
 		return err
 	}
-	ctx.Log().Debugf("Done applying jaeger crd yaml")
+	ctx.Log().Debug()
 
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
