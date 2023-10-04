@@ -1,7 +1,7 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package controller
+package migration
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -57,6 +57,90 @@ func TestIsUpgradeRequired(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "UpgradeToBranchBuildPending",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
+					Version: "2.0.1",
+				},
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.1",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToBranchBuildSameMMP",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
+					Version: "2.0.2",
+				},
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToNewBranchBuild",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
+					Version: "2.0.2-1+bbadkkad",
+				},
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2-1+bbadkkad",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToNewBranchBuild2",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
+					Version: "2.0.2-2+caafdaad",
+				},
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2-2+caafdaad",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToNewBranchBuildFromInstall",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2-1+bbadkkad",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToNewBranchBuildFromInstall2",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2-2+caafdaad",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+			want:        true,
+		},
+		{
+			name: "UpgradeToBranchBuildCompleted",
+			actualCR: &vzv1alpha1.Verrazzano{
+				Spec: vzv1alpha1.VerrazzanoSpec{
+					Version: "2.0.2-1+asdfdf",
+				},
+				Status: vzv1alpha1.VerrazzanoStatus{
+					Version: "2.0.2-1+asdfdf",
+				},
+			},
+			testBOMPath: "./testdata/test_bom_buildver.json",
+		},
+		{
 			name: "UpgradeInProgress",
 			actualCR: &vzv1alpha1.Verrazzano{
 				Spec: vzv1alpha1.VerrazzanoSpec{
@@ -106,8 +190,7 @@ func TestIsUpgradeRequired(t *testing.T) {
 				wantErr = assert.NoError
 			}
 
-			r := Reconciler{}
-			got, err := r.isUpgradeRequired(tt.actualCR)
+			got, err := isUpgradeRequired(tt.actualCR)
 			if !wantErr(t, err, "Did not get expected error result") {
 				return
 			}
