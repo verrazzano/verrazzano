@@ -70,6 +70,7 @@ func TestReformatClusterPath(t *testing.T) {
 	err = apiReq.reformatClusterPath(req, testClusterName, localClusterPrefix)
 	assert.NoError(t, err)
 	assert.Equal(t, fmt.Sprintf("%s%s/apidata", apiReq.APIServerURL, localClusterPrefix), req.URL.String())
+	assert.Equal(t, req.Host, apiReq.APIServerURL)
 }
 
 // TestGetManagedClusterAPIURL tests that the managed cluster API URL can be obtained from the VMC
