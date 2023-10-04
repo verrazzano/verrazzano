@@ -1606,8 +1606,8 @@ func TestRegisterClusterWithRancherRetryRequest(t *testing.T) {
 	asserts.Error(err)
 }
 
-// TestUpateStatus tests the updateStatus function
-func TestUpateStatus(t *testing.T) {
+// TestUpdateStatus tests the updateStatus function
+func TestUpdateStatus(t *testing.T) {
 	// clear any cached user auth tokens when the test completes
 	defer rancherutil.DeleteStoredTokens()
 
