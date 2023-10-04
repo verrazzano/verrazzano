@@ -7,9 +7,9 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -32,35 +32,39 @@ var GVKCAPIClusterClass = schema.GroupVersionKind{
 	Kind:    "ClusterClass",
 }
 
-// GetCluster returns the requested CAPI Cluster as an unstructured pointer.
-func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(GVKCAPICluster)
+// GetCluster returns the requested CAPI Cluster.
+func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*v1beta1.Cluster, error) {
+	cluster := &v1beta1.Cluster{}
 	if err := cli.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
 		return nil, err
 	}
 	return cluster, nil
 }
 
-// GetClusterClass returns the requested CAPI ClusterClass as an unstructured pointer.
-func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespacedName types.NamespacedName) (*unstructured.Unstructured, error) {
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(GVKCAPIClusterClass)
-	if err := cli.Get(context.TODO(), clusterClassNamespacedName, cluster); err != nil {
+// GetClusterClass returns the requested CAPI ClusterClass.
+func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespacedName types.NamespacedName) (*v1beta1.ClusterClass, error) {
+	clusterClass := &v1beta1.ClusterClass{}
+	if err := cli.Get(context.TODO(), clusterClassNamespacedName, clusterClass); err != nil {
 		return nil, err
 	}
-	return cluster, nil
+	return clusterClass, nil
 }
 
 // GetClusterClassFromCluster returns the ClusterClass associated with the provided CAPI Cluster.
-func GetClusterClassFromCluster(ctx context.Context, cli clipkg.Client, cluster *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	clusterClassName, found, err := unstructured.NestedString(cluster.Object, "spec", "topology", "class")
-	if !found {
-		return nil, fmt.Errorf("spec.topology.class field not found in Cluster %s/%s with error: %v", cluster.GetNamespace(), cluster.GetName(), err)
+func GetClusterClassFromCluster(ctx context.Context, cli clipkg.Client, cluster *v1beta1.Cluster) (*v1beta1.ClusterClass, error) {
+	// get the ClusterClass name, avoiding nil pointer exceptions
+	if cluster == nil {
+		return nil, fmt.Errorf("cannot get ClusterClass from a nil Cluster")
 	}
-	if err != nil {
-		return nil, err
+	var clusterClassName string
+	if cluster.Spec.Topology != nil {
+		clusterClassName = cluster.Spec.Topology.Class
 	}
+	if clusterClassName == "" {
+		return nil, fmt.Errorf("CAPI Cluster %s/%s does not reference a ClusterClass", cluster.Namespace, cluster.Name)
+	}
+
+	// Retrieve the ClusterClass
 	clusterClassNamespacedName := types.NamespacedName{
 		Name:      clusterClassName,
 		Namespace: cluster.GetNamespace(),
