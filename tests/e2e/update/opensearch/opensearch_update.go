@@ -10,6 +10,7 @@ import (
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -28,7 +29,6 @@ type OpensearchCleanUpModifier struct {
 }
 
 type OpensearchAllNodeRolesModifier struct {
-	NodeReplicas int32
 }
 
 func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
@@ -145,9 +145,11 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:     "es-" + string(vmov1.MasterRole),
-				Replicas: &u.NodeReplicas,
-				Roles:    []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
+				Name:      string(vmov1.MasterRole),
+				Replicas:  common.Int32Ptr(3),
+				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
+				Storage:   newNodeStorage("2Gi"),
+				Resources: newResources("512Mi"),
 			},
 		)
 }
@@ -173,7 +175,7 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var afterSuite = t.AfterSuiteFunc(func() {
-	m := OpensearchAllNodeRolesModifier{NodeReplicas: 1}
+	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })
 
