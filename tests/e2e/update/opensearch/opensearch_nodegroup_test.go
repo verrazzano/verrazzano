@@ -20,9 +20,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// WHEN node group section for opensearch component is updated for adding master nodes
 	// THEN master pods gets created.
 	t.It("opensearch update master node group", func() {
-		// Disable the default node
-		d := OpensearchAllNodeRolesModifier{NodeReplicas: 0}
-		update.UpdateCRWithRetries(d, pollingInterval, waitTimeout)
 		m := OpensearchMasterNodeGroupModifier{NodeReplicas: 3, NodeMemory: "512Mi", NodeStorage: "2Gi"}
 		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 		update.ValidatePods(string(vmov1.MasterRole), NodeGroupLabel, constants.VerrazzanoLoggingNamespace, 3, false)
@@ -56,8 +53,5 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePods(string(vmov1.DataRole), NodeGroupLabel, constants.VerrazzanoLoggingNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{NodeGroupLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
-		// disabling this node-pool once testing is done.
-		m = OpensearchDataNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})
 })

@@ -24,10 +24,6 @@ const (
 	NodeGroupLabel = "node-group"
 )
 
-var (
-	ReplicaToDisableDefaultNode int32
-)
-
 type OpensearchCleanUpModifier struct {
 }
 
@@ -70,12 +66,7 @@ func (u OpensearchMasterNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
-		{
-			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: &ReplicaToDisableDefaultNode,
-		},
-	}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -104,12 +95,7 @@ func (u OpensearchIngestNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
-		{
-			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: &ReplicaToDisableDefaultNode,
-		},
-	}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -126,12 +112,7 @@ func (u OpensearchDataNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if cr.Spec.Components.Elasticsearch == nil {
 		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 	}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
-		{
-			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: &ReplicaToDisableDefaultNode,
-		},
-	}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
