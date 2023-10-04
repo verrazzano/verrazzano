@@ -35,12 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	finalizerName               = "managedcluster.verrazzano.io"
-	importedProviderDisplayName = "Imported"
-	ocneProviderDisplayName     = "Oracle OCNE on OCI"
-	okeProviderDisplayName      = "Oracle OKE"
-)
+const finalizerName = "managedcluster.verrazzano.io"
 
 // VerrazzanoManagedClusterReconciler reconciles a VerrazzanoManagedCluster object.
 // The reconciler will create a ServiceAcount, RoleBinding, and a Secret which

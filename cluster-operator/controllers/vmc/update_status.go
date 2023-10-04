@@ -17,6 +17,12 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+const (
+	importedProviderDisplayName = "Imported"
+	ocneProviderDisplayName     = "Oracle OCNE on OCI"
+	okeProviderDisplayName      = "Oracle OKE"
+)
+
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// Update the VMC's status.state
