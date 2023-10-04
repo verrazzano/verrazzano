@@ -618,9 +618,14 @@ pipeline {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
                             }
                         }
-                        stage ('mc jaeger install & helidon') {
+                        stage ('mc jaeger verify install') {
                             steps {
                                 verifyJaeger()
+                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
+                            }
+                        }
+                        stage ('mc jaeger helidon') {
+                            steps {
                                 runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
                             }
                         }
