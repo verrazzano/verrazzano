@@ -33,6 +33,7 @@ type defaultProviders struct {
 	OCNEControlPlane capiProvider `json:"ocneControlPlane,omitempty"`
 	Core             capiProvider `json:"core,omitempty"`
 	OCI              capiProvider `json:"oci,omitempty"`
+	VerrazzanoAddon  capiProvider `json:"verrazzanoAddon,omitempty"`
 }
 
 type capiProvider struct {
@@ -57,30 +58,46 @@ type OverridesInterface interface {
 	GetClusterAPIControllerFullImagePath() string
 	GetClusterAPITag() string
 	GetClusterAPIURL() string
+	GetClusterAPIOverridesURL() string
 	GetClusterAPIVersion() string
 	GetClusterAPIOverridesVersion() string
 	GetClusterAPIBomVersion() string
+	ClusterAPIOverridesExists() bool
 	GetOCIRepository() string
 	GetOCIControllerFullImagePath() string
 	GetOCITag() string
 	GetOCIURL() string
+	GetOCIOverridesURL() string
 	GetOCIVersion() string
 	GetOCIOverridesVersion() string
 	GetOCIBomVersion() string
+	OCIOverridesExists() bool
 	GetOCNEBootstrapRepository() string
 	GetOCNEBootstrapControllerFullImagePath() string
 	GetOCNEBootstrapTag() string
 	GetOCNEBootstrapURL() string
+	GetOCNEBootstrapOverridesURL() string
 	GetOCNEBootstrapVersion() string
 	GetOCNEBootstrapOverridesVersion() string
 	GetOCNEBootstrapBomVersion() string
+	OCNEBootstrapOverridesExists() bool
 	GetOCNEControlPlaneRepository() string
 	GetOCNEControlPlaneControllerFullImagePath() string
 	GetOCNEControlPlaneTag() string
 	GetOCNEControlPlaneURL() string
+	GetOCNEControlPlaneOverridesURL() string
 	GetOCNEControlPlaneVersion() string
 	GetOCNEControlPlaneOverridesVersion() string
 	GetOCNEControlPlaneBomVersion() string
+	OCNEControlPlaneOverridesExists() bool
+	GetVerrazzanoAddonOverridesVersion() string
+	GetVerrazzanoAddonBomVersion() string
+	GetVerrazzanoAddonRepository() string
+	GetVerrazzanoAddonControllerFullImagePath() string
+	GetVerrazzanoAddonTag() string
+	GetVerrazzanoAddonOverridesURL() string
+	GetVerrazzanoAddonVersion() string
+	GetVerrazzanoAddonURL() string
 	IncludeImagesHeader() bool
 }
 
@@ -104,6 +121,10 @@ func (c capiOverrides) GetClusterAPIURL() string {
 	return getURLForProvider(c.DefaultProviders.Core, "cluster-api")
 }
 
+func (c capiOverrides) GetClusterAPIOverridesURL() string {
+	return c.DefaultProviders.Core.URL
+}
+
 func (c capiOverrides) GetClusterAPIVersion() string {
 	return getProviderVersion(c.DefaultProviders.Core)
 }
@@ -114,6 +135,10 @@ func (c capiOverrides) GetClusterAPIOverridesVersion() string {
 
 func (c capiOverrides) GetClusterAPIBomVersion() string {
 	return c.DefaultProviders.Core.Image.BomVersion
+}
+
+func (c capiOverrides) ClusterAPIOverridesExists() bool {
+	return len(c.GetClusterAPIOverridesVersion()) > 0 || len(c.GetClusterAPIOverridesURL()) > 0
 }
 
 func (c capiOverrides) GetOCIRepository() string {
@@ -128,6 +153,10 @@ func (c capiOverrides) GetOCIURL() string {
 	return getURLForProvider(c.DefaultProviders.OCI, "cluster-api-provider-oci")
 }
 
+func (c capiOverrides) GetOCIOverridesURL() string {
+	return c.DefaultProviders.OCI.URL
+}
+
 func (c capiOverrides) GetOCIVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCI)
 }
@@ -138,6 +167,10 @@ func (c capiOverrides) GetOCIOverridesVersion() string {
 
 func (c capiOverrides) GetOCIBomVersion() string {
 	return c.DefaultProviders.OCI.Image.BomVersion
+}
+
+func (c capiOverrides) OCIOverridesExists() bool {
+	return len(c.GetOCIOverridesVersion()) > 0 || len(c.GetOCIOverridesURL()) > 0
 }
 
 func (c capiOverrides) GetOCNEBootstrapRepository() string {
@@ -152,6 +185,10 @@ func (c capiOverrides) GetOCNEBootstrapURL() string {
 	return getURLForProvider(c.DefaultProviders.OCNEBootstrap, "cluster-api-provider-ocne")
 }
 
+func (c capiOverrides) GetOCNEBootstrapOverridesURL() string {
+	return c.DefaultProviders.OCNEBootstrap.URL
+}
+
 func (c capiOverrides) GetOCNEBootstrapVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEBootstrap)
 }
@@ -162,6 +199,10 @@ func (c capiOverrides) GetOCNEBootstrapOverridesVersion() string {
 
 func (c capiOverrides) GetOCNEBootstrapBomVersion() string {
 	return c.DefaultProviders.OCNEBootstrap.Image.BomVersion
+}
+
+func (c capiOverrides) OCNEBootstrapOverridesExists() bool {
+	return len(c.GetOCNEBootstrapOverridesVersion()) > 0 || len(c.GetOCNEBootstrapOverridesURL()) > 0
 }
 
 func (c capiOverrides) GetOCNEControlPlaneRepository() string {
@@ -176,6 +217,10 @@ func (c capiOverrides) GetOCNEControlPlaneURL() string {
 	return getURLForProvider(c.DefaultProviders.OCNEControlPlane, "cluster-api-provider-ocne")
 }
 
+func (c capiOverrides) GetOCNEControlPlaneOverridesURL() string {
+	return c.DefaultProviders.OCNEControlPlane.URL
+}
+
 func (c capiOverrides) GetOCNEControlPlaneVersion() string {
 	return getProviderVersion(c.DefaultProviders.OCNEControlPlane)
 }
@@ -188,11 +233,43 @@ func (c capiOverrides) GetOCNEControlPlaneBomVersion() string {
 	return c.DefaultProviders.OCNEControlPlane.Image.BomVersion
 }
 
-// IncludeImagesHeader returns true if the overrides version for any of the default providers is not specified.
+func (c capiOverrides) OCNEControlPlaneOverridesExists() bool {
+	return len(c.GetOCNEControlPlaneOverridesVersion()) > 0 || len(c.GetOCNEControlPlaneOverridesURL()) > 0
+}
+
+func (c capiOverrides) GetVerrazzanoAddonOverridesVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Version
+}
+
+func (c capiOverrides) GetVerrazzanoAddonBomVersion() string {
+	return c.DefaultProviders.VerrazzanoAddon.Image.BomVersion
+}
+
+func (c capiOverrides) GetVerrazzanoAddonRepository() string {
+	return getRepositoryForProvider(c, c.DefaultProviders.VerrazzanoAddon)
+}
+
+func (c capiOverrides) GetVerrazzanoAddonTag() string {
+	return c.DefaultProviders.VerrazzanoAddon.Image.Tag
+}
+
+func (c capiOverrides) GetVerrazzanoAddonURL() string {
+	return getURLForProvider(c.DefaultProviders.VerrazzanoAddon, "addon-verrazzano")
+}
+
+func (c capiOverrides) GetVerrazzanoAddonOverridesURL() string {
+	return c.DefaultProviders.VerrazzanoAddon.URL
+}
+
+func (c capiOverrides) GetVerrazzanoAddonVersion() string {
+	return getProviderVersion(c.DefaultProviders.VerrazzanoAddon)
+}
+
+// IncludeImagesHeader returns true if the overrides for any of the default providers is not specified.
 // Otherwise, returns false.
 func (c capiOverrides) IncludeImagesHeader() bool {
-	if len(c.GetClusterAPIOverridesVersion()) == 0 || len(c.GetOCIOverridesVersion()) == 0 ||
-		len(c.GetOCNEBootstrapOverridesVersion()) == 0 || len(c.GetOCNEControlPlaneOverridesVersion()) == 0 {
+	if !c.ClusterAPIOverridesExists() || !c.OCIOverridesExists() || !c.OCNEControlPlaneOverridesExists() ||
+		!c.OCNEBootstrapOverridesExists() || len(c.GetVerrazzanoAddonVersion()) == 0 {
 		return true
 	}
 	return false
@@ -212,6 +289,10 @@ func (c capiOverrides) GetOCNEBootstrapControllerFullImagePath() string {
 
 func (c capiOverrides) GetOCNEControlPlaneControllerFullImagePath() string {
 	return fmt.Sprintf("%s/%s:%s", c.GetOCNEControlPlaneRepository(), clusterAPIOCNEControlPLaneControllerImage, c.GetOCNEControlPlaneTag())
+}
+
+func (c capiOverrides) GetVerrazzanoAddonControllerFullImagePath() string {
+	return fmt.Sprintf("%s/%s:%s", c.GetVerrazzanoAddonRepository(), clusterAPIVerrazzanoAddonControllerImage, c.GetVerrazzanoAddonTag())
 }
 
 // getRepositoryForProvider - return the repository in the format that clusterctl
@@ -311,7 +392,8 @@ func getBaseOverrides() (*capiOverrides, error) {
 	overrides.DefaultProviders.OCNEBootstrap.MetadataFile = "bootstrap-components.yaml"
 	overrides.DefaultProviders.OCNEControlPlane.Name = controlPlaneOcneProvider
 	overrides.DefaultProviders.OCNEControlPlane.MetadataFile = "control-plane-components.yaml"
-
+	overrides.DefaultProviders.VerrazzanoAddon.Name = verrazzanoAddonProvider
+	overrides.DefaultProviders.VerrazzanoAddon.MetadataFile = "addon-components.yaml"
 	return overrides, err
 }
 
@@ -359,6 +441,14 @@ func mergeBOMOverrides(ctx spi.ComponentContext, overrides *capiOverrides) error
 		return err
 	}
 	updateImage(imageConfig, controlPlane)
+
+	// Populate verrazzanoAddon provider values
+	addon := &overrides.DefaultProviders.VerrazzanoAddon.Image
+	imageConfig, err = getImageOverride(ctx, bomFile, "capi-addon", "capi-addon", "cluster-api-verrazzano-addon-controller")
+	if err != nil {
+		return err
+	}
+	updateImage(imageConfig, addon)
 
 	return nil
 }

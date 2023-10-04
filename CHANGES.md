@@ -10,7 +10,7 @@ Component version updates:
 - Prometheus Pushgateway v1.6.2
 - Prometheus Node Exporter v1.6.1
 - Alertmanager v0.26.0
-
+- Istio v1.19.0
 
 Features:
 

@@ -72,14 +72,11 @@ spec:
     nodeEvictionNodePoolSettings:
         evictionGraceDuration: PT1H
         isForceDeleteAfterGraceDuration: false
+    {{- if eq $.OKE.Network.CNIType "FLANNEL_OVERLAY" }}
     nodePoolNodeConfig:
         nodePoolPodNetworkOptionDetails:
             cniType: {{$.OKE.Network.CNIType}}
-        {{- if eq $.OKE.Network.CNIType "OCI_VCN_IP_NATIVE" }}
-            vcnIpNativePodNetworkOptions:
-                subnetNames:
-                    - pod
-        {{- end }}
+    {{- end }}
     nodeShape: {{$node.Shape}}
     # Add shape config if using flex shapes
     {{- if and (or $node.OCPUs $node.MemoryGbs) (contains $node.Shape "Flex") }}

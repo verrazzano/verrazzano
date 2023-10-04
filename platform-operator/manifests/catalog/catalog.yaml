@@ -28,9 +28,9 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
   - name: istio
-    version: 1.17.2-1
+    version: 1.19.0
   - name: rancher
-    version: 2.7.5-5
+    version: 2.7.6-2
     chart: platform-operator/thirdparty/charts/rancher
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
@@ -81,7 +81,7 @@ modules:
     version: 2.0.11
     chart: platform-operator/helm_config/charts/fluentbit-opensearch-output
   - name: kiali-server
-    version: 1.66.1-1
+    version: 1.73.0
     chart: platform-operator/thirdparty/charts/kiali-server
     valuesFiles:
       - platform-operator/helm_config/overrides/kiali-server-values.yaml

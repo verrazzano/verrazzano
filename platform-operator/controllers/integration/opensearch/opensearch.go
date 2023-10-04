@@ -178,10 +178,7 @@ func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
 		zap.S().Warn("waiting for OpenSearch statefulset to be created.")
 		return false
 	}
-	if len(statefulSets.Items) > 1 {
-		zap.S().Errorf("invalid number of OpenSearch statefulset created %v.", len(statefulSets.Items))
-		return false
-	}
+
 	return statefulSets.Items[0].Status.ReadyReplicas == statefulSets.Items[0].Status.Replicas
 }
 

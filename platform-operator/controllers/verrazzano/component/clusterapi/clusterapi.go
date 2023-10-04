@@ -27,28 +27,34 @@ import (
 const clusterctlYamlTemplate = `
 {{- if .IncludeImagesHeader }}
 images:
-  {{- if not .GetClusterAPIOverridesVersion }}
+  {{- if not .ClusterAPIOverridesExists }}
   cluster-api:
     repository: {{.GetClusterAPIRepository}}
     tag: {{.GetClusterAPITag}}
   {{ end }}
 
-  {{- if not .GetOCIOverridesVersion }}
+  {{- if not .OCIOverridesExists }}
   infrastructure-oci:
     repository: {{.GetOCIRepository}}
     tag: {{.GetOCITag}}
   {{ end }}
 
-  {{- if not .GetOCNEBootstrapOverridesVersion }}
+  {{- if not .OCNEBootstrapOverridesExists }}
   bootstrap-ocne:
     repository: {{.GetOCNEBootstrapRepository}}
     tag: {{.GetOCNEBootstrapTag}}
   {{ end }}
 
-  {{- if not .GetOCNEControlPlaneOverridesVersion }}
+  {{- if not .OCNEControlPlaneOverridesExists }}
   control-plane-ocne:
     repository: {{.GetOCNEControlPlaneRepository}}
     tag: {{.GetOCNEControlPlaneTag}}
+  {{ end }}
+
+  {{- if not .GetVerrazzanoAddonOverridesVersion }}
+  addon-verrazzano:
+    repository: {{.GetVerrazzanoAddonRepository}}
+    tag: {{.GetVerrazzanoAddonTag}}
   {{ end }}
 {{ end }}
 
@@ -65,6 +71,9 @@ providers:
   - name: "ocne"
     url: "{{.GetOCNEControlPlaneURL}}"
     type: "ControlPlaneProvider"
+  - name: "verrazzano"
+    url: "{{.GetVerrazzanoAddonURL}}"
+    type: "AddonProvider"
 `
 
 const (
@@ -72,11 +81,11 @@ const (
 	expClusterResourceSet                     = "EXP_CLUSTER_RESOURCE_SET"
 	expMachinePool                            = "EXP_MACHINE_POOL"
 	initOCIClientsOnStartup                   = "INIT_OCI_CLIENTS_ON_STARTUP"
-	goproxy                                   = "GOPROXY"
 	clusterAPIControllerImage                 = "cluster-api-controller"
 	clusterAPIOCIControllerImage              = "cluster-api-oci-controller"
 	clusterAPIOCNEBoostrapControllerImage     = "cluster-api-ocne-bootstrap-controller"
 	clusterAPIOCNEControlPLaneControllerImage = "cluster-api-ocne-control-plane-controller"
+	clusterAPIVerrazzanoAddonControllerImage  = "cluster-api-verrazzano-addon-controller"
 	defaultClusterAPIDir                      = "/verrazzano/.cluster-api"
 	clusterAPIDirEnv                          = "VERRAZZANO_CLUSTER_API_DIR"
 	providerLabel                             = "cluster.x-k8s.io/provider"
@@ -84,6 +93,7 @@ const (
 	bootstrapOcneProvider                     = "bootstrap-ocne"
 	controlPlaneOcneProvider                  = "control-plane-ocne"
 	infrastructureOciProvider                 = "infrastructure-oci"
+	verrazzanoAddonProvider                   = "addon-verrazzano"
 )
 
 type ImageConfig struct {
@@ -98,6 +108,7 @@ type PodMatcherClusterAPI struct {
 	bootstrapProvider      string
 	controlPlaneProvider   string
 	infrastructureProvider string
+	addonProvider          string
 }
 
 var clusterAPIDir = defaultClusterAPIDir
@@ -180,7 +191,7 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 	}
 
 	// Apply the image overrides and versions to generate clusterctl.yaml
-	result, err := applyTemplate(clusterctlYamlTemplate, newOverridesContext(overrides))
+	result, err := applyTemplate(ctx, clusterctlYamlTemplate, newOverridesContext(overrides))
 	if err != nil {
 		ctx.Log().ErrorfThrottled("Failed to apply template for creating clusterctl.yaml: %v", err)
 		return err
@@ -204,10 +215,11 @@ func createClusterctlYaml(ctx spi.ComponentContext) error {
 }
 
 // applyTemplate applies the CAPI provider image overrides and versions to the clusterctl.yaml template
-func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, error) {
+func applyTemplate(ctx spi.ComponentContext, templateContent string, params interface{}) (bytes.Buffer, error) {
 	// Parse the template file
 	capiYaml, err := template.New("capi").Parse(templateContent)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("template error: %v", err)
 		return bytes.Buffer{}, err
 	}
 
@@ -215,6 +227,7 @@ func applyTemplate(templateContent string, params interface{}) (bytes.Buffer, er
 	var buf bytes.Buffer
 	err = capiYaml.Execute(&buf, &params)
 	if err != nil {
+		ctx.Log().ErrorfThrottled("template execution error: %v", err)
 		return bytes.Buffer{}, err
 	}
 
@@ -228,16 +241,24 @@ func (c *PodMatcherClusterAPI) initializeImageVersionsOverrides(log vzlog.Verraz
 	c.infrastructureProvider = overrides.GetOCIControllerFullImagePath()
 	c.bootstrapProvider = overrides.GetOCNEBootstrapControllerFullImagePath()
 	c.controlPlaneProvider = overrides.GetOCNEControlPlaneControllerFullImagePath()
+	c.addonProvider = overrides.GetVerrazzanoAddonControllerFullImagePath()
 	return nil
 }
 
-// applyUpgradeVersion returns true and corresponding version if either version overrides or bom version is specified. Otherwise, return false and empty version.
-func applyUpgradeVersion(log vzlog.VerrazzanoLogger, versionOverrides, bomVersion, imageName, actualImage, expectedImage string) (bool, string) {
+// applyUpgradeVersion returns true and corresponding version if either URL overrides, version overrides or bom version is specified. Otherwise, return false and empty version.
+func applyUpgradeVersion(log vzlog.VerrazzanoLogger, URLOverrides, versionOverrides, bomVersion, imageName, actualImage, expectedImage string) (bool, string) {
+	if len(URLOverrides) > 0 {
+		// Version is expected as the penultimate component of the overrides URL
+		splitURL := strings.Split(URLOverrides, "/")
+		version := splitURL[len(splitURL)-2]
+		log.Infof("URL Overrides version \"%v\" extracted from URL Overriddes %v", version, URLOverrides)
+		return true, version
+	}
 	if len(versionOverrides) > 0 {
 		return true, versionOverrides
 	}
 	if strings.Contains(actualImage, imageName) && actualImage != expectedImage {
-		log.Infof("Image %v is out of date,  actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
+		log.Infof("Image %v is out of date, actual image: %v, expected image: %v", imageName, actualImage, expectedImage)
 		return true, bomVersion
 	}
 	return false, ""
@@ -255,17 +276,20 @@ func (c *PodMatcherClusterAPI) matchAndPrepareUpgradeOptions(ctx spi.ComponentCo
 	const formatString = "%s/%s:%s"
 	for _, pod := range podList.Items {
 		for _, co := range pod.Spec.Containers {
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetClusterAPIOverridesVersion(), overrides.GetClusterAPIBomVersion(), clusterAPIControllerImage, co.Image, c.coreProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetClusterAPIOverridesURL(), overrides.GetClusterAPIOverridesVersion(), overrides.GetClusterAPIBomVersion(), clusterAPIControllerImage, co.Image, c.coreProvider); ok {
 				applyUpgradeOptions.CoreProvider = fmt.Sprintf(formatString, ComponentNamespace, clusterAPIProviderName, version)
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEBootstrapOverridesVersion(), overrides.GetOCNEBootstrapBomVersion(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEBootstrapOverridesURL(), overrides.GetOCNEBootstrapOverridesVersion(), overrides.GetOCNEBootstrapBomVersion(), clusterAPIOCNEBoostrapControllerImage, co.Image, c.bootstrapProvider); ok {
 				applyUpgradeOptions.BootstrapProviders = append(applyUpgradeOptions.BootstrapProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEControlPlaneOverridesVersion(), overrides.GetOCNEControlPlaneBomVersion(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCNEControlPlaneOverridesURL(), overrides.GetOCNEControlPlaneOverridesVersion(), overrides.GetOCNEControlPlaneBomVersion(), clusterAPIOCNEControlPLaneControllerImage, co.Image, c.controlPlaneProvider); ok {
 				applyUpgradeOptions.ControlPlaneProviders = append(applyUpgradeOptions.ControlPlaneProviders, fmt.Sprintf(formatString, ComponentNamespace, ocneProviderName, version))
 			}
-			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetOCIOverridesURL(), overrides.GetOCIOverridesVersion(), overrides.GetOCIBomVersion(), clusterAPIOCIControllerImage, co.Image, c.infrastructureProvider); ok {
 				applyUpgradeOptions.InfrastructureProviders = append(applyUpgradeOptions.InfrastructureProviders, fmt.Sprintf(formatString, ComponentNamespace, ociProviderName, version))
+			}
+			if ok, version := applyUpgradeVersion(ctx.Log(), overrides.GetVerrazzanoAddonOverridesURL(), overrides.GetVerrazzanoAddonOverridesVersion(), overrides.GetVerrazzanoAddonBomVersion(), clusterAPIVerrazzanoAddonControllerImage, co.Image, c.addonProvider); ok {
+				applyUpgradeOptions.AddonProviders = append(applyUpgradeOptions.AddonProviders, fmt.Sprintf(formatString, ComponentNamespace, verrazzanoAddonProviderName, version))
 			}
 		}
 	}
@@ -278,7 +302,8 @@ func isUpgradeOptionsNotEmpty(upgradeOptions capiUpgradeOptions) bool {
 	return len(upgradeOptions.CoreProvider) != 0 ||
 		len(upgradeOptions.BootstrapProviders) != 0 ||
 		len(upgradeOptions.ControlPlaneProviders) != 0 ||
-		len(upgradeOptions.InfrastructureProviders) != 0
+		len(upgradeOptions.InfrastructureProviders) != 0 ||
+		len(upgradeOptions.AddonProviders) != 0
 }
 
 func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]client.Object, error) {
@@ -314,6 +339,14 @@ func getComponentsToUpgrade(c client.Client, options capiUpgradeOptions) ([]clie
 			return componentObjects, err
 		}
 		componentObjects = append(componentObjects, infrastructureComponents...)
+	}
+
+	if len(options.AddonProviders) != 0 {
+		addonComponents, err := getComponentsForProviderType(c, verrazzanoAddonProvider, constants.VerrazzanoCAPINamespace)
+		if err != nil {
+			return componentObjects, err
+		}
+		componentObjects = append(componentObjects, addonComponents...)
 	}
 	return componentObjects, nil
 }
