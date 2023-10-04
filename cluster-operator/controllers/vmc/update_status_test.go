@@ -119,6 +119,52 @@ func TestUpdateStatus(t *testing.T) {
 	asserts.NoError(err)
 }
 
+// TestUpdateStatusImported tests that updateStatus correctly sets the VMC's status.imported field
+func TestUpdateStatusImported(t *testing.T) {
+	a := assert.New(t)
+	scheme := runtime.NewScheme()
+	_ = v1alpha1.AddToScheme(scheme)
+
+	tests := []struct {
+		testName         string
+		vmc              *v1alpha1.VerrazzanoManagedCluster
+		expectedImported bool
+	}{
+		{
+			"imported cluster",
+			newVMC(testVMCName, testVMCNamespace),
+			true,
+		},
+		{
+			"ClusterAPI cluster",
+			newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace),
+			false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			// GIVEN a VMC with either a nil or non-nil ClusterRef
+			// WHEN updateStatus is called
+			// THEN expect the VMC's status imported field to be set
+			ctx := context.TODO()
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.vmc).Build()
+			r := &VerrazzanoManagedClusterReconciler{
+				Client: fakeClient,
+				log:    vzlog.DefaultLogger(),
+			}
+
+			err := r.updateStatus(ctx, tt.vmc)
+			a.NoError(err)
+
+			retrievedVMC := &v1alpha1.VerrazzanoManagedCluster{}
+			err = r.Get(ctx, types.NamespacedName{Name: tt.vmc.Name, Namespace: tt.vmc.Namespace}, retrievedVMC)
+			a.NoError(err)
+			a.Equal(tt.expectedImported, *retrievedVMC.Status.Imported)
+		})
+	}
+}
+
 // TestUpdateProvider tests that updateProvider correctly sets the VMC's status.provider field
 func TestUpdateProvider(t *testing.T) {
 	a := assert.New(t)
