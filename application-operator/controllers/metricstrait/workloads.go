@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/crossplane/oam-kubernetes-runtime/pkg/oam"
 	vzapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vznav "github.com/verrazzano/verrazzano/application-operator/controllers/navigation"
 	"github.com/verrazzano/verrazzano/application-operator/controllers/reconcileresults"
@@ -17,9 +16,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -77,12 +74,7 @@ func (r *Reconciler) updateRelatedDeployment(ctx context.Context, trait *vzapi.M
 	}
 
 	replicaSets := &k8sapps.ReplicaSetList{}
-	compReq, _ := labels.NewRequirement(oam.LabelAppComponent, selection.Equals, []string{deployment.GetLabels()[oam.LabelAppComponent]})
-	appConfNameReq, _ := labels.NewRequirement(oam.LabelAppName, selection.Equals, []string{deployment.GetLabels()[oam.LabelAppName]})
-	selector := labels.NewSelector()
-	selector = selector.Add(*compReq).Add(*appConfNameReq)
-
-	err = r.List(ctx, replicaSets, client.MatchingLabelsSelector{Selector: selector})
+	err = r.List(ctx, replicaSets, client.InNamespace(deployment.Namespace))
 	if err != nil && !apierrors.IsNotFound(err) {
 		return ref, controllerutil.OperationResultNone, fmt.Errorf("failed to get replicasets of workload child deployment %s: %v", vznav.GetNamespacedNameFromObjectMeta(deployment.ObjectMeta).Name, err)
 	}
