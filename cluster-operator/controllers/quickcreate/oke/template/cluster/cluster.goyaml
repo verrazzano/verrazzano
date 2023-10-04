@@ -56,6 +56,37 @@ spec:
                   name: service-lb
                   role: service-lb
                   type: public
+                  securityList:
+                      name: service-lb-security-list
+                      egressRules:
+                          - description: Load Balancer to Worker nodes node ports.
+                            destination: 10.0.64.0/20
+                            destinationType: CIDR_BLOCK
+                            isStateless: false
+                            protocol: "6"
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 32767
+                                    min: 30000
+                      ingressRules:
+                          - description: Accept http traffic on port 80
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 80
+                                    min: 80
+                          - description: Accept https traffic on port 443
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 443
+                                    min: 443
                 - cidr: 10.0.64.0/20
                   name: worker
                   role: worker
@@ -250,6 +281,60 @@ spec:
                                         min: 443
                       name: service-lb
                       role: service-lb
+{{- end }}
+{{- if and .Network.CreateVCN (eq .OKE.Network.CNIType "OCI_VCN_IP_NATIVE") }}
+    networkSpec:
+        vcn:
+            name: {{.Name}}
+            cidr: 10.0.0.0/16
+            subnets:
+                - cidr: 10.0.0.8/29
+                  name: control-plane-endpoint
+                  role: control-plane-endpoint
+                  type: public
+                - cidr: 10.0.0.32/27
+                  name: service-lb
+                  role: service-lb
+                  type: public
+                  securityList:
+                      name: service-lb-security-list
+                      egressRules:
+                          - description: Load Balancer to Worker nodes node ports.
+                            destination: 10.0.64.0/20
+                            destinationType: CIDR_BLOCK
+                            isStateless: false
+                            protocol: "6"
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 32767
+                                    min: 30000
+                      ingressRules:
+                          - description: Accept http traffic on port 80
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 80
+                                    min: 80
+                          - description: Accept https traffic on port 443
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 443
+                                    min: 443
+                - cidr: 10.0.64.0/20
+                  name: worker
+                  role: worker
+                  type: private
+                - cidr: 10.0.128.0/18
+                  name: pod
+                  role: pod
+                  type: private
 {{- end }}
 {{- if not .Network.CreateVCN }} # Existing VCN
     networkSpec:
