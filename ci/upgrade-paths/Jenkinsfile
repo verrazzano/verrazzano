@@ -393,6 +393,12 @@ pipeline {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
+                        stage ('pre-upgrade verify jaeger') {
+                            steps {
+                                verifyJaeger()
+                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
+                            }
+                        }
                         stage ('mc examples helidon') {
                             when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
@@ -566,6 +572,12 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
+                        stage ('post-upgrade verify jaeger') {
+                            steps {
+                                verifyJaeger()
+                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
+                            }
+                        }
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
@@ -616,17 +628,6 @@ pipeline {
                         stage ('mc examples helidon') {
                             steps {
                                 runGinkgoVerifyManaged("multicluster/examples/helidon", "${TEST_DUMP_ROOT}/mchelidon-workload", "true", "false", "false")
-                            }
-                        }
-                        stage ('mc jaeger verify install') {
-                            steps {
-                                verifyJaeger()
-                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
-                            }
-                        }
-                        stage ('mc jaeger helidon') {
-                            steps {
-                                runGinkgo("multicluster/verify-jaeger/helidon", "${TEST_DUMP_ROOT}/jaeger-helidon")
                             }
                         }
                         stage ('mc coherence workload') {
