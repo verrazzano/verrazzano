@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
@@ -54,17 +53,12 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix) {
 			return false
 		}
-		log.Infof("now checking ready replicas")
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
-		if !ready.PodsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
-			log.Infof("pods are not ready")
-			return false
-		}
-		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
+		log.Oncef("%s has enough ready replicas for statefulsets %v", prefix, namespacedName)
 	}
 	return true
 }

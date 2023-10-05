@@ -5,7 +5,6 @@ package ready
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	appsv1 "k8s.io/api/apps/v1"
@@ -98,10 +97,8 @@ func PodsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 	var savedRevision int64
 	var savedControllerRevisionHash string
 	for _, pod := range pods.Items {
-		fmt.Printf("saved Revision: %s, hash %s\n", savedRevision, savedControllerRevisionHash)
 		// Log error and return if the controller-revision-hash label is not found.  This should never happen.
 		if _, ok := pod.Labels[controllerRevisionHashLabel]; !ok {
-			log.Errorf("Failed to find pod label [controller-revision-hash] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
@@ -119,22 +116,17 @@ func PodsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 		}
 
 		if cr.Revision > savedRevision {
-			fmt.Printf("cr.revision > savedRevision: \n")
 			savedRevision = cr.Revision
 			savedControllerRevisionHash = pod.Labels[controllerRevisionHashLabel]
 			savedPods = []corev1.Pod{}
 			savedPods = append(savedPods, pod)
 		}
-		fmt.Printf("cr.revision < savedRevision: \n")
 	}
-	fmt.Printf("savedPods: %d\n", len(savedPods))
 	// Make sure pods using the latest controllerRevision resource are ready.
 	podsReady, success := EnsurePodsAreReady(log, savedPods, expectedReplicas, prefix)
 	if !success {
-		fmt.Printf("pods not ready\n")
 		return false
 	}
-	fmt.Printf("ready pods: %d\n", podsReady)
 
 	if podsReady < expectedReplicas {
 		log.Progressf("%s is waiting for statefulset %s pods to be %v. Current available pods are %v", prefix, namespacedName,
