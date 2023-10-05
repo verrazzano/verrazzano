@@ -113,6 +113,7 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 		if upgradeRequired {
 			log.Oncef("Upgrade is required before reconciling %s", client.ObjectKeyFromObject(actualCR))
 		}
+		// Always return a requeue here, if err is nil the builder handles it
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
