@@ -450,6 +450,28 @@ func TestDeploymentUpdateError(t *testing.T) {
 			deployment.Spec = testDeployment.Spec
 			return nil
 		})
+	// Expect a call to get the Replicasets for deployment
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *k8sapps.ReplicaSetList, opts ...client.ListOption) error {
+			list.Items = []k8sapps.ReplicaSet{{ObjectMeta: k8smeta.ObjectMeta{Name: "test-rs", OwnerReferences: []k8smeta.OwnerReference{{APIVersion: testDeployment.APIVersion, Kind: testDeployment.Kind, Name: testDeployment.Name}}}, TypeMeta: k8smeta.TypeMeta{Kind: "ReplicSet", APIVersion: "v1"}}}
+			return nil
+		})
+	// Expect a call to get the Podlist for deployment
+	mock.EXPECT().
+		List(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, list *k8score.PodList, opts ...client.ListOption) error {
+			list.Items = []k8score.Pod{{ObjectMeta: k8smeta.ObjectMeta{OwnerReferences: []k8smeta.OwnerReference{{APIVersion: "v1", Kind: "ReplicSet", Name: "test-rs"}}}}}
+			return nil
+		})
+	// Expect a call to get the Pod to update
+	mock.EXPECT().
+		Get(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pod *k8score.Pod, opts ...client.GetOption) error {
+			pod.ObjectMeta = k8smeta.ObjectMeta{OwnerReferences: []k8smeta.OwnerReference{{APIVersion: "v1", Kind: "ReplicSet", Name: "test-rs"}}}
+			pod.CreationTimestamp = k8smeta.Now()
+			return nil
+		})
 	// Expect a call to update the child with annotations but return an error.
 	mock.EXPECT().Update(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("test-error"))
 	// Expect a call to get the status writer and return a mock.
@@ -1212,6 +1234,7 @@ func TestUpdateRelatedStatefulSet(t *testing.T) {
 			ObjectMeta: k8smeta.ObjectMeta{Namespace: child.GetNamespace(), Name: child.GetName(), CreationTimestamp: k8smeta.Now()},
 		},
 		&k8score.Namespace{ObjectMeta: k8smeta.ObjectMeta{Name: child.GetNamespace()}},
+		&k8score.Pod{ObjectMeta: k8smeta.ObjectMeta{OwnerReferences: []k8smeta.OwnerReference{{Kind: child.GetKind(), APIVersion: child.GetAPIVersion(), Name: child.GetName()}}}},
 	).Build()
 	reconciler0 := newMetricsTraitReconciler(cli)
 	_, res0, err0 := reconciler0.updateRelatedStatefulSet(context.Background(), &trait, nil, nil, &child, vzlog.DefaultLogger())
