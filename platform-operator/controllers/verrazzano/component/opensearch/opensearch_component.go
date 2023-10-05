@@ -6,17 +6,8 @@ package opensearch
 import (
 	"context"
 	"fmt"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"path"
-
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -27,7 +18,12 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchoperator"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -122,11 +118,8 @@ func (o opensearchComponent) Install(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	// substitute template values to all files in the directory and apply the resulting YAML
-	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	err = yamlApplier.ApplyFT(filePath, args)
 
+	err = common.ApplyManifestFile(ctx, "opensearch-operator/opensearch_cluster_cr.yaml", args)
 	if err != nil {
 		return ctx.Log().ErrorfThrottledNewErr("Failed to substitute template values for OpenSearchCluster CR: %v", err)
 	}
@@ -169,11 +162,8 @@ func (o opensearchComponent) Upgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	// substitute template values to all files in the directory and apply the resulting YAML
-	filePath := path.Join(config.GetThirdPartyManifestsDir(), "opensearch-operator/opensearch_cluster_cr.yaml")
-	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
-	err = yamlApplier.ApplyFT(filePath, args)
 
+	err = common.ApplyManifestFile(ctx, "opensearch-operator/opensearch_cluster_cr.yaml", args)
 	if err != nil {
 		return ctx.Log().ErrorfThrottledNewErr("Component: %s, Failed to substitute template values for OpenSearchCluster CR: %v", ComponentName, err)
 	}

@@ -1,12 +1,14 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
+import hudson.AbortException
+
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 // def agentLabel = "largeexperimental"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def clusterSuffix = UUID.randomUUID().toString().substring(0,6).replace('-','')
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "us-phoenix-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def ocneK8sVersionSupport = [ "v1.25.7","v1.25.11","v1.26.6" ]
 Collections.shuffle(ocneK8sVersionSupport)
@@ -369,6 +371,11 @@ pipeline {
                                 // This will deploy an OCNE cluster
                                 // Then proceed to create image pull secrets required for jenkins
                                 // Also deploy Verrazzano
+                                def canProceed = waitForNLBAvailability()
+                                if (!canProceed) {
+                                    currentBuild.description = "Build aborted due to lack of resources"
+                                    throw new AbortException("Test aborted due to insufficient network load balancers: " + availableNLB)
+                                }
                                 set_capi_variables()
                                 runGinkgo('clusterapi/capi')
                             }
@@ -942,4 +949,24 @@ def dumpCAPIClusterDetails() {
         echo "capi cluster conditions dumped successfully to capi-cluster-conditions.out"
         echo "------------------------------------------"
     """
+}
+
+def waitForNLBAvailability() {
+    start = System.currentTimeMillis()
+    time = 15*60*1000
+    while(System.currentTimeMillis() - start < time)
+    {
+        println("Waiting for NLB availability....")
+        if(checkNLBAvailability())
+            return true
+
+        sleep (10)
+    }
+    return false
+}
+
+def checkNLBAvailability() {
+    def availableNLB = sh(script: '${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/get_resource_availability.sh network-load-balancer-api max-nlb-flexible-count', returnStdout: true).trim()
+    println("Number of available NLB: " + availableNLB)
+    return Integer.parseInt(availableNLB) >= 1
 }
