@@ -22,11 +22,7 @@ import (
 
 // initExternalOIDCProvider initializes the external URL based OIDC Provider in the given Authenticator
 func (a *OIDCAuthenticator) initExternalOIDCProvider() error {
-	ctx, err := a.createContextWithHTTPClient()
-	if err != nil {
-		return err
-	}
-	provider, err := oidc.NewProvider(ctx, a.oidcConfig.ExternalURL)
+	provider, err := oidc.NewProvider(a.ctx, a.oidcConfig.ExternalURL)
 	if err != nil {
 		return err
 	}
@@ -48,9 +44,11 @@ func (a *OIDCAuthenticator) createContextWithHTTPClient() (context.Context, erro
 		}
 	}
 
-	httpClient := httputil.GetHTTPClientWithCABundle(certPool)
-	ctx := context.Background()
-	return context.WithValue(ctx, oauth2.HTTPClient, httpClient.HTTPClient), nil
+	httpClient, err := httputil.GetHTTPClientWithCABundle(certPool)
+	if err != nil {
+		return nil, err
+	}
+	return context.WithValue(context.Background(), oauth2.HTTPClient, httpClient.StandardClient()), nil
 }
 
 // performLoginRedirect redirects the incoming request to the OIDC provider

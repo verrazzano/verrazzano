@@ -40,7 +40,7 @@ func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string)
 	return idToken, nil
 }
 
-func (a *OIDCAuthenticator) ExchangeCodeForToken(req *http.Request, rw http.ResponseWriter, codeVerifier string) (string, error) {
+func (a *OIDCAuthenticator) ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error) {
 	// TODO Create this once?
 	oauthConfig := oauth2.Config{
 		ClientID:    a.oidcConfig.ClientID,
@@ -50,12 +50,7 @@ func (a *OIDCAuthenticator) ExchangeCodeForToken(req *http.Request, rw http.Resp
 	}
 	codeVerifierParam := oauth2.SetAuthURLParam("code_verifier", codeVerifier)
 
-	ctx, err := a.createContextWithHTTPClient()
-	if err != nil {
-		a.Log.Errorf("Error creating context: %v", err)
-		return "", err
-	}
-	oauth2Token, err := oauthConfig.Exchange(ctx, req.URL.Query().Get("code"), codeVerifierParam)
+	oauth2Token, err := oauthConfig.Exchange(a.ctx, req.URL.Query().Get("code"), codeVerifierParam)
 	if err != nil {
 		a.Log.Errorf("Failed exchanging code for token: %v", err)
 		return "", err
@@ -90,7 +85,7 @@ func (a *OIDCAuthenticator) initServiceOIDCVerifier() error {
 		return err
 	}
 
-	provider, err := oidc.NewProvider(context.TODO(), a.oidcConfig.ServiceURL)
+	provider, err := oidc.NewProvider(a.ctx, a.oidcConfig.ServiceURL)
 	if err != nil {
 		a.Log.Errorf("Failed to load OIDC provider: %v", err)
 		return err

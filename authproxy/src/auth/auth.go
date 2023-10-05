@@ -5,12 +5,10 @@ package auth
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
 	"net/http"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
 	"go.uber.org/zap"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,9 +28,13 @@ type verifier interface {
 func NewAuthenticator(oidcConfig *OIDCConfiguration, log *zap.SugaredLogger, client k8sclient.Client) (*OIDCAuthenticator, error) {
 	authenticator := &OIDCAuthenticator{
 		Log:        log,
-		client:     httputil.GetHTTPClientWithCABundle(&x509.CertPool{}),
 		oidcConfig: oidcConfig,
 		k8sClient:  client,
+	}
+
+	var err error
+	if authenticator.ctx, err = authenticator.createContextWithHTTPClient(); err != nil {
+		return nil, err
 	}
 
 	if err := authenticator.initExternalOIDCProvider(); err != nil {

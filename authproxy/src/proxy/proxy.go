@@ -89,7 +89,10 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		return err
 	}
 
-	httpClient := httputil.GetHTTPClientWithCABundle(rootCA)
+	httpClient, err := httputil.GetHTTPClientWithCABundle(rootCA)
+	if err != nil {
+		return err
+	}
 	authproxy.Handler = &Handler{
 		URL:         restConfig.Host,
 		Client:      httpClient,
@@ -130,10 +133,11 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
 	h.Log.Debugf("Handling oauth callback, request: %+v", req)
 
+	// the state field in the VZ cookie must match the state query param value
 	state, err := cookie.GetStateCookie(req)
 	if err != nil {
 		h.Log.Errorf("Failed to read state cookie: %v", err)
-		http.Error(rw, "Failed to read state cookie", http.StatusInternalServerError)
+		http.Error(rw, "Failed to read state cookie", http.StatusUnauthorized)
 		return
 	}
 	h.Log.Debugf("State struct: %+v", state)
@@ -151,7 +155,8 @@ func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	token, err := h.Authenticator.ExchangeCodeForToken(req, rw, state.CodeVerifier)
+	// call the IdP to exchange the single-use code for a token
+	token, err := h.Authenticator.ExchangeCodeForToken(req, state.CodeVerifier)
 	if err != nil {
 		h.Log.Errorf("Failed to exchange code for token: %v", err)
 		http.Error(rw, "Failed to exchange code for token", http.StatusInternalServerError)
@@ -160,6 +165,7 @@ func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) 
 
 	h.Log.Debugf("Got token: %s", token)
 
+	// validate the token and get the ID token
 	idToken, err := h.Authenticator.AuthenticateToken(context.TODO(), token)
 	if err != nil {
 		h.Log.Errorf("Failed authenticating token: %v", err)

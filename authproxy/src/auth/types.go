@@ -9,7 +9,6 @@ import (
 	"sync/atomic"
 
 	"github.com/coreos/go-oidc/v3/oidc"
-	"github.com/hashicorp/go-retryablehttp"
 	"go.uber.org/zap"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -19,14 +18,14 @@ type Authenticator interface {
 	AuthenticateToken(ctx context.Context, token string) (*oidc.IDToken, error)
 	AuthenticateRequest(req *http.Request, rw http.ResponseWriter) (bool, error)
 	SetCallbackURL(url string)
-	ExchangeCodeForToken(req *http.Request, rw http.ResponseWriter, codeVerifier string) (string, error)
+	ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error)
 }
 
 // OIDCAuthenticator authenticates incoming requests against the Identity Provider
 type OIDCAuthenticator struct {
 	k8sClient        k8sclient.Client
 	oidcConfig       *OIDCConfiguration
-	client           *retryablehttp.Client
+	ctx              context.Context
 	ExternalProvider *oidc.Provider
 	verifier         atomic.Value
 	Log              *zap.SugaredLogger
