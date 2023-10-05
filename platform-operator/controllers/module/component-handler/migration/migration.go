@@ -39,6 +39,8 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
+	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
+	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(vzcr); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	} else if upgradeRequired {

@@ -109,6 +109,8 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 		return res
 	}
 
+	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
+	// has not modified the version in the Verrazzano CR to match the BOM.
 	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(actualCR); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	} else if upgradeRequired {
