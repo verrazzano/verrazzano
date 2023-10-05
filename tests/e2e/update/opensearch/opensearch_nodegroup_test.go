@@ -4,14 +4,22 @@
 package opensearch
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 )
 
 const (
-	nodePoolLabel = "opster.io/opensearch-nodepool"
+	nodePoolLabel     = "opster.io/opensearch-nodepool"
+	osMasterNodegroup = "es-master"
 )
 
 var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
@@ -48,4 +56,29 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
 	})
+
+	// GIVEN a VZ custom resource in dev profile,
+	// WHEN opensearch plugin is updated with wrong value
+	// THEN master pods gets in failure state.
+	// In last opensearch plugin is disabled
+	// Then all pods are back to normal state
+	t.It("opensearch update plugin", func() {
+		m := OpenSearchPlugins{Enabled: true, InstanceList: "abc"}
+		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
+		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoSystemNamespace, 0, false)
+		m = OpenSearchPlugins{Enabled: false, InstanceList: "analysis-stempel"}
+		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
+		var pods []corev1.Pod
+		var err error
+		Eventually(func() error {
+			pods, err = pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{nodePoolLabel: osMasterNodegroup}}, constants.VerrazzanoSystemNamespace)
+			if err != nil {
+				pkg.Log(pkg.Error, err.Error())
+				return err
+			}
+			return nil
+		}).WithPolling(20*time.Second).WithTimeout(2*time.Minute).Should(BeNil(), "failed to fetch the opensearch master pods")
+		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoSystemNamespace, uint32(len(pods)), false)
+	})
+
 })

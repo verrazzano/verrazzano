@@ -22,6 +22,7 @@ const (
 	HealthGreen       = "green"
 	applicationJSON   = "application/json"
 	contentTypeHeader = "Content-Type"
+	vzSystemNamespace = "verrazzano-system"
 )
 
 type (
@@ -83,9 +84,9 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 // GetVerrazzanoPassword returns the password credential for the Verrazzano secret
 func GetVerrazzanoPassword(client client.Client) (string, error) {
 	var secret = &corev1.Secret{}
-	err := client.Get(context.TODO(), types.NamespacedName{Name: "verrazzano", Namespace: "verrazzano-system"}, secret)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: "verrazzano", Namespace: vzSystemNamespace}, secret)
 	if err != nil {
-		return "", fmt.Errorf("unable to fetch secret %s/%s, %v", "verrazzano", "verrazzano-system", err)
+		return "", fmt.Errorf("unable to fetch secret %s/%s, %v", "verrazzano", vzSystemNamespace, err)
 	}
 	return string(secret.Data["password"]), nil
 }
@@ -131,7 +132,7 @@ func (o *OSClient) IsClusterHealthy(client client.Client) (bool, error) {
 }
 
 func GetOpenSearchHTTPEndpoint(client client.Client) (string, error) {
-	opensearchURL, err := k8sutil.GetURLForIngress(client, "opensearch", "verrazzano-system", "https")
+	opensearchURL, err := k8sutil.GetURLForIngress(client, "opensearch", vzSystemNamespace, "https")
 	if err != nil {
 		return "", err
 	}
