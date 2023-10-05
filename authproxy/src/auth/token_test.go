@@ -9,11 +9,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"golang.org/x/oauth2"
 )
 
 // TestAuthenticateToken tests that tokens are properly processed and validated
@@ -111,6 +114,7 @@ func TestGetTokenFromAuthHeader(t *testing.T) {
 func TestInitServiceOIDCVerifier(t *testing.T) {
 	authenticator := OIDCAuthenticator{
 		Log: zap.S(),
+		ctx: context.TODO(),
 	}
 
 	// GIVEN a valid configuration
@@ -229,6 +233,66 @@ func TestGetImpersonationHeadersFromRequest(t *testing.T) {
 			assert.ElementsMatch(t, tt.expectedGroups, imp.Groups)
 		})
 	}
+}
+
+// TestExchangeCodeForToken tests the ExchangeCodeForToken function
+func TestExchangeCodeForToken(t *testing.T) {
+	const idToken = "test-id-token"
+	const testCode = "test-code"
+
+	// fake IdP server
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// request to get the issuer and token endpoint URLs
+		if strings.HasSuffix(r.RequestURI, "/.well-known/openid-configuration") {
+			w.Header().Add("Content-Type", "application/json")
+			fmt.Fprintln(w, `{"issuer": "https://`+r.Host+`", "token_endpoint": "https://`+r.Host+`/tokens"}`)
+			return
+		}
+
+		// request to exchange the single-use code for a token - first validate that the expected code is in the post body
+		defer r.Body.Close()
+		if r.FormValue("code") != testCode {
+			http.Error(w, "Code not found in post body", http.StatusUnauthorized)
+			return
+		}
+		// return a response with both an access token and an id token
+		w.Header().Add("Content-Type", "application/json")
+		fmt.Fprintln(w, `{"access_token": "test-access-token", "id_token": "`+idToken+`"}`)
+	}))
+	defer ts.Close()
+
+	// GIVEN the identity provider has redirected with a one-time code
+	// WHEN we call to exchange the code for a token
+	// THEN the identity provider returns a response with an access token and an identity token
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, ts.Client())
+
+	provider, err := oidc.NewProvider(ctx, ts.URL)
+	assert.NoError(t, err)
+
+	authenticator := &OIDCAuthenticator{
+		Log: zap.S(),
+		oidcConfig: &OIDCConfiguration{
+			ServiceURL:  "test-issuer",
+			ExternalURL: ts.URL,
+			ClientID:    "test-client",
+		},
+		ExternalProvider: provider,
+		ctx:              ctx,
+	}
+	// this request represents the redirect from the IdP after a successful login
+	req := httptest.NewRequest("", "https://example.com?code="+testCode, nil)
+
+	token, err := authenticator.ExchangeCodeForToken(req, "test-verifier")
+	assert.NoError(t, err)
+	assert.Equal(t, idToken, token)
+
+	// GIVEN the identity provider has redirected without a one-time code
+	// WHEN we call to exchange the code for a token
+	// THEN the identity provider returns an error response
+	req = httptest.NewRequest("", "https://example.com", nil)
+
+	_, err = authenticator.ExchangeCodeForToken(req, "test-verifier")
+	assert.ErrorContains(t, err, "cannot fetch token: 401 Unauthorized")
 }
 
 func (m mockVerifier) Verify(_ context.Context, rawIDToken string) (*oidc.IDToken, error) {
