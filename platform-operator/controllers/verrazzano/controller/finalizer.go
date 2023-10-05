@@ -70,6 +70,7 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 		if result := r.createOrUpdateModules(log, actualCR, effectiveCR); result.ShouldRequeue() {
 			return result
 		}
+		return result.NewResultShortRequeueDelay()
 	}
 
 	// Update the status to indicate an uninstall has started
