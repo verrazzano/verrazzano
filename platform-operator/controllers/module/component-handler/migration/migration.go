@@ -4,17 +4,15 @@
 package migration
 
 import (
-	"fmt"
 	"time"
 
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzctrlcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -41,11 +39,11 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if upgradeRequired, err := isUpgradeRequired(vzcr); err != nil {
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(vzcr); upgradeRequired || err != nil {
+		if upgradeRequired {
+			ctx.Log.Oncef("Upgrade required before reconciling module %s", client.ObjectKeyFromObject(module))
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
-	} else if upgradeRequired {
-		ctx.Log.Oncef("Upgrade required before reconciling module %s", client.ObjectKeyFromObject(module))
-		return result.NewResultShortRequeueDelay()
 	}
 
 	// If conditions exist then the module is being or has been reconciled.
@@ -103,30 +101,4 @@ func getLatestVzComponentCondition(ctx handlerspi.HandlerContext, compStatus *vz
 		}
 	}
 	return latestCond
-}
-
-func isUpgradeRequired(actualCR *vzapi.Verrazzano) (bool, error) {
-	if actualCR == nil {
-		return false, fmt.Errorf("no Verrazzano CR provided")
-	}
-	bomVersion, err := validators.GetCurrentBomVersion()
-	if err != nil {
-		return false, err
-	}
-
-	if len(actualCR.Spec.Version) > 0 {
-		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
-		if err != nil {
-			return false, err
-		}
-		return bomVersion.IsGreatherThan(specVersion), nil
-	}
-	if len(actualCR.Status.Version) > 0 {
-		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
-		if err != nil {
-			return false, err
-		}
-		return bomVersion.IsGreatherThan(statusVersion), nil
-	}
-	return false, nil
 }

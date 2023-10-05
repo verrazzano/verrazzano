@@ -5,12 +5,15 @@ package controller
 
 import (
 	"context"
+	"time"
+
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	vzctrlcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -25,7 +28,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"time"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstallations.
@@ -106,13 +109,17 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 		return res
 	}
 
-	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
-	// Always use actualCR when updating status
-	effectiveCR, err := transform.GetEffectiveCR(actualCR)
-	if err != nil {
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(actualCR); upgradeRequired || err != nil {
+		if upgradeRequired {
+			log.Oncef("Upgrade is required before reconciling %s", client.ObjectKeyFromObject(actualCR))
+		}
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	effectiveCR.Status = actualCR.Status
+
+	effectiveCR, err := r.createEffectiveCR(actualCR)
+	if err != nil {
+		result.NewResultShortRequeueDelayWithError(err)
+	}
 
 	// Update the status if this is an upgrade. If this is not an upgrade,
 	// then we don't know, at this point, if install, update, or partial uninstall is
@@ -305,4 +312,16 @@ func (r Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 
 	// Pre-populate the component status fields
 	return r.initializeComponentStatus(log, actualCR)
+}
+
+// createEffectiveCR Creates an effective CR from the one passed in
+func (r Reconciler) createEffectiveCR(actualCR *vzv1alpha1.Verrazzano) (*vzv1alpha1.Verrazzano, error) {
+	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
+	// Always use actualCR when updating status
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
+	if err != nil {
+		return nil, err
+	}
+	effectiveCR.Status = actualCR.Status
+	return effectiveCR, nil
 }

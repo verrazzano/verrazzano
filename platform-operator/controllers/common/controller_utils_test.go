@@ -1,13 +1,14 @@
 // Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package migration
+package common
 
 import (
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
-	"testing"
 )
 
 // TestIsUpgradeRequired tests that isUpgradeRequired method tells us when an upgrade is required before we can apply
@@ -190,7 +191,7 @@ func TestIsUpgradeRequired(t *testing.T) {
 				wantErr = assert.NoError
 			}
 
-			got, err := isUpgradeRequired(tt.actualCR)
+			got, err := IsUpgradeRequired(tt.actualCR)
 			if !wantErr(t, err, "Did not get expected error result") {
 				return
 			}
