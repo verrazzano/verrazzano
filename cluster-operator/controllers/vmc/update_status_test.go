@@ -333,8 +333,8 @@ func newVMCWithClusterRef(name, namespace, clusterName, clusterNamespace string)
 			ClusterRef: &v1alpha1.ClusterReference{
 				Name:       clusterName,
 				Namespace:  clusterNamespace,
-				APIVersion: capi.GVKCAPICluster.GroupVersion().String(),
-				Kind:       capi.GVKCAPICluster.Kind,
+				APIVersion: "cluster.x-k8s.io/v1beta1",
+				Kind:       "Cluster",
 			},
 		},
 	}
