@@ -7,7 +7,6 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -42,7 +41,7 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
-		if !podsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
+		if !PodsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
 			return false
 		}
 		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
@@ -78,9 +77,9 @@ func DoesStatefulsetExist(client client.Client, namespacedName types.NamespacedN
 	return true, nil
 }
 
-// podsReadyStatefulSet checks for an expected number of pods to be using the latest controllerRevision resource and are
+// PodsReadyStatefulSet checks for an expected number of pods to be using the latest controllerRevision resource and are
 // running and ready
-func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
+func PodsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, namespacedName types.NamespacedName, selector *metav1.LabelSelector, expectedReplicas int32, prefix string) bool {
 	// Get a list of pods for a given namespace and labels selector
 	pods := GetPodsList(log, client, namespacedName, selector)
 	if pods == nil {
@@ -137,51 +136,5 @@ func podsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 		return false
 	}
 
-	return true
-}
-
-// AreOpensearchStsReady Check that the OS statefulsets have the minimum number of specified replicas ready and available. It ignores the updated replicas check if updated replicas are zero.
-func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
-	for _, namespacedName := range namespacedNames {
-		statefulset := appsv1.StatefulSet{}
-		if err := client.Get(context.TODO(), namespacedName, &statefulset); err != nil {
-			if errors.IsNotFound(err) {
-				log.Progressf("%s is waiting for statefulset %v to exist", prefix, namespacedName)
-				// StatefulSet not found
-				return false
-			}
-			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
-			return false
-		}
-		if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
-			pas, err := opensearch.GetVerrazzanoPassword(client)
-			if err != nil {
-				log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)
-				return false
-			}
-			osClient := opensearch.NewOSClient(pas)
-			healthy, err := osClient.IsClusterHealthy(client)
-			if err != nil {
-				log.Errorf("Failed getting Opensearch cluster health: %v", err)
-				return false
-			}
-			if !healthy {
-				log.Error("Opensearch Cluster is not healthy. Please check Opensearch operator for more information.")
-			} else {
-				log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-					expectedReplicas, statefulset.Status.UpdatedReplicas)
-				return false
-			}
-		}
-		if statefulset.Status.ReadyReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
-				expectedReplicas, statefulset.Status.ReadyReplicas)
-			return false
-		}
-		if !podsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
-			return false
-		}
-		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
-	}
 	return true
 }

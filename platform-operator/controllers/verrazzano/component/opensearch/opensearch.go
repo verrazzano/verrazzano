@@ -7,7 +7,9 @@ import (
 	"fmt"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
+	"github.com/verrazzano/verrazzano/pkg/k8s/ready/opensearch"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
@@ -111,7 +113,7 @@ func isOSNodeReady(ctx spi.ComponentContext, node vzapi.OpenSearchNode, prefix s
 	// If a node has the master role, it is a statefulset
 	// If the opster operator is managing OpenSearch, then all nodes are statefulset
 	if !isLegacyOS || hasRole(node.Roles, vmov1.MasterRole) {
-		return ready.AreOpensearchStsReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
+		return opensearch.AreOpensearchStsReady(ctx.Log(), ctx.Client(), []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: ns,
 		}}, *node.Replicas, prefix)
