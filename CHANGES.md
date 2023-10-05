@@ -1,3 +1,9 @@
+### v1.6.8
+Component version updates:
+
+- Istio v1.19.0
+- Kiali 1.73.0
+
 ### v1.6.7
 Component version updates:
 
