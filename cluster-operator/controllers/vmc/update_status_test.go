@@ -365,7 +365,7 @@ func newCAPICluster(name, namespace string) *v1beta1.Cluster {
 		},
 		Spec: v1beta1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{},
-			ControlPlaneRef: &corev1.ObjectReference{},
+			ControlPlaneRef:   &corev1.ObjectReference{},
 		},
 	}
 	return &cluster

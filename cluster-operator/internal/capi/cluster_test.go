@@ -20,6 +20,7 @@ const (
 	clusterClassName = "test-cluster-class"
 	testNamespace    = "test-namespace"
 )
+
 func TestGetClusterClassFromCluster(t *testing.T) {
 	a := assert.New(t)
 	ctx := context.TODO()
@@ -50,7 +51,7 @@ func TestGetClusterClassFromCluster(t *testing.T) {
 func newCAPICluster(name, namespace string) *v1beta1.Cluster {
 	cluster := v1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
+			Kind:       "Cluster",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -64,7 +65,7 @@ func newCAPICluster(name, namespace string) *v1beta1.Cluster {
 func newCAPIClusterWithClassReference(name, className, namespace string) *v1beta1.Cluster {
 	cluster := v1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
+			Kind:       "Cluster",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -83,7 +84,7 @@ func newCAPIClusterWithClassReference(name, className, namespace string) *v1beta
 func newCAPIClusterClass(name, namespace string) *v1beta1.ClusterClass {
 	clusterClass := v1beta1.ClusterClass{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterClass",
+			Kind:       "ClusterClass",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
