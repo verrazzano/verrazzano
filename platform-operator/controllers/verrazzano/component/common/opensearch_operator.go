@@ -292,14 +292,14 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 	}
 
 	for _, node := range effectiveCRNodes {
+		if skipNode(node) {
+			continue
+		}
 		nodePool := NodePool{
 			Component: node.Name,
 			Jvm:       node.JavaOpts,
 		}
 		if node.Replicas != nil {
-			if *node.Replicas == 0 {
-				continue
-			}
 			nodePool.Replicas = *node.Replicas
 		}
 		if node.Resources != nil {
@@ -337,6 +337,17 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 		}
 	}
 	return nodePools, nil
+}
+
+// skipNode returns true if the replica count for node is zero
+// and has no roles defined
+func skipNode(node vzapi.OpenSearchNode) bool {
+	if node.Replicas != nil && *node.Replicas == 0 {
+		if len(node.Roles) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // getActualCRNodes returns the nodes from the actual CR
