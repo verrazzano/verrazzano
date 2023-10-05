@@ -30,7 +30,7 @@ modules:
   - name: istio
     version: 1.19.0
   - name: rancher
-    version: 2.7.6-2
+    version: 2.7.6-3
     chart: platform-operator/thirdparty/charts/rancher
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
