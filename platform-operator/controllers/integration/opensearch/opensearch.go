@@ -32,7 +32,12 @@ const (
 	indexSettings     = `{"index_patterns": [".opendistro*"],"priority": 0,"template": {"settings": {"auto_expand_replicas": "0-1"}}}`
 	applicationJSON   = "application/json"
 	contentTypeHeader = "Content-Type"
+	HealthGreen       = "green"
 )
+
+type ClusterHealth struct {
+	Status string `json:"status"`
+}
 
 func NewOSClient(pas string) *OSClient {
 	tr := &http.Transport{
@@ -161,6 +166,32 @@ func (o *OSClient) SetAutoExpandIndices(log vzlog.VerrazzanoLogger, client clipk
 		return fmt.Errorf("expected acknowledgement for index settings update but did not get. Actual response  %v", updatedIndexSettings)
 	}
 	return nil
+}
+
+// IsClusterHealthy checks whether Opensearch Cluster is healthy or not.
+func (o *OSClient) IsClusterHealthy(client clipkg.Client) (bool, error) {
+	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
+	if err != nil {
+		return false, err
+	}
+	healthURL := fmt.Sprintf("%s/_cat/health", openSearchEndpoint)
+	req, err := http.NewRequest("GET", healthURL, nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Add(contentTypeHeader, applicationJSON)
+	resp, err := o.DoHTTP(req)
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("got status code %d when fetching cluster health, expected %d", resp.StatusCode, http.StatusOK)
+	}
+	clusterHealth := &ClusterHealth{}
+	if err := json.NewDecoder(resp.Body).Decode(clusterHealth); err != nil {
+		return false, err
+	}
+	return clusterHealth.Status == HealthGreen, nil
 }
 
 // IsOpenSearchReady returns true when all OpenSearch pods are ready, false otherwise

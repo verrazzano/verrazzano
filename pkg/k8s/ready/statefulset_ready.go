@@ -7,6 +7,7 @@ import (
 	"context"
 
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/integration/opensearch"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -153,9 +154,24 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 			return false
 		}
 		if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
-			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-				expectedReplicas, statefulset.Status.UpdatedReplicas)
-			return false
+			pas, err := opensearch.GetVerrazzanoPassword(client)
+			if err != nil {
+				log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)
+				return false
+			}
+			osClient := opensearch.NewOSClient(pas)
+			healthy, err := osClient.IsClusterHealthy(client)
+			if err != nil {
+				log.Errorf("Failed getting Opensearch cluster health: %v", err)
+				return false
+			}
+			if !healthy {
+				log.Error("Opensearch Cluster is not healthy. Please check Opensearch operator for more information.")
+			} else {
+				log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
+					expectedReplicas, statefulset.Status.UpdatedReplicas)
+				return false
+			}
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
