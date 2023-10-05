@@ -48,25 +48,8 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
-		if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
-			pas, err := GetVerrazzanoPassword(client)
-			if err != nil {
-				log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)
-				return false
-			}
-			osClient := NewOSClient(pas)
-			healthy, err := osClient.IsClusterHealthy(client)
-			if err != nil {
-				log.Errorf("Failed getting Opensearch cluster health: %v", err)
-				return false
-			}
-			if !healthy {
-				log.Error("Opensearch Cluster is not healthy. Please check Opensearch operator for more information.")
-			} else {
-				log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-					expectedReplicas, statefulset.Status.UpdatedReplicas)
-				return false
-			}
+		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix) {
+			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
@@ -111,7 +94,7 @@ func (o *OSClient) IsClusterHealthy(client client.Client) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	healthURL := fmt.Sprintf("%s/_cat/health", openSearchEndpoint)
+	healthURL := fmt.Sprintf("%s/_cluster/health", openSearchEndpoint)
 	req, err := http.NewRequest("GET", healthURL, nil)
 	if err != nil {
 		return false, err
@@ -137,4 +120,29 @@ func GetOpenSearchHTTPEndpoint(client client.Client) (string, error) {
 		return "", err
 	}
 	return opensearchURL, nil
+}
+
+// areOSReplicasUpdated check whether all replicas of opensearch are updated or not. In case of yellow cluster status, we skip this check and consider replicas are updated.
+func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.StatefulSet, expectedReplicas int32, client client.Client, prefix string) bool {
+	if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
+		pas, err := GetVerrazzanoPassword(client)
+		if err != nil {
+			log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)
+			return false
+		}
+		osClient := NewOSClient(pas)
+		healthy, err := osClient.IsClusterHealthy(client)
+		if err != nil {
+			log.Errorf("Failed getting Opensearch cluster health: %v", err)
+			return false
+		}
+		if !healthy {
+			log.Error("Opensearch Cluster is not healthy. Please check Opensearch operator for more information.")
+			return true
+		}
+		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix,
+			expectedReplicas, statefulset.Status.UpdatedReplicas)
+		return false
+	}
+	return true
 }
