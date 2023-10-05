@@ -51,12 +51,14 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix) {
 			return false
 		}
+		log.Infof("now checking ready replicas")
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
 			return false
 		}
 		if !ready.PodsReadyStatefulSet(log, client, namespacedName, statefulset.Spec.Selector, expectedReplicas, prefix) {
+			log.Infof("pods are not ready")
 			return false
 		}
 		log.Oncef("%s has enough replicas for statefulsets %v", prefix, namespacedName)
@@ -137,7 +139,7 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 			return false
 		}
 		if !healthy {
-			log.Error("Opensearch Cluster is not healthy. Please check Opensearch operator for more information.")
+			log.Errorf("Opensearch Cluster is not healthy. Please check Opensearch operator for more information")
 			return true
 		}
 		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix,
