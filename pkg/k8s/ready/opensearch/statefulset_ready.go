@@ -35,7 +35,7 @@ type (
 	}
 )
 
-// AreOpensearchStsReady Check that the OS statefulsets have the minimum number of specified replicas ready and available. It ignores the updated replicas check if updated replicas are zero.
+// AreOpensearchStsReady Check that the OS statefulsets have the minimum number of specified replicas ready and available. It ignores the updated replicas check if updated replicas are zero or cluster is not healthy.
 func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, namespacedNames []types.NamespacedName, expectedReplicas int32, prefix string) bool {
 	for _, namespacedName := range namespacedNames {
 		statefulset := appsv1.StatefulSet{}
