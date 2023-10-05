@@ -77,6 +77,12 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+	if common.IsSingleMasterNodeCluster(componentCtx) {
+		err = r.AddTemplateAutoExpand(controllerCtx, effectiveCR)
+		if err != nil {
+			return result.NewResultShortRequeueDelayWithError(err)
+		}
+	}
 	if !effectiveCR.Spec.Components.Elasticsearch.DisableDefaultPolicy {
 		err = r.CreateDefaultISMPolicies(controllerCtx, effectiveCR)
 		if err != nil {
@@ -88,12 +94,7 @@ func (r Reconciler) Reconcile(controllerCtx controllerspi.ReconcileContext, u *u
 			return result.NewResultShortRequeueDelayWithError(err)
 		}
 	}
-	if common.IsSingleMasterNodeCluster(componentCtx) {
-		err = r.AddTemplateAutoExpand(controllerCtx, effectiveCR)
-		if err != nil {
-			return result.NewResultShortRequeueDelayWithError(err)
-		}
-	}
+
 	err = r.ConfigureISMPolicies(controllerCtx, effectiveCR)
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
