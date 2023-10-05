@@ -6,8 +6,9 @@ package capi
 import (
 	"context"
 	"fmt"
+
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
+	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
@@ -50,7 +51,7 @@ type CAPIClusterReconciler struct {
 
 func CAPIClusterClientObject() client.Object {
 	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(capi.GVKCAPICluster)
+	obj.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	return obj
 }
 
@@ -66,7 +67,7 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	r.Log.Infof("Reconciling CAPI cluster: %v", req.NamespacedName)
 
 	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
+	cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	err := r.Get(context.TODO(), req.NamespacedName, cluster)
 	if err != nil && !errors.IsNotFound(err) {
 		return ctrl.Result{}, err
@@ -129,6 +130,9 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err = r.setVMCClusterRef(ctx, cluster, vmc); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if r.RancherEnabled {
 		// Is Rancher Deployment ready
@@ -146,6 +150,16 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
 	return verrazzanoReconcileFn(ctx, cluster, r)
+}
+
+func (r *CAPIClusterReconciler) setVMCClusterRef(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	vmc.Status.ClusterRef = &clustersv1alpha1.ClusterReference{
+		APIVersion: cluster.GetAPIVersion(),
+		Kind:       cluster.GetKind(),
+		Name:       cluster.GetName(),
+		Namespace:  cluster.GetNamespace(),
+	}
+	return r.Client.Status().Update(ctx, vmc, &client.UpdateOptions{})
 }
 
 // createOrUpdateWorkloadClusterVMC creates or updates the VMC resource for the workload cluster
