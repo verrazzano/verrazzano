@@ -13,7 +13,6 @@ import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -73,8 +72,8 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 		Name:      vmc.Status.ClusterRef.Name,
 		Namespace: vmc.Status.ClusterRef.Namespace,
 	}
-	capiCluster, err := capi.GetCluster(context.TODO(), r.Client, clusterNamespacedName)
-	if err != nil {
+	capiCluster := &v1beta1.Cluster{}
+	if err := r.Client.Get(context.TODO(), clusterNamespacedName, capiCluster); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
@@ -101,7 +100,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 			}
 			return "", err
 		}
-		return r.getCAPIProviderDisplayStringClusterClass(clusterClass), nil
+		return r.getCAPIProviderDisplayStringClusterClass(clusterClass)
 	}
 
 	// This cluster does not use ClusterClass.
@@ -128,39 +127,30 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 
 // getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
 // associated with this managed cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *v1beta1.ClusterClass) string {
-	clusterClassNamespacedName := types.NamespacedName{
-		Name:      clusterClass.GetName(),
-		Namespace: clusterClass.GetNamespace(),
-	}
-
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *v1beta1.ClusterClass) (string, error) {
 	// Get infrastructure provider
-	infraProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "infrastructure", "ref", "kind")
-	if !found {
-		r.log.Progressf("could not find spec.infrastructure.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
-		return ""
+	if clusterClass.Spec.Infrastructure.Ref == nil {
+		return "", fmt.Errorf("cluster class %s/%s has an unset spec.infrastructure.ref field", clusterClass.Namespace, clusterClass.Name)
 	}
-	if err != nil {
-		r.log.Progressf("error while looking for spec.infrastructure.ref.kind field for cluster %s: %v", clusterClass, err)
-		return ""
+	infraProvider := clusterClass.Spec.Infrastructure.Ref.Kind
+	if infraProvider == "" {
+		return "", fmt.Errorf("cluster class %s/%s has an empty infrastructure provider", clusterClass.Namespace, clusterClass.Name)
 	}
 
 	// Get control plane provider
-	cpProvider, found, err := unstructured.NestedString(clusterClass.Object, "spec", "controlPlane", "ref", "kind")
-	if !found {
-		r.log.Progressf("could not find spec.controlPlane.ref.kind field inside cluster %s: %v", clusterClassNamespacedName, err)
-		return ""
+	if clusterClass.Spec.ControlPlane.Ref == nil {
+		return "", fmt.Errorf("cluster class %s/%s has an unset spec.controlPlane.ref field", clusterClass.Namespace, clusterClass.Name)
 	}
-	if err != nil {
-		r.log.Progressf("error while looking for spec.controlPlane.ref.kind field for cluster %s: %v", clusterClassNamespacedName, err)
-		return ""
+	cpProvider := clusterClass.Spec.ControlPlane.Ref.Kind
+	if cpProvider == "" {
+		return "", fmt.Errorf("cluster class %s/%s has an empty control plane provider", clusterClass.Namespace, clusterClass.Name)
 	}
 
 	// Remove the "Template" suffix from the provider names
 	infraProvider = strings.TrimSuffix(infraProvider, "Template")
 	cpProvider = strings.TrimSuffix(cpProvider, "Template")
 
-	return r.formProviderDisplayString(infraProvider, cpProvider)
+	return r.formProviderDisplayString(infraProvider, cpProvider), nil
 }
 
 // formProviderDisplayString forms the display string for the VMC's status.provider field, given the infrastructure and
@@ -223,27 +213,16 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		Name:      clusterRef.Name,
 		Namespace: clusterRef.Namespace,
 	}
-	cluster, err := capi.GetCluster(context.TODO(), r.Client, clusterNamespacedName)
-	if err != nil {
+	cluster := &v1beta1.Cluster{}
+	if err := r.Client.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
 		if errors.IsNotFound(err) {
 			return "", nil
 		}
 		return "", err
 	}
 
-	// Get the state
-	phase, found, err := unstructured.NestedString(cluster.Object, "status", "phase")
-	if !found {
-		r.log.Progressf("could not find status.phase field inside cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
-	}
-	if err != nil {
-		r.log.Progressf("error while looking for status.phase field for cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
-	}
-
 	// Validate that the CAPI Phase is a proper StateType for the VMC
-	switch state := clustersv1alpha1.StateType(phase); state {
+	switch state := clustersv1alpha1.StateType(cluster.Status.Phase); state {
 	case clustersv1alpha1.StatePending,
 		clustersv1alpha1.StateProvisioning,
 		clustersv1alpha1.StateProvisioned,

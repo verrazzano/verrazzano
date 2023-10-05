@@ -16,8 +16,8 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
@@ -125,6 +125,7 @@ func TestUpdateStatusImported(t *testing.T) {
 	a := assert.New(t)
 	scheme := runtime.NewScheme()
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
 
 	tests := []struct {
 		testName         string
@@ -171,12 +172,13 @@ func TestUpdateProvider(t *testing.T) {
 	a := assert.New(t)
 	scheme := runtime.NewScheme()
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
 
 	tests := []struct {
 		testName             string
 		vmc                  *v1alpha1.VerrazzanoManagedCluster
-		capiCluster          *unstructured.Unstructured
-		clusterClass         *unstructured.Unstructured
+		capiCluster          *v1beta1.Cluster
+		clusterClass         *v1beta1.ClusterClass
 		controlPlaneProvider string
 		infraProvider        string
 		expectedVMCProvider  string
@@ -228,13 +230,15 @@ func TestUpdateProvider(t *testing.T) {
 		t.Run(tt.testName, func(t *testing.T) {
 			objects := []client.Object{tt.vmc}
 			if tt.capiCluster != nil {
-				unstructured.SetNestedField(tt.capiCluster.Object, tt.infraProvider, "spec", "infrastructureRef", "kind")
-				unstructured.SetNestedField(tt.capiCluster.Object, tt.controlPlaneProvider, "spec", "controlPlaneRef", "kind")
+				if tt.clusterClass == nil {
+					tt.capiCluster.Spec.InfrastructureRef.Kind = tt.infraProvider
+					tt.capiCluster.Spec.ControlPlaneRef.Kind = tt.controlPlaneProvider
+				}
 				objects = append(objects, tt.capiCluster)
 			}
 			if tt.clusterClass != nil {
-				unstructured.SetNestedField(tt.clusterClass.Object, tt.infraProvider+"Template", "spec", "infrastructure", "ref", "kind")
-				unstructured.SetNestedField(tt.clusterClass.Object, tt.controlPlaneProvider+"Template", "spec", "controlPlane", "ref", "kind")
+				tt.clusterClass.Spec.Infrastructure.Ref.Kind = tt.infraProvider
+				tt.clusterClass.Spec.ControlPlane.Ref.Kind = tt.controlPlaneProvider
 				objects = append(objects, tt.clusterClass)
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
@@ -259,6 +263,7 @@ func TestUpdateStateCAPI(t *testing.T) {
 	a := assert.New(t)
 	scheme := runtime.NewScheme()
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
 	vmc := newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace)
 
 	tests := []struct {
@@ -300,7 +305,7 @@ func TestUpdateStateCAPI(t *testing.T) {
 			vmc.Status.State = ""
 			objects := []client.Object{vmc}
 			if tt.capiCluster != nil {
-				unstructured.SetNestedField(tt.capiCluster.Object, tt.capiPhase, "status", "phase")
+				tt.capiCluster.Status.Phase = tt.capiPhase
 				objects = append(objects, tt.capiCluster)
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
@@ -351,12 +356,16 @@ func newVMC(name, namespace string) *v1alpha1.VerrazzanoManagedCluster {
 func newCAPICluster(name, namespace string) *v1beta1.Cluster {
 	cluster := v1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
+			Kind:       "Cluster",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+		},
+		Spec: v1beta1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{},
+			ControlPlaneRef: &corev1.ObjectReference{},
 		},
 	}
 	return &cluster
@@ -366,7 +375,7 @@ func newCAPICluster(name, namespace string) *v1beta1.Cluster {
 func newCAPIClusterWithClassReference(name, className, namespace string) *v1beta1.Cluster {
 	cluster := v1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
+			Kind:       "Cluster",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -386,12 +395,22 @@ func newCAPIClusterWithClassReference(name, className, namespace string) *v1beta
 func newCAPIClusterClass(name, namespace string) *v1beta1.ClusterClass {
 	clusterClass := v1beta1.ClusterClass{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterClass",
+			Kind:       "ClusterClass",
 			APIVersion: "cluster.x-k8s.io/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+		},
+		Spec: v1beta1.ClusterClassSpec{
+			Infrastructure: v1beta1.LocalObjectTemplate{
+				Ref: &corev1.ObjectReference{},
+			},
+			ControlPlane: v1beta1.ControlPlaneClass{
+				LocalObjectTemplate: v1beta1.LocalObjectTemplate{
+					Ref: &corev1.ObjectReference{},
+				},
+			},
 		},
 	}
 	return &clusterClass
