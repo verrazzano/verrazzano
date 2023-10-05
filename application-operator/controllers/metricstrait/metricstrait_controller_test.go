@@ -467,7 +467,7 @@ func TestDeploymentUpdateError(t *testing.T) {
 	// Expect a call to get the Pod to update
 	mock.EXPECT().
 		Get(gomock.Any(), gomock.Not(gomock.Nil()), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pod *k8score.Pod, opts ...client.GetOption) error {
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, pod *k8score.Pod) error {
 			pod.ObjectMeta = k8smeta.ObjectMeta{OwnerReferences: []k8smeta.OwnerReference{{APIVersion: "v1", Kind: "ReplicSet", Name: "test-rs"}}}
 			pod.CreationTimestamp = k8smeta.Now()
 			return nil
