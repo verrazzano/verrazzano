@@ -39,11 +39,11 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(vzcr); upgradeRequired || err != nil {
-		if upgradeRequired {
-			ctx.Log.Oncef("Upgrade required before reconciling module %s", client.ObjectKeyFromObject(module))
-		}
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(vzcr); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
+	} else if upgradeRequired {
+		ctx.Log.Oncef("Upgrade required before reconciling module %s", client.ObjectKeyFromObject(module))
+		return result.NewResultShortRequeueDelay()
 	}
 
 	// If conditions exist then the module is being or has been reconciled.
