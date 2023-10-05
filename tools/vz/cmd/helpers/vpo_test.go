@@ -4,19 +4,25 @@ package helpers
 
 import (
 	"bytes"
+	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	vzos "github.com/verrazzano/verrazzano/pkg/os"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconst "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -36,9 +42,13 @@ const (
 )
 
 var (
-	vpoNamespacedName = types.NamespacedName{
+	testVZNamespacedName = types.NamespacedName{
 		Name:      "myverrazzano",
 		Namespace: "default",
+	}
+	vpoDeployNamespacedName = types.NamespacedName{
+		Namespace: vzconstants.VerrazzanoInstallNamespace,
+		Name:      constants.VerrazzanoPlatformOperator,
 	}
 )
 
@@ -118,30 +128,75 @@ func TestWaitForOperationToComplete(t *testing.T) {
 	// WHEN WaitForOperationToComplete is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(getAllVpoObjects(), getVZObject())...).Build()
-	err := WaitForOperationToComplete(fakeClient, k8sClient, rc, vpoNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
+	err := WaitForOperationToComplete(fakeClient, k8sClient, rc, testVZNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
 	assert.Error(t, err)
 }
 
 // TestApplyPlatformOperatorYaml tests the functionality to apply VPO operator yaml
 func TestApplyPlatformOperatorYaml(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().Build()
+	vpoDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vpoDeployNamespacedName.Namespace,
+			Name:      vpoDeployNamespacedName.Name,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+			},
+		},
+	}
+	fakeClient := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpoDeployment).Build()
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 
 	// GIVEN a k8s cluster with VPO installed,
-	// WHEN ApplyPlatformOperatorYaml is invoked,
-	// THEN an error is returned as the VZ resource is not in InstallComplete state.
+	// WHEN ApplyPlatformOperatorYaml is invoked without the operator manifest flag set,
+	// THEN an error is returned and the existing VPO deployment is not deleted
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err := ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
+	// VPO deployment should not have been deleted, since the platform operator would not be applied
+	var vpo2 appsv1.Deployment
+	err = fakeClient.Get(context.TODO(), vpoDeployNamespacedName, &vpo2)
+	assert.NoError(t, err)
+	assertVPO(t, fakeClient, true)
 
 	// GIVEN a k8s cluster with VPO installed,
-	// WHEN ApplyPlatformOperatorYaml is invoked,
-	// THEN an error is returned as the VZ resource is not in InstallComplete state.
+	// WHEN ApplyPlatformOperatorYaml is invoked with a non-existent operator file
+	// THEN a path error is returned and the existing VPO deployment is not deleted
 	cmdWithOperatorYaml := getCommandWithoutFlags()
 	cmdWithOperatorYaml.PersistentFlags().String(constants.ManifestsFlag, "operator.yaml", "")
 	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml, fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
+	assert.IsType(t, &fs.PathError{}, err)
+	assertVPO(t, fakeClient, true)
+
+	// GIVEN a k8s cluster with VPO installed,
+	// WHEN ApplyPlatformOperatorYaml is invoked with an existing operator file
+	// THEN the existing VPO deployment should be deleted
+	cmdWithOperatorYaml2 := getCommandWithoutFlags()
+	var tempFile *os.File
+	tempFile, err = vzos.CreateTempFile("operator", nil)
+	assert.NoError(t, err)
+	SetApplyYAMLFunc(func(filename string, client client.Client, vzHelper helpers.VZHelper) error {
+		return nil
+	})
+	cmdWithOperatorYaml2.PersistentFlags().String(constants.ManifestsFlag, tempFile.Name(), "")
+	err = ApplyPlatformOperatorYaml(cmdWithOperatorYaml2, fakeClient, rc, "1.5.0")
+	assert.NoError(t, err)
+	assertVPO(t, fakeClient, false)
+}
+
+// assertVPO asserts that the VPO deployment exists (if expectExist is true) otherwise that it
+// does not exist
+func assertVPO(t *testing.T, fakeClient client.WithWatch, expectExist bool) {
+	var vpoDeploy appsv1.Deployment
+	err := fakeClient.Get(context.TODO(), vpoDeployNamespacedName, &vpoDeploy)
+	if expectExist {
+		assert.NoError(t, err)
+	} else {
+		assert.True(t, errors.IsNotFound(err))
+	}
 }
 
 // TestUsePlatformOperatorUninstallJob tests the functionality of VPO Uninstall job for different versions.
@@ -544,8 +599,8 @@ func getAllVpoObjects() []client.Object {
 func getVZObject() client.Object {
 	return &v1beta1.Verrazzano{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: vpoNamespacedName.Namespace,
-			Name:      vpoNamespacedName.Name,
+			Namespace: testVZNamespacedName.Namespace,
+			Name:      testVZNamespacedName.Name,
 		},
 		Spec: v1beta1.VerrazzanoSpec{
 			Profile: "dev",
