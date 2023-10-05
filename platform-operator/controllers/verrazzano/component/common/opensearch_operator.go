@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	securitySecretName  = "securityconfig-secret"
+	SecuritySecretName  = "securityconfig-secret"
 	securityNamespace   = constants.VerrazzanoLoggingNamespace
 	securityConfigYaml  = "opensearch-operator/opensearch-securityconfig.yaml"
 	configYaml          = "config.yml"
@@ -47,9 +47,22 @@ var (
 	}
 )
 
+// ApplyManifestFile applies the file present in the thirdparty/manifest directory with the given args
+func ApplyManifestFile(ctx spi.ComponentContext, fileName string, args map[string]interface{}) error {
+	// substitute template values to all files in the directory and apply the resulting YAML
+	filePath := path.Join(config.GetThirdPartyManifestsDir(), fileName)
+	yamlApplier := k8sutil.NewYAMLApplier(ctx.Client(), "")
+	err := yamlApplier.ApplyFT(filePath, args)
+
+	return err
+}
+
 // BuildArgsForOpenSearchCR gets the required values from VZ CR and converts them to yaml templates
 func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{}, error) {
 	args := make(map[string]interface{})
+
+	args["clusterName"] = clusterName
+	args["namespace"] = constants.VerrazzanoLoggingNamespace
 
 	masterNode := getMasterNode(ctx)
 	if len(masterNode) <= 0 {
@@ -120,7 +133,7 @@ func BuildArgsForOpenSearchCR(ctx spi.ComponentContext) (map[string]interface{},
 
 	kvs, err := GetVMOImagesOverrides()
 	if err != nil {
-		return args, err
+		return args, ctx.Log().ErrorfNewErr("Failed to get Opensearch images from BOM: %v", err)
 	}
 
 	for _, kv := range kvs {
@@ -279,14 +292,14 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 	}
 
 	for _, node := range effectiveCRNodes {
+		if skipNode(node) {
+			continue
+		}
 		nodePool := NodePool{
 			Component: node.Name,
 			Jvm:       node.JavaOpts,
 		}
 		if node.Replicas != nil {
-			if *node.Replicas == 0 {
-				continue
-			}
 			nodePool.Replicas = *node.Replicas
 		}
 		if node.Resources != nil {
@@ -324,6 +337,17 @@ func convertOSNodesToNodePools(ctx spi.ComponentContext, masterNode string) ([]N
 		}
 	}
 	return nodePools, nil
+}
+
+// skipNode returns true if the replica count for node is zero
+// and has no roles defined
+func skipNode(node vzapi.OpenSearchNode) bool {
+	if node.Replicas != nil && *node.Replicas == 0 {
+		if len(node.Roles) == 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // getActualCRNodes returns the nodes from the actual CR
@@ -414,7 +438,7 @@ func MergeSecretData(ctx spi.ComponentContext, helmManifestsDir string) error {
 	// Get the security config secret and
 	// extract the config.yml and internals_users.yml data
 	var scr corev1.Secret
-	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: securitySecretName}, &scr)
+	err = client.Get(context.TODO(), types.NamespacedName{Namespace: securityNamespace, Name: SecuritySecretName}, &scr)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Do nothing and return if secret doesn't exist

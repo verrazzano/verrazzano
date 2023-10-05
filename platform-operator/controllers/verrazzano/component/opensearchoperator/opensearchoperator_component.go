@@ -5,19 +5,24 @@ package opensearchoperator
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconst "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/helm"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/nginx"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/vmo"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,7 +57,7 @@ func NewComponent() spi.Component {
 			SupportsOperatorInstall:   true,
 			SupportsOperatorUninstall: true,
 			ImagePullSecretKeyname:    "manager.imagePullSecrets[0]",
-			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName},
+			Dependencies:              []string{networkpolicies.ComponentName, cmconst.ClusterIssuerComponentName, nginx.ComponentName, vmo.ComponentName, mysql.ComponentName},
 			AppendOverridesFunc:       appendOverrides,
 			GetInstallOverridesFunc:   GetOverrides,
 		},
@@ -140,11 +145,11 @@ func (o opensearchOperatorComponent) PostInstall(ctx spi.ComponentContext) error
 }
 
 func (o opensearchOperatorComponent) PreUninstall(ctx spi.ComponentContext) error {
-	return o.deleteRelatedResource()
+	return o.deleteRelatedResource(ctx)
 }
 
 func (o opensearchOperatorComponent) Uninstall(ctx spi.ComponentContext) error {
-	if err := o.areRelatedResourcesDeleted(); err != nil {
+	if err := o.areRelatedResourcesDeleted(ctx); err != nil {
 		return err
 	}
 	return o.HelmComponent.Uninstall(ctx)
@@ -159,4 +164,44 @@ func (o opensearchOperatorComponent) MonitorOverrides(ctx spi.ComponentContext) 
 		return true
 	}
 	return false
+}
+
+// ValidateInstall checks if the specified Verrazzano CR is valid for this component to be installed
+func (o opensearchOperatorComponent) ValidateInstall(vz *v1alpha1.Verrazzano) error {
+	vzv1beta1 := &v1beta1.Verrazzano{}
+	if err := vz.ConvertTo(vzv1beta1); err != nil {
+		return err
+	}
+	return o.ValidateInstallV1Beta1(vzv1beta1)
+}
+
+// ValidateInstallV1Beta1 checks if the specified Verrazzano CR is valid for this component to be installed
+func (o opensearchOperatorComponent) ValidateInstallV1Beta1(vz *v1beta1.Verrazzano) error {
+	if !o.IsEnabled(vz) {
+		if vzcr.IsOpenSearchEnabled(vz) {
+			return fmt.Errorf("Opensearch Operator must be enabled if Opensearch is enabled")
+		}
+		if vzcr.IsOpenSearchDashboardsEnabled(vz) {
+			return fmt.Errorf("Opensearch Operator must be enabled if Opensearch Dashboards is enabled")
+		}
+	}
+	return nil
+}
+
+// ValidateUpdate checks if the specified new Verrazzano CR is valid for this component to be updated
+func (o opensearchOperatorComponent) ValidateUpdate(old *v1alpha1.Verrazzano, new *v1alpha1.Verrazzano) error {
+	// do not allow disabling active components
+	if vzcr.IsOpenSearchOperatorEnabled(old) && !vzcr.IsOpenSearchOperatorEnabled(new) {
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
+	}
+	return nil
+}
+
+// ValidateUpdateV1Beta1 checks if the specified new Verrazzano CR is valid for this component to be updated
+func (o opensearchOperatorComponent) ValidateUpdateV1Beta1(old *v1beta1.Verrazzano, new *v1beta1.Verrazzano) error {
+	// do not allow disabling active components
+	if vzcr.IsOpenSearchOperatorEnabled(old) && !vzcr.IsOpenSearchOperatorEnabled(new) {
+		return fmt.Errorf("Disabling component %s not allowed", ComponentJSONName)
+	}
+	return nil
 }
