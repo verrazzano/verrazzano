@@ -20,45 +20,6 @@ const (
 	clusterClassName = "test-cluster-class"
 	testNamespace    = "test-namespace"
 )
-
-func TestGetCluster(t *testing.T) {
-	a := assert.New(t)
-	ctx := context.TODO()
-	scheme := runtime.NewScheme()
-	_ = v1beta1.AddToScheme(scheme)
-	cluster := newCAPICluster(clusterName, testNamespace)
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster).Build()
-
-	// get the CAPI retrievedCluster
-	retrievedCluster, err := GetCluster(ctx, fakeClient, types.NamespacedName{Name: clusterName, Namespace: testNamespace})
-	a.NoError(err)
-	a.Equal(cluster, retrievedCluster)
-
-	// attempt to get a CAPI cluster that does not exist
-	retrievedCluster, err = GetCluster(ctx, fakeClient, types.NamespacedName{Name: "nonexistent-cluster", Namespace: testNamespace})
-	a.Error(err)
-	a.Nil(retrievedCluster)
-}
-
-func TestGetClusterClass(t *testing.T) {
-	a := assert.New(t)
-	ctx := context.TODO()
-	scheme := runtime.NewScheme()
-	_ = v1beta1.AddToScheme(scheme)
-	clusterClass := newCAPIClusterClass(clusterClassName, testNamespace)
-	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(clusterClass).Build()
-
-	// get the CAPI ClusterClass
-	retrievedClusterClass, err := GetClusterClass(ctx, fakeClient, types.NamespacedName{Name: clusterClassName, Namespace: testNamespace})
-	a.NoError(err)
-	a.Equal(clusterClass, retrievedClusterClass)
-
-	// attempt to get a CAPI ClusterClass that does not exist
-	retrievedClusterClass, err = GetClusterClass(ctx, fakeClient, types.NamespacedName{Name: "nonexistent-cluster-class", Namespace: testNamespace})
-	a.Error(err)
-	a.Nil(retrievedClusterClass)
-}
-
 func TestGetClusterClassFromCluster(t *testing.T) {
 	a := assert.New(t)
 	ctx := context.TODO()
@@ -68,7 +29,8 @@ func TestGetClusterClassFromCluster(t *testing.T) {
 	clusterClass := newCAPIClusterClass(clusterClassName, testNamespace)
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster, clusterClass).Build()
 
-	retrievedCluster, err := GetCluster(ctx, fakeClient, types.NamespacedName{Name: clusterName, Namespace: testNamespace})
+	retrievedCluster := &v1beta1.Cluster{}
+	err := fakeClient.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: testNamespace}, retrievedCluster)
 	a.NoError(err)
 
 	// Get the ClusterClass associated with the Cluster
@@ -78,7 +40,7 @@ func TestGetClusterClassFromCluster(t *testing.T) {
 
 	// Shouldn't work if the CAPI Cluster has no reference to a ClusterClass
 	fakeClient = fake.NewClientBuilder().WithScheme(scheme).WithObjects(newCAPICluster(clusterName, testNamespace)).Build()
-	retrievedCluster, err = GetCluster(ctx, fakeClient, types.NamespacedName{Name: clusterName, Namespace: testNamespace})
+	err = fakeClient.Get(ctx, types.NamespacedName{Name: clusterName, Namespace: testNamespace}, retrievedCluster)
 	a.NoError(err)
 	retrievedClusterClass, err = GetClusterClassFromCluster(ctx, fakeClient, retrievedCluster)
 	a.Error(err)

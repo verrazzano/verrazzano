@@ -26,24 +26,6 @@ var GVKCAPICluster = schema.GroupVersionKind{
 	Kind:    "Cluster",
 }
 
-// GetCluster returns the requested CAPI Cluster.
-func GetCluster(ctx context.Context, cli clipkg.Client, clusterNamespacedName types.NamespacedName) (*v1beta1.Cluster, error) {
-	cluster := &v1beta1.Cluster{}
-	if err := cli.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
-		return nil, err
-	}
-	return cluster, nil
-}
-
-// GetClusterClass returns the requested CAPI ClusterClass.
-func GetClusterClass(ctx context.Context, cli clipkg.Client, clusterClassNamespacedName types.NamespacedName) (*v1beta1.ClusterClass, error) {
-	clusterClass := &v1beta1.ClusterClass{}
-	if err := cli.Get(context.TODO(), clusterClassNamespacedName, clusterClass); err != nil {
-		return nil, err
-	}
-	return clusterClass, nil
-}
-
 // GetClusterClassFromCluster returns the ClusterClass associated with the provided CAPI Cluster.
 func GetClusterClassFromCluster(ctx context.Context, cli clipkg.Client, cluster *v1beta1.Cluster) (*v1beta1.ClusterClass, error) {
 	// get the ClusterClass name, avoiding nil pointer exceptions
@@ -63,5 +45,9 @@ func GetClusterClassFromCluster(ctx context.Context, cli clipkg.Client, cluster 
 		Name:      clusterClassName,
 		Namespace: cluster.GetNamespace(),
 	}
-	return GetClusterClass(ctx, cli, clusterClassNamespacedName)
+	clusterClass := &v1beta1.ClusterClass{}
+	if err := cli.Get(ctx, clusterClassNamespacedName, clusterClass); err != nil {
+		return nil, err
+	}
+	return clusterClass, nil
 }
