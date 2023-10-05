@@ -65,20 +65,20 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	t.It("opensearch update plugin", func() {
 		m := OpenSearchPlugins{Enabled: true, InstanceList: "abc"}
 		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
-		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoSystemNamespace, 0, false)
+		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoLoggingNamespace, 0, false)
 		m = OpenSearchPlugins{Enabled: false, InstanceList: "analysis-stempel"}
 		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
 		var pods []corev1.Pod
 		var err error
 		Eventually(func() error {
-			pods, err = pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{nodePoolLabel: osMasterNodegroup}}, constants.VerrazzanoSystemNamespace)
+			pods, err = pkg.GetPodsFromSelector(&v1.LabelSelector{MatchLabels: map[string]string{nodePoolLabel: osMasterNodegroup}}, constants.VerrazzanoLoggingNamespace)
 			if err != nil {
 				pkg.Log(pkg.Error, err.Error())
 				return err
 			}
 			return nil
 		}).WithPolling(20*time.Second).WithTimeout(2*time.Minute).Should(BeNil(), "failed to fetch the opensearch master pods")
-		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoSystemNamespace, uint32(len(pods)), false)
+		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoLoggingNamespace, uint32(len(pods)), false)
 	})
 
 })
