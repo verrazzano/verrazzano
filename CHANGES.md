@@ -11,7 +11,6 @@ Component version updates:
 - WebLogic Kubernetes Operator v4.1.2
 - WebLogic Monitoring Exporter v2.1.5
 - Thanos v0.32.2 (includes support for OKE Workload Identities)
-- Istio v1.19.0
 
 ### v1.6.6
 Features:
