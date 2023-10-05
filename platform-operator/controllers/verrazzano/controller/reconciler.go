@@ -109,12 +109,11 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 		return res
 	}
 
-	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(actualCR); upgradeRequired || err != nil {
-		if upgradeRequired {
-			log.Oncef("Upgrade is required before reconciling %s", client.ObjectKeyFromObject(actualCR))
-		}
-		// Always return a requeue here, if err is nil the builder handles it
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(actualCR); err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
+	} else if upgradeRequired {
+		log.Oncef("Upgrade is required before reconciling %s", client.ObjectKeyFromObject(actualCR))
+		return result.NewResultShortRequeueDelay()
 	}
 
 	effectiveCR, err := r.createEffectiveCR(actualCR)
