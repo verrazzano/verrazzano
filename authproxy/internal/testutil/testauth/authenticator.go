@@ -41,7 +41,7 @@ func (f *FakeAuthenticator) SetRequestFunc(fun func() (bool, error)) {
 	f.authenticateRequestFunc = fun
 }
 
-func (a *FakeAuthenticator) ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error) {
+func (f *FakeAuthenticator) ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error) {
 	return "", nil
 }
 
