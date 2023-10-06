@@ -263,12 +263,11 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 	}
 	vzList := &v1beta1.VerrazzanoList{}
 	if err = capiClient.List(context.TODO(), vzList, &clipkg.ListOptions{}); err != nil {
-		if errors.IsNotFound(err) {
-			return false, nil
-		}
 		return false, fmt.Errorf("error listing verrazzanos in ClusterAPI cluster %s: %v", capiClusterName, err)
 	}
-	// FIXME: do check for length of vzList?
+	if len(vzList.Items) > 0 {
+		return false, nil
+	}
 	return true, nil
 }
 
