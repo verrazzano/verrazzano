@@ -581,6 +581,11 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
                             }
                         }
+                        stage("verify-fluentd-update") {
+                            steps {
+                                runGinkgoAdmin('update/fluentdextes')
+                            }
+                        }
                         stage('post-upgrade verify jaeger'){
                             steps{
                                 jaegerSuite()
