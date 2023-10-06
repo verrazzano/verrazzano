@@ -11,10 +11,12 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
+	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -39,6 +41,15 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 		return err
 	}
 
+	// Conditionally update the VMC's Kubernetes version
+	if updateNeeded, err := r.shouldUpdateK8sVersion(vmc); err != nil {
+		return err
+	} else if updateNeeded {
+		if err := r.updateK8sVersionUsingCAPI(vmc); err != nil {
+			return err
+		}
+	}
+
 	// Fetch the existing VMC to avoid conflicts in the status update
 	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
 	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
@@ -54,6 +65,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
 	existingVMC.Status.Imported = vmc.Status.Imported
 	existingVMC.Status.Provider = vmc.Status.Provider
+	existingVMC.Status.Kubernetes.Version = vmc.Status.Kubernetes.Version
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
@@ -72,7 +84,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 		Name:      vmc.Status.ClusterRef.Name,
 		Namespace: vmc.Status.ClusterRef.Namespace,
 	}
-	capiCluster := &v1beta1.Cluster{}
+	capiCluster := &capiv1beta1.Cluster{}
 	if err := r.Client.Get(context.TODO(), clusterNamespacedName, capiCluster); err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -89,7 +101,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateProvider(vmc *clustersv1alpha
 
 // getCAPIProviderDisplayString returns the string to populate the VMC's status.provider field, based on information taken from the
 // provided CAPI Cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *v1beta1.Cluster) (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCluster *capiv1beta1.Cluster) (string, error) {
 	// If this CAPI Cluster was created using ClusterClass, then parse capiCluster differently.
 	if capiCluster.Spec.Topology != nil {
 		clusterClass, err := capi.GetClusterClassFromCluster(context.TODO(), r.Client, capiCluster)
@@ -127,7 +139,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayString(capiCl
 
 // getCAPIProviderDisplayStringClusterClass returns the string to populate the VMC's status.provider field, given the ClusterClass
 // associated with this managed cluster.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *v1beta1.ClusterClass) (string, error) {
+func (r *VerrazzanoManagedClusterReconciler) getCAPIProviderDisplayStringClusterClass(clusterClass *capiv1beta1.ClusterClass) (string, error) {
 	// Get infrastructure provider
 	if clusterClass.Spec.Infrastructure.Ref == nil {
 		return "", fmt.Errorf("cluster class %s/%s has an unset spec.infrastructure.ref field", clusterClass.Namespace, clusterClass.Name)
@@ -213,7 +225,7 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		Name:      clusterRef.Name,
 		Namespace: clusterRef.Namespace,
 	}
-	cluster := &v1beta1.Cluster{}
+	cluster := &capiv1beta1.Cluster{}
 	if err := r.Client.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
 		if errors.IsNotFound(err) {
 			return "", nil
@@ -234,4 +246,33 @@ func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clu
 		r.log.Progressf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
 		return clustersv1alpha1.StateUnknown, nil
 	}
+}
+
+// shouldUpdateK8sVersion determines if this VMC reconciler should update the VMC's Kubernetes version.
+func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *clustersv1alpha1.VerrazzanoManagedCluster) (bool, error) {
+	// The VMC controller cannot update the Kubernetes version if this is not a CAPI cluster.
+	if vmc.Status.ClusterRef == nil {
+		return false, nil
+	}
+
+	// If Verrazzano is installed on the workload cluster, then let the verrazzano cluster agent handle updating the K8s version.
+	capiClusterName := types.NamespacedName{Name: vmc.Status.ClusterRef.Name, Namespace: vmc.Status.ClusterRef.Namespace}
+	capiClient, err := capi.GetClusterClient(context.TODO(), r.Client, capiClusterName, r.Scheme)
+	if err != nil {
+		return false, fmt.Errorf("failed to get client for ClusterAPI cluster %s: %v", capiClusterName, err)
+	}
+	vzList := &v1beta1.VerrazzanoList{}
+	if err = capiClient.List(context.TODO(), vzList, &clipkg.ListOptions{}); err != nil {
+		if errors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	// FIXME: do check for length of vzList?
+	return true, nil
+}
+
+// updateK8sVersionUsingCAPI updates the VMC's status.kubernetes.version field, retrieving the version from ClusterAPI CRs
+func (r *VerrazzanoManagedClusterReconciler) updateK8sVersionUsingCAPI(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	return nil
 }
