@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -273,5 +274,39 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 
 // updateK8sVersionUsingCAPI updates the VMC's status.kubernetes.version field, retrieving the version from ClusterAPI CRs
 func (r *VerrazzanoManagedClusterReconciler) updateK8sVersionUsingCAPI(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
+	// Get the CAPI Cluster CR
+	clusterNamespacedName := types.NamespacedName{
+		Name:      vmc.Status.ClusterRef.Name,
+		Namespace: vmc.Status.ClusterRef.Namespace,
+	}
+	cluster := &capiv1beta1.Cluster{}
+	if err := r.Client.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	// Get control plane ref
+	cpKind := cluster.Spec.ControlPlaneRef.Kind
+	cpAPIVersion := cluster.Spec.ControlPlaneRef.APIVersion
+	cpList := &unstructured.UnstructuredList{}
+	cpList.SetAPIVersion(cpAPIVersion)
+	cpList.SetKind(cpKind)
+	if err := r.List(context.TODO(), cpList, clipkg.InNamespace(clusterNamespacedName.Namespace)); err != nil {
+		return fmt.Errorf("error listing control plane objects: %v", err)
+	}
+	if len(cpList.Items) != 1 {
+		return fmt.Errorf("expected to find 1 %s objects, but found %d", cpKind, len(cpList.Items))
+	}
+	k8sVersion, found, err := unstructured.NestedString(cpList.Items[0].Object, "status", "version")
+	if !found {
+		return fmt.Errorf("could not find status.version field in %s object", cpKind)
+	} else if err != nil {
+		return fmt.Errorf("error accessing status.version field in %s object: %v", cpKind, err)
+	}
+
+	// Set the K8s version in the VMC
+	vmc.Status.Kubernetes.Version = k8sVersion
 	return nil
 }
