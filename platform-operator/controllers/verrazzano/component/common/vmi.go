@@ -73,6 +73,9 @@ func DeleteVMI(ctx spi.ComponentContext) error {
 	if errors.IsNotFound(err) {
 		return nil
 	}
+	if _, ok := err.(*meta.NoKindMatchError); ok {
+		return nil
+	}
 
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("failed to delete VMI: %v", err)
