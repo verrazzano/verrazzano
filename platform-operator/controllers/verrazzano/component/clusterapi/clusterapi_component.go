@@ -293,7 +293,7 @@ func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
 
 	if err := runCAPICmd(cmd, ctx.Log()); err != nil {
-		// Ignore not found on uninstall.  This can happend if uninstall is started before install is done
+		// Ignore not found on uninstall.  This can happen if uninstall is started before install is done
 		e := err.Error()
 		ctx.Log().Info(e)
 		if strings.Contains(err.Error(), `"clusters.cluster.x-k8s.io" not found`) {

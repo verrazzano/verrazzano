@@ -95,7 +95,7 @@ func (v *Verrazzano) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (v *Verrazzano) ValidateUpdate(old runtime.Object) error {
-	if v.ObjectMeta.DeletionTimestamp == nil {
+	if v.ObjectMeta.DeletionTimestamp == nil || v.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Verrazzano is being deleted, updates don't matter.  This fixes problem
 		// where the version in the CR didn't match the webhook pod after updating VPO
 		// which prevented uninstall from finishing
