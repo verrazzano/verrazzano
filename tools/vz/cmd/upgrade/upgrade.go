@@ -187,12 +187,6 @@ func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	if vz.Spec.Version == "" || !upgradeVersion.IsEqualTo(vzSpecVersion) {
-		// Delete leftover verrazzano-operator deployment after an abort.
-		// This allows for the verrazzano-operator validatingWebhookConfiguration to be updated with the correct caBundle.
-		err = cmdhelpers.DeleteFunc(client)
-		if err != nil {
-			return err
-		}
 
 		// Apply the Verrazzano operator.yaml
 		err = cmdhelpers.ApplyPlatformOperatorYaml(cmd, client, vzHelper, version)
