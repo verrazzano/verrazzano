@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/controllers/quickcreate/controller/ocne"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/semver"
+	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -63,9 +64,9 @@ type (
 func newContext(cli clipkg.Client, clusterType string) (*QCContext, error) {
 	qc := &QCContext{
 		ClusterType: clusterType,
-		//Namespace:   pkg.SimpleNameGenerator.New("qc-"),
-		Namespace: "default",
-		Client:    cli,
+		Namespace:   pkg.SimpleNameGenerator.New("qc-"),
+		//Namespace: "default",
+		Client: cli,
 	}
 	if err := qc.setDynamicValues(); err != nil {
 		return nil, err
@@ -132,8 +133,8 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		//ClusterID: pkg.SimpleNameGenerator.New("qc-"),
-		ClusterID: "cluster-test-1",
+		ClusterID: pkg.SimpleNameGenerator.New("qc-"),
+		//ClusterID: "cluster-test-1",
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
