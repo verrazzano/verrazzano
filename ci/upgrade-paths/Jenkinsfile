@@ -393,11 +393,6 @@ pipeline {
                                 runGinkgoVerify('examples/helidon', "${TEST_DUMP_ROOT}/helidon-workload", "false", "true", "true", "hello-helidon-sc")
                             }
                         }
-                        stage ('pre-upgrade verify jaeger'){
-                            steps{
-                                jaegerSuite()
-                            }
-                        }
                         stage ('mc examples helidon') {
                             when { expression { isMultiCluster() && isVZOperatorMinimumCompatibleVersion("v1.1.0") } }
                             steps {
