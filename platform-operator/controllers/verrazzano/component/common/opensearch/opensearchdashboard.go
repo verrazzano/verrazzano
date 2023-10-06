@@ -6,9 +6,10 @@ package opensearch
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 type (

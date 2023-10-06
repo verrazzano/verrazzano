@@ -6,11 +6,12 @@ package opensearch
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 // TestCreateDefaultIndexPatterns tests the CreateDefaultIndexPatterns to verify the creation of default index patterns

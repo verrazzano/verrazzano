@@ -6,9 +6,10 @@ package opensearch
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 // VZSystemIndexPattern for Verrazzano System default index pattern
