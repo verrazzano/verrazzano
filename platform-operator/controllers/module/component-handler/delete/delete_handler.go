@@ -12,6 +12,7 @@ import (
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
+	"k8s.io/apimachinery/pkg/api/meta"
 )
 
 type ComponentHandler struct{}
@@ -76,7 +77,9 @@ func (h ComponentHandler) PreWork(ctx handlerspi.HandlerContext) result.Result {
 	}
 
 	// Do the pre-delete
-	if err := comp.PreUninstall(compCtx); err != nil {
+	err = ignoreMissingCRD(comp.PreUninstall(compCtx))
+
+	if err != nil {
 		if !vzerrors.IsRetryableError(err) {
 			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUninstallStarted, err.Error())
 		}
@@ -99,7 +102,8 @@ func (h ComponentHandler) DoWork(ctx handlerspi.HandlerContext) result.Result {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
 
-	if err := comp.Uninstall(compCtx); err != nil {
+	err = ignoreMissingCRD(comp.Uninstall(compCtx))
+	if err != nil {
 		if !vzerrors.IsRetryableError(err) {
 			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUninstallStarted, err.Error())
 		}
@@ -136,7 +140,9 @@ func (h ComponentHandler) PostWork(ctx handlerspi.HandlerContext) result.Result 
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
-	if err := comp.PostUninstall(compCtx); err != nil {
+
+	err = ignoreMissingCRD(comp.PostUninstall(compCtx))
+	if err != nil {
 		if !vzerrors.IsRetryableError(err) {
 			modulestatus.UpdateReadyConditionFailed(ctx, module, moduleapi.ReadyReasonUninstallStarted, err.Error())
 		}
@@ -162,4 +168,15 @@ func (h ComponentHandler) WorkCompletedUpdateStatus(ctx handlerspi.HandlerContex
 
 	// Update the module status
 	return modulestatus.UpdateReadyConditionSucceeded(ctx, module, moduleapi.ReadyReasonUninstallSucceeded)
+}
+
+func ignoreMissingCRD(err error) error {
+	if err == nil {
+		return nil
+	}
+	// Ignore if CRD doesn't exist
+	if _, ok := err.(*meta.NoKindMatchError); ok {
+		return nil
+	}
+	return err
 }
