@@ -5,15 +5,15 @@ package controller
 
 import (
 	"context"
-	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/semver"
 	vzstring "github.com/verrazzano/verrazzano/pkg/string"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
+	vzctrlcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/argocd"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/mysql"
@@ -28,7 +28,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"time"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // Reconcile reconciles the Verrazzano CR.  This includes new installations, updates, upgrades, and partial uninstallations.
@@ -111,18 +111,17 @@ func (r Reconciler) doReconcile(log vzlog.VerrazzanoLogger, controllerCtx contro
 
 	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
 	// has not modified the version in the Verrazzano CR to match the BOM.
-	if upgradePending, err := r.isUpgradeRequired(actualCR); upgradePending || err != nil {
-		controllerCtx.Log.Oncef("Upgrade required before reconciling modules")
-		return result.NewResultShortRequeueDelayIfError(err)
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(actualCR); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	} else if upgradeRequired {
+		log.Oncef("Upgrade is required before reconciling %s", client.ObjectKeyFromObject(actualCR))
+		return result.NewResultShortRequeueDelay()
 	}
 
-	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
-	// Always use actualCR when updating status
-	effectiveCR, err := transform.GetEffectiveCR(actualCR)
+	effectiveCR, err := r.createEffectiveCR(actualCR)
 	if err != nil {
-		return result.NewResultShortRequeueDelayWithError(err)
+		result.NewResultShortRequeueDelayWithError(err)
 	}
-	effectiveCR.Status = actualCR.Status
 
 	// Update the status if this is an upgrade. If this is not an upgrade,
 	// then we don't know, at this point, if install, update, or partial uninstall is
@@ -317,33 +316,14 @@ func (r Reconciler) initVzResource(log vzlog.VerrazzanoLogger, actualCR *vzv1alp
 	return r.initializeComponentStatus(log, actualCR)
 }
 
-// isUpgradeRequired Returns true if we detect that an upgrade is required but not (at least) in progress:
-//   - if the Spec version IS NOT empty is less than the BOM version, an upgrade is required
-//   - if the Spec version IS empty the Status version is less than the BOM, then an upgrade is required (upgrade of initial install scenario)
-//
-// If we return true here, it means we should stop reconciling until an upgrade has been requested
-func (r Reconciler) isUpgradeRequired(actualCR *vzv1alpha1.Verrazzano) (bool, error) {
-	if actualCR == nil {
-		return false, fmt.Errorf("no Verrazzano CR provided")
-	}
-	bomVersion, err := validators.GetCurrentBomVersion()
+// createEffectiveCR Creates an effective CR from the one passed in
+func (r Reconciler) createEffectiveCR(actualCR *vzv1alpha1.Verrazzano) (*vzv1alpha1.Verrazzano, error) {
+	// Get effective CR.  Both actualCR and effectiveCR are needed for reconciling
+	// Always use actualCR when updating status
+	effectiveCR, err := transform.GetEffectiveCR(actualCR)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
-
-	if len(actualCR.Spec.Version) > 0 {
-		specVersion, err := semver.NewSemVersion(actualCR.Spec.Version)
-		if err != nil {
-			return false, err
-		}
-		return bomVersion.IsGreatherThan(specVersion), nil
-	}
-	if len(actualCR.Status.Version) > 0 {
-		statusVersion, err := semver.NewSemVersion(actualCR.Status.Version)
-		if err != nil {
-			return false, err
-		}
-		return bomVersion.IsGreatherThan(statusVersion), nil
-	}
-	return false, nil
+	effectiveCR.Status = actualCR.Status
+	return effectiveCR, nil
 }

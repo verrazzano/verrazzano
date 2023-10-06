@@ -5,6 +5,7 @@ package controller
 
 import (
 	"context"
+
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -58,6 +59,20 @@ func (r Reconciler) PreRemoveFinalizer(controllerCtx controllerspi.ReconcileCont
 		zap.S().Errorf("Failed to create controller logger for Verrazzano controller: %v", err)
 	}
 
+	// Create the modules here if they don't currently exist.  Captures the case where the VZ CR is started before any
+	// modules exist, i.e., upgrading from a pre-modules VZ version where the VPO has been updated and the
+	// user has deleted the VZ CR before initiating an upgrade
+	if !r.doesUninstallConditionExist(actualCR) {
+		effectiveCR, err := r.createEffectiveCR(actualCR)
+		if err != nil {
+			result.NewResultShortRequeueDelayWithError(err)
+		}
+		if result := r.createOrUpdateModules(log, actualCR, effectiveCR); result.ShouldRequeue() {
+			return result
+		}
+	}
+
+	// Update the status to indicate an uninstall has started
 	r.updateStatusUninstalling(log, actualCR)
 
 	// Get effective CR and set the effective CR status with the actual status
