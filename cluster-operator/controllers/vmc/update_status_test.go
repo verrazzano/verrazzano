@@ -322,6 +322,45 @@ func TestUpdateStateCAPI(t *testing.T) {
 	}
 }
 
+// TestShouldUpdateK8sVersion tests that shouldUpdateK8sVersion correctly determines when the VMC controller should
+// update the VMC's Kubernetes version.
+func TestShouldUpdateK8sVersion(t *testing.T) {
+	a := assert.New(t)
+	scheme := runtime.NewScheme()
+	_ = v1alpha1.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
+
+	tests := []struct {
+		testName      string
+		setClusterRef bool
+		shouldUpdate  bool
+		err           error
+	}{
+		{
+			"non-ClusterAPI cluster",
+			false,
+			false,
+			nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.testName, func(t *testing.T) {
+			vmc := newVMC(testVMCName, testVMCNamespace)
+			objects := []client.Object{vmc}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			r := &VerrazzanoManagedClusterReconciler{
+				Client: fakeClient,
+				log:    vzlog.DefaultLogger(),
+			}
+
+			shouldUpdate, err := r.shouldUpdateK8sVersion(vmc)
+			a.Equal(tt.err, err)
+			a.Equal(tt.shouldUpdate, shouldUpdate)
+		})
+	}
+}
+
 // newVMCWithClusterRef returns a VMC struct pointer, with the status.clusterRef field set to point to a CAPI Cluster
 func newVMCWithClusterRef(name, namespace, clusterName, clusterNamespace string) *v1alpha1.VerrazzanoManagedCluster {
 	vmc := &v1alpha1.VerrazzanoManagedCluster{
