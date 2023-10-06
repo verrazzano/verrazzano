@@ -7,10 +7,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
-	"os/exec"
-
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -21,9 +17,13 @@ import (
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	appsv1 "k8s.io/api/apps/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os/exec"
+	"strings"
 )
 
 // ComponentName is the name of the component
@@ -94,7 +94,9 @@ func runCAPICmd(cmd *exec.Cmd, log vzlog.VerrazzanoLogger) error {
 	log.Progressf("Running clusterctl command: %s", cmd.String())
 	err := cmd.Run()
 	if err != nil {
-		log.ErrorfThrottled("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		s := fmt.Sprintf("command failed with error %s; stdout: %s; stderr: %s", err.Error(), stdoutBuffer.String(), stderrBuffer.String())
+		log.ErrorfThrottled(s)
+		return fmt.Errorf(s)
 	}
 	return err
 }
@@ -290,7 +292,17 @@ func (c clusterAPIComponent) PreUninstall(_ spi.ComponentContext) error {
 func (c clusterAPIComponent) Uninstall(ctx spi.ComponentContext) error {
 	cmd := exec.Command("clusterctl", "delete", "--all", "--include-namespace")
 
-	return runCAPICmd(cmd, ctx.Log())
+	if err := runCAPICmd(cmd, ctx.Log()); err != nil {
+		// Ignore not found on uninstall.  This can happend if uninstall is started before install is done
+		e := err.Error()
+		ctx.Log().Info(e)
+		if strings.Contains(err.Error(), `"clusters.cluster.x-k8s.io" not found`) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func (c clusterAPIComponent) PostUninstall(_ spi.ComponentContext) error {
