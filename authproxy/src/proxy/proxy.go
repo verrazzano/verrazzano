@@ -131,8 +131,6 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // handleAuthCallback is the http handler for authentication callback
 func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debugf("Handling oauth callback, request: %+v", req)
-
 	// the state field in the VZ cookie must match the state query param value
 	state, err := cookie.GetStateCookie(req)
 	if err != nil {
@@ -140,7 +138,6 @@ func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) 
 		http.Error(rw, "Failed to read state cookie", http.StatusUnauthorized)
 		return
 	}
-	h.Log.Debugf("State struct: %+v", state)
 
 	stateQueryParam := req.URL.Query().Get("state")
 	if stateQueryParam == "" {
@@ -163,8 +160,6 @@ func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	h.Log.Debugf("Got token: %s", token)
-
 	// validate the token and get the ID token
 	idToken, err := h.Authenticator.AuthenticateToken(context.TODO(), token)
 	if err != nil {
@@ -173,14 +168,11 @@ func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	h.Log.Debugf("ID token: %+v", *idToken)
-
 	if idToken.Nonce != state.Nonce {
 		http.Error(rw, "nonce does not match", http.StatusUnauthorized)
 		return
 	}
 
-	h.Log.Debug("Successfully validated callback")
 	http.Redirect(rw, req, state.RedirectURI, http.StatusFound)
 }
 
