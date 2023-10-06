@@ -23,10 +23,6 @@ const (
 	pollingInterval = 10 * time.Second
 )
 
-var (
-	defaultReplica int32
-)
-
 type OpensearchCleanUpModifier struct {
 }
 
@@ -147,7 +143,7 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      string(vmov1.MasterRole),
+				Name:      "es-" + string(vmov1.MasterRole),
 				Replicas:  common.Int32Ptr(3),
 				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
 				Storage:   newNodeStorage("2Gi"),
@@ -177,6 +173,11 @@ func newResources(requestMemory string) *corev1.ResourceRequirements {
 var t = framework.NewTestFramework("update opensearch")
 
 var afterSuite = t.AfterSuiteFunc(func() {
+	m := OpensearchAllNodeRolesModifier{}
+	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+})
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 })

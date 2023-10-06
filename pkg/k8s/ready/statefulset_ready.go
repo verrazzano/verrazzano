@@ -180,7 +180,7 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 			return false
 		}
 		if !healthy {
-			log.Errorf("Opensearch Cluster is not healthy. Please check Opensearch operator for more information")
+			log.Progressf("Opensearch Cluster is not healthy. Please check Opensearch operator for more information")
 			return true
 		}
 		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,

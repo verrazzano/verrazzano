@@ -14,7 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	opensearch2 "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/opensearch"
+	opensearchCommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -120,12 +120,12 @@ func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
 
 // CreateIndexPatterns creates the required index patterns using osd client
 func (r Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := opensearch2.GetVerrazzanoPassword(r.Client)
+	pas, err := opensearchCommon.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return err
 	}
-	osDashboardsClient := opensearch2.NewOSDashboardsClient(pas)
-	osdURL, err := opensearch2.GetOSDHTTPEndpoint(r.Client)
+	osDashboardsClient := opensearchCommon.NewOSDashboardsClient(pas)
+	osdURL, err := opensearchCommon.GetOSDHTTPEndpoint(r.Client)
 	if err != nil {
 		return err
 	}
@@ -173,12 +173,12 @@ func (r Reconciler) AddTemplateAutoExpand(controllerCtx controllerspi.ReconcileC
 }
 
 // getOSClient gets tbe OS client
-func (r Reconciler) getOSClient() (*opensearch2.OSClient, error) {
-	pas, err := opensearch2.GetVerrazzanoPassword(r.Client)
+func (r Reconciler) getOSClient() (*opensearchCommon.OSClient, error) {
+	pas, err := opensearchCommon.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return nil, err
 	}
-	osClient := opensearch2.NewOSClient(pas)
+	osClient := opensearchCommon.NewOSClient(pas)
 	return osClient, nil
 }
 
