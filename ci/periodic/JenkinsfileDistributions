@@ -142,8 +142,8 @@ pipeline {
                         error("Specific GIT commit was not specified. GIT_COMMIT_TO_USE is required when BASELINE_IMAGE_SIZES_FILE_UPDATE is set to true.")
                     }
                    currentBuild.displayName = "${currentBuild.displayName} : Update Baseline image-sizes.txt"
-                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt"
-                   sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt"
+                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt"
+                   sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt"
                 }
             }
         }
