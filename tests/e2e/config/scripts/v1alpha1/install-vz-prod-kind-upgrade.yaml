@@ -24,20 +24,8 @@ spec:
                     sampling: 90
                     zipkin:
                       address: jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411
-    clusterAPI:
-      enabled: true
     jaegerOperator:
       enabled: true
-    clusterOperator:
-      overrides:
-        - values:
-            syncClusters:
-              enabled: true
-              clusterSelector:
-                matchExpressions:
-                  - key: rancher-sync
-                    operator: In
-                    values: [ enabled ]
     keycloak:
       mysql:
         volumeSource:
@@ -52,8 +40,6 @@ spec:
             prometheus:
               thanos:
                 integration: sidecar
-    thanos:
-      enabled: true
     dns:
       wildcard:
         domain: nip.io
@@ -62,8 +48,6 @@ spec:
     kubeStateMetrics:
       enabled: true
     prometheusPushgateway:
-      enabled: true
-    argoCD:
       enabled: true
   volumeClaimSpecTemplates:
     - metadata:
