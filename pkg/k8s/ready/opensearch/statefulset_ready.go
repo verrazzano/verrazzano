@@ -50,7 +50,7 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
-		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix) {
+		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix, namespacedName) {
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
@@ -122,7 +122,7 @@ func GetOpenSearchHTTPEndpoint(client client.Client) (string, error) {
 }
 
 // areOSReplicasUpdated check whether all replicas of opensearch are updated or not. In case of yellow cluster status, we skip this check and consider replicas are updated.
-func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.StatefulSet, expectedReplicas int32, client client.Client, prefix string) bool {
+func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.StatefulSet, expectedReplicas int32, client client.Client, prefix string, namespacedName types.NamespacedName) bool {
 	if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
 		pas, err := GetVerrazzanoPassword(client)
 		if err != nil {
@@ -139,7 +139,7 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 			log.Errorf("Opensearch Cluster is not healthy. Please check Opensearch operator for more information")
 			return true
 		}
-		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix,
+		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 			expectedReplicas, statefulset.Status.UpdatedReplicas)
 		return false
 	}
