@@ -14,7 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
-	opensearchCommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
@@ -120,12 +119,12 @@ func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
 
 // CreateIndexPatterns creates the required index patterns using osd client
 func (r Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := opensearchCommon.GetVerrazzanoPassword(r.Client)
+	pas, err := opensearch.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return err
 	}
-	osDashboardsClient := opensearchCommon.NewOSDashboardsClient(pas)
-	osdURL, err := opensearchCommon.GetOSDHTTPEndpoint(r.Client)
+	osDashboardsClient := opensearchdashboards.NewOSDashboardsClient(pas)
+	osdURL, err := opensearch.GetOSDHTTPEndpoint(r.Client)
 	if err != nil {
 		return err
 	}
@@ -173,12 +172,12 @@ func (r Reconciler) AddTemplateAutoExpand(controllerCtx controllerspi.ReconcileC
 }
 
 // getOSClient gets tbe OS client
-func (r Reconciler) getOSClient() (*opensearchCommon.OSClient, error) {
-	pas, err := opensearchCommon.GetVerrazzanoPassword(r.Client)
+func (r Reconciler) getOSClient() (*opensearch.OSClient, error) {
+	pas, err := opensearch.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return nil, err
 	}
-	osClient := opensearchCommon.NewOSClient(pas)
+	osClient := opensearch.NewOSClient(pas)
 	return osClient, nil
 }
 

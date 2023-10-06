@@ -183,3 +183,4 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 })
 
 var _ = ginkgo.AfterSuite(afterSuite)
+var _ = ginkgo.BeforeSuite(beforeSuite)
