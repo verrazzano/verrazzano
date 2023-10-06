@@ -566,11 +566,6 @@ pipeline {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/keycloak', "${TEST_DUMP_ROOT}/keycloak")
                             }
                         }
-                        stage('post-upgrade verify jaeger'){
-                            steps{
-                                jaegerSuite()
-                            }
-                        }
                         stage('opensearch post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/opensearch', "${TEST_DUMP_ROOT}/opensearch")
@@ -584,6 +579,11 @@ pipeline {
                         stage('Metricsbinding post-upgrade') {
                             steps {
                                 runGinkgoRandomizeSerialAdmin('upgrade/post-upgrade/metricsbinding', "${TEST_DUMP_ROOT}/metricsbinding")
+                            }
+                        }
+                        stage('post-upgrade verify jaeger'){
+                            steps{
+                                jaegerSuite()
                             }
                         }
                         stage('deployment metrics') {
