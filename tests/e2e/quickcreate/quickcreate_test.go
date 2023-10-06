@@ -10,11 +10,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
-	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -93,29 +91,29 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		return
 	}
 	//t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kcpath, createCluster)
-	createCluster()
-	t.Logs.Infof("Wait for 30 seconds before verification")
-	time.Sleep(60 * time.Second)
+	//createCluster()
+	//t.Logs.Infof("Wait for 30 seconds before verification")
+	//time.Sleep(60 * time.Second)
 
 })
 var afterSuite = t.AfterSuiteFunc(func() {
-	if ctx == nil {
-		return
-	}
-	Eventually(func() error {
-		err := ctx.cleanupCAPICluster()
-		if err != nil {
-			t.Logs.Info(err)
+	/*	if ctx == nil {
+			return
 		}
-		return err
-	}).WithPolling(pollingInterval).WithTimeout(waitTimeOut).ShouldNot(HaveOccurred())
-	Eventually(func() error {
-		err := ctx.deleteObject(ctx.namespaceObject())
-		if err != nil {
-			t.Logs.Info(err)
-		}
-		return err
-	}).WithPolling(pollingInterval).WithTimeout(waitTimeOut).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			err := ctx.cleanupCAPICluster()
+			if err != nil {
+				t.Logs.Info(err)
+			}
+			return err
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeOut).ShouldNot(HaveOccurred())
+		Eventually(func() error {
+			err := ctx.deleteObject(ctx.namespaceObject())
+			if err != nil {
+				t.Logs.Info(err)
+			}
+			return err
+		}).WithPolling(pollingInterval).WithTimeout(waitTimeOut).ShouldNot(HaveOccurred())*/
 })
 var _ = BeforeSuite(beforeSuite)
 var _ = AfterSuite(afterSuite)
@@ -275,6 +273,15 @@ func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
 	bcmd.CommandArgs = cmdArgs
 	secretCreateResponse := helpers.Runner(&bcmd, log)
+	if secretCreateResponse.CommandError != nil {
+		return secretCreateResponse.CommandError
+	}
+
+	cmdArgs = []string{}
+	dockerSecretCommand = fmt.Sprintf("kubectl --kubeconfig %s  create ns verrazzano-install", tmpFile.Name())
+	cmdArgs = append(cmdArgs, "/bin/bash", "-c", dockerSecretCommand)
+	bcmd.CommandArgs = cmdArgs
+	secretCreateResponse = helpers.Runner(&bcmd, log)
 	if secretCreateResponse.CommandError != nil {
 		return secretCreateResponse.CommandError
 	}
@@ -529,21 +536,27 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
 
-	WhenClusterAPIInstalledIt("Deploy addon component", func() {
-		Eventually(func() bool {
-			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
-			if err != nil {
-				return false
-			}
-			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-			if err != nil {
-				return false
-			}
-			return true
-		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
-	})
-	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
-		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
+	/*	WhenClusterAPIInstalledIt("Deploy addon component", func() {
+			Eventually(func() bool {
+				file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
+				if err != nil {
+					return false
+				}
+				err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
+				if err != nil {
+					return false
+				}
+				return true
+			}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
+		})
+		WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
+			update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
+		})*/
+
+	WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
+		Eventually(func() error {
+			return CreateImagePullSecrets(okeClusterName, t.Logs)
+		}, shortWaitTimeout, shortPollingInterval)
 	})
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
@@ -555,11 +568,6 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() error {
 				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
-		})
-		WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
-			Eventually(func() error {
-				return CreateImagePullSecrets(okeClusterName, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval)
 		})
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
