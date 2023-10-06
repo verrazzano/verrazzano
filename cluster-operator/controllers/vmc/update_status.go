@@ -266,7 +266,7 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 		if errors.IsNotFound(err) {
 			return false, nil
 		}
-		return false, err
+		return false, fmt.Errorf("error listing verrazzanos in ClusterAPI cluster %s: %v", capiClusterName, err)
 	}
 	// FIXME: do check for length of vzList?
 	return true, nil
