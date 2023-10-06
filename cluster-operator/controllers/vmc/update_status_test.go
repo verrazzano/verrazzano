@@ -342,6 +342,19 @@ func TestShouldUpdateK8sVersion(t *testing.T) {
 			false,
 			nil,
 		},
+		{
+			// TODO: implement having Verrazzano installed or not
+			"ClusterAPI cluster without Verrazzano",
+			false,
+			false,
+			nil,
+		},
+		{
+			"ClusterAPI cluster with Verrazzano",
+			false,
+			false,
+			nil,
+		},
 	}
 
 	for _, tt := range tests {
