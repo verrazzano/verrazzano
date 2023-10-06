@@ -549,6 +549,11 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
+	WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
+		Eventually(func() error {
+			return CreateImagePullSecrets(okeClusterName, t.Logs)
+		}, shortWaitTimeout, shortPollingInterval)
+	})
 	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
@@ -559,11 +564,6 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() error {
 				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
-		})
-		WhenClusterAPIInstalledIt("Create Image pull secrets", func() {
-			Eventually(func() error {
-				return CreateImagePullSecrets(okeClusterName, t.Logs)
-			}, shortWaitTimeout, shortPollingInterval)
 		})
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
