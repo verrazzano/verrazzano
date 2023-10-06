@@ -143,11 +143,8 @@ func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
-				Name:      "es-" + string(vmov1.MasterRole),
-				Replicas:  common.Int32Ptr(3),
-				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
-				Storage:   newNodeStorage("2Gi"),
-				Resources: newResources("512Mi"),
+				Name:     "es-" + string(vmov1.MasterRole),
+				Replicas: common.Int32Ptr(3),
 			},
 		)
 }
