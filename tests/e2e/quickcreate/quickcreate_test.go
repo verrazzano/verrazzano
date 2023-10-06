@@ -254,10 +254,14 @@ func setConfigQPSBurst(config *rest.Config) {
 func CreateImagePullSecrets(clusterName string, log *zap.SugaredLogger) error {
 	log.Infof("Creating image pull secrets on workload cluster ...")
 
-	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
+	capiK8sConfig, err := k8sutil.GetKubeConfigLocation()
 	if err != nil {
 		return err
 	}
+	/*	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
+		if err != nil {
+			return err
+		}*/
 	/*	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
 		if err != nil {
 			log.Error("Failed to create temporary file ", zap.Error(err))
