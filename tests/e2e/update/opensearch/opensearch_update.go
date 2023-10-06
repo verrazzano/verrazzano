@@ -29,6 +29,9 @@ type OpensearchCleanUpModifier struct {
 type OpensearchAllNodeRolesModifier struct {
 }
 
+type DisableDefaultNodeRolesModifier struct {
+}
+
 func (u OpensearchCleanUpModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
 }
@@ -137,14 +140,22 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	}
 }
 
+func (u DisableDefaultNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
+	cr.Spec.Components.Elasticsearch.Nodes =
+		append(cr.Spec.Components.Elasticsearch.Nodes,
+			vzapi.OpenSearchNode{
+				Name:      string(vmov1.MasterRole),
+				Replicas:  common.Int32Ptr(3),
+				Roles:     []vmov1.NodeRole{vmov1.MasterRole, vmov1.DataRole, vmov1.IngestRole},
+				Storage:   newNodeStorage("2Gi"),
+				Resources: newResources("512Mi"),
+			},
+		)
+}
+
 func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
-	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{
-		{
-			Name:     "es-" + string(vmov1.MasterRole),
-			Replicas: common.Int32Ptr(0),
-		},
-	}
+	cr.Spec.Components.Elasticsearch.Nodes = []vzapi.OpenSearchNode{}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
@@ -185,6 +196,8 @@ var afterSuite = t.AfterSuiteFunc(func() {
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	m := OpensearchAllNodeRolesModifier{}
 	update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
+	d := DisableDefaultNodeRolesModifier{}
+	update.UpdateCRWithRetries(d, pollingInterval, waitTimeout)
 })
 
 var _ = ginkgo.AfterSuite(afterSuite)
