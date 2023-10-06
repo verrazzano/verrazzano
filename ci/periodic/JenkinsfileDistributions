@@ -39,6 +39,9 @@ pipeline {
                 defaultValue: '_excluded_test',
                 description: 'A regex matching any fully qualified test file that should not be executed (e.g. multicluster/|_excluded_test). Default: _excluded_test',
                 trim: true)
+        booleanParam (name: 'BASELINE_IMAGE_SIZES_FILE_UPDATE',
+                defaultValue: false,
+                description: 'If true, image-sizes.txt file will be updated to reflect latest image sizes. ')
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
                 description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
@@ -78,6 +81,9 @@ pipeline {
 
         OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
         OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
+
+        BASELINE_COMMIT_SHORT_HASH=""
+        COMPARISON_URL_ON_FAILURE=""
     }
 
     stages {
@@ -94,7 +100,8 @@ pipeline {
                         sh """
                              echo "${OCR_CREDS_PSW}" | docker login -u ${OCR_CREDS_USR} ${OCR_REPO} --password-stdin
                         """
-                    } catch(error) {
+                    }
+                    catch(error) {
                         echo "OCIR docker login at ${OCIR_REPO} failed, retrying after sleep"
                         retry(4) {
                             sleep(30)
@@ -106,11 +113,54 @@ pipeline {
                 }
                 sh """
                     ci/scripts/build_distribution.sh ${env.GIT_COMMIT} ${SHORT_COMMIT_HASH} ${VERRAZZANO_DEV_VERSION}
+
+                    oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt
                 """
             }
             post {
                 always {
                     archiveArtifacts artifacts: '**/image-sizes.txt', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Update Baseline Image-Sizes File') {
+            when {
+                anyOf {
+                    expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == true };
+                }
+            }
+            steps {
+                script {
+                   sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt"
+                }
+            }
+        }
+
+        stage('Check Image Sizes') {
+            steps {
+                script {
+                    def commitList = getCommitList()
+                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                        echo "Suspect list: ${SUSPECT_LIST}"
+                    }
+                }
+              script {
+                    sh """
+                        ci/scripts/check_image_sizes.sh
+                    """
+                    BASELINE_COMMIT_SHORT_HASH = sh(returnStdout: true, script: "cat ${WORKSPACE}/commitID.txt")
+                     if ( fileExists("${WORKSPACE}/result.txt") ){
+                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${BASELINE_COMMIT_SHORT_HASH}...${env.GIT_COMMIT}"
+                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
+                     }
+               }
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: '**/image-sizes-objectstore.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -198,6 +248,123 @@ pipeline {
             }
         }
     }
+  }
+
+// Called in Stage Clean workspace and checkout steps
+@NonCPS
+def getCommitList() {
+    echo "Checking for change sets"
+    def commitList = []
+    def changeSets = currentBuild.changeSets
+    for (int i = 0; i < changeSets.size(); i++) {
+        echo "get commits from change set"
+        def commits = changeSets[i].items
+        for (int j = 0; j < commits.length; j++) {
+            def commit = commits[j]
+            def id = commit.commitId
+            echo "Add commit id: ${id}"
+            commitList.add(id)
+        }
+    }
+    return commitList
+}
+
+def trimIfGithubNoreplyUser(userIn) {
+    if (userIn == null) {
+        echo "Not a github noreply user, not trimming: ${userIn}"
+        return userIn
+    }
+    if (userIn.matches(".*\\+.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("+") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*<.*@users.noreply.github.com.*")) {
+        def userOut = userIn.substring(userIn.indexOf("<") + 1, userIn.indexOf("@"))
+        return userOut;
+    }
+    if (userIn.matches(".*@users.noreply.github.com")) {
+        def userOut = userIn.substring(0, userIn.indexOf("@"))
+        return userOut;
+    }
+    echo "Not a github noreply user, not trimming: ${userIn}"
+    return userIn
+}
+
+def getSuspectList(commitList, userMappings) {
+    def retValue = ""
+    def suspectList = []
+    if (commitList == null || commitList.size() == 0) {
+        echo "No commits to form suspect list"
+    } else {
+        for (int i = 0; i < commitList.size(); i++) {
+            def id = commitList[i]
+            try {
+                def gitAuthor = sh(
+                    script: "git log --format='%ae' '$id^!'",
+                    returnStdout: true
+                ).trim()
+                if (gitAuthor != null) {
+                    def author = trimIfGithubNoreplyUser(gitAuthor)
+                    echo "DEBUG: author: ${gitAuthor}, ${author}, id: ${id}"
+                    if (userMappings.containsKey(author)) {
+                        def slackUser = userMappings.get(author)
+                        if (!suspectList.contains(slackUser)) {
+                            echo "Added ${slackUser} as suspect"
+                            retValue += " ${slackUser}"
+                            suspectList.add(slackUser)
+                        }
+                    } else {
+                        // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+                        if (!suspectList.contains(author)) {
+                            echo "Added ${author} as suspect"
+                            retValue += " ${author}"
+                            suspectList.add(author)
+                        }
+                    }
+                } else {
+                    echo "No author returned from git"
+                }
+            } catch (Exception e) {
+                echo "INFO: Problem processing commit ${id}, skipping commit: " + e.toString()
+            }
+        }
+    }
+    def startedByUser = "";
+    def causes = currentBuild.getBuildCauses()
+    echo "causes: " + causes.toString()
+    for (cause in causes) {
+        def causeString = cause.toString()
+        echo "current cause: " + causeString
+        def causeInfo = readJSON text: causeString
+        if (causeInfo.userId != null) {
+            startedByUser = causeInfo.userId
+        }
+    }
+
+    if (startedByUser.length() > 0) {
+        echo "Build was started by a user, adding them to the suspect notification list: ${startedByUser}"
+        def author = trimIfGithubNoreplyUser(startedByUser)
+        echo "DEBUG: author: ${startedByUser}, ${author}"
+        if (userMappings.containsKey(author)) {
+            def slackUser = userMappings.get(author)
+            if (!suspectList.contains(slackUser)) {
+                echo "Added ${slackUser} as suspect"
+                retValue += " ${slackUser}"
+                suspectList.add(slackUser)
+            }
+        } else {
+            // If we don't have a name mapping use the commit.author, at least we can easily tell if the mapping gets dated
+            if (!suspectList.contains(author)) {
+               echo "Added ${author} as suspect"
+               retValue += " ${author}"
+               suspectList.add(author)
+            }
+        }
+    } else {
+        echo "Build not started by a user, not adding to notification list"
+    }
+    echo "returning suspect list: ${retValue}"
+    return retValue
 }
 
 def setDisplayName() {
