@@ -127,7 +127,7 @@ pipeline {
                         if [ $params.COMMIT_TO_GET_IMAGES == NONE ] ; then
                             oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
                         else
-                            oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ephemeral/${params.RELEASE_BRANCH}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                            oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${params.RELEASE_BRANCH}/${params.COMMIT_TO_GET_IMAGES}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
                         fi
                     """
                 }
