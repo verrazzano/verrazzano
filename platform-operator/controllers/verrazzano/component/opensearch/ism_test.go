@@ -538,7 +538,7 @@ func TestGetISMPolicyFromFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config.TestThirdPartyManifestDir = "../../../thirdparty/manifests"
+			config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 			_, err := getISMPolicyFromFile(tt.args.policyFileName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getISMPolicyFromFile() error = %v, wantErr %v", err, tt.wantErr)
