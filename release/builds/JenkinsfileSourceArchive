@@ -23,6 +23,7 @@ pipeline {
         string (description: 'The release version (major.minor.patch format, e.g. 1.5.0) used to name the source archive', name: 'RELEASE_VERSION', defaultValue: 'NONE', trim: true)
         string (description: 'verrazzano-helper branch, use the appropriate release branch', name: 'VERRAZZANO_HELPER_BRANCH',
                 defaultValue: 'master', trim: true)
+        string (description: 'The git short commit for obtaining the file containing Verrazzano images (temporary)', name: 'COMMIT_TO_GET_IMAGES', defaultValue: 'NONE', trim: true )
     }
 
     environment {
@@ -108,7 +109,6 @@ pipeline {
                     sh """
                         oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OCI_OS_SHARED_BUCKET} --name ${params.VERRAZZANO_HELPER_BRANCH}/verrazzano-helper --file ${WORKSPACE}/verrazzano-helper
                         chmod uog+x ${WORKSPACE}/verrazzano-helper
-
                         # Redirect the output of verrazzano-helper get repo-urls to files
                         ${WORKSPACE}/verrazzano-helper get repo-urls all > ${WORKSPACE}/${REPO_URLS}
                         ${WORKSPACE}/verrazzano-helper get repo-urls public_repos > ${WORKSPACE}/${PUBLIC_REPO_URLS}
@@ -124,7 +124,11 @@ pipeline {
                 script {
                     sh """
                         cd ${WORKSPACE}
-                        oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                        if [ $params.COMMIT_TO_GET_IMAGES == NONE ] ; then
+                            oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ${params.RELEASE_BRANCH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                        else
+                            oci --region ${OCI_REGION} os object get --namespace ${OBJECT_STORAGE_NS} -bn ${OBJECT_STORAGE_BUCKET} --name ephemeral/${params.RELEASE_BRANCH}/${SHORT_COMMIT_HASH}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt --file ${WORKSPACE}/verrazzano_${VERRAZZANO_DEV_VERSION}-images.txt
+                        fi
                     """
                 }
             }
