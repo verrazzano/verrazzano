@@ -93,7 +93,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 		t.Logs.Infof("Skipping test because Verrazzano version is less than %s", minimumVersion)
 		//return
 	}
-	t.ItMinimumVersion("creates a usuable cluster", minimumVersion, kubeconfigPath, createCluster)
 	createCluster()
 	t.Logs.Infof("Wait for 30 seconds before verification")
 	time.Sleep(30 * time.Second)
