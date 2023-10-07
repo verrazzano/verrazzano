@@ -100,6 +100,7 @@ func PodsReadyStatefulSet(log vzlog.VerrazzanoLogger, client client.Client, name
 	for _, pod := range pods.Items {
 		// Log error and return if the controller-revision-hash label is not found.  This should never happen.
 		if _, ok := pod.Labels[controllerRevisionHashLabel]; !ok {
+			log.Errorf("Failed to find pod label [controller-revision-hash] for pod %s/%s", pod.Namespace, pod.Name)
 			return false
 		}
 
