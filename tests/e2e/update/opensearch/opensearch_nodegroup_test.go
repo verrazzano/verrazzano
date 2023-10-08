@@ -33,8 +33,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePods(string(vmov1.MasterRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.MasterRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
-		m = OpensearchMasterNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
@@ -46,8 +44,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePods(string(vmov1.IngestRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.IngestRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
-		m = OpensearchIngestNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
@@ -59,8 +55,6 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 		update.ValidatePods(string(vmov1.DataRole), nodePoolLabel, constants.VerrazzanoLoggingNamespace, 3, false)
 		update.ValidatePodMemoryRequest(map[string]string{nodePoolLabel: string(vmov1.DataRole)},
 			constants.VerrazzanoLoggingNamespace, "opensearch", "512Mi")
-		m = OpensearchDataNodeGroupModifier{NodeReplicas: 0, NodeMemory: "512Mi", NodeStorage: "2Gi"}
-		update.UpdateCRWithRetries(m, pollingInterval, waitTimeout)
 	})
 
 	// GIVEN a VZ custom resource in dev profile,
