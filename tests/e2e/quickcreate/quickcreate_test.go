@@ -73,7 +73,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	client = c
 
 	// Create test context and setup
-	clusterType = "oke"
 	ctx, err = newContext(client, clusterType)
 	Expect(err).To(BeNil())
 	err = ctx.setup()
