@@ -299,8 +299,8 @@ func (r *VerrazzanoManagedClusterReconciler) updateK8sVersionUsingCAPI(vmc *clus
 	if err := r.List(context.TODO(), cpList, clipkg.InNamespace(clusterNamespacedName.Namespace)); err != nil {
 		return fmt.Errorf("error listing control plane objects: %v", err)
 	}
-	if len(cpList.Items) != 1 {
-		return fmt.Errorf("expected to find 1 %s objects, but found %d", cpKind, len(cpList.Items))
+	if len(cpList.Items) < 1 {
+		return fmt.Errorf("failed to find %s objects", cpKind)
 	}
 	k8sVersion, found, err := unstructured.NestedString(cpList.Items[0].Object, "status", "version")
 	if !found {
