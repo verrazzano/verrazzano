@@ -311,7 +311,6 @@ func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *ku
 		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
 		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
 	}
-
 	missing, err := notRunning(pods.Items, "")
 	if err != nil {
 		return false, err
