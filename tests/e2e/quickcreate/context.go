@@ -25,10 +25,10 @@ import (
 )
 
 const (
-	Ocneoci      = "ocneoci"
-	Oke          = "oke"
-	Namespace    = "NAMESPACE"
-	VZFleet_Name = "VZFLEET_NAME"
+	Ocneoci     = "ocneoci"
+	Oke         = "oke"
+	Namespace   = "NAMESPACE"
+	VZFleetName = "VZFLEET_NAME"
 )
 
 var (
@@ -121,7 +121,7 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 	params, err := qc.newParameters()
 	clusterName = params[ClusterID].(string)
 	clusterNamespace = qc.Namespace
-	vzFleetName = params[VZFleet_Name].(string)
+	vzFleetName = params[VZFleetName].(string)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -134,8 +134,8 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		ClusterID:    pkg.SimpleNameGenerator.New("qc-"),
-		VZFleet_Name: pkg.SimpleNameGenerator.New("vzfleet-"),
+		ClusterID:   pkg.SimpleNameGenerator.New("qc-"),
+		VZFleetName: pkg.SimpleNameGenerator.New("vzfleet-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
