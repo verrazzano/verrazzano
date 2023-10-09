@@ -485,11 +485,30 @@ func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 }
 
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
+	var k8sRestConfig *rest.Config
+	var err error
+
 	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
 		return nil, err
 	}
-	k8sRestConfig, err := GetRESTConfigGivenString(capiK8sConfig)
+
+	if clusterType == Oke {
+		k8sRestConfig, err = GetRESTConfigGivenString(capiK8sConfig)
+	} else if clusterType == Ocneoci {
+		tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
+		if err != nil {
+			log.Errorf("Failed to create temporary file : %v", zap.Error(err))
+			return nil, err
+		}
+
+		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+			log.Errorf("failed to write to destination file : %v", zap.Error(err))
+			return nil, err
+		}
+
+		k8sRestConfig, err = k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
+	}
 	if err != nil {
 		log.Errorf("failed to obtain k8s rest config : %v", zap.Error(err))
 		return nil, err
