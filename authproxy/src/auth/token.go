@@ -40,8 +40,9 @@ func (a *OIDCAuthenticator) AuthenticateToken(ctx context.Context, token string)
 	return idToken, nil
 }
 
+// ExchangeCodeForToken calls the identity provider to exchange the code in the HTTP request for a JWT token. On successful exchange this
+// function returns the identity token as a string.
 func (a *OIDCAuthenticator) ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error) {
-	// TODO Create this once?
 	oauthConfig := oauth2.Config{
 		ClientID:    a.oidcConfig.ClientID,
 		Endpoint:    a.ExternalProvider.Endpoint(),
