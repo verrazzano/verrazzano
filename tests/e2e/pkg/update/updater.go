@@ -194,8 +194,8 @@ func UpdateCRWithRetries(m CRModifier, pollingInterval, timeout time.Duration) {
 
 // UpdateCRWithPlugins updates the CR with the given CRModifier.
 // update till it succeeds or timesout.
-func UpdateCRWithPlugins(m CRModifier, pollingInterval, timeout time.Duration) {
-	UpdatePlugins(m, "", true, pollingInterval, timeout)
+func UpdateCRWithPlugins(m CRModifier, pollingInterval, timeout time.Duration, waitForReady bool) {
+	UpdatePlugins(m, "", waitForReady, pollingInterval, timeout)
 }
 
 // UpdatePlugins tries update with kubeconfigPath

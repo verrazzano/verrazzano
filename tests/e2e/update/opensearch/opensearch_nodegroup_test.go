@@ -64,10 +64,10 @@ var _ = t.Describe("Update opensearch", Label("f:platform-lcm.update"), func() {
 	// Then all pods are back to normal state
 	t.It("opensearch update plugin", func() {
 		m := OpenSearchPlugins{Enabled: true, InstanceList: "abc"}
-		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
+		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout, false)
 		update.ValidatePods(osMasterNodegroup, nodePoolLabel, constants.VerrazzanoLoggingNamespace, 0, false)
 		m = OpenSearchPlugins{Enabled: true, InstanceList: "analysis-stempel"}
-		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout)
+		update.UpdateCRWithPlugins(m, pollingInterval, waitTimeout, true)
 		var pods []corev1.Pod
 		var err error
 		Eventually(func() error {
