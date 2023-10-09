@@ -45,9 +45,7 @@ const (
 	addonControllerPodNamespace = "caapv-system"
 	nodeLabel                   = "node-role.kubernetes.io/node"
 	controlPlaneLabel           = "node-role.kubernetes.io/control-plane"
-	addonControllerPod          = "caapv-controller-manager"
 	addonControllerPodLabel     = "cluster.x-k8s.io/provider"
-	AddonComponentsYamlPath     = "tests/e2e/quickcreate/templates/verrazzanofleet-none-profile.goyaml"
 )
 
 var (
@@ -156,29 +154,6 @@ func WhenClusterAPIInstalledIt(description string, f func()) {
 	}
 }
 
-/*func isVerrazzanoPodRunning(clusterName, namespace string, log *zap.SugaredLogger) bool {
-	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
-	if err != nil {
-		t.Logs.Info("Failed to get k8s client for workload cluster")
-		return false
-	}
-	vpo, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=verrazzano-platform-operator", k8sclient)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-	vpoWebhook, err := pkg.SpecificPodsRunningInClusterWithClient(namespace, "app=verrazzano-platform-operator-webhook", k8sclient)
-	if err != nil {
-		AbortSuite(fmt.Sprintf("One or more pods are not running in the namespace: %v, error: %v", namespace, err))
-	}
-
-	if err != nil {
-		log.Errorf("Unable to display resources from workload cluster ", zap.Error(err))
-		return false
-	}
-
-	return vpo && vpoWebhook
-}*/
-
 func ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, namespace string, log *zap.SugaredLogger) bool {
 	k8sclient, err := getCapiClusterK8sClient(clusterName, log)
 	if err != nil {
@@ -223,15 +198,6 @@ func getCapiClusterK8sClient(clusterName string, log *zap.SugaredLogger) (client
 	if err != nil {
 		return nil, err
 	}
-	/*	tmpFile, err := os.CreateTemp(os.TempDir(), clusterName)
-		if err != nil {
-			return nil, errors.Wrap(err, "Failed to create temporary file")
-		}
-
-		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-			return nil, errors.Wrap(err, "failed to write to destination file")
-		}
-	*/
 	k8sRestConfig, err := GetRESTConfigGivenString(capiK8sConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to get k8s rest config")
@@ -501,8 +467,6 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleetbindings",
 	}
-	list, err := dclient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
-	log.Infof("----------ALL FLEET BINDINGS------%v", list.Items)
 	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 }
 
@@ -528,18 +492,6 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 	if err != nil {
 		return nil, err
 	}
-	/*	tmpFile, err := os.CreateTemp(os.TempDir(), fmt.Sprintf("%s-kubeconfig", clusterName))
-		if err != nil {
-			log.Errorf("Failed to create temporary file : %v", zap.Error(err))
-			return nil, err
-		}
-
-		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
-			log.Errorf("failed to write to destination file : %v", zap.Error(err))
-			return nil, err
-		}*/
-
-	//k8sRestConfig, err := k8sutil.GetKubeConfigGivenPathAndContext(tmpFile.Name(), fmt.Sprintf("%s-admin@%s", clusterName, clusterName))
 	k8sRestConfig, err := GetRESTConfigGivenString(capiK8sConfig)
 	if err != nil {
 		log.Errorf("failed to obtain k8s rest config : %v", zap.Error(err))
@@ -564,10 +516,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 				return false
 			}
 			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-			if err != nil {
-				return false
-			}
-			return true
+			return err == nil
 		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
 	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {

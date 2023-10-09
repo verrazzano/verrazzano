@@ -85,7 +85,7 @@ func (qc *QCContext) setDynamicValues() error {
 	qc.Parameters = parameters
 	qc.RawObjects = rawObjects
 	qc.Parameters[Namespace] = qc.Namespace
-	qc.Parameters[VZFleet_Name] = "vzfleet"
+	qc.Parameters[VZFleet_Name] = pkg.SimpleNameGenerator.New("vzfleet-")
 	if qc.isOCICluster() {
 		err = qc.Parameters.prepareOCI(qc.ClusterType)
 		if err != nil {
@@ -137,7 +137,6 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
 		ClusterID: pkg.SimpleNameGenerator.New("qc-"),
-		//ClusterID: "cluster-test-1",
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
