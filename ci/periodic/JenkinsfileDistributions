@@ -143,7 +143,7 @@ pipeline {
                     }
                    currentBuild.displayName = "${currentBuild.displayName} : Update Baseline image-sizes.txt"
                    sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt"
-                   sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-onjectstore.txt"
+                   sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt"
                 }
             }
         }
