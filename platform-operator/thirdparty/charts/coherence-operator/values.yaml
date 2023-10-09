@@ -6,14 +6,14 @@
 image:
   registry: "ghcr.io/oracle"
   name: "coherence-operator"
-  tag: "3.3.0"
+  tag: "3.2.11"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
 defaultCoherenceImage:
   registry: "ghcr.io/oracle"
   name: "coherence-ce"
-  tag: "22.06.5"
+  tag: "22.06.4"
 
 # watchNamespaces is the comma delimited list of namespaces that the operator should
 # manage Coherence resources in. The default is to manage all namespaces.
