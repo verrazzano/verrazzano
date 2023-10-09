@@ -78,7 +78,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	err = ctx.setup()
 	Expect(err).To(BeNil())
 
-	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, clusterName, clusterNamespace)
+	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - clustername [%s] - clusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, clusterName, clusterNamespace)
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}

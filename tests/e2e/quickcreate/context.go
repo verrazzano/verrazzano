@@ -67,8 +67,7 @@ func newContext(cli clipkg.Client, clusterType string) (*QCContext, error) {
 	qc := &QCContext{
 		ClusterType: clusterType,
 		Namespace:   pkg.SimpleNameGenerator.New("qc-"),
-		//Namespace: "default",
-		Client: cli,
+		Client:      cli,
 	}
 	if err := qc.setDynamicValues(); err != nil {
 		return nil, err
@@ -85,7 +84,6 @@ func (qc *QCContext) setDynamicValues() error {
 	qc.Parameters = parameters
 	qc.RawObjects = rawObjects
 	qc.Parameters[Namespace] = qc.Namespace
-	qc.Parameters[VZFleet_Name] = pkg.SimpleNameGenerator.New("vzfleet-")
 	if qc.isOCICluster() {
 		err = qc.Parameters.prepareOCI(qc.ClusterType)
 		if err != nil {
@@ -136,7 +134,8 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		ClusterID: pkg.SimpleNameGenerator.New("qc-"),
+		ClusterID:    pkg.SimpleNameGenerator.New("qc-"),
+		VZFleet_Name: pkg.SimpleNameGenerator.New("vzfleet-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
