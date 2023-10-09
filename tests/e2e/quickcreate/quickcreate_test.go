@@ -35,10 +35,10 @@ import (
 
 const (
 	minimumVersion  = "2.0.0"
-	waitTimeOut     = 40 * time.Minute
+	waitTimeOut     = 60 * time.Minute
 	pollingInterval = 30 * time.Second
 
-	shortWaitTimeout            = 15 * time.Minute
+	shortWaitTimeout            = 30 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	addonControllerPodNamespace = "verrazzano-capi"
@@ -486,7 +486,6 @@ func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
 	var k8sRestConfig *rest.Config
-	var err error
 
 	capiK8sConfig, err := getCapiClusterKubeConfig(clusterName, log)
 	if err != nil {
@@ -502,7 +501,7 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 			return nil, err
 		}
 
-		if err := os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
+		if err = os.WriteFile(tmpFile.Name(), capiK8sConfig, 0600); err != nil {
 			log.Errorf("failed to write to destination file : %v", zap.Error(err))
 			return nil, err
 		}
