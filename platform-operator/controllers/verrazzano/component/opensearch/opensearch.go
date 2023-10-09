@@ -210,7 +210,7 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 
 // areOSReplicasUpdated check whether all replicas of opensearch are updated or not. In case of yellow cluster status, we skip this check and consider replicas are updated.
 func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.StatefulSet, expectedReplicas int32, client client.Client, prefix string, namespacedName types.NamespacedName) bool {
-	if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdateRevision != statefulset.Status.CurrentRevision && statefulset.Status.UpdatedReplicas < expectedReplicas {
+	if statefulset.Status.UpdatedReplicas > 0 && statefulset.Status.UpdatedReplicas < expectedReplicas {
 		pas, err := GetVerrazzanoPassword(client)
 		if err != nil {
 			log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)

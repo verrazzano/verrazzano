@@ -209,9 +209,6 @@ func UpdatePlugins(m CRModifier, kubeconfigPath string, waitForReady bool, polli
 				return false
 			}
 		}
-		if waitForReady {
-			WaitForReadyState(kubeconfigPath, time.Time{}, pollingInterval, timeout)
-		}
 		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
 		if err != nil {
 			pkg.Log(pkg.Error, err.Error())
