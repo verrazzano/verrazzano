@@ -93,9 +93,14 @@ securityContext: {}
 
 priorityClassName:
 
-# Specifies weather host network should be used
+# Specifies whether host network should be used
 hostNetwork: false
 
 metricsPort: 8383
 
-containerSecurityContext: {}
+containerSecurityContext: 
+  allowPrivilegeEscalation: false
+      privileged: false
+      runAsGroup: 65534
+      runAsNonRoot: true
+      runAsUser: 1001
