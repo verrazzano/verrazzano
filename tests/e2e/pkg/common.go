@@ -307,7 +307,6 @@ func PodsRunningInClusterWithClient(namespace string, namePrefixes []string, cli
 // SpecificPodsRunningInClusterWithClient checks if all the pods identified by labels and are ready and running in the given cluster
 func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *kubernetes.Clientset) (bool, error) {
 	pods, err := ListPodsWithLabelsInCluster(namespace, labels, client)
-
 	if err != nil {
 		Log(Error, fmt.Sprintf(podListingErrorFmt, namespace, err))
 		return false, fmt.Errorf(podListingErrorFmt, namespace, err)
