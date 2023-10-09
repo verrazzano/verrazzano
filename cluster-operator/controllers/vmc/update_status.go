@@ -268,6 +268,8 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 	}
 	vzList := &v1beta1.VerrazzanoList{}
 	if err = capiClient.List(context.TODO(), vzList, &clipkg.ListOptions{}); err != nil {
+		// If verrazzanos are either not found or if the verrazzano CRD is not defined on this cluster,
+		// then return true
 		vzGroupVersionResource := schema.GroupVersionResource{
 			Group:    v1beta1.SchemeGroupVersion.Group,
 			Version:  v1beta1.SchemeGroupVersion.Version,
