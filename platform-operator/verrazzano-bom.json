@@ -792,7 +792,7 @@
     },
     {
       "name": "jaeger-operator",
-      "version": "1.42.0-1",
+      "version": "1.42.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
