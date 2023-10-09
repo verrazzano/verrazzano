@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	capiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
@@ -267,7 +268,13 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 	}
 	vzList := &v1beta1.VerrazzanoList{}
 	if err = capiClient.List(context.TODO(), vzList, &clipkg.ListOptions{}); err != nil {
-		if errors.IsNotFound(err) {
+		vzGroupVersionResource := schema.GroupVersionResource{
+			Group:    v1beta1.SchemeGroupVersion.Group,
+			Version:  v1beta1.SchemeGroupVersion.Version,
+			Resource: "verrazzanos",
+		}
+		_, gvkErr := capiClient.RESTMapper().KindFor(vzGroupVersionResource)
+		if errors.IsNotFound(err) || gvkErr != nil {
 			return true, nil
 		}
 		return false, fmt.Errorf("error listing verrazzanos in ClusterAPI cluster %s: %v", capiClusterName, err)
