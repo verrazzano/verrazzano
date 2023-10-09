@@ -14,6 +14,7 @@ import (
 	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
+	vzv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/mocks"
 	corev1 "k8s.io/api/core/v1"
@@ -329,10 +330,15 @@ func TestShouldUpdateK8sVersion(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = v1beta1.AddToScheme(scheme)
+	_ = vzv1beta1.AddToScheme(scheme)
+
+	defaultCAPIClientFunc := getCAPIClientFunc
+	defer func() { getCAPIClientFunc = defaultCAPIClientFunc }()
 
 	tests := []struct {
 		testName      string
 		setClusterRef bool
+		vzOnCAPI      bool
 		shouldUpdate  bool
 		err           error
 	}{
@@ -340,18 +346,20 @@ func TestShouldUpdateK8sVersion(t *testing.T) {
 			"non-ClusterAPI cluster",
 			false,
 			false,
+			false,
 			nil,
 		},
 		{
-			// TODO: implement having Verrazzano installed or not
 			"ClusterAPI cluster without Verrazzano",
+			true,
 			false,
-			false,
+			true,
 			nil,
 		},
 		{
 			"ClusterAPI cluster with Verrazzano",
-			false,
+			true,
+			true,
 			false,
 			nil,
 		},
@@ -359,11 +367,21 @@ func TestShouldUpdateK8sVersion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			vmc := newVMC(testVMCName, testVMCNamespace)
-			objects := []client.Object{vmc}
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objects...).Build()
+			var vmc *v1alpha1.VerrazzanoManagedCluster
+			if tt.setClusterRef {
+				if tt.vzOnCAPI {
+					getCAPIClientFunc = fakeCAPIClientWithVZ
+				} else {
+					getCAPIClientFunc = fakeCAPIClient
+				}
+				vmc = newVMCWithClusterRef(testVMCName, testVMCNamespace, testCAPIClusterName, testCAPINamespace)
+			} else {
+				vmc = newVMC(testVMCName, testVMCNamespace)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(vmc).Build()
 			r := &VerrazzanoManagedClusterReconciler{
 				Client: fakeClient,
+				Scheme: scheme,
 				log:    vzlog.DefaultLogger(),
 			}
 
@@ -372,6 +390,17 @@ func TestShouldUpdateK8sVersion(t *testing.T) {
 			a.Equal(tt.shouldUpdate, shouldUpdate)
 		})
 	}
+}
+
+// fakeCAPIClient returns a fake client for a CAPI workload cluster
+func fakeCAPIClient(ctx context.Context, cli client.Client, cluster types.NamespacedName, scheme *runtime.Scheme) (client.Client, error) {
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build(), nil
+}
+
+// fakeCAPIClient returns a fake client for a CAPI workload cluster
+func fakeCAPIClientWithVZ(ctx context.Context, cli client.Client, cluster types.NamespacedName, scheme *runtime.Scheme) (client.Client, error) {
+	vz := vzv1beta1.Verrazzano{}
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(&vz).Build(), nil
 }
 
 // newVMCWithClusterRef returns a VMC struct pointer, with the status.clusterRef field set to point to a CAPI Cluster

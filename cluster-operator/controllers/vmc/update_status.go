@@ -26,6 +26,9 @@ const (
 	okeProviderDisplayName      = "Oracle OKE"
 )
 
+// for unit testing
+var getCAPIClientFunc = capi.GetClusterClient
+
 // updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
 func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	// Update the VMC's status.state
@@ -258,7 +261,7 @@ func (r *VerrazzanoManagedClusterReconciler) shouldUpdateK8sVersion(vmc *cluster
 
 	// If Verrazzano is installed on the workload cluster, then let the verrazzano cluster agent handle updating the K8s version.
 	capiClusterName := types.NamespacedName{Name: vmc.Status.ClusterRef.Name, Namespace: vmc.Status.ClusterRef.Namespace}
-	capiClient, err := capi.GetClusterClient(context.TODO(), r.Client, capiClusterName, r.Scheme)
+	capiClient, err := getCAPIClientFunc(context.TODO(), r.Client, capiClusterName, r.Scheme)
 	if err != nil {
 		return false, fmt.Errorf("failed to get client for ClusterAPI cluster %s: %v", capiClusterName, err)
 	}
