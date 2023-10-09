@@ -41,7 +41,7 @@ const (
 	shortWaitTimeout            = 15 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
-	addonControllerPodNamespace = "caapv-system"
+	addonControllerPodNamespace = "verrazzano-capi"
 	nodeLabel                   = "node-role.kubernetes.io/node"
 	controlPlaneLabel           = "node-role.kubernetes.io/control-plane"
 	addonControllerPodLabel     = "cluster.x-k8s.io/provider"
