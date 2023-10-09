@@ -1817,6 +1817,8 @@ def dumpInstallLogsOnCluster(count, logDir, namespace) {
                 kubectl -n $namespace logs --selector=job-name=verrazzano-install-my-verrazzano > $logDir/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n $namespace describe pod --selector=job-name=verrazzano-install-my-verrazzano > $logDir/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
+                echo "Jaeger resource below"
+                kubectl -n verrazzano-monitoring get jaeger -o yaml
             """
         }
     }
