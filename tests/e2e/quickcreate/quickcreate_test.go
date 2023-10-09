@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/backup/helpers"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
@@ -481,8 +480,7 @@ func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleets",
 	}
-	list, err := dclient.Resource(gvr).Namespace(clusterNamespace).List(context.TODO(), metav1.ListOptions{})
-	log.Infof("----------ALL FLEETS------%v", list.Items)
+
 	return dclient.Resource(gvr).Namespace(clusterNamespace).Delete(context.TODO(), vzFleetName, metav1.DeleteOptions{})
 }
 
@@ -507,17 +505,6 @@ func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dy
 }
 
 var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-tests"), Serial, func() {
-
-	WhenClusterAPIInstalledIt("Deploy addon component", func() {
-		Eventually(func() bool {
-			file, err := pkg.FindTestDataFile("templates/addon-components.yaml")
-			if err != nil {
-				return false
-			}
-			err = resource.CreateOrUpdateResourceFromFile(file, t.Logs)
-			return err == nil
-		}, shortPollingInterval, shortWaitTimeout).Should(BeTrue(), "Deploy addon controller")
-	})
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
