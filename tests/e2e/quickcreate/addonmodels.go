@@ -105,3 +105,36 @@ type VerrazzanoFleetBinding struct {
 		} `json:"verrazzano"`
 	} `json:"status"`
 }
+
+type VerrazzanoFleet struct {
+	APIVersion string `json:"apiVersion"`
+	Kind       string `json:"kind"`
+	Metadata   struct {
+		CreationTimestamp time.Time `json:"creationTimestamp"`
+		Finalizers        []string  `json:"finalizers"`
+		Generation        int       `json:"generation"`
+		Name              string    `json:"name"`
+		Namespace         string    `json:"namespace"`
+		ResourceVersion   string    `json:"resourceVersion"`
+		UID               string    `json:"uid"`
+	} `json:"metadata"`
+	Spec struct {
+		ClusterSelector struct {
+			Name string `json:"name"`
+		} `json:"clusterSelector"`
+		Verrazzano struct {
+			Spec struct {
+				Components struct {
+				} `json:"components"`
+				Profile string `json:"profile"`
+			} `json:"spec"`
+		} `json:"verrazzano"`
+	} `json:"spec"`
+	Status struct {
+		Conditions []struct {
+			LastTransitionTime time.Time `json:"lastTransitionTime"`
+			Status             string    `json:"status"`
+			Type               string    `json:"type"`
+		} `json:"conditions"`
+	} `json:"status"`
+}

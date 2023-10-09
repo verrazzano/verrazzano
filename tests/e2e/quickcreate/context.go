@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	Ocneoci   = "ocneoci"
-	Oke       = "oke"
-	Namespace = "NAMESPACE"
+	Ocneoci      = "ocneoci"
+	Oke          = "oke"
+	Namespace    = "NAMESPACE"
+	VZFleet_Name = "VZFLEET_NAME"
 )
 
 var (
@@ -46,8 +47,9 @@ var (
 		Oke:     okeTemplate,
 	}
 
-	okeClusterName      string
-	okeClusterNamespace string
+	clusterName      string
+	clusterNamespace string
+	vzFleetName      string
 )
 
 type (
@@ -83,7 +85,7 @@ func (qc *QCContext) setDynamicValues() error {
 	qc.Parameters = parameters
 	qc.RawObjects = rawObjects
 	qc.Parameters[Namespace] = qc.Namespace
-
+	qc.Parameters[VZFleet_Name] = "vzfleet"
 	if qc.isOCICluster() {
 		err = qc.Parameters.prepareOCI(qc.ClusterType)
 		if err != nil {
@@ -119,8 +121,9 @@ func (qc *QCContext) applyCluster() error {
 
 func (qc *QCContext) getInputValues() ([]byte, input, error) {
 	params, err := qc.newParameters()
-	okeClusterName = params[ClusterID].(string)
-	okeClusterNamespace = qc.Namespace
+	clusterName = params[ClusterID].(string)
+	clusterNamespace = qc.Namespace
+	vzFleetName = params[VZFleet_Name].(string)
 	if err != nil {
 		return nil, nil, err
 	}

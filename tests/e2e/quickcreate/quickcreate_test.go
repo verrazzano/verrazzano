@@ -36,7 +36,7 @@ import (
 
 const (
 	minimumVersion  = "2.0.0"
-	waitTimeOut     = 30 * time.Minute
+	waitTimeOut     = 40 * time.Minute
 	pollingInterval = 30 * time.Second
 
 	shortWaitTimeout            = 5 * time.Minute
@@ -81,7 +81,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	err = ctx.setup()
 	Expect(err).To(BeNil())
 
-	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, okeClusterName, okeClusterNamespace)
+	t.Logs.Infof("Creating Cluster of type [%s] - parameters [%s] = namespace [%s] - okeclustername [%s] - okeclusternamespace [%s]", ctx.ClusterType, ctx.Parameters, ctx.Namespace, clusterName, clusterNamespace)
 	if err != nil {
 		t.Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
@@ -96,7 +96,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	createCluster()
 	t.Logs.Infof("Wait for 30 seconds before verification")
 	time.Sleep(30 * time.Second)
-	err = CreateImagePullSecrets(okeClusterName, t.Logs)
+	err = CreateImagePullSecrets(clusterName, t.Logs)
 	if err != nil {
 		t.Logs.Errorf("Error creating image pull secrets")
 	}
@@ -209,7 +209,7 @@ func getCapiClusterKubeConfig(clusterName string, log *zap.SugaredLogger) ([]byt
 		return nil, err
 	}
 
-	secret, err := clientset.CoreV1().Secrets(okeClusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
+	secret, err := clientset.CoreV1().Secrets(clusterNamespace).Get(context.TODO(), fmt.Sprintf("%s-kubeconfig", clusterName), metav1.GetOptions{})
 	if err != nil {
 		log.Infof("Error fetching secret ", zap.Error(err))
 		return nil, err
@@ -503,7 +503,24 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 	}
 	list, err := dclient.Resource(gvr).List(context.TODO(), metav1.ListOptions{})
 	log.Infof("----------ALL FLEET BINDINGS------%v", list.Items)
-	return dclient.Resource(gvr).Namespace(okeClusterNamespace).Get(context.TODO(), okeClusterName, metav1.GetOptions{})
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+}
+
+func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
+	dclient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "addons.cluster.x-k8s.io",
+		Version:  "v1alpha1",
+		Resource: "verrazzanofleets",
+	}
+	list, err := dclient.Resource(gvr).Namespace(clusterNamespace).List(context.TODO(), metav1.ListOptions{})
+	log.Infof("----------ALL FLEETS------%v", list.Items)
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Delete(context.TODO(), vzFleetName, metav1.DeleteOptions{})
 }
 
 func getCapiClusterDynamicClient(clusterName string, log *zap.SugaredLogger) (dynamic.Interface, error) {
@@ -556,7 +573,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 	WhenClusterAPIInstalledIt("Verify  addon controller running", func() {
 		update.ValidatePods("verrazzano-fleet", addonControllerPodLabel, addonControllerPodNamespace, 1, false)
 	})
-	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", okeClusterName), func() {
+	t.Context(fmt.Sprintf("Create VerrazzanoFleet resource  '%s'", clusterName), func() {
 		WhenClusterAPIInstalledIt("Create verrrazanoFleet", func() {
 			Eventually(func() error {
 				return ctx.applyVerrazzanoFleet()
@@ -564,31 +581,44 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		})
 		WhenClusterAPIInstalledIt("Verify if VerrazzanoFleetBinding resource created", func() {
 			Eventually(func() error {
-				return ensureVerrazzanoFleetBindingExists(okeClusterName, t.Logs)
+				return ensureVerrazzanoFleetBindingExists(clusterName, t.Logs)
 			}, shortWaitTimeout, shortPollingInterval).Should(BeNil(), "verify VerrazzanoFleetBinding resource")
 		})
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
-				return displayWorkloadClusterResources(okeClusterName, t.Logs)
+				return displayWorkloadClusterResources(clusterName, t.Logs)
 			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
 
 		WhenClusterAPIInstalledIt("Verify VPO on the workload cluster", func() {
 			Eventually(func() bool {
-				return ensureVPOPodsAreRunningOnWorkloadCluster(okeClusterName, "verrazzano-install", t.Logs)
+				return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, "verrazzano-install", t.Logs)
 			}, shortWaitTimeout, vzPollingInterval).Should(BeTrue(), "verify VPO")
 		})
 
 		WhenClusterAPIInstalledIt("Verify verrazzano CR resource", func() {
 			Eventually(func() error {
-				return ensureVerrazzano(okeClusterName, t.Logs)
+				return ensureVerrazzano(clusterName, t.Logs)
 			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify verrazzano resource")
 		})
 
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
-				return displayWorkloadClusterResources(okeClusterName, t.Logs)
+				return displayWorkloadClusterResources(clusterName, t.Logs)
 			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
 		})
+
+		WhenClusterAPIInstalledIt("Delete VerrazzanoFleet from admin cluster", func() {
+			Eventually(func() error {
+				return deleteVerrazzanoFleet(t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Delete VerrazzanoFleet resource from admin cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Verify verrazzano CR resource on workload cluster after deleting VerrazzanoFleet resource", func() {
+			Eventually(func() error {
+				return ensureVerrazzano(clusterName, t.Logs)
+			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "verify verrazzano resource on workload cluster after deleting VerrazzanoFleet resource")
+		})
+
 	})
 })
