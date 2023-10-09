@@ -16,8 +16,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/file"
+	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testauth"
 	"github.com/verrazzano/verrazzano/authproxy/internal/testutil/testserver"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
+	"github.com/verrazzano/verrazzano/authproxy/src/cookie"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
@@ -120,6 +122,10 @@ func TestLoadBearerToken(t *testing.T) {
 
 // TestInitializeAuthenticator tests that the authenticator gets initialized if it has not previously
 func TestInitializeAuthenticator(t *testing.T) {
+	// unset these otherwise the test fails due to not being able to connect to the proxy
+	os.Unsetenv("HTTPS_PROXY")
+	os.Unsetenv("https_proxy")
+
 	handler := Handler{
 		URL:       testAPIServerURL,
 		K8sClient: fake.NewClientBuilder().Build(),
@@ -227,4 +233,112 @@ func fakeOIDCConfig() auth.OIDCConfiguration {
 		ExternalURL: serverURL,
 		ServiceURL:  serverURL,
 	}
+}
+
+// TestHandleAuthCallback tests the handleAuthCallback handler
+func TestHandleAuthCallback(t *testing.T) {
+	// create a temporary file with a generated cookie encryption key
+	filename, err := writeEncryptionKeyFile()
+	assert.NoError(t, err)
+	defer os.Remove(filename)
+	prevEncryptionKeyFile := cookie.GetEncryptionKeyFile()
+	defer cookie.SetEncryptionKeyFile(prevEncryptionKeyFile)
+	cookie.SetEncryptionKeyFile(filename)
+
+	handler := Handler{
+		Authenticator: testauth.NewFakeAuthenticator(),
+		URL:           testAPIServerURL,
+		K8sClient:     fake.NewClientBuilder().Build(),
+		Log:           zap.S(),
+	}
+
+	const stateValue = "test-state"
+	const redirectURI = "/someplace-great"
+	vzState := &cookie.VZState{State: stateValue, RedirectURI: redirectURI}
+
+	tests := []struct {
+		name                       string
+		req                        *http.Request
+		expectedResponseStatusCode int
+		expectRedirect             bool
+	}{
+		// GIVEN the state query param value matches the state in the VZ cookie
+		// WHEN the auth callback handler is called
+		// THEN all validation passes and the HTTP response is a redirect
+		{
+			name:                       "state matches",
+			req:                        createHTTPRequest(vzState, stateValue),
+			expectedResponseStatusCode: http.StatusFound,
+			expectRedirect:             true,
+		},
+		// GIVEN the state query param value does not match the state in the VZ cookie
+		// WHEN the auth callback handler is called
+		// THEN an unauthorized response is returned
+		{
+			name:                       "state does not match",
+			req:                        createHTTPRequest(vzState, "bad-state"),
+			expectedResponseStatusCode: http.StatusUnauthorized,
+			expectRedirect:             false,
+		},
+		// GIVEN there is no VZ cookie in the request
+		// WHEN the auth callback handler is called
+		// THEN an unauthorized response is returned
+		{
+			name:                       "no cookie",
+			req:                        createHTTPRequest(nil, stateValue),
+			expectedResponseStatusCode: http.StatusUnauthorized,
+			expectRedirect:             false,
+		},
+		// GIVEN there is no state query param
+		// WHEN the auth callback handler is called
+		// THEN an unauthorized response is returned
+		{
+			name:                       "no query param",
+			req:                        createHTTPRequest(vzState, ""),
+			expectedResponseStatusCode: http.StatusUnauthorized,
+			expectRedirect:             false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rw := httptest.NewRecorder()
+			handler.handleAuthCallback(rw, tt.req)
+			assert.Equal(t, tt.expectedResponseStatusCode, rw.Result().StatusCode)
+
+			loc := rw.Header().Get("Location")
+			if tt.expectRedirect {
+				assert.Equal(t, redirectURI, loc)
+			} else {
+				assert.Equal(t, "", loc)
+			}
+		})
+	}
+}
+
+// createHTTPRequest creates an HTTP request for testing
+func createHTTPRequest(vzState *cookie.VZState, queryParam string) *http.Request {
+	url := "https://example.com/"
+	if queryParam != "" {
+		url += "?state=" + queryParam
+	}
+	req := httptest.NewRequest("", url, nil)
+	if vzState != nil {
+		cookie, err := cookie.CreateStateCookie(vzState)
+		if err != nil {
+			panic(err)
+		}
+		req.AddCookie(cookie)
+	}
+	return req
+}
+
+// writeEncryptionKeyFile creates a temporary file and writes an encryption key. The function returns the file name.
+func writeEncryptionKeyFile() (string, error) {
+	f, err := os.CreateTemp("", "")
+	if err != nil {
+		return "", err
+	}
+	f.Write([]byte("abcdefghijklmnopqrstuvwxyz1234567890"))
+	f.Close()
+	return f.Name(), nil
 }

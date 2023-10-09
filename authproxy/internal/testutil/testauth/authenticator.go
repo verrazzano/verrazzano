@@ -7,24 +7,25 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 )
 
 // FakeAuthenticator returns a fake implementation of the Authenticator interface
 type FakeAuthenticator struct {
-	authenticateTokenFunc   func() (bool, error)
+	authenticateTokenFunc   func() (*oidc.IDToken, error)
 	authenticateRequestFunc func() (bool, error)
 }
 
 // NewFakeAuthenticator returns a new FakeAuthenticator object with authentication set to true
 func NewFakeAuthenticator() *FakeAuthenticator {
 	return &FakeAuthenticator{
-		authenticateTokenFunc:   AuthenticateTrue,
+		authenticateTokenFunc:   AuthenticateWithToken,
 		authenticateRequestFunc: AuthenticateTrue,
 	}
 }
 
-func (f *FakeAuthenticator) AuthenticateToken(_ context.Context, _ string) (bool, error) {
+func (f *FakeAuthenticator) AuthenticateToken(_ context.Context, _ string) (*oidc.IDToken, error) {
 	return f.authenticateTokenFunc()
 }
 func (f *FakeAuthenticator) AuthenticateRequest(_ *http.Request, _ http.ResponseWriter) (bool, error) {
@@ -32,12 +33,16 @@ func (f *FakeAuthenticator) AuthenticateRequest(_ *http.Request, _ http.Response
 }
 func (f *FakeAuthenticator) SetCallbackURL(_ string) {}
 
-func (f *FakeAuthenticator) SetTokenFunc(fun func() (bool, error)) {
+func (f *FakeAuthenticator) SetTokenFunc(fun func() (*oidc.IDToken, error)) {
 	f.authenticateTokenFunc = fun
 }
 
 func (f *FakeAuthenticator) SetRequestFunc(fun func() (bool, error)) {
 	f.authenticateRequestFunc = fun
+}
+
+func (f *FakeAuthenticator) ExchangeCodeForToken(req *http.Request, codeVerifier string) (string, error) {
+	return "", nil
 }
 
 func AuthenticateTrue() (bool, error) {
@@ -46,6 +51,10 @@ func AuthenticateTrue() (bool, error) {
 
 func AuthenticateFalse() (bool, error) {
 	return false, nil
+}
+
+func AuthenticateWithToken() (*oidc.IDToken, error) {
+	return &oidc.IDToken{}, nil
 }
 
 var _ auth.Authenticator = &FakeAuthenticator{}
