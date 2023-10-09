@@ -125,7 +125,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '${WORKSPACE}/image-sizes.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '/image-sizes.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -176,7 +176,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '${WORKSPACE}/image-sizes-objectstore.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: '/image-sizes-objectstore.txt', allowEmptyArchive: true
                 }
             }
         }
