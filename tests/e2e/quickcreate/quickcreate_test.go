@@ -352,6 +352,41 @@ func ensureVerrazzanoFleetBindingExists(clusterName string, log *zap.SugaredLogg
 	return fmt.Errorf("All components are not ready: Current State = %v", curState)
 }
 
+func ensureVerrazzanoFleetExists(clusterName string, log *zap.SugaredLogger) error {
+	log.Infof("Wait for 30 seconds before verification")
+	time.Sleep(30 * time.Second)
+
+	vfFetched, err := getVerrazzanoFleet(log)
+	if err != nil {
+		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	var vfb VerrazzanoFleet
+	modBinaryData, err := json.Marshal(vfFetched)
+	if err != nil {
+		log.Error("json marshalling error ", zap.Error(err))
+		return err
+	}
+
+	err = json.Unmarshal(modBinaryData, &vfb)
+	if err != nil {
+		log.Error("json unmarshalling error ", zap.Error(err))
+		return err
+	}
+
+	curState := "Ready"
+	for _, cond := range vfb.Status.Conditions {
+		if cond.Type == "Ready" {
+			curState = cond.Type
+		}
+	}
+
+	if curState == "Ready" {
+		return nil
+	}
+	return fmt.Errorf("VerrazzanoFleet is not ready: Current State = %v", curState)
+}
+
 func getVerrazzano(clusterName, namespace, vzinstallname string, log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
 	dclient, err := getCapiClusterDynamicClient(clusterName, log)
 	if err != nil {
@@ -468,6 +503,21 @@ func getVerrazzanoFleetBinding(log *zap.SugaredLogger) (*unstructured.Unstructur
 	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
 }
 
+func getVerrazzanoFleet(log *zap.SugaredLogger) (*unstructured.Unstructured, error) {
+	dclient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return nil, err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "addons.cluster.x-k8s.io",
+		Version:  "v1alpha1",
+		Resource: "verrazzanofleets",
+	}
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+}
+
 func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 	dclient, err := k8sutil.GetDynamicClient()
 	if err != nil {
@@ -565,6 +615,24 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			Eventually(func() error {
 				return deleteVerrazzanoFleet(t.Logs)
 			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Delete VerrazzanoFleet resource from admin cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Verify VerrazzanoFleet resource does not exist on adminc luster", func() {
+			Eventually(func() error {
+				return ensureVerrazzanoFleetExists(clusterName, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(HaveOccurred(), "verify VerrazzanoFleetBinding resource does not exist on admin cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Verify VerrazzanoFleetBinding resource does not exist on admin cluster", func() {
+			Eventually(func() error {
+				return ensureVerrazzanoFleetBindingExists(clusterName, t.Logs)
+			}, shortWaitTimeout, shortPollingInterval).Should(HaveOccurred(), "verify VerrazzanoFleetBinding resource does not exist on admin cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Verify VPO does not exist on the workload cluster", func() {
+			Eventually(func() bool {
+				return ensureVPOPodsAreRunningOnWorkloadCluster(clusterName, "verrazzano-install", t.Logs)
+			}, shortWaitTimeout, vzPollingInterval).Should(BeFalse(), "verify VPO does not exist")
 		})
 
 		WhenClusterAPIInstalledIt("Verify verrazzano CR resource on workload cluster after deleting VerrazzanoFleet resource", func() {
