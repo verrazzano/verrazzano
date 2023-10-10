@@ -35,10 +35,10 @@ import (
 
 const (
 	minimumVersion  = "2.0.0"
-	waitTimeOut     = 60 * time.Minute
+	waitTimeOut     = 40 * time.Minute
 	pollingInterval = 30 * time.Second
 
-	shortWaitTimeout            = 30 * time.Minute
+	shortWaitTimeout            = 15 * time.Minute
 	shortPollingInterval        = 60 * time.Second
 	vzPollingInterval           = 60 * time.Second
 	addonControllerPodNamespace = "verrazzano-capi"
