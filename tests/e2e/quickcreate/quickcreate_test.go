@@ -394,11 +394,7 @@ func createFleetForUnknownCluster(clusterName string, log *zap.SugaredLogger) er
 		return err
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io",
-		Version:  "v1alpha1",
-		Resource: "verrazzanofleets",
-	}
+	gvr := getVerrazzanoFleetGVR()
 	vfFetched, err := getVerrazzanoFleet(log)
 	if err != nil {
 		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
@@ -407,10 +403,12 @@ func createFleetForUnknownCluster(clusterName string, log *zap.SugaredLogger) er
 	vfDeepCopy := vfFetched.DeepCopy()
 	vfDeepCopy.Object["spec"].(map[string]interface{})["clusterSelector"].(map[string]interface{})["name"] = "test-clustername"
 	vfDeepCopy.Object["metadata"].(map[string]interface{})["name"] = "new-fleet-name"
+	delete(vfDeepCopy.Object["metadata"].(map[string]interface{}), "resourceVersion")
 
 	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Create(context.TODO(), vfDeepCopy, metav1.CreateOptions{})
 	if err != nil {
 		log.Errorf("Unable to create the verrazzanofleet resource", err)
+		return err
 	}
 	return nil
 }
@@ -422,11 +420,7 @@ func updateVerrazzanoFleet(clusterName string, log *zap.SugaredLogger) error {
 		return err
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io",
-		Version:  "v1alpha1",
-		Resource: "verrazzanofleets",
-	}
+	gvr := getVerrazzanoFleetGVR()
 	vfFetched, err := getVerrazzanoFleet(log)
 	if err != nil {
 		log.Errorf("unable to fetch verrazzanofleet resource from %s due to '%v'", clusterName, zap.Error(err))
@@ -440,6 +434,7 @@ func updateVerrazzanoFleet(clusterName string, log *zap.SugaredLogger) error {
 	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Update(context.TODO(), vfFetched, metav1.UpdateOptions{})
 	if err != nil {
 		log.Errorf("Unable to update the verrazzanofleet resource", err)
+		return err
 	}
 	return nil
 }
@@ -451,11 +446,7 @@ func createMultipleFleetForSameCluster(clusterName string, log *zap.SugaredLogge
 		return err
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io",
-		Version:  "v1alpha1",
-		Resource: "verrazzanofleets",
-	}
+	gvr := getVerrazzanoFleetGVR()
 	vfFetched, err := getVerrazzanoFleet(log)
 	if err != nil {
 		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
@@ -463,10 +454,11 @@ func createMultipleFleetForSameCluster(clusterName string, log *zap.SugaredLogge
 	}
 	vfDeepCopy := vfFetched.DeepCopy()
 	vfDeepCopy.Object["metadata"].(map[string]interface{})["name"] = "duplicate-fleet-name"
-
+	delete(vfDeepCopy.Object["metadata"].(map[string]interface{}), "resourceVersion")
 	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Create(context.TODO(), vfDeepCopy, metav1.CreateOptions{})
 	if err != nil {
 		log.Errorf("Unable to create the verrazzanofleet resource", err)
+		return err
 	}
 	return nil
 }
@@ -594,14 +586,18 @@ func getVerrazzanoFleet(log *zap.SugaredLogger) (*unstructured.Unstructured, err
 		return nil, err
 	}
 
+	gvr := getVerrazzanoFleetGVR()
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), vzFleetName, metav1.GetOptions{})
+}
+
+func getVerrazzanoFleetGVR() schema.GroupVersionResource {
 	gvr := schema.GroupVersionResource{
 		Group:    "addons.cluster.x-k8s.io",
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleets",
 	}
-	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), vzFleetName, metav1.GetOptions{})
+	return gvr
 }
-
 func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 	dclient, err := k8sutil.GetDynamicClient()
 	if err != nil {
@@ -609,11 +605,7 @@ func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
 		return err
 	}
 
-	gvr := schema.GroupVersionResource{
-		Group:    "addons.cluster.x-k8s.io",
-		Version:  "v1alpha1",
-		Resource: "verrazzanofleets",
-	}
+	gvr := getVerrazzanoFleetGVR()
 
 	return dclient.Resource(gvr).Namespace(clusterNamespace).Delete(context.TODO(), vzFleetName, metav1.DeleteOptions{})
 }
