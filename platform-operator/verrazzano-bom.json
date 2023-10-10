@@ -299,7 +299,7 @@
     },
     {
       "name": "fluentd",
-      "version": "1.14.5-1",
+      "version": "1.14.5-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
