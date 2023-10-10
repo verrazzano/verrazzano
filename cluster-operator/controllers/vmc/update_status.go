@@ -47,9 +47,10 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	}
 
 	// Conditionally update the VMC's Kubernetes version
-	if updateNeeded, err := r.shouldUpdateK8sVersion(vmc); err != nil {
+	k8sUpdateNeeded, err := r.shouldUpdateK8sVersion(vmc)
+	if err != nil {
 		return err
-	} else if updateNeeded {
+	} else if k8sUpdateNeeded {
 		if err := r.updateK8sVersionUsingCAPI(vmc); err != nil {
 			return err
 		}
@@ -57,7 +58,7 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 
 	// Fetch the existing VMC to avoid conflicts in the status update
 	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+	err = r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
 	if err != nil {
 		return err
 	}
@@ -70,7 +71,9 @@ func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, v
 	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
 	existingVMC.Status.Imported = vmc.Status.Imported
 	existingVMC.Status.Provider = vmc.Status.Provider
-	existingVMC.Status.Kubernetes.Version = vmc.Status.Kubernetes.Version
+	if k8sUpdateNeeded {
+		existingVMC.Status.Kubernetes.Version = vmc.Status.Kubernetes.Version
+	}
 
 	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
 	return r.Status().Update(ctx, existingVMC)
