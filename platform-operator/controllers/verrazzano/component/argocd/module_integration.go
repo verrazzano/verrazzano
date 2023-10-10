@@ -23,6 +23,7 @@ func (c argoCDComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 		}),
 		watch.GetModuleUpdatedWatches([]string{
 			nginx.ComponentName,
+			cmconstants.ClusterIssuerComponentName,
 		}),
 	)
 }

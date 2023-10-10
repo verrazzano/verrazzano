@@ -6,6 +6,7 @@ package argocd
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"time"
 
@@ -33,7 +34,7 @@ type OIDCConfig struct {
 	ClientID        string   `json:"clientID"`
 	ClientSecret    string   `json:"clientSecret"`
 	RequestedScopes []string `json:"requestedScopes"`
-	RootCA          string   `json:"rootCA"`
+	RootCA          string   `json:"rootCA,omitempty"`
 }
 
 // patchArgoCDSecret
@@ -102,7 +103,10 @@ func patchArgoCDConfigMap(ctx spi.ComponentContext) error {
 			"email",
 			"groups",
 		},
-		RootCA: string(caCert),
+	}
+
+	if len(caCert) > 0 {
+		conf.RootCA = string(caCert)
 	}
 
 	data, err := yaml.Marshal(conf)
@@ -199,14 +203,17 @@ func restartArgoCDServerDeploy(ctx spi.ComponentContext) error {
 func GetRootCA(ctx spi.ComponentContext) ([]byte, error) {
 	secret := &corev1.Secret{}
 	nsName := types.NamespacedName{
-		Namespace: constants.ArgoCDNamespace,
-		Name:      common.ArgoCDIngressCAName}
+		Namespace: vzconst.VerrazzanoSystemNamespace,
+		Name:      vzconst.PrivateCABundle}
 
 	if err := ctx.Client().Get(context.TODO(), nsName, secret); err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
-	return secret.Data[common.ArgoCDCACert], nil
+	return secret.Data[vzconst.CABundleKey], nil
 }
 
 // buildRestartAnnotationString returns the current time for annotating deployment to restart the pod
