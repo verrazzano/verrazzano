@@ -273,7 +273,7 @@ pipeline {
                 }
                 stage('Deploy Quick Create Clusters in parallel') {
                     parallel {
-                        stage('Deploy Quick Create OCNEOCI Cluster') {
+                        stage('OCNEOCI Cluster - Run verrazzano addon tests') {
                             when {
                                 expression { params.DEPLOY_OCNEOCI_CLUSTER == true }
                             }
@@ -292,7 +292,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Deploy Quick Create OKE Cluster') {
+                        stage('OKE Cluster - Run verrazzano addon tests') {
                             when {
                                 expression { params.DEPLOY_OKE_CLUSTER == true }
                             }

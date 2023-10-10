@@ -429,7 +429,7 @@ func updateVerrazzanoFleet(clusterName string, log *zap.SugaredLogger) error {
 	}
 	vfFetched, err := getVerrazzanoFleet(log)
 	if err != nil {
-		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
+		log.Errorf("unable to fetch verrazzanofleet resource from %s due to '%v'", clusterName, zap.Error(err))
 		return err
 	}
 	if vfFetched.Object["spec"].(map[string]interface{})["verrazzano"].(map[string]interface{})["spec"].(map[string]interface{})["components"] == nil {
@@ -599,7 +599,7 @@ func getVerrazzanoFleet(log *zap.SugaredLogger) (*unstructured.Unstructured, err
 		Version:  "v1alpha1",
 		Resource: "verrazzanofleets",
 	}
-	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	return dclient.Resource(gvr).Namespace(clusterNamespace).Get(context.TODO(), vzFleetName, metav1.GetOptions{})
 }
 
 func deleteVerrazzanoFleet(log *zap.SugaredLogger) error {
@@ -695,7 +695,7 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 		WhenClusterAPIInstalledIt("verify update verrazzano spec in verrazzanofleet", func() {
 			Eventually(func() error {
 				return updateVerrazzanoFleet(clusterName, t.Logs)
-			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "verify update verrazzano spec in verrazzanofleet")
+			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify update verrazzano spec in verrazzanofleet")
 		})
 
 		WhenClusterAPIInstalledIt("Verify update to verrazzano CR resource ", func() {
