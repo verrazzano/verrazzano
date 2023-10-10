@@ -100,7 +100,7 @@ metricsPort: 8383
 
 containerSecurityContext: 
   allowPrivilegeEscalation: false
-      privileged: false
-      runAsGroup: 65534
-      runAsNonRoot: true
-      runAsUser: 1001
+  privileged: false
+  runAsGroup: 65534
+  runAsNonRoot: true
+  runAsUser: 1001
