@@ -219,11 +219,11 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 		osClient := NewOSClient(pas)
 		healthy, err := osClient.IsClusterHealthy(client)
 		if err != nil {
-			log.Errorf("Failed getting Opensearch cluster health: %v", err)
+			log.Errorf("Failed getting OpenSearch cluster health: %v", err)
 			return false
 		}
 		if !healthy {
-			log.Progressf("Opensearch Cluster is not healthy. Please check Opensearch operator for more information")
+			log.Progressf("Skipping updated replicas check for OpenSearch because cluster health is not green")
 			return true
 		}
 		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
