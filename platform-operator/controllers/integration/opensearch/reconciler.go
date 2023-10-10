@@ -6,21 +6,24 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
+	"k8s.io/apimachinery/pkg/types"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearchdashboards"
 	componentspi "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
-	"k8s.io/apimachinery/pkg/types"
-	"time"
 
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
-	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/transform"
 )
 
 // Reconcile reconciles the OpenSearch integration configmap.
@@ -116,12 +119,12 @@ func isComponentReady(actualCR *vzv1alpha1.Verrazzano, compName string) bool {
 
 // CreateIndexPatterns creates the required index patterns using osd client
 func (r Reconciler) CreateIndexPatterns(controllerCtx controllerspi.ReconcileContext, vz *vzv1alpha1.Verrazzano) error {
-	pas, err := GetVerrazzanoPassword(r.Client)
+	pas, err := opensearch.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return err
 	}
-	osDashboardsClient := NewOSDashboardsClient(pas)
-	osdURL, err := GetOSDHTTPEndpoint(r.Client)
+	osDashboardsClient := opensearchdashboards.NewOSDashboardsClient(pas)
+	osdURL, err := opensearch.GetOSDHTTPEndpoint(r.Client)
 	if err != nil {
 		return err
 	}
@@ -169,12 +172,12 @@ func (r Reconciler) AddTemplateAutoExpand(controllerCtx controllerspi.ReconcileC
 }
 
 // getOSClient gets tbe OS client
-func (r Reconciler) getOSClient() (*OSClient, error) {
-	pas, err := GetVerrazzanoPassword(r.Client)
+func (r Reconciler) getOSClient() (*opensearch.OSClient, error) {
+	pas, err := opensearch.GetVerrazzanoPassword(r.Client)
 	if err != nil {
 		return nil, err
 	}
-	osClient := NewOSClient(pas)
+	osClient := opensearch.NewOSClient(pas)
 	return osClient, nil
 }
 

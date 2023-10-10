@@ -5,11 +5,12 @@ package opensearch
 
 import (
 	"github.com/onsi/ginkgo/v2"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+
 	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/update"
@@ -20,8 +21,6 @@ import (
 const (
 	waitTimeout     = 20 * time.Minute
 	pollingInterval = 10 * time.Second
-
-	NodeGroupLabel = "node-group"
 )
 
 type OpensearchCleanUpModifier struct {

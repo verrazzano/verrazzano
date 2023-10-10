@@ -1,16 +1,17 @@
 // Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package opensearchdashboards
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 // TestCreateDefaultIndexPatterns tests the CreateDefaultIndexPatterns to verify the creation of default index patterns

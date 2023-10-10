@@ -11,6 +11,7 @@ import (
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/opensearch"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -50,7 +51,7 @@ func IsOSNodeReady(client client.Client, node vzv1alpha1.OpenSearchNode, prefix 
 
 	// If a node has the master role, it is a statefulset
 	if hasRole(node.Roles, vmov1.MasterRole) {
-		return ready.AreOpensearchStsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
+		return opensearch.AreOpensearchStsReady(vzlog.DefaultLogger(), client, []types.NamespacedName{{
 			Name:      nodeControllerName,
 			Namespace: constants.VerrazzanoSystemNamespace,
 		}}, *node.Replicas, prefix)
