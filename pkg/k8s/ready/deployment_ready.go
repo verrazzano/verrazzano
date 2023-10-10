@@ -94,6 +94,11 @@ func DoesDeploymentExist(client clipkg.Client, namespacedName types.NamespacedNa
 }
 
 func deploymentFullyReady(log vzlog.VerrazzanoLogger, client clipkg.Client, deployment *appsv1.Deployment, namespacedName types.NamespacedName, expectedReplicas int32, prefix string) bool {
+	if deployment.Spec.Replicas != nil && *(deployment.Spec.Replicas) == 0 && expectedReplicas > 0 {
+		logProgressf(log, "%s will not reach ready state since the deployment %s has spec.replicas set to %v. Expecting %v replicas.",
+			prefix, namespacedName, deployment.Spec.Replicas, expectedReplicas)
+		return false
+	}
 	if deployment.Status.UpdatedReplicas < expectedReplicas {
 		logProgressf(log, "%s is waiting for deployment %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
 			expectedReplicas, deployment.Status.UpdatedReplicas)
