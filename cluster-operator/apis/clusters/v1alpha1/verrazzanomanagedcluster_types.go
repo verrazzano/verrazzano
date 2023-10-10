@@ -173,6 +173,10 @@ type VerrazzanoManagedClusterStatus struct {
 	// The reference to this managed cluster's underlying ClusterAPI cluster.
 	// +optional
 	ClusterRef *ClusterReference `json:"clusterRef,omitempty"`
+	// If true, then this managed cluster was an existing cluster imported into Verrazzano.
+	Imported *bool `json:"imported,omitempty"`
+	// The provider of this managed cluster.
+	Provider string `json:"provider,omitempty"`
 }
 
 // +genclient

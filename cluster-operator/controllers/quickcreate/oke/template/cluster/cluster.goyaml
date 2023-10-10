@@ -42,7 +42,7 @@ spec:
         name: {{.IdentityRef.Name}}
         namespace: {{.IdentityRef.Namespace}}
     compartmentId:  {{.OKE.Compartment}}
-{{- if .Network.CreateVCN }}
+{{- if and .Network.CreateVCN (eq .OKE.Network.CNIType "FLANNEL_OVERLAY") }}
     networkSpec:
         vcn:
             name: {{.Name}}
@@ -56,26 +56,53 @@ spec:
                   name: service-lb
                   role: service-lb
                   type: public
+                  securityList:
+                      name: service-lb-security-list
+                      egressRules:
+                          - description: Load Balancer to Worker nodes node ports.
+                            destination: 10.0.64.0/20
+                            destinationType: CIDR_BLOCK
+                            isStateless: false
+                            protocol: "6"
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 32767
+                                    min: 30000
+                      ingressRules:
+                          - description: Accept http traffic on port 80
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 80
+                                    min: 80
+                          - description: Accept https traffic on port 443
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 443
+                                    min: 443
                 - cidr: 10.0.64.0/20
                   name: worker
                   role: worker
                   type: private
-    {{- if eq .OKE.Network.CNIType "OCI_VCN_IP_NATIVE" }}
-                - cidr: 10.0.128.0/18
-                  name: pod
-                  role: pod
-                  type: private
-    {{- end }}
             networkSecurityGroup:
                 list:
                     - egressRules:
                           - egressRule:
                                 description: Allow Kubernetes API endpoint to communicate with OKE.
+                                destination: all-iad-services-in-oracle-services-network
                                 destinationType: SERVICE_CIDR_BLOCK
                                 isStateless: false
                                 protocol: "6"
                           - egressRule:
                                 description: Path Discovery.
+                                destination: all-iad-services-in-oracle-services-network
                                 destinationType: SERVICE_CIDR_BLOCK
                                 icmpOptions:
                                     code: 4
@@ -102,13 +129,6 @@ spec:
                                     type: 3
                                 isStateless: false
                                 protocol: "1"
-                          - egressRule:
-                                description: Allow Kubernetes API endpoint to communicate with pods (when
-                                    using VCN-native pod networking).
-                                destination: 10.0.128.0/18
-                                destinationType: CIDR_BLOCK
-                                isStateless: false
-                                protocol: all
                       ingressRules:
                           - ingressRule:
                                 description: Kubernetes worker to Kubernetes API endpoint communication.
@@ -140,28 +160,6 @@ spec:
                                 source: 10.0.64.0/20
                                 sourceType: CIDR_BLOCK
                           - ingressRule:
-                                description: Pod to Kubernetes API endpoint communication (when using
-                                    VCN-native pod networking).
-                                isStateless: false
-                                protocol: "6"
-                                source: 10.0.128.0/18
-                                sourceType: CIDR_BLOCK
-                                tcpOptions:
-                                    destinationPortRange:
-                                        max: 6443
-                                        min: 6443
-                          - ingressRule:
-                                description: Pod to Kubernetes API endpoint communication (when using
-                                    VCN-native pod networking).
-                                isStateless: false
-                                protocol: "6"
-                                source: 10.0.128.0/18
-                                sourceType: CIDR_BLOCK
-                                tcpOptions:
-                                    destinationPortRange:
-                                        max: 12250
-                                        min: 12250
-                          - ingressRule:
                                 description: External access to Kubernetes API endpoint.
                                 isStateless: false
                                 protocol: "6"
@@ -175,16 +173,17 @@ spec:
                       role: control-plane-endpoint
                     - egressRules:
                           - egressRule:
+                                description: Allow pods on one worker node to communicate with pods on other worker nodes.
+                                destination: "10.0.64.0/20"
+                                destinationType: CIDR_BLOCK
+                                isStateless: false
+                                protocol: "all"
+                          - egressRule:
                                 description: Allow worker nodes to communicate with OKE.
+                                destination: all-iad-services-in-oracle-services-network
                                 destinationType: SERVICE_CIDR_BLOCK
                                 isStateless: false
                                 protocol: "6"
-                          - egressRule:
-                                description: Allow worker nodes to access pods.
-                                destination: 10.0.128.0/18
-                                destinationType: CIDR_BLOCK
-                                isStateless: false
-                                protocol: all
                           - egressRule:
                                 description: Path Discovery.
                                 destination: 0.0.0.0/0
@@ -216,16 +215,17 @@ spec:
                                         min: 12250
                       ingressRules:
                           - ingressRule:
-                                description: Allow Kubernetes API endpoint to communicate with worker
-                                    nodes.
+                                description: Allow pods on one worker node to communicate with pods on other worker nodes.
+                                isStateless: false
+                                protocol: "all"
+                                source: 10.0.64.0/20
+                                sourceType: CIDR_BLOCK
+                          - ingressRule:
+                                description: Allow Kubernetes API endpoint to communicate with worker nodes.
                                 isStateless: false
                                 protocol: "6"
                                 source: 10.0.0.8/29
                                 sourceType: CIDR_BLOCK
-                                tcpOptions:
-                                    destinationPortRange:
-                                        max: 10250
-                                        min: 10250
                           - ingressRule:
                                 description: Path Discovery.
                                 icmpOptions:
@@ -281,72 +281,62 @@ spec:
                                         min: 443
                       name: service-lb
                       role: service-lb
-    {{- if eq .OKE.Network.CNIType "OCI_VCN_IP_NATIVE" }}
-                    - egressRules:
-                          - egressRule:
-                                description: Allow worker nodes to communicate with OCI Services.
-                                destinationType: SERVICE_CIDR_BLOCK
-                                isStateless: false
-                                protocol: "6"
-                          - egressRule:
-                                description: Path Discovery.
-                                destinationType: SERVICE_CIDR_BLOCK
-                                icmpOptions:
-                                    code: 4
-                                    type: 3
-                                isStateless: false
-                                protocol: "1"
-                          - egressRule:
-                                description: Allow pods to communicate with other pods.
-                                destination: 10.0.128.0/18
-                                destinationType: CIDR_BLOCK
-                                isStateless: false
-                                protocol: all
-                          - egressRule:
-                                description: Pod to Kubernetes API endpoint communication (when using
-                                    VCN-native pod networking).
-                                destination: 10.0.0.8/29
-                                destinationType: CIDR_BLOCK
-                                isStateless: false
-                                protocol: "6"
-                                tcpOptions:
-                                    destinationPortRange:
-                                        max: 6443
-                                        min: 6443
-                          - egressRule:
-                                description: Pod to Kubernetes API endpoint communication (when using
-                                    VCN-native pod networking).
-                                destination: 10.0.0.8/29
-                                destinationType: CIDR_BLOCK
-                                isStateless: false
-                                protocol: "6"
-                                tcpOptions:
-                                    destinationPortRange:
-                                        max: 12250
-                                        min: 12250
-                      ingressRules:
-                          - ingressRule:
-                                description: Allow worker nodes to access pods.
-                                isStateless: false
-                                protocol: all
-                                source: 10.0.64.0/20
-                                sourceType: CIDR_BLOCK
-                          - ingressRule:
-                                description: Allow Kubernetes API endpoint to communicate with pods.
-                                isStateless: false
-                                protocol: all
-                                source: 10.0.0.8/29
-                                sourceType: CIDR_BLOCK
-                          - ingressRule:
-                                description: Allow pods to communicate with other pods.
-                                isStateless: false
-                                protocol: all
-                                source: 10.0.128.0/18
-                                sourceType: CIDR_BLOCK
-                      name: pod
-                      role: pod
 {{- end }}
-{{- else }} # Existing VCN
+{{- if and .Network.CreateVCN (eq .OKE.Network.CNIType "OCI_VCN_IP_NATIVE") }}
+    networkSpec:
+        vcn:
+            name: {{.Name}}
+            cidr: 10.0.0.0/16
+            subnets:
+                - cidr: 10.0.0.8/29
+                  name: control-plane-endpoint
+                  role: control-plane-endpoint
+                  type: public
+                - cidr: 10.0.0.32/27
+                  name: service-lb
+                  role: service-lb
+                  type: public
+                  securityList:
+                      name: service-lb-security-list
+                      egressRules:
+                          - description: Load Balancer to Worker nodes node ports.
+                            destination: 10.0.64.0/20
+                            destinationType: CIDR_BLOCK
+                            isStateless: false
+                            protocol: "6"
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 32767
+                                    min: 30000
+                      ingressRules:
+                          - description: Accept http traffic on port 80
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 80
+                                    min: 80
+                          - description: Accept https traffic on port 443
+                            isStateless: false
+                            protocol: "6"
+                            source: 0.0.0.0/0
+                            sourceType: CIDR_BLOCK
+                            tcpOptions:
+                                destinationPortRange:
+                                    max: 443
+                                    min: 443
+                - cidr: 10.0.64.0/20
+                  name: worker
+                  role: worker
+                  type: private
+                - cidr: 10.0.128.0/18
+                  name: pod
+                  role: pod
+                  type: private
+{{- end }}
+{{- if not .Network.CreateVCN }} # Existing VCN
     networkSpec:
         skipNetworkManagement: true
         vcn:

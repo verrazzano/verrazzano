@@ -15,6 +15,9 @@ import (
 	installv1beta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
+
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -100,23 +103,29 @@ func appendOverrides(ctx spi.ComponentContext, _ string, _ string, _ string, kvs
 // deleteRelatedResource deletes the resources handled by the opensearchOperator
 // Like OpenSearchRoles, OpenSearchUserRolesBindings
 // Since the operator adds a finalizer to these resources, they need to deleted before the operator is uninstalled
-func (o opensearchOperatorComponent) deleteRelatedResource() error {
+func (o opensearchOperatorComponent) deleteRelatedResource(ctx spi.ComponentContext) error {
 	client, err := k8sutil.GetDynamicClient()
 	if err != nil {
-		return err
+		return ctx.Log().ErrorfThrottledNewErr("failed to create dynamic client: %v", err)
 	}
 
 	for _, gvr := range gvrList {
 		resourceClient := client.Resource(gvr)
 		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			return err
+			if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				continue
+			}
+			return ctx.Log().ErrorfThrottledNewErr("failed to list %s: %v", gvr.String(), err)
 		}
 
 		for _, obj := range objList.Items {
 			err = resourceClient.Namespace(ComponentNamespace).Delete(context.TODO(), obj.GetName(), metav1.DeleteOptions{})
 			if err != nil {
-				return err
+				if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+					continue
+				}
+				return ctx.Log().ErrorfThrottledNewErr("failed to delete %s: %v", gvr.String(), err)
 			}
 		}
 	}
@@ -124,20 +133,23 @@ func (o opensearchOperatorComponent) deleteRelatedResource() error {
 }
 
 // areRelatedResourcesDeleted checks if the related resources are deleted or not
-func (o opensearchOperatorComponent) areRelatedResourcesDeleted() error {
+func (o opensearchOperatorComponent) areRelatedResourcesDeleted(ctx spi.ComponentContext) error {
 	client, err := k8sutil.GetDynamicClient()
 	if err != nil {
-		return err
+		return ctx.Log().ErrorfThrottledNewErr("failed to create dynamic client: %v", err)
 	}
 
 	for _, gvr := range gvrList {
 		resourceClient := client.Resource(gvr)
 		objList, err := resourceClient.Namespace(ComponentNamespace).List(context.TODO(), metav1.ListOptions{})
 		if err != nil {
-			return err
+			if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				continue
+			}
+			return ctx.Log().ErrorfThrottledNewErr("failed to list %s: %v", gvr.String(), err)
 		}
 		if len(objList.Items) > 0 {
-			return fmt.Errorf("waiting for all %s to be deleted", gvr.String())
+			return ctx.Log().ErrorfThrottledNewErr("waiting for all %s to be deleted", gvr.String())
 		}
 	}
 	return nil

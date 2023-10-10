@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.6-2",
+      "version": "2.7.6-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -155,16 +155,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.5-20231002174229-785a82496",
-              "rancherUI": "v2.7.2-14/release-2.7.2",
+              "rancherUI": "v2.7.2-16/release-2.7.2",
               "ocneDriverVersion": "v0.26.0",
               "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
-              "tag": "v2.7.6-20231003172048-ea6e3cecc",
+              "tag": "v2.7.6-20231009183054-ee1a5dfa4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20231003172048-ea6e3cecc"
+              "tag": "v2.7.6-20231009183054-ee1a5dfa4"
             }
           ]
         },
@@ -554,7 +554,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "1.66.1-1",
+      "version": "1.73.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -562,7 +562,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.66.1-20230922084106-c7e9a3fe",
+              "tag": "v1.73.0-20231005093008-ad59bc25",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }

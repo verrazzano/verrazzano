@@ -5,8 +5,8 @@
 apiVersion: opensearch.opster.io/v1
 kind: OpenSearchCluster
 metadata:
-  name: opensearch
-  namespace: verrazzano-logging
+  name: {{ .clusterName }}
+  namespace: {{ .namespace }}
 spec:
   {{- if .bootstrapConfig }}
   bootstrap:
@@ -15,6 +15,8 @@ spec:
   {{- end }}
   initHelper:
     image: {{ .initImage }}
+  confMgmt:
+    smartScaler: true
   dashboards:
     additionalConfig:
       opensearch.requestHeadersAllowlist: '["securitytenant","Authorization","x-forwarded-for","X-WEBAUTH-USER","x-proxy-roles"]'

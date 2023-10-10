@@ -6,6 +6,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/base64"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/verrazzano/verrazzano/authproxy/internal/httputil"
+	"github.com/verrazzano/verrazzano/authproxy/src/cookie"
 	"github.com/verrazzano/verrazzano/pkg/certs"
 	"golang.org/x/oauth2"
 	"k8s.io/client-go/util/cert"
@@ -20,11 +22,7 @@ import (
 
 // initExternalOIDCProvider initializes the external URL based OIDC Provider in the given Authenticator
 func (a *OIDCAuthenticator) initExternalOIDCProvider() error {
-	ctx, err := a.createContextWithHTTPClient()
-	if err != nil {
-		return err
-	}
-	provider, err := oidc.NewProvider(ctx, a.oidcConfig.ExternalURL)
+	provider, err := oidc.NewProvider(a.ctx, a.oidcConfig.ExternalURL)
 	if err != nil {
 		return err
 	}
@@ -46,9 +44,11 @@ func (a *OIDCAuthenticator) createContextWithHTTPClient() (context.Context, erro
 		}
 	}
 
-	httpClient := httputil.GetHTTPClientWithCABundle(certPool)
-	ctx := context.Background()
-	return context.WithValue(ctx, oauth2.HTTPClient, httpClient.HTTPClient), nil
+	httpClient, err := httputil.GetHTTPClientWithCABundle(certPool)
+	if err != nil {
+		return nil, err
+	}
+	return context.WithValue(context.Background(), oauth2.HTTPClient, httpClient.StandardClient()), nil
 }
 
 // performLoginRedirect redirects the incoming request to the OIDC provider
@@ -69,7 +69,25 @@ func (a *OIDCAuthenticator) performLoginRedirect(req *http.Request, rw http.Resp
 		RedirectURL: a.oidcConfig.CallbackURL,
 		Scopes:      []string{oidc.ScopeOpenID, "profile", "email"},
 	}
-	http.Redirect(rw, req, oauthConfig.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+
+	// Create the PKCE challenge
+	code, err := randomBase64(56)
+	if err != nil {
+		return fmt.Errorf("Could not redirect for login - failed to generate random base64: %v", err)
+	}
+	sha := sha256.New()
+	sha.Write([]byte(code))
+	challenge := oauth2.SetAuthURLParam("code_challenge", base64.RawURLEncoding.EncodeToString(sha.Sum(nil)))
+	challengeMethod := oauth2.SetAuthURLParam("code_challenge_method", "S256")
+
+	vzState := &cookie.VZState{
+		State:        state,
+		Nonce:        nonce,
+		CodeVerifier: code,
+		RedirectURI:  req.RequestURI,
+	}
+	cookie.SetStateCookie(rw, vzState)
+	http.Redirect(rw, req, oauthConfig.AuthCodeURL(state, oidc.Nonce(nonce), challengeMethod, challenge), http.StatusFound)
 	return nil
 }
 
