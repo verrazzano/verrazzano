@@ -41,7 +41,7 @@ pipeline {
                 trim: true)
         booleanParam (name: 'BASELINE_IMAGE_SIZES_FILE_UPDATE',
                 defaultValue: false,
-                description: 'If true, image-sizes.txt file will be updated to reflect latest image sizes. ')
+                description: 'If true, image-sizes.txt file will be updated to reflect latest image sizes. GIT_COMMIT_TO_USE is required when BASELINE_IMAGE_SIZES_FILE_UPDATE is set to true.')
         booleanParam (name: 'RUN_TESTS',
                 defaultValue: false,
                 description: 'If true, the private registry pipeline will run on a development branch. It will automatically run on master and release-* branches.')
@@ -94,6 +94,11 @@ pipeline {
         }
 
         stage('Build Release Distributions') {
+            when {
+                anyOf {
+                    expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == false };
+                }
+            }
             steps {
                 script {
                     try {
@@ -119,7 +124,7 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/image-sizes.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'image-sizes.txt', allowEmptyArchive: true
                 }
             }
         }
@@ -132,12 +137,22 @@ pipeline {
             }
             steps {
                 script {
+                    currentBuild.displayName = "${currentBuild.displayName} : Update Baseline image-sizes.txt"
+                    if (params.GIT_COMMIT_TO_USE == "NONE") {
+                        error("Specific GIT commit was not specified. GIT_COMMIT_TO_USE is required when BASELINE_IMAGE_SIZES_FILE_UPDATE is set to true.")
+                    }
+                   sh "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ${CLEAN_BRANCH_NAME}/${SHORT_COMMIT_HASH}/image-list --file ${WORKSPACE}/image-sizes.txt"
                    sh "oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt"
                 }
             }
         }
 
         stage('Check Image Sizes') {
+            when {
+                anyOf {
+                    expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == false };
+                }
+            }
             steps {
                 script {
                     def commitList = getCommitList()
@@ -160,17 +175,20 @@ pipeline {
             }
             post {
                 always {
-                    archiveArtifacts artifacts: '**/image-sizes-objectstore.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'image-sizes-objectstore.txt', allowEmptyArchive: true
                 }
             }
         }
 
         stage('Private Registry Tests') {
             when {
-                anyOf {
-                    branch 'master';
-                    branch 'release-*';
-                    expression { params.RUN_TESTS == true };
+                allOf {
+                    expression { params.BASELINE_IMAGE_SIZES_FILE_UPDATE == false };
+                    anyOf {
+                        branch 'master';
+                        branch 'release-*';
+                        expression { params.RUN_TESTS == true };
+                    }
                 }
             }
             parallel {
