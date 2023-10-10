@@ -324,6 +324,8 @@ func SpecificPodsRunningInClusterWithClient(namespace, labels string, client *ku
 				Log(Debug, fmt.Sprintf("Pod %s ready", pod.Name))
 			} else {
 				Log(Info, fmt.Sprintf("Pod %s NOT ready: %v", pod.Name, formatContainerStatuses(pod.Status.ContainerStatuses)))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready Reason: %v", pod.Name, pod.Status.Reason))
+				Log(Info, fmt.Sprintf("Pod %s NOT ready Message: %v", pod.Name, pod.Status.Message))
 			}
 		}
 	}
