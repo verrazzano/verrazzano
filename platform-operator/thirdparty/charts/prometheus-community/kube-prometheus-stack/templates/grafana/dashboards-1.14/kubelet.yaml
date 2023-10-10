@@ -2177,7 +2177,7 @@ data:
                     "options": [
 
                     ],
-                    "query": "label_values(up{job=\"kubelet\"}, cluster)",
+                    "query": "label_values(up{job=\"kubelet\"}, verrazzano_cluster)",
                     "refresh": 2,
                     "regex": "",
                     "sort": 1,
