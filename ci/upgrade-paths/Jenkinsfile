@@ -1817,8 +1817,6 @@ def dumpInstallLogsOnCluster(count, logDir, namespace) {
                 kubectl -n $namespace logs --selector=job-name=verrazzano-install-my-verrazzano > $logDir/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n $namespace describe pod --selector=job-name=verrazzano-install-my-verrazzano > $logDir/verrazzano-install-job-pod.out
                 echo "------------------------------------------"
-                echo "Jaeger resource below"
-                kubectl -n verrazzano-monitoring get jaeger -o yaml
             """
         }
     }
@@ -1919,6 +1917,9 @@ def runConsoleTests() {
     // a sample app for that purpose
     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
         sh """
+            echo "Here is the Jaeger resource ----------------"
+            kubectl get jaeger -n verrazzano-monitoring -o yaml
+            echo "--------------------------------------------z"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
             export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
             export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
