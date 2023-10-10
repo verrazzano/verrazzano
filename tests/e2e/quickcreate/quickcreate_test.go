@@ -34,7 +34,7 @@ import (
 )
 
 const (
-	minimumVersion  = "2.0.0"
+	minimumVersion  = "1.7.0"
 	waitTimeOut     = 40 * time.Minute
 	pollingInterval = 30 * time.Second
 
