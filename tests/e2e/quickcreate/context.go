@@ -25,9 +25,10 @@ import (
 )
 
 const (
-	Ocneoci   = "ocneoci"
-	Oke       = "oke"
-	Namespace = "NAMESPACE"
+	Ocneoci     = "ocneoci"
+	Oke         = "oke"
+	Namespace   = "NAMESPACE"
+	VZFleetName = "VZFLEET_NAME"
 )
 
 var (
@@ -38,10 +39,17 @@ var (
 	//go:embed templates/ociclusteridentity.goyaml
 	ociClusterIdentity []byte
 
+	//go:embed templates/verrazzanofleet-mc-profile.goyaml
+	verrazzanoFleet []byte
+
 	clusterTemplateMap = map[string][]byte{
 		Ocneoci: ocneociTemplate,
 		Oke:     okeTemplate,
 	}
+
+	clusterName      string
+	clusterNamespace string
+	vzFleetName      string
 )
 
 type (
@@ -76,7 +84,6 @@ func (qc *QCContext) setDynamicValues() error {
 	qc.Parameters = parameters
 	qc.RawObjects = rawObjects
 	qc.Parameters[Namespace] = qc.Namespace
-
 	if qc.isOCICluster() {
 		err = qc.Parameters.prepareOCI(qc.ClusterType)
 		if err != nil {
@@ -102,12 +109,19 @@ func (qc *QCContext) applyOCIClusterIdentity() error {
 	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(ociClusterIdentity, qc.Parameters)
 }
 
+func (qc *QCContext) applyVerrazzanoFleet() error {
+	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(verrazzanoFleet, qc.Parameters)
+}
+
 func (qc *QCContext) applyCluster() error {
 	return k8sutil.NewYAMLApplier(qc.Client, "").ApplyBT(qc.RawObjects, qc.Parameters)
 }
 
 func (qc *QCContext) getInputValues() ([]byte, input, error) {
 	params, err := qc.newParameters()
+	clusterName = params[ClusterID].(string)
+	clusterNamespace = qc.Namespace
+	vzFleetName = params[VZFleetName].(string)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -120,7 +134,8 @@ func (qc *QCContext) getInputValues() ([]byte, input, error) {
 
 func (qc *QCContext) newParameters() (input, error) {
 	var i input = map[string]interface{}{
-		ClusterID: pkg.SimpleNameGenerator.New("qc-"),
+		ClusterID:   pkg.SimpleNameGenerator.New("qc-"),
+		VZFleetName: pkg.SimpleNameGenerator.New("vzfleet-"),
 	}
 	if err := i.addFileContents(); err != nil {
 		return nil, err
