@@ -404,16 +404,69 @@ func createFleetForUnknownCluster(clusterName string, log *zap.SugaredLogger) er
 		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
 		return err
 	}
-	if err != nil {
-		log.Errorf("unable to fetch verrazzanofleet resource", err)
-	}
 	vfDeepCopy := vfFetched.DeepCopy()
 	vfDeepCopy.Object["spec"].(map[string]interface{})["clusterSelector"].(map[string]interface{})["name"] = "test-clustername"
 	vfDeepCopy.Object["metadata"].(map[string]interface{})["name"] = "new-fleet-name"
 
 	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Create(context.TODO(), vfDeepCopy, metav1.CreateOptions{})
 	if err != nil {
+		log.Errorf("Unable to create the verrazzanofleet resource", err)
+	}
+	return nil
+}
+
+func updateVerrazzanoFleet(clusterName string, log *zap.SugaredLogger) error {
+	dclient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "addons.cluster.x-k8s.io",
+		Version:  "v1alpha1",
+		Resource: "verrazzanofleets",
+	}
+	vfFetched, err := getVerrazzanoFleet(log)
+	if err != nil {
+		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	if vfFetched.Object["spec"].(map[string]interface{})["verrazzano"].(map[string]interface{})["spec"].(map[string]interface{})["components"] == nil {
+		vfFetched.Object["spec"].(map[string]interface{})["verrazzano"].(map[string]interface{})["spec"].(map[string]interface{})["components"] = make(map[string]interface{})
+	}
+	vfFetched.Object["spec"].(map[string]interface{})["verrazzano"].(map[string]interface{})["spec"].(map[string]interface{})["components"].(map[string]interface{})["console"] = map[string]interface{}{"enabled": true}
+
+	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Update(context.TODO(), vfFetched, metav1.UpdateOptions{})
+	if err != nil {
 		log.Errorf("Unable to update the verrazzanofleet resource", err)
+	}
+	return nil
+}
+
+func createMultipleFleetForSameCluster(clusterName string, log *zap.SugaredLogger) error {
+	dclient, err := k8sutil.GetDynamicClient()
+	if err != nil {
+		log.Errorf("unable to get workload kubeconfig ", zap.Error(err))
+		return err
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "addons.cluster.x-k8s.io",
+		Version:  "v1alpha1",
+		Resource: "verrazzanofleets",
+	}
+	vfFetched, err := getVerrazzanoFleet(log)
+	if err != nil {
+		log.Errorf("unable to fetch verrazzanofleetbinding resource from %s due to '%v'", clusterName, zap.Error(err))
+		return err
+	}
+	vfDeepCopy := vfFetched.DeepCopy()
+	vfDeepCopy.Object["metadata"].(map[string]interface{})["name"] = "duplicate-fleet-name"
+
+	_, err = dclient.Resource(gvr).Namespace(clusterNamespace).Create(context.TODO(), vfDeepCopy, metav1.CreateOptions{})
+	if err != nil {
+		log.Errorf("Unable to create the verrazzanofleet resource", err)
 	}
 	return nil
 }
@@ -643,6 +696,30 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "create verrazzanofleet for unknown workload cluster")
 		})
 
+		WhenClusterAPIInstalledIt("verify create multiple verrazzanofleet for the same workload cluster", func() {
+			Eventually(func() error {
+				return createMultipleFleetForSameCluster(clusterName, t.Logs)
+			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "verify create multiple verrazzanofleet for the same workload cluster")
+		})
+
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(clusterName, t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
+
+		WhenClusterAPIInstalledIt("verify update verrazzano spec in verrazzanofleet", func() {
+			Eventually(func() error {
+				return updateVerrazzanoFleet(clusterName, t.Logs)
+			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "verify update verrazzano spec in verrazzanofleet")
+		})
+
+		WhenClusterAPIInstalledIt("Verify update to verrazzano CR resource ", func() {
+			Eventually(func() error {
+				return ensureVerrazzano(clusterName, t.Logs)
+			}, waitTimeOut, vzPollingInterval).Should(BeNil(), "verify update to verrazzano resource")
+		})
+
 		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
 			Eventually(func() error {
 				return displayWorkloadClusterResources(clusterName, t.Logs)
@@ -679,5 +756,10 @@ var _ = t.Describe("addon e2e tests ,", Label("f:addon-provider-verrazzano-e2e-t
 			}, waitTimeOut, vzPollingInterval).Should(HaveOccurred(), "verify verrazzano resource on workload cluster after deleting VerrazzanoFleet resource")
 		})
 
+		WhenClusterAPIInstalledIt("Display objects from CAPI workload cluster", func() {
+			Eventually(func() error {
+				return displayWorkloadClusterResources(clusterName, t.Logs)
+			}, shortWaitTimeout, pollingInterval).Should(BeNil(), "Display objects from CAPI workload cluster")
+		})
 	})
 })
