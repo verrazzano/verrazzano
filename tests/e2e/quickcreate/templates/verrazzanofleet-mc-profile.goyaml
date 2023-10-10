@@ -1,0 +1,40 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: VerrazzanoFleet
+metadata:
+  name: {{.VZFLEET_NAME}}
+  namespace: {{.NAMESPACE}}
+spec:
+  clusterSelector:
+    name: {{.CLUSTER_ID}}
+  imagePullSecrets:
+    - name: verrazzano-container-registry
+  verrazzano:
+    spec:
+      components:
+        ingressNGINX:
+          overrides:
+            - values:
+                controller:
+                  service:
+                    annotations:
+                      service.beta.kubernetes.io/oci-load-balancer-shape: flexible
+                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+                      service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+          type: LoadBalancer
+        istio:
+          overrides:
+            - values:
+                apiVersion: install.istio.io/v1alpha1
+                kind: IstioOperator
+                spec:
+                  values:
+                    gateways:
+                      istio-ingressgateway:
+                        serviceAnnotations:
+                          service.beta.kubernetes.io/oci-load-balancer-shape: flexible
+                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+                          service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+      profile: managed-cluster

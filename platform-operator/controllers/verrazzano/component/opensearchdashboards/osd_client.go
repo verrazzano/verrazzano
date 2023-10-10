@@ -1,14 +1,15 @@
 // Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package opensearch
+package opensearchdashboards
 
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"net/http"
 	"strings"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
 type (

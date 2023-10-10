@@ -56,7 +56,20 @@ func FakeDeleteFunc(client clipkg.Client) error {
 	return nil
 }
 
-// Allow overriding the vpoIsReady function for unit testing
+// applyYAMLSig Allow overriding the applyYAML function for unit testing
+type applyYAMLSig func(filename string, client clipkg.Client, vzHelper helpers.VZHelper) error
+
+var applyYAMLFunc applyYAMLSig = applyYAML
+
+func SetApplyYAMLFunc(f applyYAMLSig) {
+	applyYAMLFunc = f
+}
+
+func SetDefaultApplyYAMLFunc() {
+	applyYAMLFunc = applyYAML
+}
+
+// vpoIsReadySig Allow overriding the vpoIsReady function for unit testing
 type vpoIsReadySig func(client clipkg.Client) (bool, error)
 
 var vpoIsReadyFunc vpoIsReadySig = vpoIsReady
@@ -160,12 +173,26 @@ func ApplyPlatformOperatorYaml(cmd *cobra.Command, client clipkg.Client, vzHelpe
 		return err
 	}
 
+	if _, err := os.Stat(localOperatorFilename); err != nil {
+		return err
+	}
+
+	// Delete previous verrazzano-platform-operator deployments when we have successfully downloaded new one.
+	// This allows for the verrazzano-platform-operator validatingWebhookConfiguration to be updated with the correct caBundle.
+	if err = DeleteFunc(client); err != nil {
+		return err
+	}
+
 	// Apply the Verrazzano operator.yaml
 	fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Applying the file %s\n", userVisibleFilename))
+	return applyYAMLFunc(localOperatorFilename, client, vzHelper)
+}
+
+func applyYAML(filename string, client clipkg.Client, vzHelper helpers.VZHelper) error {
 	yamlApplier := k8sutil.NewYAMLApplier(client, "")
-	err = yamlApplier.ApplyF(localOperatorFilename)
+	err := yamlApplier.ApplyF(filename)
 	if err != nil {
-		return fmt.Errorf(applyErrorMsg, localOperatorFilename, err.Error())
+		return fmt.Errorf(applyErrorMsg, filename, err.Error())
 	}
 
 	// Dump out the object result messages

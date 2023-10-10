@@ -4,14 +4,17 @@
 package migration
 
 import (
+	"time"
+
 	moduleapi "github.com/verrazzano/verrazzano-modules/module-operator/apis/platform/v1alpha1"
 	modulestatus "github.com/verrazzano/verrazzano-modules/module-operator/controllers/module/status"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/result"
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/handlerspi"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	vzctrlcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/module/component-handler/common"
-	"time"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type migrationHandler struct {
@@ -35,6 +38,16 @@ func (h migrationHandler) UpdateStatusIfAlreadyInstalled(ctx handlerspi.HandlerC
 	if err != nil {
 		return result.NewResultShortRequeueDelayWithError(err)
 	}
+
+	// If an upgrade is pending, do not reconcile; an upgrade is pending if the VPO has been upgraded, but the user
+	// has not modified the version in the Verrazzano CR to match the BOM.
+	if upgradeRequired, err := vzctrlcommon.IsUpgradeRequired(vzcr); err != nil {
+		return result.NewResultShortRequeueDelayWithError(err)
+	} else if upgradeRequired {
+		ctx.Log.Oncef("Upgrade required before reconciling module %s", client.ObjectKeyFromObject(module))
+		return result.NewResultShortRequeueDelay()
+	}
+
 	// If conditions exist then the module is being or has been reconciled.
 	if module.Status.Conditions != nil {
 		// no status update needed

@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
+	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
@@ -76,7 +76,7 @@ func TestClusterRancherRegistration(t *testing.T) {
 	asserts.NoError(err)
 	asserts.Equal(registrationInitiated, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
 	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
+	cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
 	asserts.NoError(err)
 	asserts.Equal(finalizerName, cluster.GetFinalizers()[0])
@@ -127,7 +127,7 @@ func TestClusterUnregistration(t *testing.T) {
 	remainingSecret := &v1.Secret{}
 	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, remainingSecret))
 	deletedCluster := &unstructured.Unstructured{}
-	deletedCluster.SetGroupVersionKind(capi.GVKCAPICluster)
+	deletedCluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, deletedCluster))
 }
 
@@ -141,7 +141,7 @@ func newScheme() *runtime.Scheme {
 
 func newCAPICluster(name string) *unstructured.Unstructured {
 	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
+	cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	cluster.SetName(name)
 	return cluster
 }

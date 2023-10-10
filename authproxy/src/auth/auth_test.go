@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"testing"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -28,6 +29,10 @@ type mockVerifier struct {
 var _ verifier = &mockVerifier{}
 
 func TestNewAuthenticator(t *testing.T) {
+	// unset these otherwise the test fails due to not being able to connect to the proxy
+	os.Unsetenv("HTTPS_PROXY")
+	os.Unsetenv("https_proxy")
+
 	server := testserver.FakeOIDCProviderServer(t)
 
 	config := &OIDCConfiguration{
@@ -41,7 +46,7 @@ func TestNewAuthenticator(t *testing.T) {
 	assert.NotNil(t, authenticator)
 	assert.Equal(t, config, authenticator.oidcConfig)
 	assert.Equal(t, client, authenticator.k8sClient)
-	assert.NotNil(t, authenticator.client)
+	assert.NotNil(t, authenticator.ctx)
 	assert.Implements(t, (*verifier)(nil), authenticator.verifier.Load())
 }
 

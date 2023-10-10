@@ -136,6 +136,10 @@ spec:
                   - type
                   type: object
                 type: array
+              imported:
+                description: If true, then this managed cluster was an existing cluster
+                  imported into Verrazzano.
+                type: boolean
               kubernetes:
                 description: The state of Kubernetes information of this managed cluster.
                 properties:
@@ -151,6 +155,9 @@ spec:
                 type: string
               prometheusHost:
                 description: The Prometheus host for this managed cluster.
+                type: string
+              provider:
+                description: The provider of this managed cluster.
                 type: string
               rancherRegistration:
                 description: The state of Rancher registration for this managed cluster.
