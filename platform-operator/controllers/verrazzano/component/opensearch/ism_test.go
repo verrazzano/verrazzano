@@ -8,22 +8,25 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"io"
+	"net/http"
+	"reflect"
+	"strings"
+	"testing"
+
 	appv1 "k8s.io/api/apps/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"net/http"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
+
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"github.com/verrazzano/verrazzano/platform-operator/constants"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 
 	"github.com/stretchr/testify/assert"
 	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 )
 
@@ -535,7 +538,7 @@ func TestGetISMPolicyFromFile(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config.TestThirdPartyManifestDir = "../../../thirdparty/manifests"
+			config.TestThirdPartyManifestDir = "../../../../thirdparty/manifests"
 			_, err := getISMPolicyFromFile(tt.args.policyFileName)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("getISMPolicyFromFile() error = %v, wantErr %v", err, tt.wantErr)
