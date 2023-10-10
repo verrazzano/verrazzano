@@ -131,6 +131,9 @@ func TestUpdateStatusImported(t *testing.T) {
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = v1beta1.AddToScheme(scheme)
 
+	defaultCAPIClientFunc := getCAPIClientFunc
+	defer func() { getCAPIClientFunc = defaultCAPIClientFunc }()
+
 	tests := []struct {
 		testName         string
 		vmc              *v1alpha1.VerrazzanoManagedCluster
@@ -153,6 +156,7 @@ func TestUpdateStatusImported(t *testing.T) {
 			// GIVEN a VMC with either a nil or non-nil ClusterRef
 			// WHEN updateStatus is called
 			// THEN expect the VMC's status imported field to be set
+			getCAPIClientFunc = fakeCAPIClient
 			ctx := context.TODO()
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.vmc).Build()
 			r := &VerrazzanoManagedClusterReconciler{
