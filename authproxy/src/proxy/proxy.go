@@ -4,10 +4,12 @@
 package proxy
 
 import (
+	"context"
 	"crypto/x509"
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,6 +19,7 @@ import (
 	"github.com/verrazzano/verrazzano/authproxy/src/apiserver"
 	"github.com/verrazzano/verrazzano/authproxy/src/auth"
 	"github.com/verrazzano/verrazzano/authproxy/src/config"
+	"github.com/verrazzano/verrazzano/authproxy/src/cookie"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"go.uber.org/zap"
 	"k8s.io/client-go/rest"
@@ -86,7 +89,10 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 		return err
 	}
 
-	httpClient := httputil.GetHTTPClientWithCABundle(rootCA)
+	httpClient, err := httputil.GetHTTPClientWithCABundle(rootCA)
+	if err != nil {
+		return err
+	}
 	authproxy.Handler = &Handler{
 		URL:         restConfig.Host,
 		Client:      httpClient,
@@ -99,19 +105,18 @@ func ConfigureKubernetesAPIProxy(authproxy *AuthProxy, k8sClient client.Client, 
 
 // findPathHandler returns the path handler function given the request path
 func (h *Handler) findPathHandler(req *http.Request) handlerFuncType {
-	switch req.URL.Path {
-	case callbackPath:
+	if strings.HasSuffix(req.URL.Path, callbackPath) {
 		return h.handleAuthCallback
-	case logoutPath:
-		return h.handleLogout
-	default:
-		return h.handleAPIRequest
 	}
+	if strings.HasSuffix(req.URL.Path, logoutPath) {
+		return h.handleLogout
+	}
+	return h.handleAPIRequest
 }
 
 // ServeHTTP accepts an incoming server request and forwards it to the Kubernetes API server
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	h.Log.Debug("Incoming request: %+v", httputil.ObfuscateRequestData(req))
+	h.Log.Debugf("Incoming request: %+v", httputil.ObfuscateRequestData(req))
 
 	err := h.initializeAuthenticator()
 	if err != nil {
@@ -126,7 +131,49 @@ func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 
 // handleAuthCallback is the http handler for authentication callback
 func (h *Handler) handleAuthCallback(rw http.ResponseWriter, req *http.Request) {
+	// the state field in the VZ cookie must match the state query param value
+	state, err := cookie.GetStateCookie(req)
+	if err != nil {
+		h.Log.Errorf("Failed to read state cookie: %v", err)
+		http.Error(rw, "Failed to read state cookie", http.StatusUnauthorized)
+		return
+	}
 
+	stateQueryParam := req.URL.Query().Get("state")
+	if stateQueryParam == "" {
+		h.Log.Errorf("Missing state")
+		http.Error(rw, "Missing state", http.StatusUnauthorized)
+		return
+	}
+
+	if state.State != stateQueryParam {
+		h.Log.Errorf("State does not match")
+		http.Error(rw, "State does not match", http.StatusUnauthorized)
+		return
+	}
+
+	// call the IdP to exchange the single-use code for a token
+	token, err := h.Authenticator.ExchangeCodeForToken(req, state.CodeVerifier)
+	if err != nil {
+		h.Log.Errorf("Failed to exchange code for token: %v", err)
+		http.Error(rw, "Failed to exchange code for token", http.StatusInternalServerError)
+		return
+	}
+
+	// validate the token and get the ID token
+	idToken, err := h.Authenticator.AuthenticateToken(context.TODO(), token)
+	if err != nil {
+		h.Log.Errorf("Failed authenticating token: %v", err)
+		http.Error(rw, "Failed authenticating token", http.StatusUnauthorized)
+		return
+	}
+
+	if idToken.Nonce != state.Nonce {
+		http.Error(rw, "nonce does not match", http.StatusUnauthorized)
+		return
+	}
+
+	http.Redirect(rw, req, state.RedirectURI, http.StatusFound)
 }
 
 // handleLogout is the http handler for logout

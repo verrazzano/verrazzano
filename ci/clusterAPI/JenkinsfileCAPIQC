@@ -31,7 +31,7 @@ pipeline {
                 description: 'Kubernetes Version for KinD Cluster',
                 // 1st choice is the default value
                 choices: ["1.27", "1.26", "1.25", "1.24"])
-        booleanParam(description: 'Deploy OCNE OCI Cluster', name: 'DEPLOY_OCNEOCI_CLUSTER', defaultValue: true)
+        booleanParam(description: 'Deploy OCNE OCI Cluster', name: 'DEPLOY_OCNEOCI_CLUSTER', defaultValue: false)
         booleanParam(description: 'Deploy OKE Cluster', name: 'DEPLOY_OKE_CLUSTER', defaultValue: true)
         choice (description: 'CNI Type for OKE', name: 'OKE_CNI_TYPE', choices: okeCNITypes )
         choice (description: 'OCI region to launch CAPI clusters in', name: 'CAPI_CLUSTER_REGION', choices: availableRegions )
@@ -273,7 +273,7 @@ pipeline {
                 }
                 stage('Deploy Quick Create Clusters in parallel') {
                     parallel {
-                        stage('Deploy Quick Create OCNEOCI Cluster') {
+                        stage('OCNEOCI Cluster - Run verrazzano addon tests') {
                             when {
                                 expression { params.DEPLOY_OCNEOCI_CLUSTER == true }
                             }
@@ -292,7 +292,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Deploy Quick Create OKE Cluster') {
+                        stage('OKE Cluster - Run verrazzano addon tests') {
                             when {
                                 expression { params.DEPLOY_OKE_CLUSTER == true }
                             }

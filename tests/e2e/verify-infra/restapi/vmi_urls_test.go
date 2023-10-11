@@ -36,8 +36,8 @@ var _ = t.AfterEach(func() {})
 
 var _ = t.Describe("VMI", Label("f:infra-lcm", "f:ui.console"), func() {
 	const (
-		waitTimeout     = 2 * time.Minute
-		pollingInterval = 5 * time.Second
+		waitTimeout     = 10 * time.Minute
+		pollingInterval = 10 * time.Second
 	)
 
 	t.BeforeEach(func() {

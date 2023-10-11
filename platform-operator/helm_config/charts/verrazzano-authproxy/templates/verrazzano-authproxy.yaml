@@ -103,9 +103,13 @@ spec:
                   - key: reload.sh
                     path: reload.sh
                     mode: 0755
-       - name: oidc-config-secret
-         secret:
-           secretName: {{ .Values.v2.oidcConfigSecret }}
+       - name: v2-config
+         projected:
+           sources:
+           - secret:
+               name: verrazzano-authproxy-secret
+           - secret:
+               name: {{ .Values.v2.oidcConfigSecret }}
       {{- with .Values.affinity }}
       affinity:
         {{- tpl . $ | nindent 8 }}
@@ -217,7 +221,7 @@ spec:
             drop:
               - ALL
         volumeMounts:
-        - name: oidc-config-secret
+        - name: v2-config
           mountPath: /etc/config
       {{- end }}
       serviceAccountName: {{ .Values.name }}

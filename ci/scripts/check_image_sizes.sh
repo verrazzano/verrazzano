@@ -37,10 +37,10 @@ extract_commit_id(){
 
 oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes-objectstore.txt
 if [ $? -ne  0 ] ; then
+ cp ${WORKSPACE}/image-sizes.txt ${WORKSPACE}/image-sizes-objectstore.txt
  echo "${CLEAN_BRANCH_NAME}/image-list not found"
  oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${CLEAN_BRANCH_NAME}/image-list --file ${WORKSPACE}/image-sizes.txt
 echo "${GIT_COMMIT}">${WORKSPACE}/commitID.txt
-echo " ">${WORKSPACE}/newimagefound.txt
  if [ $? -eq 0 ] ; then
      exit
  fi
@@ -70,8 +70,8 @@ done <<< "$IMAGE_DATA_GENERATED"
 # Check if imagenames in generated file are not in object store
 for IMAGENAME in "${!IMAGENAME_SIZES_FILE_GENERATED[@]}"; do
   if [[ ! "${IMAGENAME_SIZES_FILE_OS[$IMAGENAME]}" ]]; then
-    NEW_IMAGE_FOUND="true"
     if [[ "$IMAGENAME" != *"Commit ID-"* ]]; then
+    NEW_IMAGE_FOUND="true"
     echo "The image-sizes.txt base file contains an image with image name: $IMAGENAME that is not in the newly generated image-sizes.txt." >> ${WORKSPACE}/newimagefound.txt
     fi
   fi
