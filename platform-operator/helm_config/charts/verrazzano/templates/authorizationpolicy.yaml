@@ -305,7 +305,7 @@ spec:
             principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ .Values.api.name }}"]
       to:
         - operation:
-            ports: ["16686"]
+            ports: ["16686", "16685"]
     # jaeger-query-service:15090, 14271, 16687 <- prometheus
     - from:
         - source:
