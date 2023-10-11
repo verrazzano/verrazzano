@@ -363,7 +363,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230928071551-b6247ad8ac8",
+              "tag": "2.3.0-20231011041325-087a5394cff",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
