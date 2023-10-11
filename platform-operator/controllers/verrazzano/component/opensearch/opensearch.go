@@ -195,12 +195,12 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
-		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix, namespacedName) {
-			return false
-		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
+			return false
+		}
+		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix, namespacedName) {
 			return false
 		}
 		log.Oncef("%s has enough ready replicas for statefulsets %v", prefix, namespacedName)
