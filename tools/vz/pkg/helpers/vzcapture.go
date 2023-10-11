@@ -19,6 +19,7 @@ import (
 	"time"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -48,6 +49,8 @@ var isVerbose bool
 
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
+
+const effConfigSuffix = "-effective-config"
 
 type CaCrtInfo struct {
 	Name    string `json:"name"`
@@ -860,4 +863,48 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 
 	}
 	return &caCrtInfoForCert, true, nil
+}
+func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
+
+	// Declaring a var for creating a configMap
+
+	var effCRConfigmap corev1.ConfigMap
+
+	//performing a GET request to fetch the ConfigMap from the cluster.
+
+	err := c.Get(context.Background(), clipkg.ObjectKey{
+		Namespace: vz.ObjectMeta.Namespace,
+		Name:      vz.ObjectMeta.Name + effConfigSuffix,
+	}, &effCRConfigmap)
+	if err != nil {
+
+		fmt.Println("Error:", err)
+
+	}
+
+	var effvzRes = filepath.Join(captureDir, constants.EffVzResource)
+	f, err := os.OpenFile(effvzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, effvzRes, err.Error())
+	}
+
+	defer f.Close()
+
+	LogMessage("Effective Verrazzano resource ...\n")
+
+	effvzjson, err := json.MarshalIndent(effCRConfigmap.Data, constants.JSONPrefix, constants.JSONIndent)
+
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", effvzRes, err.Error()))
+		return err
+
+	}
+	_, err = f.WriteString(SanitizeString(string(effvzjson)))
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", effvzRes, err.Error()))
+		return err
+
+	}
+	return nil
+
 }

@@ -6,10 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -20,7 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -129,6 +128,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
 	wgCount := 5 + len(namespaces)
 	wgCount++ // increment for the verrrazzano resource
+	wgCount++ //increment for effective cr resource
 	if len(externalDNSPod) > 0 {
 		wgCount++
 	}
@@ -141,6 +141,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	ecl := make(chan ErrorsChannelLogs, 1)
 
 	go captureVZResource(wg, evr, vz, bugReportDir)
+	go captureVZEffResource(wg, evr, vz, bugReportDir, client)
 
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoWebHookPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
@@ -381,4 +382,11 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 		return err
 	}
 	return nil
+}
+func captureVZEffResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
+	defer wg.Done()
+	err := pkghelpers.AddEffCr(c, bugReportDir, vz)
+	if err != nil {
+		ec <- ErrorsChannel{ErrorMessage: err.Error()}
+	}
 }

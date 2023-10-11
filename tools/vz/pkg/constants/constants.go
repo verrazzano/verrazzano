@@ -161,6 +161,7 @@ const (
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
 	// File names for the various resources
+	EffVzResource    = "EffVzResource.json"
 	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
 	EventsJSON       = "events.json"
