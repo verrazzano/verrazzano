@@ -5,6 +5,7 @@ package argocd
 
 import (
 	"github.com/verrazzano/verrazzano-modules/pkg/controller/spi/controllerspi"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common/watch"
@@ -21,8 +22,9 @@ func (c argoCDComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 			cmconstants.ClusterIssuerComponentName,
 			keycloak.ComponentName,
 		}),
-		watch.GetModuleUpdatedWatches([]string{
-			nginx.ComponentName,
-		}),
+		watch.GetUpdateSecretWatch(
+			constants.PrivateCABundle,
+			constants.VerrazzanoSystemNamespace,
+		),
 	)
 }
