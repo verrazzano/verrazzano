@@ -223,7 +223,7 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 			return false
 		}
 		if !healthy {
-			log.Progressf("Skipping updated replicas check for OpenSearch because cluster health is not green")
+			log.GetZapLogger().Warn("Skipping updated replicas check for OpenSearch because cluster health is not green")
 			return true
 		}
 		log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
