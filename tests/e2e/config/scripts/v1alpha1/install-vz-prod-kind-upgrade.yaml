@@ -12,6 +12,18 @@ spec:
       claimName: vmi     # set storage for the metrics stack
   environmentName: admin
   components:
+    istio:
+      overrides:
+      - values:
+          apiVersion: install.istio.io/v1alpha1
+          kind: IstioOperator
+          spec:
+            meshConfig:
+              enableTracing: true
+              defaultConfig:
+                tracing:
+                  zipkin:
+                    address: jaeger-verrazzano-managed-cluster-collector.verrazzano-monitoring.svc.cluster.local.:9411
     jaegerOperator:
       enabled: true
     keycloak:
