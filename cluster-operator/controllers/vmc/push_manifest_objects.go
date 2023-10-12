@@ -25,9 +25,9 @@ import (
 // pushManifestObjects applies the Verrazzano manifest objects to the managed cluster.
 // To access the managed cluster, we are taking advantage of the Rancher proxy or CAPI based access.
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Context, rancherEnabled bool, vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
-	agentOperation := controllerutil.OperationResultNone
-	regOperation := controllerutil.OperationResultNone
 	if rancherEnabled {
+		agentOperation := controllerutil.OperationResultNone
+		regOperation := controllerutil.OperationResultNone
 		clusterID := vmc.Status.RancherRegistration.ClusterID
 		if len(clusterID) == 0 {
 			r.log.Progressf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
