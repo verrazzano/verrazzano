@@ -259,7 +259,6 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
-	ctx.Log().Debug()
 
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
