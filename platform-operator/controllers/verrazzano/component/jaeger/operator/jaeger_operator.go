@@ -900,23 +900,3 @@ func deleteIngress(ctx spi.ComponentContext) error {
 	}
 	return nil
 }
-
-func getJaegerResource(name, namespace string) *unstructured.Unstructured {
-	var jaeger unstructured.Unstructured
-	jaeger.SetAPIVersion(jaegerAPIVersion)
-	jaeger.SetKind(jaegerKind)
-	jaeger.SetName(name)
-	jaeger.SetNamespace(namespace)
-	return &jaeger
-}
-
-func deleteJaegerInstance(ctx context.Context, client clipkg.Client, name, namespace string) error {
-	jaeger := getJaegerResource(name, namespace)
-	err := client.Delete(ctx, jaeger)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return nil
-		}
-	}
-	return nil
-}
