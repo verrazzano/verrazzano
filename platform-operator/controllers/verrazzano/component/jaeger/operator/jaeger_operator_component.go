@@ -244,6 +244,12 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err != nil {
 		return ctx.Log().ErrorfNewErr("Failed searching for Jaeger release: %v", err)
 	}
+	if installed {
+		// We always clean up the existing Jaeger, if there is one as a workaround for Jaeger operator upgrade issues.
+		if err := deleteJaegerInstance(context.Background(), ctx.Client(), defaultJaegerInstanceName, ComponentNamespace); err != nil {
+			return ctx.Log().ErrorfThrottledNewErr("failed to reset Jaeger instance pre-upgrade: %v", err)
+		}
+	}
 	if !installed && doDefaultJaegerInstanceDeploymentsExists(ctx) {
 		return ctx.Log().ErrorfNewErr("Conflicting Jaeger instance %s/%s exists! Either disable the Verrazzano's default Jaeger instance creation by overriding jaeger.create Helm value for Jaeger Operator component to false or delete and recreate the existing Jaeger deployment in a different namespace: %v", ComponentNamespace, globalconst.JaegerInstanceName, err)
 	}
@@ -254,7 +260,10 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-
+	err = common.ApplyCRDYaml(ctx, c.ChartDir)
+	if err != nil {
+		return err
+	}
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err

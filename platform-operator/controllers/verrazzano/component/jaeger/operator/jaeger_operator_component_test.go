@@ -218,6 +218,13 @@ func testActionConfigWithInstallation(log vzlog.VerrazzanoLogger, settings *cli.
 func TestPreUpgrade(t *testing.T) {
 	k8sutil.SetFakeClient(k8sfake.NewSimpleClientset(getJaegerWebHookServiceObjects()))
 	defer k8sutil.ClearFakeClient()
+
+	oldConfig := config.Get()
+	defer config.Set(oldConfig)
+	config.Set(config.OperatorConfig{
+		VerrazzanoRootDir: "../../../../../..",
+	})
+
 	tests := []struct {
 		name         string
 		client       client.Client
