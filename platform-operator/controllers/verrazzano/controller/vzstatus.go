@@ -141,13 +141,8 @@ func (r Reconciler) updateStatusInstalling(log vzlog.VerrazzanoLogger, actualCR 
 
 // updateStatusUninstalling adds uninstalling condition and sets the state
 func (r Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actualCR *vzv1alpha1.Verrazzano) error {
-	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
-		vzv1alpha1.CondUninstallStarted:  true,
-		vzv1alpha1.CondUninstallComplete: true,
-	}
-
-	// For uninstall return if uninstall or complete already writtne
-	if doesAnyConditionExist(actualCR, conditionToSearch) {
+	// For uninstall return if uninstall or complete already written
+	if r.doesUninstallConditionExist(actualCR) {
 		return nil
 	}
 
@@ -160,6 +155,14 @@ func (r Reconciler) updateStatusUninstalling(log vzlog.VerrazzanoLogger, actualC
 		State:      vzv1alpha1.VzStateUninstalling,
 	})
 	return nil
+}
+
+func (r Reconciler) doesUninstallConditionExist(actualCR *vzv1alpha1.Verrazzano) bool {
+	var conditionToSearch = map[vzv1alpha1.ConditionType]bool{
+		vzv1alpha1.CondUninstallStarted:  true,
+		vzv1alpha1.CondUninstallComplete: true,
+	}
+	return doesAnyConditionExist(actualCR, conditionToSearch)
 }
 
 // updateStatusUpgrading adds upgrading condition and sets the state

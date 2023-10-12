@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.6-3",
+      "version": "2.7.6-5",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -155,16 +155,16 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.5-20231002174229-785a82496",
-              "rancherUI": "v2.7.2-14/release-2.7.2",
+              "rancherUI": "v2.7.2-17/release-2.7.2",
               "ocneDriverVersion": "v0.26.0",
               "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
-              "tag": "v2.7.6-20231004214756-ee1a5dfa4",
+              "tag": "v2.7.6-20231010172525-ee1a5dfa4",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20231004214756-ee1a5dfa4"
+              "tag": "v2.7.6-20231010172525-ee1a5dfa4"
             }
           ]
         },
@@ -264,7 +264,7 @@
               "image": "cluster-api-verrazzano-addon-controller",
               "tag": "v1.0.0-20231003142344-a400ef3"
             }
-           ]
+          ]
         }
       ]
     },
@@ -363,7 +363,7 @@
             },
             {
               "image": "opensearch",
-              "tag": "2.3.0-20230928071551-b6247ad8ac8",
+              "tag": "2.3.0-20231011041325-087a5394cff",
               "helmFullImageKey": "monitoringOperator.osImage"
             },
             {
@@ -653,7 +653,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-1",
+      "version": "0.64.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1012,7 +1012,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0",
+      "version": "2.4.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1020,7 +1020,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20230929044732-8b4eb23",
+              "tag": "v2.4.0-20231012121111-9b262f4",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }

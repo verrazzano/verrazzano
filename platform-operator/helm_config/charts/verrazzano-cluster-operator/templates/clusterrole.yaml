@@ -150,6 +150,13 @@ rules:
       - create
       - update
   - apiGroups:
+      - controlplane.cluster.x-k8s.io
+    resources:
+      - ocimanagedcontrolplanes
+      - ocnecontrolplanes
+    verbs:
+      - list
+  - apiGroups:
       - cluster.x-k8s.io
     resources:
       - clusters

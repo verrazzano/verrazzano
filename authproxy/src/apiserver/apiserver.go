@@ -72,7 +72,7 @@ func (a *APIRequest) preprocessAPIRequest() (*retryablehttp.Request, error) {
 		return nil, err
 	}
 
-	a.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s%s", ingressHost, a.CallbackPath))
+	a.Authenticator.SetCallbackURL(fmt.Sprintf("https://%s/clusters/local%s", ingressHost, a.CallbackPath))
 	continueProcessing, err := a.Authenticator.AuthenticateRequest(req, rw)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusUnauthorized)

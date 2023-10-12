@@ -4,6 +4,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +43,6 @@ func TestPerformLoginRedirect(t *testing.T) {
 
 // TestCreateContextWithHTTPClient tests that the context client can be created
 func TestCreateContextWithHTTPClient(t *testing.T) {
-
 	tests := []struct {
 		name    string
 		objects []k8sclient.Object
@@ -110,6 +110,7 @@ func TestInitExternalOIDCProvider(t *testing.T) {
 		oidcConfig: &OIDCConfiguration{
 			ExternalURL: server.URL,
 		},
+		ctx: context.WithValue(context.Background(), oauth2.HTTPClient, server.Client()),
 	}
 
 	err := authenticator.initExternalOIDCProvider()

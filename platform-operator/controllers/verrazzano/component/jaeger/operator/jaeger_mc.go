@@ -180,14 +180,14 @@ func createOrUpdateMCJaeger(client clipkg.Client) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	// Create or update the Jaeger CR.  Always replace the entire spec.
-	var jaeger unstructured.Unstructured
-	jaeger.SetAPIVersion(jaegerAPIVersion)
-	jaeger.SetKind(jaegerKind)
-	jaeger.SetName(jaegerName)
-	jaeger.SetNamespace(ComponentNamespace)
-	_, err = controllerutil.CreateOrUpdate(context.TODO(), client, &jaeger, func() error {
+	jaeger := getJaegerResource(jaegerName, ComponentNamespace)
+	ctx := context.Background()
+	// We always clean up the existing Jaeger, if there is one as a workaround for Jaeger operator upgrade issues.
+	if err := deleteJaegerInstance(ctx, client, jaegerName, ComponentNamespace); err != nil {
+		return false, err
+	}
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), client, jaeger, func() error {
 		if err := unstructured.SetNestedField(jaeger.Object, jaegerSpec, specField); err != nil {
 			return err
 		}

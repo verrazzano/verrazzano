@@ -30,7 +30,7 @@ modules:
   - name: istio
     version: 1.19.0
   - name: rancher
-    version: 2.7.6-3
+    version: 2.7.6-5
     chart: platform-operator/thirdparty/charts/rancher
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
@@ -101,7 +101,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/keycloak-values.yaml
   - name: prometheus-operator
-    version: 0.64.1-1
+    version: 0.64.1-2
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-operator-values.yaml
@@ -155,12 +155,12 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-network-policies
   - name: opensearch-operator
-    version: 2.4.0
+    version: 2.4.0-1
     chart: platform-operator/thirdparty/charts/opensearch-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/opensearch-operator-values.yaml
   - name: opensearch
-    version: 2.3.0-2
+    version: 2.3.0-3
   - name: opensearch-dashboards
     version: 2.3.0-1
   - name: grafana
