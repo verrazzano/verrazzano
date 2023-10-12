@@ -264,7 +264,7 @@
               "image": "cluster-api-verrazzano-addon-controller",
               "tag": "v1.0.0-20231002161731-24160e8"
             }
-           ]
+          ]
         }
       ]
     },
@@ -653,7 +653,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-1",
+      "version": "0.64.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
