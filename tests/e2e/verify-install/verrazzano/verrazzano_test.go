@@ -824,6 +824,7 @@ func validateVerrazzanoSystemServicePorts() {
 		"coherence-operator-webhook",
 		"internal-weblogic-operator-svc",
 		mysqloperator.ComponentName,
+		constants.FluentBitDaemonSetName,
 	}
 	for _, service := range services.Items {
 		for _, port := range service.Spec.Ports {

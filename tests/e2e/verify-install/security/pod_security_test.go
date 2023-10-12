@@ -92,6 +92,12 @@ var exceptionPods = map[string]podExceptions{
 			},
 		},
 	},
+	"fluent-bit": {
+		allowHostPath: true,
+	},
+	"fluent-operator": {
+		allowHostPath: true,
+	},
 }
 
 var (
