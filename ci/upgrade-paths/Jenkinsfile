@@ -1917,9 +1917,6 @@ def runConsoleTests() {
     // a sample app for that purpose
     catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
         sh """
-            echo "Here is the Jaeger resource ----------------"
-            kubectl get jaeger -n verrazzano-monitoring -o yaml
-            echo "--------------------------------------------z"
             export DUMP_DIRECTORY="${TEST_DUMP_ROOT}/console"
             export CONSOLE_REPO_BRANCH="${params.CONSOLE_REPO_BRANCH}"
             export CONSOLE_APP_NAME="${SAMPLE_APP_NAME}"
