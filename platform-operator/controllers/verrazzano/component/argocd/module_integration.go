@@ -22,6 +22,12 @@ func (c argoCDComponent) GetWatchDescriptors() []controllerspi.WatchDescriptor {
 			cmconstants.ClusterIssuerComponentName,
 			keycloak.ComponentName,
 		}),
+		// For DNS/Cert updates
+		watch.GetModuleUpdatedWatches([]string{
+			nginx.ComponentName,
+			cmconstants.ClusterIssuerComponentName,
+		}),
+		// For private CA rotations, pick up the new CA bundle from the shared secret
 		watch.GetUpdateSecretWatch(
 			constants.PrivateCABundle,
 			constants.VerrazzanoSystemNamespace,
