@@ -7,14 +7,16 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/pkg/diff"
-	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/verrazzano/pkg/diff"
+	vmcontrollerv1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
+
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 )
 
 type (

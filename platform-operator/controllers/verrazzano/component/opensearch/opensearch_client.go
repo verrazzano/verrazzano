@@ -9,16 +9,18 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
+	"net/http"
+
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	vzv1alpha1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
 )
 
 type (
@@ -26,12 +28,16 @@ type (
 		httpClient *http.Client
 		DoHTTP     func(request *http.Request) (*http.Response, error)
 	}
+	ClusterHealth struct {
+		Status string `json:"status"`
+	}
 )
 
 const (
 	indexSettings     = `{"index_patterns": [".opendistro*"],"priority": 0,"template": {"settings": {"auto_expand_replicas": "0-1"}}}`
 	applicationJSON   = "application/json"
 	contentTypeHeader = "Content-Type"
+	HealthGreen       = "green"
 )
 
 func NewOSClient(pas string) *OSClient {
@@ -180,6 +186,32 @@ func (o *OSClient) IsOpenSearchReady(client clipkg.Client) bool {
 	}
 
 	return statefulSets.Items[0].Status.ReadyReplicas == statefulSets.Items[0].Status.Replicas
+}
+
+// IsClusterHealthy checks whether Opensearch Cluster is healthy or not.
+func (o *OSClient) IsClusterHealthy(client clipkg.Client) (bool, error) {
+	openSearchEndpoint, err := GetOpenSearchHTTPEndpoint(client)
+	if err != nil {
+		return false, err
+	}
+	healthURL := fmt.Sprintf("%s/_cluster/health", openSearchEndpoint)
+	req, err := http.NewRequest("GET", healthURL, nil)
+	if err != nil {
+		return false, err
+	}
+	req.Header.Add(contentTypeHeader, applicationJSON)
+	resp, err := o.DoHTTP(req)
+	if err != nil {
+		return false, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return false, fmt.Errorf("got status code %d when fetching cluster health, expected %d", resp.StatusCode, http.StatusOK)
+	}
+	clusterHealth := &ClusterHealth{}
+	if err := json.NewDecoder(resp.Body).Decode(clusterHealth); err != nil {
+		return false, err
+	}
+	return clusterHealth.Status == HealthGreen, nil
 }
 
 func GetOpenSearchHTTPEndpoint(client clipkg.Client) (string, error) {

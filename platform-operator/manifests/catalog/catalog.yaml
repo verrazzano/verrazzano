@@ -30,7 +30,7 @@ modules:
   - name: istio
     version: 1.19.0
   - name: rancher
-    version: 2.7.6-4
+    version: 2.7.6-5
     chart: platform-operator/thirdparty/charts/rancher
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
@@ -160,7 +160,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/opensearch-operator-values.yaml
   - name: opensearch
-    version: 2.3.0-2
+    version: 2.3.0-3
   - name: opensearch-dashboards
     version: 2.3.0-1
   - name: grafana
