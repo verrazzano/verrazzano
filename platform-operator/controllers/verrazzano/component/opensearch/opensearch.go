@@ -6,10 +6,12 @@ package opensearch
 import (
 	"context"
 	"fmt"
+	"time"
 
 	vmov1 "github.com/verrazzano/verrazzano-monitoring-operator/pkg/apis/vmcontroller/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -195,12 +197,12 @@ func AreOpensearchStsReady(log vzlog.VerrazzanoLogger, client client.Client, nam
 			log.Errorf("Failed getting statefulset %v: %v", namespacedName, err)
 			return false
 		}
-		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix, namespacedName) {
-			return false
-		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current ready replicas is %v", prefix, namespacedName,
 				expectedReplicas, statefulset.Status.ReadyReplicas)
+			return false
+		}
+		if !areOSReplicasUpdated(log, statefulset, expectedReplicas, client, prefix, namespacedName) {
 			return false
 		}
 		log.Oncef("%s has enough ready replicas for statefulsets %v", prefix, namespacedName)
@@ -216,13 +218,23 @@ func areOSReplicasUpdated(log vzlog.VerrazzanoLogger, statefulset appsv1.Statefu
 			log.Errorf("Failed getting OS secret to check OS cluster health: %v", err)
 			return false
 		}
-		osClient := NewOSClient(pas)
-		healthy, err := osClient.IsClusterHealthy(client)
+		var isHealthy bool
+		wait.ExponentialBackoff(wait.Backoff{
+			Duration: time.Second * 2,
+			Factor:   1,
+			Jitter:   0.2,
+			Steps:    3,
+		}, func() (bool, error) {
+			osClient := NewOSClient(pas)
+			isHealthy, err = osClient.IsClusterHealthy(client)
+			return isHealthy, nil
+		})
+
 		if err != nil {
 			log.Errorf("Failed getting OpenSearch cluster health: %v", err)
 			return false
 		}
-		if !healthy {
+		if !isHealthy {
 			log.Progressf("Skipping updated replicas check for OpenSearch because cluster health is not green")
 			return true
 		}
