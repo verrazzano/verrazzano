@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"path/filepath"
@@ -166,6 +167,9 @@ func (c fluentOperatorComponent) Install(ctx spi.ComponentContext) error {
 
 // PreUpgrade FluentOperator component pre-upgrade processing
 func (c fluentOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
+	if err := common.ApplyCRDYaml(ctx, filepath.Join(config.GetHelmFluentOperatorChartsDir(), "/charts/fluent-bit-crds")); err != nil {
+		return err
+	}
 	return c.HelmComponent.PreUpgrade(ctx)
 }
 

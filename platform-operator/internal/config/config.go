@@ -33,6 +33,7 @@ const (
 	helmOverridesDirSuffix          = "/platform-operator/helm_config/overrides"
 	integrationChartsDirSuffix      = "/platform-operator/experimental/manifests/integration-charts"
 	catalogDirSuffix                = "/platform-operator/manifests/catalog"
+	fluentOperatorDirSuffix         = "/platform-operator/thirdparty/charts/fluent-operator"
 )
 
 const defaultBomFilename = "verrazzano-bom.json"
@@ -165,6 +166,11 @@ func GetHelmVMOChartsDir() string {
 		return filepath.Join(TestHelmConfigDir, "/charts/verrazzano-monitoring-operator")
 	}
 	return filepath.Join(instance.VerrazzanoRootDir, helmVMOChartsDirSuffix)
+}
+
+// GetHelmFluentOperatorChartsDir returns the fluent operator helm charts dir
+func GetHelmFluentOperatorChartsDir() string {
+	return filepath.Join(instance.VerrazzanoRootDir, fluentOperatorDirSuffix)
 }
 
 // GetHelmAppOpChartsDir returns the Verrazzano Application Operator helm charts dir
