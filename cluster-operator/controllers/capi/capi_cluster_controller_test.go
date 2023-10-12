@@ -5,15 +5,14 @@ package capi
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	"github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -31,20 +30,10 @@ const (
 
 // GIVEN a CAPI cluster resource is created
 // WHEN  the reconciler runs
-// THEN  a rancher registration and associated artifacts are created
-func TestClusterRancherRegistration(t *testing.T) {
+// THEN  a VMC is created
+func TestClusterCreation(t *testing.T) {
 	asserts := assert.New(t)
 
-	rancherDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.RancherName,
-			Namespace: common.CattleSystem,
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:      1,
-			ReadyReplicas: 1,
-		},
-	}
 	ep := &v1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kubernetes",
@@ -53,28 +42,16 @@ func TestClusterRancherRegistration(t *testing.T) {
 		Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}}}},
 	}
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName), rancherDeployment, ep).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(newCAPICluster(clusterName), ep).Build()
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
-
-	SetClusterRancherRegistrationFunction(func(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) (ctrl.Result, error) {
-		persistClusterStatus(ctx, reconciler.Client, cluster, reconciler.Log, "capi1Id", registrationInitiated)
-		return ctrl.Result{}, nil
-	})
-	defer SetDefaultClusterRancherRegistrationFunction()
-
-	SetVerrazzanoReconcileFunction(func(ctx context.Context, cluster *unstructured.Unstructured, r *CAPIClusterReconciler) (ctrl.Result, error) {
-		return ctrl.Result{}, nil
-	})
-	defer SetDefaultVerrazzanoReconcileFunction()
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 
-	clusterRegistrationSecret := &v1.Secret{}
-	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, clusterRegistrationSecret)
+	vmc := &v1alpha1.VerrazzanoManagedCluster{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName, Namespace: constants.VerrazzanoMultiClusterNamespace}, vmc)
 	asserts.NoError(err)
-	asserts.Equal(registrationInitiated, string(clusterRegistrationSecret.Data[clusterRegistrationStatusKey]))
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, cluster)
@@ -84,48 +61,35 @@ func TestClusterRancherRegistration(t *testing.T) {
 
 // GIVEN a CAPI cluster resource is deleted
 // WHEN  the reconciler runs
-// THEN  a rancher registration and associated artifacts are removed
-func TestClusterUnregistration(t *testing.T) {
+// THEN  the VMC is removed
+func TestClusterDeletion(t *testing.T) {
 	asserts := assert.New(t)
-
-	rancherDeployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      common.RancherName,
-			Namespace: common.CattleSystem,
-		},
-		Status: appsv1.DeploymentStatus{
-			Replicas:      1,
-			ReadyReplicas: 1,
-		},
-	}
-
-	clusterRegistrationSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName + clusterStatusSuffix,
-			Namespace: constants.VerrazzanoCAPINamespace,
-		},
-		Data: map[string][]byte{clusterIDKey: []byte("capi1Id"), clusterRegistrationStatusKey: []byte(registrationInitiated)},
-	}
 
 	cluster := newCAPICluster(clusterName)
 	now := metav1.Now()
 	cluster.SetDeletionTimestamp(&now)
 	cluster.SetFinalizers([]string{finalizerName})
 
-	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, rancherDeployment, clusterRegistrationSecret).Build()
+	vmc := &v1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: constants.VerrazzanoMultiClusterNamespace,
+		},
+	}
+	vmc.Spec = v1alpha1.VerrazzanoManagedClusterSpec{
+		Description: fmt.Sprintf("%s VerrazzanoManagedCluster Resource", cluster.GetName()),
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme()).WithObjects(cluster, vmc).Build()
 	reconciler := newCAPIClusterReconciler(fakeClient)
 	request := newRequest(clusterName)
-
-	SetClusterRancherUnregistrationFunction(func(ctx context.Context, r *RancherRegistration, cluster *unstructured.Unstructured) error {
-		return nil
-	})
-	defer SetDefaultClusterRancherUnregistrationFunction()
 
 	_, err := reconciler.Reconcile(context.TODO(), request)
 	asserts.NoError(err)
 
-	remainingSecret := &v1.Secret{}
-	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName + clusterStatusSuffix, Namespace: constants.VerrazzanoCAPINamespace}, remainingSecret))
+	remainingVmc := &v1alpha1.VerrazzanoManagedCluster{}
+	err = fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, remainingVmc)
+	asserts.Error(err)
 	deletedCluster := &unstructured.Unstructured{}
 	deletedCluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
 	asserts.Error(fakeClient.Get(context.TODO(), types.NamespacedName{Name: clusterName}, deletedCluster))
@@ -147,21 +111,11 @@ func newCAPICluster(name string) *unstructured.Unstructured {
 }
 
 func newCAPIClusterReconciler(c client.Client) CAPIClusterReconciler {
-	rancherRegistrar := &RancherRegistration{
-		Client: c,
-		Log:    zap.S(),
-	}
-	verrazzanoRegistrar := &VerrazzanoRegistration{
-		Client: c,
-		Log:    zap.S(),
-	}
 	return CAPIClusterReconciler{
-		Client:              c,
-		Scheme:              newScheme(),
-		Log:                 zap.S(),
-		RancherEnabled:      true,
-		RancherRegistrar:    rancherRegistrar,
-		VerrazzanoRegistrar: verrazzanoRegistrar,
+		Client:         c,
+		Scheme:         newScheme(),
+		Log:            zap.S(),
+		RancherEnabled: true,
 	}
 }
 

@@ -41,12 +41,10 @@ const (
 
 type CAPIClusterReconciler struct {
 	client.Client
-	Scheme              *runtime.Scheme
-	Log                 *zap.SugaredLogger
-	RancherRegistrar    *RancherRegistration
-	RancherIngressHost  string
-	RancherEnabled      bool
-	VerrazzanoRegistrar *VerrazzanoRegistration
+	Scheme             *runtime.Scheme
+	Log                *zap.SugaredLogger
+	RancherIngressHost string
+	RancherEnabled     bool
 }
 
 func CAPIClusterClientObject() client.Object {
@@ -98,20 +96,6 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		if err := r.removeFinalizer(cluster); err != nil {
 			return ctrl.Result{}, err
-		}
-
-		// delete the cluster id secret
-		clusterRegistrationStatusSecret := &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: constants.VerrazzanoCAPINamespace,
-				Name:      cluster.GetName() + clusterStatusSuffix,
-			},
-		}
-		err = r.Delete(ctx, clusterRegistrationStatusSecret)
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				return ctrl.Result{}, err
-			}
 		}
 
 		return ctrl.Result{}, nil
@@ -197,38 +181,6 @@ func (r *CAPIClusterReconciler) createAdminAccessConfigMap(ctx context.Context) 
 		r.Log.Errorf("Failed to create the Verrazzano admin cluster config map: %v", err)
 		return err
 	}
-	return nil
-}
-
-// unregisterCluster removes the cluster from Rancher and/or Verrazzano.
-func (r *CAPIClusterReconciler) unregisterCluster(ctx context.Context, cluster *unstructured.Unstructured) error {
-	var err error
-	if r.RancherEnabled {
-		err = clusterRancherUnregistrationFn(ctx, r.RancherRegistrar, cluster)
-		if err != nil {
-			return err
-		}
-	}
-	if err = UnregisterVerrazzanoCluster(ctx, r.VerrazzanoRegistrar, cluster); err != nil {
-		return err
-	}
-
-	// remove the VMC
-	vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.GetName(),
-			Namespace: constants.VerrazzanoMultiClusterNamespace,
-		},
-	}
-	err = r.Delete(ctx, vmc)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			r.Log.Infof("VMC for cluster %s not found - nothing to do", cluster.GetName())
-			return nil
-		}
-		return err
-	}
-
 	return nil
 }
 
