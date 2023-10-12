@@ -1012,7 +1012,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0",
+      "version": "2.4.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1020,7 +1020,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20230929044732-8b4eb23",
+              "tag": "v2.4.0-20231012121111-9b262f4",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
