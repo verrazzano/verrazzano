@@ -26,8 +26,6 @@ import (
 // To access the managed cluster, we are taking advantage of the Rancher proxy or CAPI based access.
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Context, rancherEnabled bool, vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	if rancherEnabled {
-		agentOperation := controllerutil.OperationResultNone
-		regOperation := controllerutil.OperationResultNone
 		clusterID := vmc.Status.RancherRegistration.ClusterID
 		if len(clusterID) == 0 {
 			r.log.Progressf("Waiting to push manifest objects, Rancher ClusterID not found in the VMC %s/%s status", vmc.GetNamespace(), vmc.GetName())
@@ -53,7 +51,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Con
 			regSecret := corev1.Secret{}
 			regSecret.Namespace = constants.VerrazzanoSystemNamespace
 			regSecret.Name = constants.MCRegistrationSecret
-			agentOperation, err = createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
+			agentOperation, err := createOrUpdateSecretRancherProxy(&agentSecret, rc, clusterID, func() error {
 				existingAgentSec, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 				if err != nil {
 					return err
@@ -64,7 +62,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Con
 			if err != nil {
 				return false, err
 			}
-			regOperation, err = createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
+			regOperation, err := createOrUpdateSecretRancherProxy(&regSecret, rc, clusterID, func() error {
 				existingRegSecret, err := r.getSecret(vmc.Namespace, GetRegistrationSecretName(vmc.Name), true)
 				if err != nil {
 					return err
