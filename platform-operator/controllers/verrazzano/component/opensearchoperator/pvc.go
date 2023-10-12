@@ -181,13 +181,13 @@ func deleteMasterNodePVC(ctx spi.ComponentContext) error {
 	}
 
 	if len(stsList.Items) > 0 {
-		return ctx.Log().ErrorfNewErr("Waiting for master sts to be deleted")
+		return ctx.Log().ErrorfThrottledNewErr("Waiting for master StatefulSet to be deleted")
 	}
 
 	// If all master sts are deleted and pvc still remains, delete them
 	pvcList := &v1.PersistentVolumeClaimList{}
 	if err := ctx.Client().List(context.TODO(), pvcList); err != nil {
-		return ctx.Log().ErrorfNewErr("Failed listing persistent volume claims: %v", err)
+		return ctx.Log().ErrorfThrottledNewErr("Failed listing persistent volume claims: %v", err)
 	}
 
 	for i := range pvcList.Items {

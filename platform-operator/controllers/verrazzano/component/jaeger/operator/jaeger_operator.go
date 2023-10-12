@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io/fs"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"text/template"
@@ -34,6 +35,7 @@ import (
 	networkv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,21 +62,22 @@ func resetWriteFileFunc() {
 }
 
 const (
-	deploymentName        = "jaeger-operator"
-	tmpFilePrefix         = "jaeger-operator-overrides-"
-	tmpSuffix             = "yaml"
-	tmpFileCreatePattern  = tmpFilePrefix + "*." + tmpSuffix
-	jaegerCreateField     = "jaeger.create"
-	jaegerSecNameField    = "jaeger.spec.storage.secretName"
-	metricsStorageField   = "jaeger.spec.query.metricsStorage.type"
-	prometheusServerField = "jaeger.spec.query.options.prometheus.server-url"
-	jaegerHostName        = "jaeger"
-	k8sInstanceNameLabel  = "app.kubernetes.io/instance"
-	instanceName          = deploymentName + "-" + jaegerHostName
-	jaegerCertificateName = "jaeger-tls"
-	openSearchURL         = globalconst.DefaultJaegerOSURL
-	prometheusURL         = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
-	componentPrefixFmt    = "Component %s"
+	deploymentName            = "jaeger-operator"
+	tmpFilePrefix             = "jaeger-operator-overrides-"
+	tmpSuffix                 = "yaml"
+	tmpFileCreatePattern      = tmpFilePrefix + "*." + tmpSuffix
+	jaegerCreateField         = "jaeger.create"
+	jaegerSecNameField        = "jaeger.spec.storage.secretName"
+	metricsStorageField       = "jaeger.spec.query.metricsStorage.type"
+	prometheusServerField     = "jaeger.spec.query.options.prometheus.server-url"
+	jaegerHostName            = "jaeger"
+	k8sInstanceNameLabel      = "app.kubernetes.io/instance"
+	instanceName              = deploymentName + "-" + jaegerHostName
+	jaegerCertificateName     = "jaeger-tls"
+	openSearchURL             = globalconst.DefaultJaegerOSURL
+	prometheusURL             = "http://prometheus-operator-kube-p-prometheus.verrazzano-monitoring:9090"
+	componentPrefixFmt        = "Component %s"
+	defaultJaegerInstanceName = "jaeger-operator-jaeger"
 )
 
 // Define the Jaeger images using extraEnv key.
@@ -895,6 +898,26 @@ func deleteIngress(ctx spi.ComponentContext) error {
 	if err != nil && !errors.IsNotFound(err) {
 		ctx.Log().Errorf("Error deleting ingress %s, %v", constants.JaegerIngress, err)
 		return err
+	}
+	return nil
+}
+
+func getJaegerResource(name, namespace string) *unstructured.Unstructured {
+	var jaeger unstructured.Unstructured
+	jaeger.SetAPIVersion(jaegerAPIVersion)
+	jaeger.SetKind(jaegerKind)
+	jaeger.SetName(name)
+	jaeger.SetNamespace(namespace)
+	return &jaeger
+}
+
+func deleteJaegerInstance(ctx context.Context, client clipkg.Client, name, namespace string) error {
+	jaeger := getJaegerResource(name, namespace)
+	err := client.Delete(ctx, jaeger)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
 	}
 	return nil
 }
