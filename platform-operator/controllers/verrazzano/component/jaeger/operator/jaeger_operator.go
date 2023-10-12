@@ -35,7 +35,6 @@ import (
 	networkv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -915,9 +914,10 @@ func deleteJaegerInstance(ctx context.Context, client clipkg.Client, name, names
 	jaeger := getJaegerResource(name, namespace)
 	err := client.Delete(ctx, jaeger)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			return nil
 		}
+		return err
 	}
 	return nil
 }
