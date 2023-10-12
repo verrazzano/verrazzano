@@ -260,7 +260,10 @@ func (c jaegerOperatorComponent) PreUpgrade(ctx spi.ComponentContext) error {
 			return err
 		}
 	}
-
+	err = common.ApplyCRDYaml(ctx, c.ChartDir)
+	if err != nil {
+		return err
+	}
 	createInstance, err := isCreateDefaultJaegerInstance(ctx)
 	if err != nil {
 		return err
