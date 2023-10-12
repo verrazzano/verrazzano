@@ -7,6 +7,11 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	appsv1 "k8s.io/api/apps/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -184,19 +189,24 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		return newRequeueWithDelay(), err
 	}
 
+	rancherEnabled, err := r.isRancherEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	log.Debugf("Syncing the Manifest secret for VMC %s", vmc.Name)
-	vzVMCWaitingForClusterID, err := r.syncManifestSecret(ctx, vmc)
+	vzVMCWaitingForClusterID, err := r.syncManifestSecret(ctx, rancherEnabled, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return newRequeueWithDelay(), err
 	}
-	if vzVMCWaitingForClusterID {
-		// waiting for the cluster ID to be set in the status, so requeue and try again
-		return newRequeueWithDelay(), nil
-	}
+	//if vzVMCWaitingForClusterID {
+	//	// waiting for the cluster ID to be set in the status, so requeue and try again
+	//	return newRequeueWithDelay(), nil
+	//}
 
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
-	syncedCert, err := r.syncCACertSecret(vmc)
+	syncedCert, err := r.syncCACertSecret(ctx, vmc, rancherEnabled)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to get CA cert from managed cluster %s with id %s: %v", vmc.Name, vmc.Status.RancherRegistration.ClusterID, err)
 		r.log.Infof(msg)
@@ -215,24 +225,20 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
-	pushedManifest, err := r.pushManifestObjects(vmc)
+	pushedManifest, err := r.pushManifestObjects(ctx, rancherEnabled, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
 		return newRequeueWithDelay(), err
 	}
 	if pushedManifest {
-		r.log.Info("Manifest objects have been successfully pushed to the managed cluster")
+		r.log.Oncef("Manifest objects have been successfully pushed to the managed cluster")
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
 	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
 	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
 	argoCDEnabled, err := r.isArgoCDEnabled()
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-	rancherEnabled, err := r.isRancherEnabled()
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -252,11 +258,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			Message:   "Skipping Argo CD cluster registration due to Rancher not installed"}
 	}
 
-	r.setStatusConditionReady(vmc, "Ready")
-	statusErr := r.updateStatus(ctx, vmc)
+	if !vzVMCWaitingForClusterID {
+		r.setStatusConditionReady(vmc, "Ready")
+		statusErr := r.updateStatus(ctx, vmc)
 
-	if statusErr != nil {
-		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, statusErr)
+		if statusErr != nil {
+			log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, statusErr)
+		}
 	}
 
 	if err := r.syncManagedMetrics(ctx, log, vmc); err != nil {
@@ -673,6 +681,57 @@ var createClient = func(r *VerrazzanoManagedClusterReconciler, vmc *clustersv1al
 // createManagedClusterKeycloakClient creates a Keycloak client for the managed cluster
 func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
 	return createClient(r, vmc)
+}
+
+// getClusterClient returns a controller runtime client configured for the workload cluster
+func (r *VerrazzanoManagedClusterReconciler) getClusterClient(restConfig *rest.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+// getWorkloadClusterKubeconfig returns a kubeconfig for accessing the workload cluster
+func (r *VerrazzanoManagedClusterReconciler) getWorkloadClusterKubeconfig(cluster *unstructured.Unstructured) ([]byte, error) {
+	// get the cluster kubeconfig
+	kubeconfigSecret := &corev1.Secret{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: cluster.GetNamespace()}, kubeconfigSecret)
+	if err != nil {
+		r.log.Progressf("failed to obtain workload cluster kubeconfig resource. Re-queuing...")
+		return nil, err
+	}
+	kubeconfig, ok := kubeconfigSecret.Data["value"]
+	if !ok {
+		r.log.Error(err, "failed to read kubeconfig from resource")
+		return nil, fmt.Errorf("Unable to read kubeconfig from retrieved cluster resource")
+	}
+
+	return kubeconfig, nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) getWorkloadClusterClient(cluster *unstructured.Unstructured) (client.Client, error) {
+	// identify whether the workload cluster is using "untrusted" certs
+	kubeconfig, err := r.getWorkloadClusterKubeconfig(cluster)
+	if err != nil {
+		// requeue since we're waiting for cluster
+		return nil, err
+	}
+	// create a workload cluster client
+	// create workload cluster client
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		r.log.Progress("Failed getting rest config from workload kubeconfig")
+		return nil, err
+	}
+	workloadClient, err := r.getClusterClient(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return workloadClient, nil
 }
 
 // Create a new Result that will cause a reconcile requeue after a short delay

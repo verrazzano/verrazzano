@@ -81,9 +81,18 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	// if the deletion timestamp is set, unregister the corresponding Rancher cluster
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		if vzstring.SliceContainsString(cluster.GetFinalizers(), finalizerName) {
-			err = r.unregisterCluster(ctx, cluster)
-			if err != nil {
-				r.Log.Warnf("Unable to unregister cluster %s: %v.  Cluster deletion will proceed.", cluster.GetName(), err)
+			vmcName := r.getVMCName(cluster)
+			// ensure a base VMC
+			vmc := &clustersv1alpha1.VerrazzanoManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      vmcName,
+					Namespace: constants.VerrazzanoMultiClusterNamespace,
+				},
+			}
+			if err = r.Delete(ctx, vmc); err != nil {
+				if !errors.IsNotFound(err) {
+					return ctrl.Result{}, err
+				}
 			}
 		}
 
@@ -134,22 +143,12 @@ func (r *CAPIClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	if r.RancherEnabled {
-		// Is Rancher Deployment ready
-		r.Log.Debugf("Attempting cluster regisration with Rancher")
-		result, err := r.RancherRegistrar.doReconcile(ctx, cluster)
-		if err != nil {
-			return result, err
-		}
-	}
-
 	// add a finalizer to the CAPI cluster if it doesn't already exist
 	if err = r.ensureFinalizer(cluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	r.Log.Debugf("Attempting cluster regisration with Verrazzano")
-	return verrazzanoReconcileFn(ctx, cluster, r)
+	return ctrl.Result{}, nil
 }
 
 func (r *CAPIClusterReconciler) setVMCClusterRef(ctx context.Context, cluster *unstructured.Unstructured, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
