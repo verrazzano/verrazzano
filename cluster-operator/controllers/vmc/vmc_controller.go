@@ -200,10 +200,6 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return newRequeueWithDelay(), err
 	}
-	//if vzVMCWaitingForClusterID {
-	//	// waiting for the cluster ID to be set in the status, so requeue and try again
-	//	return newRequeueWithDelay(), nil
-	//}
 
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
 	syncedCert, err := r.syncCACertSecret(ctx, vmc, rancherEnabled)

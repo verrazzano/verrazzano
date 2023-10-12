@@ -38,7 +38,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Con
 
 		// If the managed cluster is not active, we should not attempt to push resources
 		isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
-		if err != nil {
+		if !isActive || err != nil {
 			return false, err
 		}
 
