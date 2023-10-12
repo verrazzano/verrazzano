@@ -108,7 +108,7 @@ func TestPushManifestObjects(t *testing.T) {
 			defer rancherutil.DeleteStoredTokens()
 
 			rancherutil.RancherHTTPClient = tt.mock
-			updated, err := r.pushManifestObjects(context.TODO(), false, tt.vmc)
+			updated, err := r.pushManifestObjects(context.TODO(), true, tt.vmc)
 			a.Equal(tt.updated, updated)
 			a.NoError(err)
 		})

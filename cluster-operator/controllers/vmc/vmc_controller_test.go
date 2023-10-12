@@ -1133,7 +1133,7 @@ func TestSyncManifestSecretFailRancherRegistration(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
-	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), false, &vmc)
+	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), true, &vmc)
 
 	// Validate the results
 	mocker.Finish()
@@ -1221,7 +1221,7 @@ func TestSyncManifestSecretEmptyRancherManifest(t *testing.T) {
 	reconciler := newVMCReconciler(mock)
 	reconciler.log = vzlog.DefaultLogger()
 
-	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), false, &vmc)
+	vzVMCWaitingForClusterID, err := reconciler.syncManifestSecret(context.TODO(), true, &vmc)
 
 	// Validate the results
 	mocker.Finish()
