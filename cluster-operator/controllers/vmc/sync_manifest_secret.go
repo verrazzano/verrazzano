@@ -57,7 +57,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 			// register the cluster with Rancher - the cluster will show as "pending" until the
 			// Rancher YAML is applied on the managed cluster
 			// NOTE: If this errors we log it and do not fail the reconcile
-			var clusterID string
 			rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
 			if err != nil {
 				msg := "Failed to create Rancher API client"
@@ -90,27 +89,31 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 			}
 		}
 	}
-	// check for existence of verrazzano-system namespace
-	vsNamespaceExists, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 
-	if vsNamespaceExists {
-		// add agent secret YAML
-		agentYaml, err := r.getSecretAsYaml(GetAgentSecretName(vmc.Name), vmc.Namespace,
-			constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
-		if err != nil {
-			return false, err
-		}
-		sb.Write([]byte(yamlSep))
-		sb.Write(agentYaml)
+	// if registration was successful and there is a cluster ID
+	if len(clusterID) > 0 {
+		// check for existence of verrazzano-system namespace
+		vsNamespaceExists, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 
-		// add registration secret YAML
-		regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace,
-			constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace)
-		if err != nil {
-			return false, err
+		if vsNamespaceExists {
+			// add agent secret YAML
+			agentYaml, err := r.getSecretAsYaml(GetAgentSecretName(vmc.Name), vmc.Namespace,
+				constants.MCAgentSecret, constants.VerrazzanoSystemNamespace)
+			if err != nil {
+				return false, err
+			}
+			sb.Write([]byte(yamlSep))
+			sb.Write(agentYaml)
+
+			// add registration secret YAML
+			regYaml, err := r.getSecretAsYaml(GetRegistrationSecretName(vmc.Name), vmc.Namespace,
+				constants.MCRegistrationSecret, constants.VerrazzanoSystemNamespace)
+			if err != nil {
+				return false, err
+			}
+			sb.Write([]byte(yamlSep))
+			sb.Write(regYaml)
 		}
-		sb.Write([]byte(yamlSep))
-		sb.Write(regYaml)
 	}
 	// create/update the manifest secret with the YAML
 	_, err := r.createOrUpdateManifestSecret(vmc, sb.String())
