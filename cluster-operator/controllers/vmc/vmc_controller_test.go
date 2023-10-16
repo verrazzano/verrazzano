@@ -2029,6 +2029,19 @@ func expectPushManifestRequests(t *testing.T, mockRequestSender *mocks.MockReque
 			}
 			return resp, nil
 		})
+	expectRancherConfigK8sCalls(t, mock, true)
+	// expect a check for existence of verrazzano-system namespace
+	mockRequestSender.EXPECT().
+		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(k8sClustersPath+unitTestRancherClusterID+"/api/v1/namespaces/verrazzano-system")).
+		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
+			var resp *http.Response
+			r := io.NopCloser(bytes.NewReader([]byte(`{"kind":"table", "apiVersion":"meta.k8s.io/v1"}`)))
+			resp = &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       r,
+			}
+			return resp, nil
+		})
 }
 
 func expectVmcGetAndUpdate(t *testing.T, mock *mocks.MockClient, name string, caSecretExists bool, rancherClusterAlreadyRegistered bool) {

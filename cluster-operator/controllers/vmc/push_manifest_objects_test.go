@@ -193,6 +193,7 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 			}
 			return resp, nil
 		})
+	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
 	return httpMock
 }
 

@@ -83,6 +83,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 					r.log.Once(msg)
 					if vmc.Status.RancherRegistration.Status != clusterapi.RegistrationApplied {
 						r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
+					} else {
+						r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationApplied, clusterID, msg)
 					}
 					sb.WriteString(rancherYAML)
 				}
@@ -90,8 +92,8 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 		}
 	}
 
-	// if registration was successful and there is a cluster ID
-	if len(clusterID) > 0 {
+	// if registration was successful and there is a cluster ID OR there is CAPI access to cluster...
+	if vmc.Status.ClusterRef != nil || len(clusterID) > 0 {
 		// check for existence of verrazzano-system namespace
 		vsNamespaceExists, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 
