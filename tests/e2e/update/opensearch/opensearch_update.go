@@ -135,7 +135,9 @@ func (u OpensearchDuplicateNodeGroupModifier) ModifyCR(cr *vzapi.Verrazzano) {
 }
 
 func (u OpensearchAllNodeRolesModifier) ModifyCR(cr *vzapi.Verrazzano) {
-	cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	if cr.Spec.Components.Elasticsearch == nil {
+		cr.Spec.Components.Elasticsearch = &vzapi.ElasticsearchComponent{}
+	}
 	cr.Spec.Components.Elasticsearch.Nodes =
 		append(cr.Spec.Components.Elasticsearch.Nodes,
 			vzapi.OpenSearchNode{
