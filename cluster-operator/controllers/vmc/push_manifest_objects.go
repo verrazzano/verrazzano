@@ -27,18 +27,17 @@ import (
 func (r *VerrazzanoManagedClusterReconciler) pushManifestObjects(ctx context.Context, rancherEnabled bool, vmc *clusterapi.VerrazzanoManagedCluster) (bool, error) {
 	pushed := false
 	var err error
-	if rancherEnabled {
-		pushed, err = r.pushViaRancherProxy(vmc)
+	if vmc.Status.ClusterRef != nil {
+		pushed, err = r.pushViaCAPIClient(ctx, vmc, rancherEnabled)
 		if err != nil {
 			return pushed, err
 		}
 	}
-	if vmc.Status.ClusterRef != nil {
-		capiPushed, err := r.pushViaCAPIClient(ctx, vmc, rancherEnabled)
+	if !pushed && rancherEnabled {
+		pushed, err = r.pushViaRancherProxy(vmc)
 		if err != nil {
 			return pushed, err
 		}
-		pushed = pushed || capiPushed
 	}
 	return pushed, nil
 }
@@ -101,64 +100,62 @@ func (r *VerrazzanoManagedClusterReconciler) pushViaRancherProxy(vmc *clusterapi
 }
 
 func (r *VerrazzanoManagedClusterReconciler) pushViaCAPIClient(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, rancherEnabled bool) (bool, error) {
-	if vmc.Status.RancherRegistration.Status != clusterapi.RegistrationApplied {
-		cluster := &unstructured.Unstructured{}
-		cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
-		err := r.Get(ctx, types.NamespacedName{Namespace: vmc.Status.ClusterRef.Namespace, Name: vmc.Status.ClusterRef.Name}, cluster)
-		if err != nil && !errors.IsNotFound(err) {
-			return false, err
-		}
-		manifest, err := r.getClusterManifest(cluster)
-		if err != nil {
-			return false, err
-		}
-		// register the cluster if Verrazzano installed on workload cluster
-		workloadClient, err := r.getWorkloadClusterClient(cluster)
-		if err != nil {
-			r.log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
-			return false, err
-		}
-
-		// apply the manifest to workload cluster
-		yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
-		err = yamlApplier.ApplyS(string(manifest))
-		if err != nil {
-			r.log.Errorf("Failed applying cluster manifest to workload cluster %s: %v", cluster.GetName(), err)
-			return false, err
-		}
-		r.log.Infof("Registration manifest applied to cluster %s", cluster.GetName())
-
-		// update the registration status if Rancher is enabled since repeated application of the manifest will
-		// trigger connection issues
-		if rancherEnabled {
-			existingVMC := &clusterapi.VerrazzanoManagedCluster{}
-			err = r.Get(ctx, types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
-			if err != nil {
-				return false, err
-			}
-			existingVMC.Status.RancherRegistration.Status = clusterapi.RegistrationApplied
-			err = r.Status().Update(ctx, existingVMC)
-			if err != nil {
-				r.log.Errorf("Error updating VMC status for cluster %s: %v", cluster.GetName(), err)
-				return false, err
-			}
-			vmc = existingVMC
-
-			// get and label the cattle-system namespace
-			ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: common.CattleSystem}}
-			if _, err := ctrl.CreateOrUpdate(ctx, workloadClient, ns, func() error {
-				if ns.Labels == nil {
-					ns.Labels = make(map[string]string)
-				}
-				ns.Labels[constants2.LabelVerrazzanoNamespace] = common.CattleSystem
-				return nil
-			}); err != nil {
-				return false, err
-			}
-		}
-		return true, nil
+	cluster := &unstructured.Unstructured{}
+	cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
+	err := r.Get(ctx, types.NamespacedName{Namespace: vmc.Status.ClusterRef.Namespace, Name: vmc.Status.ClusterRef.Name}, cluster)
+	if err != nil && !errors.IsNotFound(err) {
+		return false, err
 	}
-	return false, nil
+	manifest, err := r.getClusterManifest(cluster)
+	if err != nil {
+		return false, err
+	}
+	// register the cluster if Verrazzano installed on workload cluster
+	workloadClient, err := r.getWorkloadClusterClient(cluster)
+	if err != nil {
+		r.log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
+		return false, err
+	}
+
+	// apply the manifest to workload cluster
+	yamlApplier := k8sutil.NewYAMLApplier(workloadClient, "")
+	err = yamlApplier.ApplyS(string(manifest))
+	if err != nil {
+		r.log.Errorf("Failed applying cluster manifest to workload cluster %s: %v", cluster.GetName(), err)
+		return false, err
+	}
+	r.log.Infof("Registration manifest applied to cluster %s", cluster.GetName())
+
+	// update the registration status if Rancher is enabled since repeated application of the manifest will
+	// trigger connection issues
+	if rancherEnabled && vmc.Status.RancherRegistration.Status == clusterapi.RegistrationCompleted {
+		existingVMC := &clusterapi.VerrazzanoManagedCluster{}
+		err = r.Get(ctx, types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
+		if err != nil {
+			return false, err
+		}
+		existingVMC.Status.RancherRegistration.Status = clusterapi.RegistrationApplied
+		err = r.Status().Update(ctx, existingVMC)
+		if err != nil {
+			r.log.Errorf("Error updating VMC status for cluster %s: %v", cluster.GetName(), err)
+			return false, err
+		}
+		vmc = existingVMC
+
+		// get and label the cattle-system namespace
+		ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: common.CattleSystem}}
+		if _, err := ctrl.CreateOrUpdate(ctx, workloadClient, ns, func() error {
+			if ns.Labels == nil {
+				ns.Labels = make(map[string]string)
+			}
+			ns.Labels[constants2.LabelVerrazzanoNamespace] = common.CattleSystem
+			return nil
+		}); err != nil {
+			return false, err
+		}
+	}
+	return true, nil
+
 }
 
 // getClusterManifest retrieves the registration manifest for the workload cluster

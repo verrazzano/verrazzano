@@ -83,8 +83,6 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 					r.log.Once(msg)
 					if vmc.Status.RancherRegistration.Status != clusterapi.RegistrationApplied {
 						r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationCompleted, clusterID, msg)
-					} else {
-						r.updateRancherStatus(ctx, vmc, clusterapi.RegistrationApplied, clusterID, msg)
 					}
 					sb.WriteString(rancherYAML)
 				}
