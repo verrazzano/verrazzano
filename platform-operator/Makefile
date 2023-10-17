@@ -93,18 +93,32 @@ go-build:
 		-o out/$(shell uname)_$(shell uname -m)/verrazzano-platform-operator \
 		main.go
 
-.PHONY: go-build-linux
-go-build-linux:
+.PHONY: go-build-linux-amd
+go-build-linux-amd:
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "-s -w ${GO_LDFLAGS}" \
 		-o out/linux_amd64/verrazzano-platform-operator \
 		main.go
 
-.PHONY: go-build-linux-debug
-go-build-linux-debug:
+.PHONY: go-build-linux-amd-debug
+go-build-linux-amd-debug:
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
 		-o out/linux_amd64/verrazzano-platform-operator \
+		main.go
+
+.PHONY: go-build-linux-arm
+go-build-linux-arm:
+	GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags "-s -w ${GO_LDFLAGS}" \
+		-o out/linux_arm64/verrazzano-platform-operator \
+		main.go
+
+.PHONY: go-build-linux-arm-debug
+go-build-linux-arm-debug:
+	GOOS=linux GOARCH=arm64 $(GO) build \
+		-ldflags "${GO_LDFLAGS}" \
+		-o out/linux_arm64/verrazzano-platform-operator \
 		main.go
 
 .PHONY: go-install
