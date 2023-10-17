@@ -29,8 +29,8 @@ import (
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	apiext "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -348,7 +348,7 @@ func createOrUpdateAcmeResources(log vzlog.VerrazzanoLogger, client crtclient.Cl
 	// Create a lookup object
 	clusterIssuerObj := &certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoClusterIssuerName,
+			Name: vzconst.VerrazzanoClusterIssuerName,
 		},
 	}
 	if err != nil {
@@ -440,7 +440,7 @@ func createAcmeClusterIssuer(log vzlog.VerrazzanoLogger, clusterIssuerData templ
 	// Parse the template string and create the template object
 	clusterIssuer := certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: constants.VerrazzanoClusterIssuerName,
+			Name: vzconst.VerrazzanoClusterIssuerName,
 		},
 	}
 	clusterIssuer.Spec = certv1.IssuerSpec{

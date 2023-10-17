@@ -5,8 +5,6 @@ package issuer
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/certs"
-	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"testing"
 
 	cmutil "github.com/cert-manager/cert-manager/pkg/api/util"
@@ -15,6 +13,7 @@ import (
 	certv1fake "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/fake"
 	certv1client "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/pkg/certs"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
@@ -22,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/constants"
 	cmcommon "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common"
 	cmcommonfake "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/common/fake"
+	cmconstants "github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/certmanager/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/networkpolicies"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
 	corev1 "k8s.io/api/core/v1"
