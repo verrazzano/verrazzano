@@ -29,8 +29,6 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.3
-	github.com/verrazzano/verrazzano-modules v0.0.0-20230914221756-d31d8f81f248
-	github.com/stretchr/testify v1.8.1
 	github.com/verrazzano/pkg v0.0.2
 	github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
@@ -202,7 +200,9 @@ require (
 	github.com/coredns/corefile-migration v1.0.20 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
+	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
 	github.com/google/go-github/v48 v48.2.0 // indirect
+	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/mod v0.10.0 // indirect
 )
