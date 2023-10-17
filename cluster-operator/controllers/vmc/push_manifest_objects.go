@@ -61,7 +61,6 @@ func (r *VerrazzanoManagedClusterReconciler) pushViaRancherProxy(vmc *clusterapi
 
 	vsNamespaceCreated, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 	if isActive && vsNamespaceCreated {
-		r.log.Infof("In pushManifestObjects - pushing agent and registration secrets")
 
 		// Create or Update the agent and registration secrets
 		agentSecret := corev1.Secret{}
@@ -100,7 +99,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushViaRancherProxy(vmc *clusterapi
 }
 
 func (r *VerrazzanoManagedClusterReconciler) pushViaCAPIClient(ctx context.Context, vmc *clusterapi.VerrazzanoManagedCluster, rancherEnabled bool) (bool, error) {
-	r.log.Infof("Pushing via CAPI client, status: %s", vmc.Status.RancherRegistration.Status)
+	r.log.Debugf("Pushing via CAPI client, status: %s", vmc.Status.RancherRegistration.Status)
 	if vmc.Status.RancherRegistration.Status != clusterapi.RegistrationApplied {
 		cluster := &unstructured.Unstructured{}
 		cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
@@ -142,7 +141,7 @@ func (r *VerrazzanoManagedClusterReconciler) pushViaCAPIClient(ctx context.Conte
 				r.log.Errorf("Error updating VMC status for cluster %s: %v", cluster.GetName(), err)
 				return false, err
 			}
-			r.log.Infof("Registration status updated to Applied")
+			r.log.Debugf("Registration status updated to Applied")
 			vmc = existingVMC
 
 			// get and label the cattle-system namespace
