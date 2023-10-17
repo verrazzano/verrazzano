@@ -229,6 +229,10 @@ function create_image_repos_from_archives() {
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
     oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
       --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
+    if [ $? -ne 0 ]; then
+      echo "Repository creation failed"
+      exit 1
+    fi
   done
 
   # If we added new repositories, we need to get them added to the target so they will get scanned
