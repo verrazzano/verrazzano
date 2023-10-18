@@ -164,9 +164,10 @@ func (r *VerrazzanoManagedClusterReconciler) pushViaCAPIClient(ctx context.Conte
 // getClusterManifest retrieves the registration manifest for the workload cluster
 func (r *VerrazzanoManagedClusterReconciler) getClusterManifest(cluster *unstructured.Unstructured) ([]byte, error) {
 	// retrieve the manifest for the workload cluster
+	resourceName := getClusterResourceName(cluster, r.Client)
 	manifestSecret := &corev1.Secret{}
 	err := r.Get(context.TODO(), types.NamespacedName{
-		Name:      fmt.Sprintf("verrazzano-cluster-%s-manifest", cluster.GetName()),
+		Name:      fmt.Sprintf("verrazzano-cluster-%s-manifest", resourceName),
 		Namespace: constants.VerrazzanoMultiClusterNamespace},
 		manifestSecret)
 	if err != nil {

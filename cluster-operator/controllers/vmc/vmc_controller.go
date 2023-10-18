@@ -7,6 +7,7 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	appsv1 "k8s.io/api/apps/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -733,4 +734,16 @@ func (r *VerrazzanoManagedClusterReconciler) getWorkloadClusterClient(cluster *u
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+}
+
+func getClusterResourceName(cluster *unstructured.Unstructured, client client.Client) string {
+	// check for existence of a Rancher cluster management resource
+	rancherMgmtCluster := &unstructured.Unstructured{}
+	rancherMgmtCluster.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("Cluster"))
+	err := client.Get(context.TODO(), types.NamespacedName{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}, rancherMgmtCluster)
+	if err != nil {
+		return cluster.GetName()
+	}
+	// return the display Name
+	return rancherMgmtCluster.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
 }
