@@ -67,6 +67,15 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 CRD_PATH=helm_config/charts/verrazzano-platform-operator/crds
 
 SHELL = bash
+ARCH := $(shell uname -m)
+
+ifeq ($(ARCH),x86_64)
+	BUILD_CMD:= go-build-linux-amd
+	BUILD_CMD_DEBUG:= go-build-linux-amd-debug
+else ifeq ($(ARCH),aarch64)
+	BUILD_CMD:= go-build-linux-arm
+	BUILD_CMD_DEBUG:= go-build-linux-arm-debug
+endif
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 .PHONY: run
@@ -97,28 +106,28 @@ go-build:
 go-build-linux-amd:
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "-s -w ${GO_LDFLAGS}" \
-		-o out/linux_amd64/verrazzano-platform-operator \
+		-o out/verrazzano-platform-operator \
 		main.go
 
 .PHONY: go-build-linux-amd-debug
 go-build-linux-amd-debug:
 	GOOS=linux GOARCH=amd64 $(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
-		-o out/linux_amd64/verrazzano-platform-operator \
+		-o out/verrazzano-platform-operator \
 		main.go
 
 .PHONY: go-build-linux-arm
 go-build-linux-arm:
 	GOOS=linux GOARCH=arm64 $(GO) build \
 		-ldflags "-s -w ${GO_LDFLAGS}" \
-		-o out/linux_arm64/verrazzano-platform-operator \
+		-o out/verrazzano-platform-operator \
 		main.go
 
 .PHONY: go-build-linux-arm-debug
 go-build-linux-arm-debug:
 	GOOS=linux GOARCH=arm64 $(GO) build \
 		-ldflags "${GO_LDFLAGS}" \
-		-o out/linux_arm64/verrazzano-platform-operator \
+		-o out/verrazzano-platform-operator \
 		main.go
 
 .PHONY: go-install
@@ -144,10 +153,10 @@ docker-clean:
 	rm -rf ${DIST_DIR}
 
 .PHONY: docker-build
-docker-build: generate-bom generate-catalog go-build-linux docker-build-common
+docker-build: generate-bom generate-catalog $(BUILD_CMD) docker-build-common
 
 .PHONY: docker-build-debug
-docker-build-debug: generate-bom generate-catalog go-build-linux-debug docker-build-common
+docker-build-debug: generate-bom generate-catalog $(BUILD_CMD_DEBUG) docker-build-common
 
 .PHONY: docker-build-common
 docker-build-common:

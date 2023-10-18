@@ -10,8 +10,7 @@ FROM $BASE_IMAGE AS build_base
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 COPY . .
 
-COPY out/linux_amd64/verrazzano-platform-operator /usr/local/bin/amd64/verrazzano-platform-operator
-COPY out/linux_arm64/verrazzano-platform-operator /usr/local/bin/arm64/verrazzano-platform-operator
+COPY out/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
 RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
     && chmod +x scripts/install/*.sh \
