@@ -3,6 +3,6 @@
 
 [ol8-olcne-1.7]
 name=Oracle Linux 8 OLCNE 1.7
-baseurl=https://yum.oracle.com/repo/OracleLinux/OL8/olcne17/x86_64
+baseurl=https://yum.oracle.com/repo/OracleLinux/OL8/olcne17/$basearch
 gpgcheck=0
 enabled=1
