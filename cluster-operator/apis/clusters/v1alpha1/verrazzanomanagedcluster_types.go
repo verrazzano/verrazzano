@@ -88,6 +88,7 @@ type RancherRegistrationStatus string
 
 const (
 	RegistrationCompleted RancherRegistrationStatus = "Completed"
+	RegistrationApplied   RancherRegistrationStatus = "Applied"
 	RegistrationFailed    RancherRegistrationStatus = "Failed"
 	DeleteFailed          RancherRegistrationStatus = "DeleteFailed"
 )
