@@ -24,6 +24,7 @@ RUN chmod 500 /usr/local/bin/verrazzano-platform-operator \
 FROM $ISTIO_ISTIOCTL_IMAGE AS istio_istioctl
 
 # Create the verrazzano-platform-operator image
+ARG BASE_IMAGE=build_base
 FROM $BASE_IMAGE AS final
 
 ARG VERRAZZANO_PLATFORM_OPERATOR_IMAGE

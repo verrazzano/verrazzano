@@ -169,7 +169,6 @@ docker-build-common:
 	cp ../THIRD_PARTY_LICENSES.txt .
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_PLATFORM_OPERATOR_IMAGE="${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" \
-		--build-arg BASE_IMAGE="${VZ_BASE_IMAGE}" \
 		--build-arg ISTIO_ISTIOCTL_IMAGE="${ISTIO_ISTIOCTL_IMAGE}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
