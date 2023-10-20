@@ -2,8 +2,6 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ARG ISTIO_ISTIOCTL_IMAGE
-ARG REPOS_PATH=/root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos
-ARG ARCH=x86_64
 
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
 FROM $BASE_IMAGE AS build_base
@@ -29,6 +27,8 @@ FROM $ISTIO_ISTIOCTL_IMAGE AS istio_istioctl
 ARG BASE_IMAGE=build_base
 FROM $BASE_IMAGE AS final
 
+ARG REPOS_PATH=/root/go/src/github.com/verrazzano/verrazzano/platform-operator/repos
+ARG ARCH=x86_64
 ARG VERRAZZANO_PLATFORM_OPERATOR_IMAGE
 
 RUN echo $ARCH
