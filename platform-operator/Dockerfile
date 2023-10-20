@@ -34,16 +34,15 @@ COPY --from=build_base /root/go/src/github.com/verrazzano/verrazzano/platform-op
 
 COPY --from=istio_istioctl /usr/local/bin/istioctl /usr/local/bin/istioctl
 
-RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.26.6-1.el8 \
+RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs openssl jq kubectl-1.26.6-2.el8 \
     && microdnf clean all \
     && rm -rf /var/cache/yum /var/lib/rpm/* \
     && groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
-    && chown -R 1000:verrazzano /home/verrazzano
-
-# TODO: remove (Only for Validation)
-RUN awk -F: '{ print $1 }' /etc/passwd
+    && chown -R 1000:verrazzano /home/verrazzano \
+    && curl --proto "=https" -L https://github.com/verrazzano/cluster-api/releases/download/v1.5.0/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl \
+    && chmod +x /usr/local/bin/clusterctl
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
