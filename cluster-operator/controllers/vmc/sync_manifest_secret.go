@@ -49,15 +49,17 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	vzVMCWaitingForClusterID := false
 
 	clusterID := vmc.Status.RancherRegistration.ClusterID
+	var rc *rancherutil.RancherConfig
 	if rancherEnabled {
 		if vmc.Labels != nil && vmc.Labels[rancher.CreatedByLabel] == rancher.CreatedByVerrazzano && len(clusterID) == 0 {
 			r.log.Progressf("Waiting for Verrazzano-created VMC named %s to have a cluster id in the status before attempting to fetch Rancher registration manifest", vmc.Name)
 			vzVMCWaitingForClusterID = true
 		} else {
+			var err error
 			// register the cluster with Rancher - the cluster will show as "pending" until the
 			// Rancher YAML is applied on the managed cluster
 			// NOTE: If this errors we log it and do not fail the reconcile
-			rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
+			rc, err = rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
 			if err != nil {
 				msg := "Failed to create Rancher API client"
 				r.log.Infof("Unable to connect to Rancher API on admin cluster, manifest secret will not contain Rancher YAML: %v", err)
@@ -91,7 +93,11 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	}
 
 	// if registration was successful and there is a cluster ID OR there is CAPI access to cluster...
-	if vmc.Status.ClusterRef != nil || len(clusterID) > 0 {
+	isActive := false
+	if len(clusterID) > 0 {
+		isActive, _ = isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	}
+	if vmc.Status.ClusterRef != nil || (len(clusterID) > 0 && isActive) {
 		// check for existence of verrazzano-system namespace
 		vsNamespaceExists, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 
