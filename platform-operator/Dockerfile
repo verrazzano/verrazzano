@@ -6,6 +6,10 @@ ARG ISTIO_ISTIOCTL_IMAGE
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
 FROM $BASE_IMAGE AS build_base
 
+RUN microdnf update -y && \
+    microdnf clean all && \
+    rm -rf /var/cache/yum/*
+
 # Need to use specific WORKDIR to match verrazzano's source packages
 WORKDIR /root/go/src/github.com/verrazzano/verrazzano/platform-operator
 COPY . .
@@ -35,9 +39,7 @@ RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs ope
     && groupadd -r verrazzano \
     && useradd --no-log-init -r -m -d /verrazzano -g verrazzano -u 1000 verrazzano \
     && mkdir /home/verrazzano \
-    && chown -R 1000:verrazzano /home/verrazzano \
-    && curl --proto "=https" -L https://github.com/verrazzano/cluster-api/releases/download/v1.5.0/clusterctl-linux-amd64 -o /usr/local/bin/clusterctl || true \
-    && chmod +x /usr/local/bin/clusterctl
+    && chown -R 1000:verrazzano /home/verrazzano
 
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
