@@ -41,6 +41,9 @@ RUN microdnf install -y --setopt=install_weak_deps=0 --setopt=tsflags=nodocs ope
     && mkdir /home/verrazzano \
     && chown -R 1000:verrazzano /home/verrazzano
 
+# TODO: remove (Only for Validation)
+RUN awk -F: '{ print $1 }' /etc/passwd
+
 # Copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
 
