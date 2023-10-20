@@ -93,11 +93,11 @@ func (r *VerrazzanoManagedClusterReconciler) syncManifestSecret(ctx context.Cont
 	}
 
 	// if registration was successful and there is a cluster ID OR there is CAPI access to cluster...
-	isActive := false
+	isActiveInRancher := false
 	if len(clusterID) > 0 {
-		isActive, _ = isManagedClusterActiveInRancher(rc, clusterID, r.log)
+		isActiveInRancher, _ = isManagedClusterActiveInRancher(rc, clusterID, r.log)
 	}
-	if vmc.Status.ClusterRef != nil || (len(clusterID) > 0 && isActive) {
+	if vmc.Status.ClusterRef != nil || isActiveInRancher {
 		// check for existence of verrazzano-system namespace
 		vsNamespaceExists, _ := isNamespaceCreated(vmc, r, clusterID, constants.VerrazzanoSystemNamespace)
 
