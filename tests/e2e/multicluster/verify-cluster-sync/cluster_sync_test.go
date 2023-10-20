@@ -6,6 +6,7 @@ package cluster_sync_test
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"os"
 	"time"
 
@@ -236,6 +237,17 @@ func testVMCCreation(rc *rancherutil.RancherConfig, client *versioned.Clientset,
 	// GIVEN a VMC is created for a cluster
 	// WHEN the Rancher clusters are prompted to sync with the VMC
 	// THEN a Rancher cluster should be created with the same name
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
 
 	// Create the VMC resource in the cluster
 	Eventually(func() (*v1alpha1.VerrazzanoManagedCluster, error) {
