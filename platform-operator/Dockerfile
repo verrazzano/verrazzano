@@ -31,10 +31,6 @@ ARG REPOS_PATH=/root/go/src/github.com/verrazzano/verrazzano/platform-operator/r
 ARG ARCH=x86_64
 ARG VERRAZZANO_PLATFORM_OPERATOR_IMAGE
 
-RUN echo $ARCH
-RUN echo $REPOS_PATH
-RUN echo $REPOS_PATH/$ARCH/
-
 COPY --from=build_base $REPOS_PATH/$ARCH/*.repo /etc/yum.repos.d/
 
 COPY --from=istio_istioctl /usr/local/bin/istioctl /usr/local/bin/istioctl
