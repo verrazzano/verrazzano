@@ -170,6 +170,7 @@ docker-build-common:
 	docker build --pull -f Dockerfile \
 		--build-arg VERRAZZANO_PLATFORM_OPERATOR_IMAGE="${DOCKER_IMAGE_FULLNAME}:${DOCKER_IMAGE_TAG}" \
 		--build-arg ISTIO_ISTIOCTL_IMAGE="${ISTIO_ISTIOCTL_IMAGE}" \
+		--build-arg ARCH="${ARCH}" \
 		-t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} .
 
 .PHONY: docker-push
