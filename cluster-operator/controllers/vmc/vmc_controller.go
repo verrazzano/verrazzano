@@ -7,6 +7,12 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	appsv1 "k8s.io/api/apps/v1"
+	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -16,8 +22,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
-	"github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
-	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	vzctrl "github.com/verrazzano/verrazzano/pkg/controller"
 	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
 	"github.com/verrazzano/verrazzano/pkg/rancherutil"
@@ -29,7 +33,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -108,7 +111,7 @@ func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req 
 	}
 
 	r.log = log
-	log.Oncef("Reconciling Verrazzano resource %v", req.NamespacedName)
+	log.Oncef("Reconciling VerrazzanoManagedCluster resource %v", req.NamespacedName)
 	res, err := r.doReconcile(ctx, log, cr)
 	if err != nil {
 		// Never return an error since it has already been logged and we don't want the
@@ -187,19 +190,20 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 		return newRequeueWithDelay(), err
 	}
 
+	rancherEnabled, err := r.isRancherEnabled()
+	if err != nil {
+		return newRequeueWithDelay(), err
+	}
+
 	log.Debugf("Syncing the Manifest secret for VMC %s", vmc.Name)
-	vzVMCWaitingForClusterID, err := r.syncManifestSecret(ctx, vmc)
+	vzVMCWaitingForClusterID, err := r.syncManifestSecret(ctx, rancherEnabled, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to sync the Manifest secret", err, log)
 		return newRequeueWithDelay(), err
 	}
-	if vzVMCWaitingForClusterID {
-		// waiting for the cluster ID to be set in the status, so requeue and try again
-		return newRequeueWithDelay(), nil
-	}
 
 	// create/update a secret with the CA cert from the managed cluster (if any errors occur we just log and continue)
-	syncedCert, err := r.syncCACertSecret(vmc)
+	syncedCert, err := r.syncCACertSecret(ctx, vmc, rancherEnabled)
 	if err != nil {
 		msg := fmt.Sprintf("Unable to get CA cert from managed cluster %s with id %s: %v", vmc.Name, vmc.Status.RancherRegistration.ClusterID, err)
 		r.log.Infof(msg)
@@ -218,24 +222,20 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 	}
 
 	log.Debugf("Pushing the Manifest objects for VMC %s", vmc.Name)
-	pushedManifest, err := r.pushManifestObjects(vmc)
+	pushedManifest, err := r.pushManifestObjects(ctx, rancherEnabled, vmc)
 	if err != nil {
 		r.handleError(ctx, vmc, "Failed to push the Manifest objects", err, log)
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionFalse, fmt.Sprintf("Failed to push the manifest objects to the managed cluster: %v", err))
 		return newRequeueWithDelay(), err
 	}
 	if pushedManifest {
-		r.log.Info("Manifest objects have been successfully pushed to the managed cluster")
+		r.log.Oncef("Manifest objects have been successfully pushed to the managed cluster")
 		r.setStatusConditionManifestPushed(vmc, corev1.ConditionTrue, "Manifest objects pushed to the managed cluster")
 	}
 
 	log.Debugf("Registering ArgoCD for VMC %s", vmc.Name)
 	var argoCDRegistration *clustersv1alpha1.ArgoCDRegistration
 	argoCDEnabled, err := r.isArgoCDEnabled()
-	if err != nil {
-		return newRequeueWithDelay(), err
-	}
-	rancherEnabled, err := r.isRancherEnabled()
 	if err != nil {
 		return newRequeueWithDelay(), err
 	}
@@ -255,11 +255,13 @@ func (r *VerrazzanoManagedClusterReconciler) doReconcile(ctx context.Context, lo
 			Message:   "Skipping Argo CD cluster registration due to Rancher not installed"}
 	}
 
-	r.setStatusConditionReady(vmc, "Ready")
-	statusErr := r.updateStatus(ctx, vmc)
+	if !vzVMCWaitingForClusterID {
+		r.setStatusConditionReady(vmc, "Ready")
+		statusErr := r.updateStatus(ctx, vmc)
 
-	if statusErr != nil {
-		log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, statusErr)
+		if statusErr != nil {
+			log.Errorf("Failed to update status to ready for VMC %s: %v", vmc.Name, statusErr)
+		}
 	}
 
 	if err := r.syncManagedMetrics(ctx, log, vmc); err != nil {
@@ -623,111 +625,6 @@ func (r *VerrazzanoManagedClusterReconciler) setStatusCondition(vmc *clustersv1a
 	}
 }
 
-// updateStatus updates the status of the VMC in the cluster, with all provided conditions, after setting the vmc.Status.State field for the cluster
-func (r *VerrazzanoManagedClusterReconciler) updateStatus(ctx context.Context, vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	if err := r.updateState(vmc); err != nil {
-		return err
-	}
-
-	// Fetch the existing VMC to avoid conflicts in the status update
-	existingVMC := &clustersv1alpha1.VerrazzanoManagedCluster{}
-	err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Namespace, Name: vmc.Name}, existingVMC)
-	if err != nil {
-		return err
-	}
-
-	// Replace the existing status conditions and state with the conditions generated from this reconcile
-	for _, genCondition := range vmc.Status.Conditions {
-		r.setStatusCondition(existingVMC, genCondition, genCondition.Type == clustersv1alpha1.ConditionManifestPushed)
-	}
-	existingVMC.Status.State = vmc.Status.State
-	existingVMC.Status.ArgoCDRegistration = vmc.Status.ArgoCDRegistration
-
-	r.log.Debugf("Updating Status of VMC %s: %v", vmc.Name, vmc.Status.Conditions)
-	return r.Status().Update(ctx, existingVMC)
-}
-
-// updateState sets the vmc.Status.State for the given VMC.
-// The state field functions differently according to whether this VMC references an underlying ClusterAPI cluster.
-func (r *VerrazzanoManagedClusterReconciler) updateState(vmc *clustersv1alpha1.VerrazzanoManagedCluster) error {
-	// If there is no underlying CAPI cluster, set the state field based on the lastAgentConnectTime
-	if vmc.Status.ClusterRef == nil {
-		r.updateStateFromLastAgentConnectTime(vmc)
-		return nil
-	}
-
-	// If there is an underlying CAPI cluster, set the state field according to the phase of the CAPI cluster.
-	capiClusterPhase, err := r.getCAPIClusterPhase(vmc.Status.ClusterRef)
-	if err != nil {
-		return err
-	}
-	if capiClusterPhase != "" {
-		vmc.Status.State = capiClusterPhase
-	}
-	return nil
-}
-
-// updateStateFromLastAgentConnectTime sets the vmc.Status.State according to the lastAgentConnectTime,
-// setting possible values of Active, Inactive, or Pending.
-func (r *VerrazzanoManagedClusterReconciler) updateStateFromLastAgentConnectTime(vmc *clustersv1alpha1.VerrazzanoManagedCluster) {
-	if vmc.Status.LastAgentConnectTime != nil {
-		currentTime := metav1.Now()
-		// Using the current plus added time to find the difference with lastAgentConnectTime to validate
-		// if it exceeds the max allowed time before changing the state of the vmc resource.
-		maxPollingTime := currentTime.Add(vzconstants.VMCAgentPollingTimeInterval * vzconstants.MaxTimesVMCAgentPollingTime)
-		timeDiff := maxPollingTime.Sub(vmc.Status.LastAgentConnectTime.Time)
-		if int(timeDiff.Minutes()) > vzconstants.MaxTimesVMCAgentPollingTime {
-			vmc.Status.State = clustersv1alpha1.StateInactive
-		} else if vmc.Status.State == "" {
-			vmc.Status.State = clustersv1alpha1.StatePending
-		} else {
-			vmc.Status.State = clustersv1alpha1.StateActive
-		}
-	}
-}
-
-// getCAPIClusterPhase returns the phase reported by the CAPI Cluster CR which is referenced by clusterRef.
-func (r *VerrazzanoManagedClusterReconciler) getCAPIClusterPhase(clusterRef *clustersv1alpha1.ClusterReference) (clustersv1alpha1.StateType, error) {
-	// Get the CAPI Cluster CR
-	cluster := &unstructured.Unstructured{}
-	cluster.SetGroupVersionKind(capi.GVKCAPICluster)
-	clusterNamespacedName := types.NamespacedName{
-		Name:      clusterRef.Name,
-		Namespace: clusterRef.Namespace,
-	}
-	if err := r.Get(context.TODO(), clusterNamespacedName, cluster); err != nil {
-		if errors.IsNotFound(err) {
-			return "", nil
-		}
-		return "", err
-	}
-
-	// Get the state
-	phase, found, err := unstructured.NestedString(cluster.Object, "status", "phase")
-	if !found {
-		r.log.Progressf("could not find status.phase field inside cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
-	}
-	if err != nil {
-		r.log.Progressf("error while looking for status.phase field for cluster %s: %v", clusterNamespacedName, err)
-		return "", nil
-	}
-
-	// Validate that the CAPI Phase is a proper StateType for the VMC
-	switch state := clustersv1alpha1.StateType(phase); state {
-	case clustersv1alpha1.StatePending,
-		clustersv1alpha1.StateProvisioning,
-		clustersv1alpha1.StateProvisioned,
-		clustersv1alpha1.StateDeleting,
-		clustersv1alpha1.StateUnknown,
-		clustersv1alpha1.StateFailed:
-		return state, nil
-	default:
-		r.log.Progressf("retrieved an invalid ClusterAPI Cluster phase of %s", state)
-		return clustersv1alpha1.StateUnknown, nil
-	}
-}
-
 // getVerrazzanoResource gets the installed Verrazzano resource in the cluster (of which only one is expected)
 func (r *VerrazzanoManagedClusterReconciler) getVerrazzanoResource() (*v1beta1.Verrazzano, error) {
 	// Get the Verrazzano resource
@@ -783,7 +680,70 @@ func (r *VerrazzanoManagedClusterReconciler) createManagedClusterKeycloakClient(
 	return createClient(r, vmc)
 }
 
+// getClusterClient returns a controller runtime client configured for the workload cluster
+func (r *VerrazzanoManagedClusterReconciler) getClusterClient(restConfig *rest.Config) (client.Client, error) {
+	scheme := runtime.NewScheme()
+	_ = rbacv1.AddToScheme(scheme)
+	_ = corev1.AddToScheme(scheme)
+	_ = netv1.AddToScheme(scheme)
+	_ = appsv1.AddToScheme(scheme)
+	_ = clustersv1alpha1.AddToScheme(scheme)
+
+	return client.New(restConfig, client.Options{Scheme: scheme})
+}
+
+// getWorkloadClusterKubeconfig returns a kubeconfig for accessing the workload cluster
+func (r *VerrazzanoManagedClusterReconciler) getWorkloadClusterKubeconfig(cluster *unstructured.Unstructured) ([]byte, error) {
+	// get the cluster kubeconfig
+	kubeconfigSecret := &corev1.Secret{}
+	err := r.Client.Get(context.TODO(), types.NamespacedName{Name: fmt.Sprintf("%s-kubeconfig", cluster.GetName()), Namespace: cluster.GetNamespace()}, kubeconfigSecret)
+	if err != nil {
+		r.log.Progressf("failed to obtain workload cluster kubeconfig resource. Re-queuing...")
+		return nil, err
+	}
+	kubeconfig, ok := kubeconfigSecret.Data["value"]
+	if !ok {
+		r.log.Error(err, "failed to read kubeconfig from resource")
+		return nil, fmt.Errorf("Unable to read kubeconfig from retrieved cluster resource")
+	}
+
+	return kubeconfig, nil
+}
+
+func (r *VerrazzanoManagedClusterReconciler) getWorkloadClusterClient(cluster *unstructured.Unstructured) (client.Client, error) {
+	// identify whether the workload cluster is using "untrusted" certs
+	kubeconfig, err := r.getWorkloadClusterKubeconfig(cluster)
+	if err != nil {
+		// requeue since we're waiting for cluster
+		return nil, err
+	}
+	// create a workload cluster client
+	// create workload cluster client
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		r.log.Progress("Failed getting rest config from workload kubeconfig")
+		return nil, err
+	}
+	workloadClient, err := r.getClusterClient(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return workloadClient, nil
+}
+
 // Create a new Result that will cause a reconcile requeue after a short delay
 func newRequeueWithDelay() ctrl.Result {
 	return vzctrl.NewRequeueWithDelay(2, 3, time.Second)
+}
+
+func getClusterResourceName(cluster *unstructured.Unstructured, client client.Client) string {
+	// check for existence of a Rancher cluster management resource
+	rancherMgmtCluster := &unstructured.Unstructured{}
+	rancherMgmtCluster.SetGroupVersionKind(common.GetRancherMgmtAPIGVKForKind("Cluster"))
+	err := client.Get(context.TODO(), types.NamespacedName{Name: cluster.GetName(), Namespace: cluster.GetNamespace()}, rancherMgmtCluster)
+	if err != nil {
+		return cluster.GetName()
+	}
+	// return the display Name
+	return rancherMgmtCluster.UnstructuredContent()["spec"].(map[string]interface{})["displayName"].(string)
 }
