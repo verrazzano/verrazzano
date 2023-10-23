@@ -9,12 +9,11 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -26,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -185,7 +185,6 @@ const (
 	ClusterAdminRoleName        = "cluster-admin"
 	AdminRoleName               = "admin"
 	VerrazzanoAdminRoleName     = "verrazzano-admin"
-	ViewRoleName                = "view"
 	VerrazzanoMonitorRoleName   = "verrazzano-monitor"
 	ClusterMemberRoleName       = "cluster-member"
 	VerrazzanoAdminsGroupName   = "verrazzano-admins"
@@ -227,10 +226,6 @@ var GroupRolePairs = []map[string]string{
 	{
 		GroupKey:       VerrazzanoAdminsGroupName,
 		ClusterRoleKey: ClusterMemberRoleName,
-	},
-	{
-		GroupKey:       VerrazzanoMonitorsGroupName,
-		ClusterRoleKey: ViewRoleName,
 	},
 	{
 		GroupKey:       VerrazzanoMonitorsGroupName,
