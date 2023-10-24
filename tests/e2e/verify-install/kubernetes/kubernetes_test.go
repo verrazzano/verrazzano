@@ -149,7 +149,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
 				// Starting with Rancher 2.7.8, rancher-webhook is installed on all downstream clusters
-				t.Entry("includes rancher", "rancher-webhook", true),
+				t.Entry("includes rancher-webhook", "rancher-webhook", true),
 			)
 		} else {
 			t.DescribeTable("rancher components are deployed,",
@@ -159,7 +159,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
 				t.Entry("includes rancher", "rancher", true),
-				t.Entry("includes rancher", "rancher-webhook", true),
+				t.Entry("includes rancher-webhook", "rancher-webhook", true),
 			)
 		}
 
