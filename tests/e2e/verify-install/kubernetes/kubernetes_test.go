@@ -24,6 +24,8 @@ const shortTimeout = 5 * time.Minute
 
 var t = framework.NewTestFramework("kubernetes")
 
+var isMinVersion171 bool
+
 var expectedPodsCattleSystem = []string{
 	"rancher"}
 
@@ -40,9 +42,22 @@ var expectedPodsIngressNginx = []string{
 
 var expectedVMOPod = "verrazzano-monitoring-operator"
 
-// comment out while debugging so it does not break master
+// comment out while debugging, so it does not break master
 // "vmi-system-prometheus",
 // "vmi-system-prometheus-gw"}
+
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
+	if err != nil {
+		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
+	}
+	isMinVersion171, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	if err != nil {
+		Fail(err.Error())
+	}
+})
+
+var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -149,7 +164,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
 				// Starting with Rancher 2.7.8, rancher-webhook is installed on all downstream clusters
-				t.Entry("includes rancher-webhook", "rancher-webhook", true),
+				t.Entry("includes rancher-webhook", "rancher-webhook", isMinVersion171),
 			)
 		} else {
 			t.DescribeTable("rancher components are deployed,",
