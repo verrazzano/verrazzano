@@ -7,12 +7,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
@@ -149,7 +148,8 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 						return vzComponentPresent(name, "cattle-system")
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				t.Entry("includes rancher", "rancher", false),
+				// Starting with Rancher 2.7.8, rancher-webhook is installed on all downstream clusters
+				t.Entry("includes rancher", "rancher-webhook", true),
 			)
 		} else {
 			t.DescribeTable("rancher components are deployed,",
@@ -159,6 +159,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
 				t.Entry("includes rancher", "rancher", true),
+				t.Entry("includes rancher", "rancher-webhook", true),
 			)
 		}
 
