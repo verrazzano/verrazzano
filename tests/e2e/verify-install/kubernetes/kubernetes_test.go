@@ -51,7 +51,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
 	}
-	isMinVersion171, err = pkg.IsVerrazzanoMinVersion("1.5.0", kubeconfigPath)
+	isMinVersion171, err = pkg.IsVerrazzanoMinVersion("1.7.1", kubeconfigPath)
 	if err != nil {
 		Fail(err.Error())
 	}
