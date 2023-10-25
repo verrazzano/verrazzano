@@ -15,6 +15,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sigs.k8s.io/yaml"
 	"strings"
 	"time"
 
@@ -864,6 +865,11 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 	}
 	return &caCrtInfoForCert, true, nil
 }
+
+type MyStruct struct {
+	component map[string]string `yaml:"component"`
+}
+
 func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
 
 	// Declaring a var for creating a configMap
@@ -892,7 +898,20 @@ func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error 
 
 	LogMessage("Effective Verrazzano resource ...\n")
 
-	effvzjson, err := json.MarshalIndent(effCRConfigmap.Data, constants.JSONPrefix, constants.JSONIndent)
+	yamlcontent := effCRConfigmap.Data["effective-config.yaml"]
+	// Print the YAML content
+	//fmt.Printf("YAML content for key : %s\n", yamlcontent)
+	jsonData, err := yaml.YAMLToJSON([]byte(yamlcontent))
+	if err != nil {
+		fmt.Println("Error converting YAML to JSON:", err)
+
+	}
+
+	effvzjson, err := json.MarshalIndent(json.RawMessage(jsonData), "", "  ")
+	if err != nil {
+		fmt.Println("Error formatting JSON:", err)
+
+	}
 
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", effvzRes, err.Error()))
