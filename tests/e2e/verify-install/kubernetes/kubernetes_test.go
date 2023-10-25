@@ -24,8 +24,6 @@ const shortTimeout = 5 * time.Minute
 
 var t = framework.NewTestFramework("kubernetes")
 
-var isMinVersion169 bool
-
 var expectedPodsCattleSystem = []string{
 	"rancher"}
 
@@ -45,19 +43,6 @@ var expectedVMOPod = "verrazzano-monitoring-operator"
 // comment out while debugging, so it does not break master
 // "vmi-system-prometheus",
 // "vmi-system-prometheus-gw"}
-
-var beforeSuite = t.BeforeSuiteFunc(func() {
-	kubeconfigPath, err := k8sutil.GetKubeConfigLocation()
-	if err != nil {
-		Fail(fmt.Sprintf("Failed to get default kubeconfig path: %s", err.Error()))
-	}
-	isMinVersion169, err = pkg.IsVerrazzanoMinVersion("1.6.9", kubeconfigPath)
-	if err != nil {
-		Fail(err.Error())
-	}
-})
-
-var _ = BeforeSuite(beforeSuite)
 
 var _ = t.AfterEach(func() {})
 
@@ -156,6 +141,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
+		isMinVersion169, err := pkg.IsVerrazzanoMinVersion("1.6.9", kubeconfigPath)
 		if isManagedClusterProfile {
 			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
