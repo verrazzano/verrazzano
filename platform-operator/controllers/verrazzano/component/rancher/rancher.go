@@ -207,6 +207,7 @@ const (
 	rancherRke2ChartsClusterRepoName    = "rancher-rke2-charts"
 
 	chartDefaultBranchName = "chart-default-branch"
+	rke2                   = "rke2"
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
@@ -246,6 +247,12 @@ var cattleSettingsGVR = schema.GroupVersionResource{
 	Group:    "management.cattle.io",
 	Version:  "v3",
 	Resource: "settings",
+}
+
+var cattleFeaturesGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "features",
 }
 
 var cattleClusterReposGVR = schema.GroupVersionResource{
@@ -412,6 +419,24 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 		log.Infof("Rancher deleteClusterRepos: Deleted clusterrepos.catalog.cattle.io %s", name)
+	}
+
+	return nil
+}
+
+// deleteRKE2Feature deletes the RKE2 feature if it exists since it may cause startup issues for the Rancher pods
+func deleteRKE2Feature(log vzlog.VerrazzanoLogger) error {
+	dynamicClient, err := dynamicClientFunc()
+	if err != nil {
+		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
+		return err
+	}
+
+	// Get the name of the default branch for the helm charts
+	err = dynamicClient.Resource(cattleFeaturesGVR).Delete(context.TODO(), rke2, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Rancher deleteRKE2Feature: Failed deleting features.management.cattle.io %s: %v", rke2, err)
+		return err
 	}
 
 	return nil
