@@ -428,7 +428,7 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 func deleteRKE2Feature(log vzlog.VerrazzanoLogger) error {
 	dynamicClient, err := dynamicClientFunc()
 	if err != nil {
-		log.Errorf("Rancher deleteClusterRepos: Failed creating dynamic client: %v", err)
+		log.Errorf("Rancher deleteRKE2Feature: Failed creating dynamic client: %v", err)
 		return err
 	}
 
