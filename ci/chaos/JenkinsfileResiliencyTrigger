@@ -20,10 +20,6 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
-    }
-
     parameters {
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',

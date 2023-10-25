@@ -19,10 +19,6 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
-    }
-
     parameters {
         string (name: 'GIT_COMMIT_TO_USE',
                         defaultValue: 'NONE',
