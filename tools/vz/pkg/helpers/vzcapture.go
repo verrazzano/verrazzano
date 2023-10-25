@@ -866,10 +866,6 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 	return &caCrtInfoForCert, true, nil
 }
 
-type MyStruct struct {
-	component map[string]string `yaml:"component"`
-}
-
 func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
 
 	// Declaring a var for creating a configMap
@@ -899,8 +895,7 @@ func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error 
 	LogMessage("Effective Verrazzano resource ...\n")
 
 	yamlcontent := effCRConfigmap.Data["effective-config.yaml"]
-	// Print the YAML content
-	//fmt.Printf("YAML content for key : %s\n", yamlcontent)
+
 	jsonData, err := yaml.YAMLToJSON([]byte(yamlcontent))
 	if err != nil {
 		fmt.Println("Error converting YAML to JSON:", err)
