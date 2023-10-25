@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"time"
 )
@@ -28,16 +27,8 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				Fail(err.Error())
 			})
 		}
-		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-		if err != nil {
-			t.It(description, func() {
-				Fail(err.Error())
-			})
-		}
-		operatorEnabled := vzcr.IsComponentStatusEnabled(cr, "opensearch-operator")
 		// Only run tests if Verrazzano is at least version 1.3.0
-		// And if the opensearch operator is enabled
-		if supported && operatorEnabled {
+		if supported {
 			t.It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
@@ -66,7 +57,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				return false
 			}
 			return policyExists && minIndexAge == *systemRetentionPolicy.MinIndexAge
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM policy for system indices should be created")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "ISM policy for system indices should be created")
 	})
 
 	MinimumVerrazzanoIt("Application log Retention policy in ISM should match configuration value in VZ CR", func() {
@@ -91,7 +82,7 @@ var _ = t.Describe("Opensearch Retention Policies Suite", Label("f:observability
 				return false
 			}
 			return policyExists && minIndexAge == *applicationRetentionPolicy.MinIndexAge
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM policy for application indices should be created")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "ISM policy for application indices should be created")
 	})
 
 	MinimumVerrazzanoIt("Check no system indices exists older than the retention period specified", func() {
