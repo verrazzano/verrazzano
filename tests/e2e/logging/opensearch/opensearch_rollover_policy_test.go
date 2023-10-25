@@ -42,8 +42,8 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 		}
 		operatorEnabled := vzcr.IsComponentStatusEnabled(cr, "opensearch-operator")
 		// Only run tests if Verrazzano is at least version 1.3.0
-		// And if the operator is not enabled since operator managed OS doesn't support ISM policies yet
-		if supported && !operatorEnabled {
+		// And if the opensearch operator is enabled
+		if supported && operatorEnabled {
 			t.It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
