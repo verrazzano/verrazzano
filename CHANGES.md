@@ -1,3 +1,11 @@
+### v1.7.1
+
+Component version updates:
+
+Fixes:
+
+- Fixed an issue with ArgoCD SSO with Keycloak using Let's Encrypt staging certificates
+
 ### v1.7.0
 Component version updates:
 

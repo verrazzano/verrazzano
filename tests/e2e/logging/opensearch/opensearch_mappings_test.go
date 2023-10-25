@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package opensearch
@@ -54,10 +54,11 @@ var _ = t.Describe("OpenSearch field mappings", Label("f:observability.logging.e
 			})
 		}
 		// Only run tests if Verrazzano is at least version 1.3.0
-		if supported {
+		// And data streams are created
+		if supported && pkg.IsDataStreamSupported() {
 			t.It(description, f)
 		} else {
-			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
+			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0 or data streams are not created", description))
 		}
 	}
 	MinimumVerrazzanoIt("Documents with non-object fields get stored as strings", func() {

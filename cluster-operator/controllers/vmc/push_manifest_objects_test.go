@@ -5,6 +5,7 @@ package vmc
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"testing"
@@ -92,13 +93,13 @@ func TestPushManifestObjects(t *testing.T) {
 			name:    "test no verrazzano-system namespace",
 			vmc:     vmc,
 			updated: false,
-			mock:    addNoVerrazzanoSystemNSMock(mocks.NewMockRequestSender(mocker), vmc.Status.RancherRegistration.ClusterID),
+			mock:    addNoVerrazzanoSystemNSMock(mocks.NewMockRequestSender(mocker), a, vmc, r),
 		},
 		{
 			name:    "test active",
 			vmc:     vmc,
 			updated: true,
-			mock:    addActiveClusterMock(mocks.NewMockRequestSender(mocker), a, vmc, r, vmc.Status.RancherRegistration.ClusterID),
+			mock:    addActiveClusterNSExistsMock(mocks.NewMockRequestSender(mocker), a, vmc, r, vmc.Status.RancherRegistration.ClusterID),
 		},
 	}
 	for _, tt := range tests {
@@ -107,7 +108,7 @@ func TestPushManifestObjects(t *testing.T) {
 			defer rancherutil.DeleteStoredTokens()
 
 			rancherutil.RancherHTTPClient = tt.mock
-			updated, err := r.pushManifestObjects(tt.vmc)
+			updated, err := r.pushManifestObjects(context.TODO(), true, tt.vmc)
 			a.Equal(tt.updated, updated)
 			a.NoError(err)
 		})
@@ -181,7 +182,6 @@ func generateClientObjects() client.WithWatch {
 func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string) *mocks.MockRequestSender {
 	addTokenMock(httpMock)
 
-	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, true)
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -193,17 +193,19 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 			}
 			return resp, nil
 		})
-	return httpMock
-}
-
-func addNoVerrazzanoSystemNSMock(httpMock *mocks.MockRequestSender, clusterID string) *mocks.MockRequestSender {
-	addTokenMock(httpMock)
 	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
 	return httpMock
 }
 
-func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
-	httpMock = addTokenMock(httpMock)
+func addNoVerrazzanoSystemNSMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler) *mocks.MockRequestSender {
+	addTokenMock(httpMock)
+	addActiveClusterMock(httpMock, a, vmc, r, vmc.Status.RancherRegistration.ClusterID)
+	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
+	return httpMock
+}
+
+func addActiveClusterNSExistsMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
+	addActiveClusterMock(httpMock, a, vmc, r, vmc.Status.RancherRegistration.ClusterID)
 	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, true)
 	agentSecret, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 	a.NoError(err)
@@ -216,7 +218,11 @@ func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertio
 	regSecret.Namespace = constants.VerrazzanoSystemNamespace
 	regSecret.Name = constants.MCRegistrationSecret
 	httpMock = addNotFoundMock(httpMock, &regSecret, clusterID)
+	return httpMock
+}
 
+func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
+	httpMock = addTokenMock(httpMock)
 	expectActiveCluster(httpMock)
 	return httpMock
 }
