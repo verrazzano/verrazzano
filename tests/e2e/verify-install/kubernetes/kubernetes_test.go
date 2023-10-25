@@ -141,7 +141,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
-		isMinVersion169, err := pkg.IsVerrazzanoMinVersion("1.6.9", kubeconfigPath)
+		isMinVersion169, _ := pkg.IsVerrazzanoMinVersion("1.6.9", kubeconfigPath)
 		if isManagedClusterProfile {
 			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
