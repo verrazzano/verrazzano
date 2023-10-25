@@ -161,6 +161,7 @@ function create_image_repos_from_archives() {
   fi
 
   # Loop through tar files
+  local cmdoutfile=$(mktemp temp-oci-cli-XXXXXX.out)
   echo "Using local image downloads"
   for file in ${IMAGES_DIR}/*.tar; do
     echo "Processing file ${file}"
@@ -228,10 +229,15 @@ function create_image_repos_from_archives() {
 
     echo "Creating repository ${repo_path} in ${REGION}, public: ${is_public}"
     oci --region ${REGION} artifacts container repository create --display-name ${repo_path} \
-      --is-public ${is_public} --compartment-id ${COMPARTMENT_ID}
+      --is-public ${is_public} --compartment-id ${COMPARTMENT_ID} &> $cmdoutfile
     if [ $? -ne 0 ]; then
-      echo "Repository creation failed"
-      exit 1
+      grep 'Repository already exists' $cmdoutfile
+      if [ $? -ne 0 ]; then
+        echo "Repository creation failed"
+        exit 1
+      else
+        echo "Repository already existed"
+      fi
     fi
   done
 
