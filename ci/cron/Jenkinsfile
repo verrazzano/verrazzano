@@ -37,10 +37,6 @@ pipeline {
         }
     }
 
-    triggers {
-        cron(branchSpecificSchedule)
-    }
-
     parameters {
             booleanParam (description: 'Skip test execution (for debugging)', name: 'DRY_RUN', defaultValue: false)
         }
