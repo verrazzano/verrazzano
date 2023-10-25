@@ -1805,7 +1805,7 @@ def dumpInstallLogsOnCluster(count, logDir, namespace) {
                 mkdir -p $logDir
                 kubectl -n $namespace logs --selector=job-name=verrazzano-install-my-verrazzano > $logDir/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n $namespace describe pod --selector=job-name=verrazzano-install-my-verrazzano > $logDir/verrazzano-install-job-pod.out
-                kubectl get features > $logDir/verrazzano-install-features.out
+                kubectl get features > $logDir/verrazzano-install-features.out || true
                 echo "------------------------------------------"
             """
         }
@@ -2092,7 +2092,7 @@ def performDescribeVerrazzanoResource() {
                 echo "Performing describe on Verrazzano resource on cluster ${count}"
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 kubectl get vz -o yaml
-                kubectl get features
+                kubectl get features || true
             """
         }
     }
