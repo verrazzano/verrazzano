@@ -17,7 +17,8 @@ import (
 // WHEN the cert pool is given
 // THEN the client returned is not nil
 func TestGetHTTPClientWithCABundle(t *testing.T) {
-	cli := GetHTTPClientWithCABundle(&x509.CertPool{})
+	cli, err := GetHTTPClientWithCABundle(&x509.CertPool{})
+	assert.NoError(t, err)
 	assert.NotNil(t, cli)
 }
 

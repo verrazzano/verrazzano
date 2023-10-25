@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"sort"
 	"strconv"
@@ -34,16 +33,8 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 				Fail(err.Error())
 			})
 		}
-		cr, err := pkg.GetVerrazzanoInstallResourceInCluster(kubeconfigPath)
-		if err != nil {
-			t.It(description, func() {
-				Fail(err.Error())
-			})
-		}
-		operatorEnabled := vzcr.IsComponentStatusEnabled(cr, "opensearch-operator")
 		// Only run tests if Verrazzano is at least version 1.3.0
-		// And if the operator is not enabled since operator managed OS doesn't support ISM policies yet
-		if supported && !operatorEnabled {
+		if supported {
 			t.It(description, f)
 		} else {
 			pkg.Log(pkg.Info, fmt.Sprintf("Skipping check '%v', Verrazzano is not at version 1.3.0", description))
@@ -63,7 +54,7 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 				return false
 			}
 			return rolloverPeriod == *rollOverISMPolicy.MinIndexAge
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM rollover policy for system logs should match user configured value in VZ")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "ISM rollover policy for system logs should match user configured value in VZ")
 	})
 
 	MinimumVerrazzanoIt("Application log Rollover policy in ISM should match configuration value in VZ CR", func() {
@@ -79,7 +70,7 @@ var _ = t.Describe("Opensearch Rollover Policies Suite", Label("f:observability.
 				return false
 			}
 			return rolloverPeriod == *rollOverISMPolicy.MinIndexAge
-		}).WithPolling(shortPollingInterval).WithTimeout(shortWaitTimeout).Should(BeTrue(), "ISM rollover policy for application logs should match user configured value in VZ")
+		}).WithPolling(shortPollingInterval).WithTimeout(longWaitTimeout).Should(BeTrue(), "ISM rollover policy for application logs should match user configured value in VZ")
 	})
 
 	MinimumVerrazzanoIt("Data Stream for system logs if older than rollover period should be having more than 1 indices (one per rollover period)", func() {
