@@ -47,6 +47,17 @@ var _ = AfterSuite(afterSuite)
 var rancherClusterLabels = map[string]string{"rancher-sync": "enabled"}
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = wait.Backoff{
+		Steps:    5,
+		Duration: 1 * time.Second,
+		Factor:   1.0,
+		Jitter:   0.1,
+	}
+
 	// 1. Create clusters in Rancher with labels that match the selector configured in the Verrazzano resource
 	// 2. Delete the cluster in Rancher
 	// Verify that the VMC was created and deleted in sync
