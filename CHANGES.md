@@ -2,6 +2,9 @@
 
 Component version updates:
 
+- WebLogic Kubernetes Operator v4.1.4
+- WebLogic Monitoring Exporter v2.1.8
+
 Fixes:
 
 - Fixed an issue with ArgoCD SSO with Keycloak using Let's Encrypt staging certificates
