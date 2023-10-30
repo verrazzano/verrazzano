@@ -5,24 +5,38 @@ package mcagent
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"fmt"
 	"strings"
+	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
-
-	"github.com/Jeffail/gabs/v2"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const cattleAgent = "cattle-cluster-agent"
+const clusterreposName = "rancher-charts"
+
+var cattleClusterReposGVR = schema.GroupVersionResource{
+	Group:    "catalog.cattle.io",
+	Version:  "v1",
+	Resource: "clusterrepos",
+}
 
 // syncCattleClusterAgent syncs the Rancher cattle-cluster-agent deployment
 // and the cattle-credentials secret from the admin cluster to the managed cluster
@@ -102,6 +116,16 @@ func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredential
 	}
 	log.Debugf("Built kubeconfig: %s, now updating resources", config.Host)
 
+	// Scale the cattle-cluster-agent deployment to 0
+	if err = scaleDownRancherAgentDeployment(config, log); err != nil {
+		log.Errorf("failed to scale %s deployment: %v", cattleAgent, err)
+		return err
+	}
+	if err = deleteClusterRepos(config); err != nil {
+		log.Error(err)
+		return err
+	}
+
 	patch := cattleAgentResource.Bytes()
 	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	err = resource.PatchResourceFromBytes(gvr, types.StrategicMergePatchType, constants.RancherSystemNamespace, cattleAgent, patch, config)
@@ -133,4 +157,63 @@ func createHash(cattleAgent *gabs.Container) string {
 func getManifestSecretName(clusterName string) string {
 	manifestSecretSuffix := "-manifest"
 	return generateManagedResourceName(clusterName) + manifestSecretSuffix
+}
+
+// scaleDownRancherAgentDeployment scales the Rancher Agent deployment down to zero replicas
+func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger) error {
+	c, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+
+	// Get the deployment object
+	deployment := &appsv1.Deployment{}
+	namespacedName := types.NamespacedName{Name: cattleAgent, Namespace: common.CattleSystem}
+	deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
+	if err != nil {
+		return client.IgnoreNotFound(err)
+	}
+
+	if deployment.Status.AvailableReplicas == 0 {
+		// deployment is scaled down, we're done
+		return nil
+	}
+
+	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
+		log.Infof("Scaling down Rancher deployment %v", namespacedName)
+		zero := int32(0)
+		deployment.Spec.Replicas = &zero
+		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Update(context.TODO(), deployment, metav1.UpdateOptions{})
+		if err != nil {
+			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
+			log.Error(err2)
+			return err2
+		}
+	}
+
+	// Wait for replica count to be zero
+	for tries := 0; tries < retryCount; tries++ {
+		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if deployment.Status.AvailableReplicas == 0 {
+			break
+		}
+		time.Sleep(retryDelay)
+	}
+	return nil
+}
+
+// deleteClusterRepos - delete the clusterrepos object that contains the cached charts
+func deleteClusterRepos(config *rest.Config) error {
+	c, err := dynamic.NewForConfig(config)
+	if err != nil {
+		return err
+	}
+	err = c.Resource(cattleClusterReposGVR).Delete(context.TODO(), clusterreposName, metav1.DeleteOptions{})
+	if err != nil {
+		return fmt.Errorf("Failed to delete clusterrrepos %s: %v", clusterreposName, err)
+	}
+	return nil
 }
