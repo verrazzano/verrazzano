@@ -54,6 +54,8 @@ rules:
       - deployments
     verbs:
       - patch
+      - update
+      - get
   - apiGroups:
       - apiextensions.k8s.io
     resources:
