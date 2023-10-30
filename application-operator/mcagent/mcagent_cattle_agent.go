@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -64,8 +66,25 @@ func (s *Syncer) syncCattleClusterAgent(currentCattleAgentHash string, kubeconfi
 
 	newCattleAgentHash := createHash(cattleAgentResource)
 
+	// If the rancher-webhook deployment does not exist, then this may be the first time the
+	// environment is being upgraded Rancher 2.7.8 or higher. If the deployment does not exist
+	// then always update the cattle resources.
+	config, err := k8sutil.BuildKubeConfig(kubeconfigPath)
+	if err != nil {
+		s.Log.Errorf("failed to create incluster config: %v", err)
+		return currentCattleAgentHash, err
+	}
+	_, err = getDeployment(config, common.CattleSystem, "rancher-webhook")
+	if err != nil && !errors.IsNotFound(err) {
+		return currentCattleAgentHash, err
+	}
+	forceUpdate := false
+	if errors.IsNotFound(err) {
+		forceUpdate = true
+	}
+
 	// We have a previous hash to compare to
-	if len(currentCattleAgentHash) > 0 {
+	if !forceUpdate && len(currentCattleAgentHash) > 0 {
 		// If they are the same, do nothing
 		if currentCattleAgentHash == newCattleAgentHash {
 			return currentCattleAgentHash, nil
@@ -74,8 +93,12 @@ func (s *Syncer) syncCattleClusterAgent(currentCattleAgentHash string, kubeconfi
 
 	// No previous hash or the hash has changed
 	// Sync the cattle-agent and update the hash for next iterations
-	s.Log.Info("No previous cattle hash found or cattle hash has changed. Updating the cattle-cluster-agent")
-	err = updateCattleResources(cattleAgentResource, cattleCredentialResource, s.Log, kubeconfigPath)
+	if forceUpdate {
+		s.Log.Info("Updating the cattle-cluster-agent because no rancher-webhook deployment found")
+	} else {
+		s.Log.Info("No previous cattle hash found or cattle hash has changed. Updating the cattle-cluster-agent")
+	}
+	err = updateCattleResources(cattleAgentResource, cattleCredentialResource, s.Log, config)
 	if err != nil {
 		return currentCattleAgentHash, fmt.Errorf("failed to update the cattle-cluster-agent on %s cluster: %v", s.ManagedClusterName, err)
 	}
@@ -107,15 +130,7 @@ func checkForCattleResources(yamlData [][]byte) (*gabs.Container, *gabs.Containe
 }
 
 // updateCattleResources patches the cattle-cluster-agent and creates the cattle-credentials secret
-func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredentialResource *gabs.Container, log *zap.SugaredLogger, kubeconfigPath string) error {
-
-	config, err := k8sutil.BuildKubeConfig(kubeconfigPath)
-	if err != nil {
-		log.Errorf("failed to create incluster config: %v", err)
-		return err
-	}
-	log.Debugf("Built kubeconfig: %s, now updating resources", config.Host)
-
+func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredentialResource *gabs.Container, log *zap.SugaredLogger, config *rest.Config) error {
 	// Scale the cattle-cluster-agent deployment to 0
 	prevReplicas, err := scaleRancherAgentDeployment(config, log, 0)
 	if err != nil {
@@ -176,13 +191,12 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 		return 0, err
 	}
 
-	// Get the deployment object
-	deployment := &appsv1.Deployment{}
-	namespacedName := types.NamespacedName{Name: cattleAgent, Namespace: common.CattleSystem}
-	deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
+	// Get the cattle-cluster-agent deployment object
+	deployment, err := getDeployment(config, common.CattleSystem, cattleAgent)
 	if err != nil {
-		return prevReplicas, client.IgnoreNotFound(err)
+		return 0, err
 	}
+	namespacedName := types.NamespacedName{Name: cattleAgent, Namespace: common.CattleSystem}
 	if deployment.Spec.Replicas != nil {
 		prevReplicas = *deployment.Spec.Replicas
 	}
@@ -197,7 +211,7 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 		deployment.Spec.Replicas = &replicas
 		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to % replicas: %v", namespacedName, replicas, err)
+			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to %d replicas: %v", namespacedName, replicas, err)
 			log.Error(err2)
 			return prevReplicas, err2
 		}
@@ -205,7 +219,7 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 
 	// Wait for replica count to be reached
 	for tries := 0; tries < retryCount; tries++ {
-		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
+		deployment, err = getDeployment(config, common.CattleSystem, cattleAgent)
 		if err != nil {
 			return prevReplicas, err
 		}
@@ -228,4 +242,20 @@ func deleteClusterRepos(config *rest.Config) error {
 		return fmt.Errorf("Failed to delete clusterrrepos %s: %v", clusterreposName, err)
 	}
 	return nil
+}
+
+// getDeployment - return a Deployment object
+func getDeployment(config *rest.Config, namespace string, name string) (*appsv1.Deployment, error) {
+	c, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the deployment object
+	deployment := &appsv1.Deployment{}
+	deployment, err = c.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return deployment, nil
 }
