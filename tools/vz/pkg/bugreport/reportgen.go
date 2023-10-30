@@ -385,7 +385,7 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 	return nil
 }
 
-// captureVZEffectiveResource captures the verrazzano effective resource as Json
+// captureVZEffectiveResource captures the verrazzano effective resource as Json file
 func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
 	defer wg.Done()
 	err := pkghelpers.AddEffCr(c, bugReportDir, vz)

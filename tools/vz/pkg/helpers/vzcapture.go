@@ -865,6 +865,7 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 	return &caCrtInfoForCert, true, nil
 }
 
+// AddEffCr converts the effective verrazzano resouce configmap into a Json file
 func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
 	var effCRConfigmap corev1.ConfigMap
 	err := c.Get(context.Background(), clipkg.ObjectKey{
