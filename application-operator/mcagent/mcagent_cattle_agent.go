@@ -117,7 +117,8 @@ func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredential
 	log.Debugf("Built kubeconfig: %s, now updating resources", config.Host)
 
 	// Scale the cattle-cluster-agent deployment to 0
-	if err = scaleDownRancherAgentDeployment(config, log); err != nil {
+	prevReplicas, err := scaleRancherAgentDeployment(config, log, 0)
+	if err != nil {
 		log.Errorf("failed to scale %s deployment: %v", cattleAgent, err)
 		return err
 	}
@@ -131,6 +132,13 @@ func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredential
 	err = resource.PatchResourceFromBytes(gvr, types.StrategicMergePatchType, constants.RancherSystemNamespace, cattleAgent, patch, config)
 	if err != nil {
 		log.Errorf("failed to patch cattle-cluster-agent: %v", err)
+		return err
+	}
+
+	// Restore replicas count
+	_, err = scaleRancherAgentDeployment(config, log, prevReplicas)
+	if err != nil {
+		log.Errorf("failed to scale %s deployment: %v", cattleAgent, err)
 		return err
 	}
 
@@ -159,11 +167,13 @@ func getManifestSecretName(clusterName string) string {
 	return generateManagedResourceName(clusterName) + manifestSecretSuffix
 }
 
-// scaleDownRancherAgentDeployment scales the Rancher Agent deployment down to zero replicas
-func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger) error {
+// scaleRancherAgentDeployment scales the Rancher Agent deployment
+func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, replicas int32) (int32, error) {
+	var prevReplicas int32 = 1
+
 	c, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Get the deployment object
@@ -171,38 +181,40 @@ func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger
 	namespacedName := types.NamespacedName{Name: cattleAgent, Namespace: common.CattleSystem}
 	deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
 	if err != nil {
-		return client.IgnoreNotFound(err)
+		return prevReplicas, client.IgnoreNotFound(err)
+	}
+	if deployment.Spec.Replicas != nil {
+		prevReplicas = *deployment.Spec.Replicas
 	}
 
 	if deployment.Status.AvailableReplicas == 0 {
 		// deployment is scaled down, we're done
-		return nil
+		return prevReplicas, nil
 	}
 
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
-		log.Infof("Scaling down Rancher deployment %v", namespacedName)
-		zero := int32(0)
-		deployment.Spec.Replicas = &zero
+		log.Infof("Scaling Rancher deployment %s to %d replicas %v", namespacedName, replicas)
+		deployment.Spec.Replicas = &replicas
 		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to zero replicas: %v", namespacedName, err)
+			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to % replicas: %v", namespacedName, replicas, err)
 			log.Error(err2)
-			return err2
+			return prevReplicas, err2
 		}
 	}
 
-	// Wait for replica count to be zero
+	// Wait for replica count to be reached
 	for tries := 0; tries < retryCount; tries++ {
 		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Get(context.TODO(), cattleAgent, metav1.GetOptions{})
 		if err != nil {
-			return err
+			return prevReplicas, err
 		}
-		if deployment.Status.AvailableReplicas == 0 {
+		if deployment.Status.AvailableReplicas == replicas {
 			break
 		}
 		time.Sleep(retryDelay)
 	}
-	return nil
+	return prevReplicas, nil
 }
 
 // deleteClusterRepos - delete the clusterrepos object that contains the cached charts
