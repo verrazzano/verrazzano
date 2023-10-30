@@ -28,7 +28,7 @@ require (
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.3
 	github.com/verrazzano/pkg v0.0.2
 	github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230425042339-1243c1ab0595
@@ -70,12 +70,12 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
-	github.com/containerd/containerd v1.6.18 // indirect
-	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
+	github.com/containerd/containerd v1.6.6 // indirect
+	github.com/cyphar/filepath-securejoin v0.2.3 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
-	github.com/docker/distribution v2.8.2+incompatible // indirect
-	github.com/docker/docker v20.10.24+incompatible // indirect
+	github.com/docker/distribution v2.8.1+incompatible // indirect
+	github.com/docker/docker v20.10.17+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.6.4 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.14.1 // indirect
+	github.com/klauspost/compress v1.15.9 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.6 // indirect
@@ -169,7 +169,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.14.0
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.10.0
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
@@ -178,7 +178,7 @@ require (
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1 // indirect
-	google.golang.org/grpc v1.56.3 // indirect
+	google.golang.org/grpc v1.54.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -206,22 +206,37 @@ require (
 )
 
 replace (
+	cloud.google.com/go/compute => cloud.google.com/go/compute v1.19.1
 	github.com/ajeddeloh/go-json v0.0.0-20200220154158-5ae607161559 => github.com/coreos/go-json v0.0.0-20220325222439-31b2177291ae
+	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.2.0
+	github.com/containerd/containerd => github.com/containerd/containerd v1.6.18
 	github.com/crossplane/crossplane-runtime => github.com/verrazzano/crossplane-runtime v0.17.0-1
 	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3
+	github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.4
+	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
+	github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
 	github.com/emicklei/go-restful => github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/fluent/fluent-operator/v2 => github.com/verrazzano/fluent-operator/v2 v2.2.0
 	github.com/go-logr/logr => github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
+	github.com/matttproud/golang_protobuf_extensions => github.com/matttproud/golang_protobuf_extensions v1.0.4
 	github.com/onsi/ginkgo/v2 => github.com/onsi/ginkgo/v2 v2.0.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.17.0
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v1.13.0
 	github.com/spf13/cobra => github.com/spf13/cobra v1.6.1
 	github.com/stretchr/testify => github.com/stretchr/testify v1.7.1
 	go.uber.org/zap => go.uber.org/zap v1.21.0
+	golang.org/x/crypto => golang.org/x/crypto v0.14.0
 	golang.org/x/lint => golang.org/x/lint v0.0.0-20201208152925-83fdc39ff7b5
-	golang.org/x/text => golang.org/x/text v0.5.0
+	golang.org/x/net => golang.org/x/net v0.17.0
+	golang.org/x/oauth2 => golang.org/x/oauth2 v0.7.0
+	golang.org/x/sys => golang.org/x/sys v0.13.0
+	golang.org/x/term => golang.org/x/term v0.13.0
+	golang.org/x/text => golang.org/x/text v0.13.0
 	golang.org/x/tools => golang.org/x/tools v0.1.12
+	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20230410155749-daa745c078e1
+	google.golang.org/grpc => google.golang.org/grpc v1.56.3
+	google.golang.org/protobuf => google.golang.org/protobuf v1.30.0
 	gopkg.in/yaml.v3 => gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 => helm.sh/helm/v3 v3.10.3
 	k8s.io/api => k8s.io/api v0.25.4
