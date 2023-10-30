@@ -432,7 +432,6 @@ func deleteRKE2Feature(log vzlog.VerrazzanoLogger) error {
 		return err
 	}
 
-	// Get the name of the default branch for the helm charts
 	err = dynamicClient.Resource(cattleFeaturesGVR).Delete(context.TODO(), rke2, metav1.DeleteOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		log.Errorf("Rancher deleteRKE2Feature: Failed deleting features.management.cattle.io %s: %v", rke2, err)
