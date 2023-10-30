@@ -24,13 +24,13 @@ import (
 )
 
 // The bug-report command captures the following resources from the cluster by default
-// - Verrazzano resource
-// - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
-// - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces of
-//   installed verrazzano components and namespaces specified by flag --include-namespaces
-// - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
-// - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
-
+//   - Verrazzano resource
+//   - Logs from verrazzano-platform-operator, verrazzano-monitoring-operator and verrazzano-application-operator pods
+//   - Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress and services from the namespaces of
+//     installed verrazzano components and namespaces specified by flag --include-namespaces
+//   - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
+//   - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
+//   - Effective Verrazzano Resource
 type ErrorsChannelLogs struct {
 	PodName      string `json:"podName"`
 	ErrorMessage string `json:"errorMessage"`
@@ -142,7 +142,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	ecl := make(chan ErrorsChannelLogs, 1)
 
 	go captureVZResource(wg, evr, vz, bugReportDir)
-	go captureVZEffResource(wg, evr, vz, bugReportDir, client)
+	go captureVZEffectiveResource(wg, evr, vz, bugReportDir, client)
 
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
 	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoWebHookPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
@@ -384,7 +384,9 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 	}
 	return nil
 }
-func captureVZEffResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
+
+// captureVZEffectiveResource captures the verrazzano effective resource as Json
+func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
 	defer wg.Done()
 	err := pkghelpers.AddEffCr(c, bugReportDir, vz)
 	if err != nil {
