@@ -128,3 +128,9 @@ rules:
     verbs:
       - list
       - watch
+  - apiGroups:
+      - catalog.cattle.io
+    resources:
+      - clusterrepos
+    verbs:
+      - delete
