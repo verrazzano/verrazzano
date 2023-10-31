@@ -52,30 +52,30 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231026185557-ec3b7033",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231026185557-ec3b7033",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231026185557-ec3b7033",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231026185557-ec3b7033",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             },
             {
               "image": "cert-manager-ctl",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231026185557-ec3b7033",
               "helmFullImageKey": "startupapicheck.image.repository",
               "helmTagKey": "startupapicheck.image.tag"
             }
