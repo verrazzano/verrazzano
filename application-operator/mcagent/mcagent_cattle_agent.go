@@ -238,7 +238,7 @@ func deleteClusterRepos(config *rest.Config) error {
 		return err
 	}
 	err = c.Resource(cattleClusterReposGVR).Delete(context.TODO(), clusterreposName, metav1.DeleteOptions{})
-	if err != nil {
+	if err != nil && !errors.IsNotFound(err) {
 		return fmt.Errorf("Failed to delete clusterrrepos %s: %v", clusterreposName, err)
 	}
 	return nil
