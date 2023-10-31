@@ -44,6 +44,13 @@ var _ = t.AfterEach(func() {})
 var afterSuite = t.AfterSuiteFunc(func() {})
 var _ = AfterSuite(afterSuite)
 
+var testRetry = wait.Backoff{
+	Steps:    1,
+	Duration: 1 * time.Millisecond,
+	Factor:   1.0,
+	Jitter:   0.1,
+}
+
 var rancherClusterLabels = map[string]string{"rancher-sync": "enabled"}
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 
@@ -51,12 +58,7 @@ var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.ins
 	defer func() {
 		rancherutil.DefaultRetry = savedRetry
 	}()
-	rancherutil.DefaultRetry = wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   1.0,
-		Jitter:   0.1,
-	}
+	rancherutil.DefaultRetry = testRetry
 
 	// 1. Create clusters in Rancher with labels that match the selector configured in the Verrazzano resource
 	// 2. Delete the cluster in Rancher
@@ -253,12 +255,7 @@ func testVMCCreation(rc *rancherutil.RancherConfig, client *versioned.Clientset,
 	defer func() {
 		rancherutil.DefaultRetry = savedRetry
 	}()
-	rancherutil.DefaultRetry = wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   1.0,
-		Jitter:   0.1,
-	}
+	rancherutil.DefaultRetry = testRetry
 
 	// Create the VMC resource in the cluster
 	Eventually(func() (*v1alpha1.VerrazzanoManagedCluster, error) {
