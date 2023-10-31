@@ -249,8 +249,7 @@ func getDeployment(config *rest.Config, namespace string, name string) (*appsv1.
 	}
 
 	// Get the deployment object
-	deployment := &appsv1.Deployment{}
-	deployment, err = c.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	deployment, err := c.AppsV1().Deployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
