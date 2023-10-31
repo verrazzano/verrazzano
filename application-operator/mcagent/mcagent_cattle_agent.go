@@ -204,7 +204,7 @@ func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger
 	}
 
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
-		log.Infof("Scaling Rancher deployment %s to %d replicas %v", namespacedName, zero)
+		log.Infof("Scaling Rancher deployment %s to %d replicas", namespacedName, zero)
 		deployment.Spec.Replicas = &zero
 		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
