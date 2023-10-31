@@ -194,6 +194,9 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 	// Get the cattle-cluster-agent deployment object
 	deployment, err := getDeployment(config, common.CattleSystem, cattleAgent)
 	if err != nil {
+		if errors.IsNotFound(err) {
+			return prevReplicas, nil
+		}
 		return 0, err
 	}
 	namespacedName := types.NamespacedName{Name: cattleAgent, Namespace: common.CattleSystem}
