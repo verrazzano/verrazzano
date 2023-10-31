@@ -149,7 +149,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			// installed on a minimum of v1.6.9.
 			registered, err := pkg.DoesDeploymentExist(constants.RancherSystemNamespace, "cattle-cluster-agent")
 			if err != nil {
-				Fail(fmt.Sprintf("failed to check deployment %s/%s: %v", constants.RancherSystemNamespace, "cattle-cluster-agent"))
+				Fail(fmt.Sprintf("failed to check deployment %s/%s: %v", constants.RancherSystemNamespace, "cattle-cluster-agent", err))
 			}
 			expectWebhook := isMinVersion169
 			if !registered {
