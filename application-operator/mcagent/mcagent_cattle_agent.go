@@ -142,18 +142,12 @@ func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredential
 		return err
 	}
 
+	cattleAgentResource.Set(prevReplicas, "spec", "replicas")
 	patch := cattleAgentResource.Bytes()
 	gvr := schema.GroupVersionResource{Group: "apps", Version: "v1", Resource: "deployments"}
 	err = resource.PatchResourceFromBytes(gvr, types.StrategicMergePatchType, constants.RancherSystemNamespace, cattleAgent, patch, config)
 	if err != nil {
 		log.Errorf("failed to patch cattle-cluster-agent: %v", err)
-		return err
-	}
-
-	// Restore replicas count
-	_, err = scaleRancherAgentDeployment(config, log, prevReplicas)
-	if err != nil {
-		log.Errorf("failed to scale %s deployment: %v", cattleAgent, err)
 		return err
 	}
 
@@ -186,11 +180,6 @@ func getManifestSecretName(clusterName string) string {
 func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, replicas int32) (int32, error) {
 	var prevReplicas int32 = 1
 
-	c, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return 0, err
-	}
-
 	// Get the cattle-cluster-agent deployment object
 	deployment, err := getDeployment(config, common.CattleSystem, cattleAgent)
 	if err != nil {
@@ -204,9 +193,14 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 		prevReplicas = *deployment.Spec.Replicas
 	}
 
-	if deployment.Status.AvailableReplicas == 0 {
-		// deployment is scaled down, we're done
-		return prevReplicas, nil
+	if deployment.Status.AvailableReplicas == replicas {
+		// deployment is scaled to the desired value, we're done
+		return replicas, nil
+	}
+
+	c, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return 0, err
 	}
 
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
