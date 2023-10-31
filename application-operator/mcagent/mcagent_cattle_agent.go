@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/pkg/k8s/resource"
@@ -21,6 +19,7 @@ import (
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -67,7 +66,7 @@ func (s *Syncer) syncCattleClusterAgent(currentCattleAgentHash string, kubeconfi
 	newCattleAgentHash := createHash(cattleAgentResource)
 
 	// If the rancher-webhook deployment does not exist, then this may be the first time the
-	// environment is being upgraded Rancher 2.7.8 or higher. If the deployment does not exist
+	// environment is being upgraded to Rancher 2.7.8 or higher. If the deployment does not exist
 	// then always update the cattle resources.
 	config, err := k8sutil.BuildKubeConfig(kubeconfigPath)
 	if err != nil {
@@ -132,7 +131,7 @@ func checkForCattleResources(yamlData [][]byte) (*gabs.Container, *gabs.Containe
 // updateCattleResources patches the cattle-cluster-agent and creates the cattle-credentials secret
 func updateCattleResources(cattleAgentResource *gabs.Container, cattleCredentialResource *gabs.Container, log *zap.SugaredLogger, config *rest.Config) error {
 	// Scale the cattle-cluster-agent deployment to 0
-	prevReplicas, err := scaleRancherAgentDeployment(config, log, 0)
+	prevReplicas, err := scaleDownRancherAgentDeployment(config, log)
 	if err != nil {
 		log.Errorf("failed to scale %s deployment: %v", cattleAgent, err)
 		return err
@@ -176,9 +175,10 @@ func getManifestSecretName(clusterName string) string {
 	return generateManagedResourceName(clusterName) + manifestSecretSuffix
 }
 
-// scaleRancherAgentDeployment scales the Rancher Agent deployment
-func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, replicas int32) (int32, error) {
+// scaleDownRancherAgentDeployment scales the Rancher Agent deployment to 0 replicas
+func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger) (int32, error) {
 	var prevReplicas int32 = 1
+	zero := int32(0)
 
 	// Get the cattle-cluster-agent deployment object
 	deployment, err := getDeployment(config, common.CattleSystem, cattleAgent)
@@ -193,9 +193,9 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 		prevReplicas = *deployment.Spec.Replicas
 	}
 
-	if deployment.Status.AvailableReplicas == replicas {
+	if deployment.Status.AvailableReplicas == zero {
 		// deployment is scaled to the desired value, we're done
-		return replicas, nil
+		return prevReplicas, nil
 	}
 
 	c, err := kubernetes.NewForConfig(config)
@@ -204,11 +204,11 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 	}
 
 	if deployment.Spec.Replicas == nil || *deployment.Spec.Replicas > 0 {
-		log.Infof("Scaling Rancher deployment %s to %d replicas %v", namespacedName, replicas)
-		deployment.Spec.Replicas = &replicas
+		log.Infof("Scaling Rancher deployment %s to %d replicas %v", namespacedName, zero)
+		deployment.Spec.Replicas = &zero
 		deployment, err = c.AppsV1().Deployments(common.CattleSystem).Update(context.TODO(), deployment, metav1.UpdateOptions{})
 		if err != nil {
-			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to %d replicas: %v", namespacedName, replicas, err)
+			err2 := fmt.Errorf("Failed to scale Rancher deployment %v to %d replicas: %v", namespacedName, zero, err)
 			log.Error(err2)
 			return prevReplicas, err2
 		}
@@ -220,7 +220,7 @@ func scaleRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger, re
 		if err != nil {
 			return prevReplicas, err
 		}
-		if deployment.Status.AvailableReplicas == replicas {
+		if deployment.Status.AvailableReplicas == zero {
 			break
 		}
 		time.Sleep(retryDelay)
