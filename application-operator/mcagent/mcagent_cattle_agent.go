@@ -39,6 +39,16 @@ var cattleClusterReposGVR = schema.GroupVersionResource{
 	Resource: "clusterrepos",
 }
 
+// Override of getDeployment is for unit testing only
+var getDeploymentFunc = getDeployment
+
+func setDeploymentFunc(deployFunc func(config *rest.Config, namespace string, name string) (*appsv1.Deployment, error)) {
+	getDeploymentFunc = deployFunc
+}
+func resetDeploymentFunc() {
+	getDeploymentFunc = getDeployment
+}
+
 // syncCattleClusterAgent syncs the Rancher cattle-cluster-agent deployment
 // and the cattle-credentials secret from the admin cluster to the managed cluster
 // if they have changed in the registration-manifest
@@ -73,7 +83,7 @@ func (s *Syncer) syncCattleClusterAgent(currentCattleAgentHash string, kubeconfi
 		s.Log.Errorf("failed to create incluster config: %v", err)
 		return currentCattleAgentHash, err
 	}
-	_, err = getDeployment(config, common.CattleSystem, "rancher-webhook")
+	_, err = getDeploymentFunc(config, common.CattleSystem, "rancher-webhook")
 	if err != nil && !errors.IsNotFound(err) {
 		return currentCattleAgentHash, err
 	}
@@ -181,7 +191,7 @@ func scaleDownRancherAgentDeployment(config *rest.Config, log *zap.SugaredLogger
 	zero := int32(0)
 
 	// Get the cattle-cluster-agent deployment object
-	deployment, err := getDeployment(config, common.CattleSystem, cattleAgent)
+	deployment, err := getDeploymentFunc(config, common.CattleSystem, cattleAgent)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return prevReplicas, nil
