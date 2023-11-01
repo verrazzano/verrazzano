@@ -16,7 +16,7 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : ["kind", "magicdns_oke", "ocidns_oke"]
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "pipeline-single-job-large" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "pipeline-job-single-large" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 def runExamples = env.JOB_NAME.contains('-examples')
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
