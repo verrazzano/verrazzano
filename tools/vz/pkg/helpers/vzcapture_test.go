@@ -242,6 +242,49 @@ func TestGetPodList(t *testing.T) {
 	assert.NotEmpty(t, pods)
 }
 
+// TestCaptureVZEffectiveResource tests the functionality to capture the effective verrazzano resource
+func TestCaptureVzEffectiveResource(t *testing.T) {
+	captureDir, err := os.MkdirTemp("", "testcapture")
+	defer cleanupTempDir(t, captureDir)
+	assert.NoError(t, err)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+
+	//  GIVEN a k8s cluster with a user provided Verrazzano CR,
+	//	WHEN I call functions to capture the Verrazzano Effective CR,
+	//	THEN expect the file to contain the JSON output of the Verrazzano Effective CR.
+	vz := &v1beta1.Verrazzano{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "default",
+			Name:      "myVerrazzano",
+		},
+		Spec: v1beta1.VerrazzanoSpec{
+			Profile: v1beta1.Dev,
+		},
+	}
+
+	//  fake kubernetes client is being created with initial configmap object
+	client := fake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      vz.ObjectMeta.Name + effConfigSuffix,
+			Namespace: vz.ObjectMeta.Namespace,
+		},
+	}).Build()
+
+	tempFile, err := os.CreateTemp("", "testfile")
+	defer cleanupFile(t, tempFile)
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
+	SetVerboseOutput(true)
+	SetIsLiveCluster()
+	err = AddEffCr(client, captureDir, vz)
+	assert.NoError(t, err)
+	assert.NotNil(t, GetMultiWriterOut())
+	assert.NotNil(t, GetMultiWriterErr())
+	assert.True(t, GetIsLiveCluster())
+}
+
 // TestCaptureVZResource tests the functionality to capture the Verrazzano resource.
 func TestCaptureVZResource(t *testing.T) {
 	captureDir, err := os.MkdirTemp("", "testcapture")
@@ -262,6 +305,7 @@ func TestCaptureVZResource(t *testing.T) {
 			Profile: v1beta1.Dev,
 		},
 	}
+
 	tempFile, err := os.CreateTemp("", "testfile")
 	defer cleanupFile(t, tempFile)
 	assert.NoError(t, err)

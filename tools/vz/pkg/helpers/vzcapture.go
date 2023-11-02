@@ -872,14 +872,18 @@ func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error 
 		Namespace: vz.ObjectMeta.Namespace,
 		Name:      vz.ObjectMeta.Name + effConfigSuffix,
 	}, &effCRConfigmap)
+
 	if err != nil {
 		LogMessage(fmt.Sprintf("Error:%s", err.Error()))
+		return err
 	}
 	var effvzRes = filepath.Join(captureDir, constants.EffVzResource)
 	f, err := os.OpenFile(effvzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+
 	if err != nil {
 		return fmt.Errorf(createFileError, effvzRes, err.Error())
 	}
+
 	defer f.Close()
 	LogMessage("Effective Verrazzano resource ...\n")
 	yamlcontent := effCRConfigmap.Data["effective-config.yaml"]
@@ -888,6 +892,7 @@ func AddEffCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error 
 		LogError(fmt.Sprintf("Error converting %s to yaml : %s/n ", jsonData, err.Error()))
 		return err
 	}
+
 	effvzjson, err := json.MarshalIndent(json.RawMessage(jsonData), "", "  ")
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", effvzRes, err.Error()))
