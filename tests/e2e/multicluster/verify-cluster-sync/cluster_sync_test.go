@@ -224,6 +224,12 @@ func testRancherClusterDeletion(rc *rancherutil.RancherConfig, client *versioned
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN the VMC for the cluster is deleted
 
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
+
 	// The VMC should have the clusterID field set before we attempt to delete
 	Eventually(func() bool {
 		return verifyRancherRegistration(clusterName)
@@ -283,6 +289,12 @@ func testVMCDeletion(rc *rancherutil.RancherConfig, client *versioned.Clientset,
 	// GIVEN a VMC is deleted from the admin cluster
 	// WHEN the Rancher sync process runs
 	// THEN a Rancher cluster with that name should be deleted
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
 
 	// The VMC should have the clusterID field set before we attempt to delete
 	Eventually(func() bool {
