@@ -287,12 +287,13 @@ func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient 
 		var stdout, stderr string
 		// try all Rancher pods
 		for _, pod := range pods {
-			stdout, _, err = k8sutil.ExecPod(k8sClient, cfg, &pod, "rancher", logoCommand)
+			podToTry := &pod
+			stdout, _, err = k8sutil.ExecPod(k8sClient, cfg, podToTry, "rancher", logoCommand)
 			if err != nil || strings.Contains(stdout, "No such file or directory") {
-				t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod %s: %v", pod.Name, err))
+				t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod %s: %v", podToTry.Name, err))
 				// Try pre-Rancher 2.7.5 location
 				logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolderBeforeRancher275, logoFilename)}
-				stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, &pod, "rancher", logoCommand)
+				stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, podToTry, "rancher", logoCommand)
 				if err != nil {
 					t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
 					return false, err
