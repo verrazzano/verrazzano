@@ -54,6 +54,8 @@ rules:
       - deployments
     verbs:
       - patch
+      - update
+      - get
   - apiGroups:
       - apiextensions.k8s.io
     resources:
@@ -126,3 +128,9 @@ rules:
     verbs:
       - list
       - watch
+  - apiGroups:
+      - catalog.cattle.io
+    resources:
+      - clusterrepos
+    verbs:
+      - delete

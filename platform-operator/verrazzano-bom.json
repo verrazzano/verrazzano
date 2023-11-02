@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.6-6",
+      "version": "2.7.8",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -158,13 +158,13 @@
               "rancherUI": "v2.7.2-17/release-2.7.2",
               "ocneDriverVersion": "v0.26.0",
               "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
-              "tag": "v2.7.6-20231010172525-ee1a5dfa4",
+              "tag": "v2.7.8-20231025095951-d3a1d8555",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.6-20231010172525-ee1a5dfa4"
+              "tag": "v2.7.8-20231025095951-d3a1d8555"
             }
           ]
         },
@@ -178,15 +178,15 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.5-20230922100255-1a77563"
+              "tag": "v0.3.6-20231023102646-95c018e"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.1-20230913140901-c69add6c"
+              "tag": "v0.8.0-20231023105118-d906a3bd"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.1-20230913140901-c69add6c"
+              "tag": "v0.8.0-20231023105118-d906a3bd"
             },
             {
               "image": "rancher-gitjob",

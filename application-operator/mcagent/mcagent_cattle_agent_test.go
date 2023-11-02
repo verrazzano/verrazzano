@@ -15,9 +15,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -28,6 +32,13 @@ import (
 func TestSyncer_syncCattleClusterAgent(t *testing.T) {
 	asserts := assert.New(t)
 	log := zap.S().With("test")
+
+	// Override the getDeployment function because there is a bug in the fake logic that does not
+	// handle names containing more than one hyphen.
+	setDeploymentFunc(func(config *rest.Config, namespace string, name string) (*appsv1.Deployment, error) {
+		return nil, errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "deployments"}, name)
+	})
+	defer resetDeploymentFunc()
 
 	scheme := runtime.NewScheme()
 	err := corev1.SchemeBuilder.AddToScheme(scheme)
@@ -94,6 +105,13 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 	asserts := assert.New(t)
 	log := zap.S().With("test")
 
+	// Override the getDeployment function because there is a bug in the fake logic that does not
+	// handle names containing more than one hyphen.
+	setDeploymentFunc(func(config *rest.Config, namespace string, name string) (*appsv1.Deployment, error) {
+		return nil, errors.NewNotFound(schema.GroupResource{Group: "apps", Resource: "deployments"}, name)
+	})
+	defer resetDeploymentFunc()
+
 	scheme := runtime.NewScheme()
 	err := corev1.SchemeBuilder.AddToScheme(scheme)
 	asserts.NoError(err)
@@ -136,7 +154,7 @@ func TestSyncer_syncCattleClusterAgentHashExists(t *testing.T) {
 	// GIVEN a call to syncCattleClusterAgent
 	// WHEN a hash already exists
 	// THEN if the hash has not changed, do nothing
-	newerCattleAgentHash, err := s.syncCattleClusterAgent(previousCattleAgentHash, "")
+	newerCattleAgentHash, err := s.syncCattleClusterAgent(previousCattleAgentHash, kubeConfigPath)
 	asserts.NoError(err)
 	asserts.NotEmpty(newerCattleAgentHash)
 	asserts.Equal(previousCattleAgentHash, newerCattleAgentHash)
