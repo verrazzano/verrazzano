@@ -497,6 +497,29 @@ func GetRunningPodForLabel(c client.Client, label string, namespace string, log 
 		logger = vzlog.DefaultLogger()
 	}
 
+	pods, err := GetRunningPodsForLabel(c, label, namespace, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, pod := range pods {
+		if pod.Status.Phase == v1.PodRunning {
+			return &pod, nil
+		}
+	}
+
+	return nil, logger.ErrorfThrottledNewErr("No running pod for label %s in namespace %s", label, namespace)
+}
+
+// GetRunningPodForLabel returns the reference of a running pod that matches the given label
+func GetRunningPodsForLabel(c client.Client, label string, namespace string, log ...vzlog.VerrazzanoLogger) ([]v1.Pod, error) {
+	var logger vzlog.VerrazzanoLogger
+	if len(log) > 0 {
+		logger = log[0]
+	} else {
+		logger = vzlog.DefaultLogger()
+	}
+
 	pods := &v1.PodList{}
 	labelPair := strings.Split(label, "=")
 	err := c.List(context.Background(), pods, client.MatchingLabels{labelPair[0]: labelPair[1]})
@@ -509,13 +532,7 @@ func GetRunningPodForLabel(c client.Client, label string, namespace string, log 
 		return nil, logger.ErrorfThrottledNewErr("Invalid running pod list for label %s in namespace %s", label, namespace)
 	}
 
-	for _, pod := range pods.Items {
-		if pod.Status.Phase == v1.PodRunning {
-			return &pod, nil
-		}
-	}
-
-	return nil, logger.ErrorfThrottledNewErr("No running pod for label %s in namespace %s", label, namespace)
+	return pods.Items, nil
 }
 
 // ErrorIfDeploymentExists reports error if any of the Deployments exists

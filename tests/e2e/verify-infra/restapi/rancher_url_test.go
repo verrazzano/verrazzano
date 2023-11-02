@@ -19,6 +19,8 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -217,9 +219,8 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
 					verifySettingValue(rancher.SettingUIPL, rancher.SettingUIPLValueVerrazzano, k8sClient)
-					// VZ-11418
-					//verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightFile, k8sClient)
-					//verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkFile, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightFile, k8sClient)
+					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkFile, k8sClient)
 
 				}
 
@@ -244,7 +245,7 @@ var _ = t.AfterEach(func() {})
 //	WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
 //	AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
 //	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
-/*func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient dynamic.Interface) {
+func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient dynamic.Interface) {
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
 	Eventually(func() (bool, error) {
@@ -270,7 +271,7 @@ var _ = t.AfterEach(func() {})
 			return false, err
 		}
 
-		pod, err := k8sutil.GetRunningPodForLabel(c, "app=rancher", "cattle-system")
+		pods, err := k8sutil.GetRunningPodsForLabel(c, "app=rancher", "cattle-system")
 		if err != nil {
 			t.Logs.Error(fmt.Sprintf("Error getting running rancher pod to verify value of %s setting: %v", settingName, err))
 			return false, err
@@ -284,15 +285,21 @@ var _ = t.AfterEach(func() {})
 
 		logoCommand := []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolder, logoFilename)}
 		var stdout, stderr string
-		stdout, _, err = k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
-		if err != nil || strings.Contains(stdout, "No such file or directory") {
-			// Try pre-Rancher 2.7.5 location
-			logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolderBeforeRancher275, logoFilename)}
-			stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, pod, "rancher", logoCommand)
-			if err != nil {
-				t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
-				return false, err
+		// try all Rancher pods
+		for _, pod := range pods {
+			stdout, _, err = k8sutil.ExecPod(k8sClient, cfg, &pod, "rancher", logoCommand)
+			if err != nil || strings.Contains(stdout, "No such file or directory") {
+				t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod %s: %v", pod.Name, err))
+				// Try pre-Rancher 2.7.5 location
+				logoCommand = []string{"/bin/sh", "-c", fmt.Sprintf("cat %s/%s | base64", rancher.SettingUILogoFolderBeforeRancher275, logoFilename)}
+				stdout, stderr, err = k8sutil.ExecPod(k8sClient, cfg, &pod, "rancher", logoCommand)
+				if err != nil {
+					t.Logs.Error(fmt.Sprintf("Error executing command in rancher pod to verify value of %s setting: %v, stderr: %v", settingName, err, stderr))
+					return false, err
+				}
+				break
 			}
+			break
 		}
 
 		// Strip out any extra carriage returns
@@ -307,7 +314,7 @@ var _ = t.AfterEach(func() {})
 	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
 
 }
-*/
+
 // verifySettingValue verifies the value of a rancher setting
 // GIVEN a Verrazzano installation with setting specified by settingName populated
 //
