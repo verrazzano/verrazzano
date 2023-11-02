@@ -2,6 +2,7 @@
 
 Component version updates:
 
+- Rancher 2.7.8
 - WebLogic Kubernetes Operator v4.1.4
 - WebLogic Monitoring Exporter v2.1.8
 
