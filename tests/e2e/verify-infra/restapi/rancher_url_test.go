@@ -19,8 +19,6 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -246,7 +244,7 @@ var _ = t.AfterEach(func() {})
 //	WHEN value of the base64 encoded logo file is extracted from the setting CR specified by settingName
 //	AND compared with base64 encoded value of corresponding actual logo file present in running rancher pod
 //	THEN both the values are expected to be equal, otherwise the test scenario is deemed to have failed.
-func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient dynamic.Interface) {
+/*func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient dynamic.Interface) {
 	start := time.Now()
 	t.Logs.Infof("Verify %s setting", settingName)
 	Eventually(func() (bool, error) {
@@ -309,7 +307,7 @@ func verifyUILogoSetting(settingName string, logoFilename string, dynamicClient 
 	metrics.Emit(t.Metrics.With("get_ui_setting_elapsed_time", time.Since(start).Milliseconds()))
 
 }
-
+*/
 // verifySettingValue verifies the value of a rancher setting
 // GIVEN a Verrazzano installation with setting specified by settingName populated
 //
