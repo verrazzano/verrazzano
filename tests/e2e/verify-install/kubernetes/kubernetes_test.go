@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
-	"github.com/verrazzano/verrazzano/pkg/nginxutil"
+	"github.com/verrazzano/verrazzano/pkg/constants"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
+	"github.com/verrazzano/verrazzano/pkg/log/vzlog"
+	"github.com/verrazzano/verrazzano/pkg/nginxutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	v1 "k8s.io/api/core/v1"
@@ -41,7 +42,7 @@ var expectedPodsIngressNginx = []string{
 
 var expectedVMOPod = "verrazzano-monitoring-operator"
 
-// comment out while debugging so it does not break master
+// comment out while debugging, so it does not break master
 // "vmi-system-prometheus",
 // "vmi-system-prometheus-gw"}
 
@@ -81,7 +82,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			// so we can create network policies. Rancher will run pods in this namespace once
 			// the managed cluster manifest YAML is applied to the managed cluster. So expect cattle-system
 			// to exist on all clusters
-			t.Entry("cattle-system", "cattle-system", true),
+			t.Entry(constants.RancherSystemNamespace, constants.RancherSystemNamespace, true),
 			t.Entry("istio-system", "istio-system", true),
 			t.Entry("gitlab", "gitlab", false),
 			t.Entry("keycloak", "keycloak", !isManagedClusterProfile),
@@ -142,23 +143,36 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 			t.Entry("includes ssoproxycontroller", "ssoproxycontroller", false),
 		)
 
+		isMinVersion169, _ := pkg.IsVerrazzanoMinVersion("1.6.9", kubeconfigPath)
 		if isManagedClusterProfile {
+			// Only expect rancher-webhook if the cattle-cluster-agent is deployed, and
+			// installed on a minimum of v1.6.9.
+			registered, err := pkg.DoesDeploymentExist(constants.RancherSystemNamespace, "cattle-cluster-agent")
+			if err != nil {
+				Fail(fmt.Sprintf("failed to check deployment %s/%s: %v", constants.RancherSystemNamespace, "cattle-cluster-agent", err))
+			}
+			expectWebhook := isMinVersion169
+			if !registered {
+				expectWebhook = false
+			}
 			t.DescribeTable("rancher components are not deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
-						return vzComponentPresent(name, "cattle-system")
+						return vzComponentPresent(name, constants.RancherSystemNamespace)
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
-				t.Entry("includes rancher", "rancher", false),
+				// Starting with Rancher 2.7.8, rancher-webhook is installed on all downstream clusters
+				t.Entry("includes rancher-webhook", "rancher-webhook", expectWebhook),
 			)
 		} else {
 			t.DescribeTable("rancher components are deployed,",
 				func(name string, expected bool) {
 					Eventually(func() (bool, error) {
-						return vzComponentPresent(name, "cattle-system")
+						return vzComponentPresent(name, constants.RancherSystemNamespace)
 					}, waitTimeout, pollingInterval).Should(Equal(expected))
 				},
 				t.Entry("includes rancher", "rancher", true),
+				t.Entry("includes rancher-webhook", "rancher-webhook", true),
 			)
 		}
 
@@ -225,7 +239,7 @@ var _ = t.Describe("In the Kubernetes Cluster", Label("f:platform-lcm.install"),
 					// Rancher pods do not run on the managed cluster at install time (they do get started later when the managed
 					// cluster is registered)
 					if !isManagedClusterProfile {
-						Eventually(func() bool { return checkPodsRunning("cattle-system", expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
+						Eventually(func() bool { return checkPodsRunning(constants.RancherSystemNamespace, expectedPodsCattleSystem) }, waitTimeout, pollingInterval).
 							Should(BeTrue())
 					}
 				},

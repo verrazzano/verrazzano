@@ -649,6 +649,8 @@ def dumpPodsAndLogs(stage) {
     dumpNginxIngressControllerLogs(dumpPath)
     dumpVerrazzanoPlatformOperatorLogs(dumpPath)
     dumpVerrazzanoApplicationOperatorLogs(dumpPath)
+    dumpVerrazzanoClusterOperatorLogs(dumpPath)
+    dumpVerrazzanoClusterAgentLogs(dumpPath)
     dumpOamKubernetesRuntimeLogs(dumpPath)
     dumpVerrazzanoApiLogs(dumpPath)
 }
@@ -705,6 +707,30 @@ def dumpVerrazzanoApplicationOperatorLogs(dumpPath) {
         kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${dumpPath}/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
         echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoClusterAgentLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
+    sh """
+        ## dump out verrazzano-cluster-agent logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-cluster-agent --tail -1 > ${dumpPath}/verrazzano-cluster-agent-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-cluster-agent > ${dumpPath}/verrazzano-cluster-agent-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-cluster-agent logs dumped to verrazzano-cluster-agent-pod.log"
+        echo "verrazzano-cluster-agent pod description dumped to verrazzano-cluster-agent-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoClusterOperatorLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
+    sh """
+        ## dump out verrazzano-cluster-operator logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-cluster-operator --tail -1 > ${dumpPath}/verrazzano-cluster-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-cluster-operator > ${dumpPath}/verrazzano-cluster-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-cluster-operator logs dumped to verrazzano-cluster-operator-pod.log"
+        echo "verrazzano-cluster-operator pod description dumped to verrazzano-cluster-operator-pod.out"
         echo "------------------------------------------"
     """
 }
