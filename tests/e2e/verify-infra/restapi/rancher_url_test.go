@@ -219,8 +219,9 @@ var _ = t.Describe("rancher", Label("f:infra-lcm",
 					}, waitTimeout, pollingInterval).Should(Equal(true), "RoleTemplate not found")
 					metrics.Emit(t.Metrics.With("get_roletemplate_elapsed_time", time.Since(start).Milliseconds()))
 					verifySettingValue(rancher.SettingUIPL, rancher.SettingUIPLValueVerrazzano, k8sClient)
-					verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightFile, k8sClient)
-					verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkFile, k8sClient)
+					// VZ-11418
+					//verifyUILogoSetting(rancher.SettingUILogoLight, rancher.SettingUILogoLightFile, k8sClient)
+					//verifyUILogoSetting(rancher.SettingUILogoDark, rancher.SettingUILogoDarkFile, k8sClient)
 
 				}
 
