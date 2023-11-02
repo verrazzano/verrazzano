@@ -54,12 +54,6 @@ var testRetry = wait.Backoff{
 var rancherClusterLabels = map[string]string{"rancher-sync": "enabled"}
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
 
-	savedRetry := rancherutil.DefaultRetry
-	defer func() {
-		rancherutil.DefaultRetry = savedRetry
-	}()
-	rancherutil.DefaultRetry = testRetry
-
 	// 1. Create clusters in Rancher with labels that match the selector configured in the Verrazzano resource
 	// 2. Delete the cluster in Rancher
 	// Verify that the VMC was created and deleted in sync
@@ -183,6 +177,12 @@ func testRancherClusterCreation(rc *rancherutil.RancherConfig, client *versioned
 	// GIVEN a Rancher cluster is created using Rancher API/UI
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN a VMC is auto-created for that cluster
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
 
 	// Create cluster in Rancher and label it as specified in the VZ resource installed
 	var err error
