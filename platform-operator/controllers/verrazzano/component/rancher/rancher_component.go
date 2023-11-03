@@ -494,6 +494,9 @@ func (r rancherComponent) PreUpgrade(ctx spi.ComponentContext) error {
 	if err := chartsNotUpdatedWorkaround(ctx); err != nil {
 		return err
 	}
+	if err := deleteRKE2Feature(ctx.Log()); err != nil {
+		return err
+	}
 	if err := copyPrivateCABundles(ctx.Log(), ctx.Client(), ctx.EffectiveCR()); err != nil {
 		ctx.Log().ErrorfThrottledNewErr("Failed setting up private CA bundles for Rancher: %s", err.Error())
 		return err
