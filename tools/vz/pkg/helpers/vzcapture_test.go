@@ -278,7 +278,7 @@ func TestCaptureVzEffectiveResource(t *testing.T) {
 	SetMultiWriterErr(errBuf, tempFile)
 	SetVerboseOutput(true)
 	SetIsLiveCluster()
-	err = AddEffCr(client, captureDir, vz)
+	err = AddEffectiveCr(client, captureDir, vz)
 	assert.NoError(t, err)
 	assert.NotNil(t, GetMultiWriterOut())
 	assert.NotNil(t, GetMultiWriterErr())

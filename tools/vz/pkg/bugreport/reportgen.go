@@ -31,6 +31,7 @@ import (
 //   - OAM resources like ApplicationConfiguration, Component, IngressTrait, MetricsTrait from namespaces specified by flag --include-namespaces
 //   - VerrazzanoManagedCluster, VerrazzanoProject and MultiClusterApplicationConfiguration in a multi-clustered environment
 //   - Effective Verrazzano Resource
+
 type ErrorsChannelLogs struct {
 	PodName      string `json:"podName"`
 	ErrorMessage string `json:"errorMessage"`
@@ -388,7 +389,7 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 // captureVZEffectiveResource captures the verrazzano effective resource as Json file
 func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
 	defer wg.Done()
-	err := pkghelpers.AddEffCr(c, bugReportDir, vz)
+	err := pkghelpers.AddEffectiveCr(c, bugReportDir, vz)
 	if err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
 	}
