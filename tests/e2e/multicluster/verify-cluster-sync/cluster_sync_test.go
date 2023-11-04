@@ -44,19 +44,15 @@ var _ = t.AfterEach(func() {})
 var afterSuite = t.AfterSuiteFunc(func() {})
 var _ = AfterSuite(afterSuite)
 
+var testRetry = wait.Backoff{
+	Steps:    1,
+	Duration: 1 * time.Millisecond,
+	Factor:   1.0,
+	Jitter:   0.1,
+}
+
 var rancherClusterLabels = map[string]string{"rancher-sync": "enabled"}
 var _ = t.Describe("Multi Cluster Rancher Validation", Label("f:platform-lcm.install"), func() {
-
-	savedRetry := rancherutil.DefaultRetry
-	defer func() {
-		rancherutil.DefaultRetry = savedRetry
-	}()
-	rancherutil.DefaultRetry = wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   1.0,
-		Jitter:   0.1,
-	}
 
 	// 1. Create clusters in Rancher with labels that match the selector configured in the Verrazzano resource
 	// 2. Delete the cluster in Rancher
@@ -182,6 +178,12 @@ func testRancherClusterCreation(rc *rancherutil.RancherConfig, client *versioned
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN a VMC is auto-created for that cluster
 
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
+
 	// Create cluster in Rancher and label it as specified in the VZ resource installed
 	var err error
 	clusterID, err := vmc.ImportClusterToRancher(rc, clusterName, rancherClusterLabels, vzlog.DefaultLogger())
@@ -222,6 +224,12 @@ func testRancherClusterDeletion(rc *rancherutil.RancherConfig, client *versioned
 	// WHEN the Rancher cluster is appropriately labeled
 	// THEN the VMC for the cluster is deleted
 
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
+
 	// The VMC should have the clusterID field set before we attempt to delete
 	Eventually(func() bool {
 		return verifyRancherRegistration(clusterName)
@@ -253,12 +261,7 @@ func testVMCCreation(rc *rancherutil.RancherConfig, client *versioned.Clientset,
 	defer func() {
 		rancherutil.DefaultRetry = savedRetry
 	}()
-	rancherutil.DefaultRetry = wait.Backoff{
-		Steps:    5,
-		Duration: 1 * time.Second,
-		Factor:   1.0,
-		Jitter:   0.1,
-	}
+	rancherutil.DefaultRetry = testRetry
 
 	// Create the VMC resource in the cluster
 	Eventually(func() (*v1alpha1.VerrazzanoManagedCluster, error) {
@@ -286,6 +289,12 @@ func testVMCDeletion(rc *rancherutil.RancherConfig, client *versioned.Clientset,
 	// GIVEN a VMC is deleted from the admin cluster
 	// WHEN the Rancher sync process runs
 	// THEN a Rancher cluster with that name should be deleted
+
+	savedRetry := rancherutil.DefaultRetry
+	defer func() {
+		rancherutil.DefaultRetry = savedRetry
+	}()
+	rancherutil.DefaultRetry = testRetry
 
 	// The VMC should have the clusterID field set before we attempt to delete
 	Eventually(func() bool {
