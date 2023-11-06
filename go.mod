@@ -11,7 +11,9 @@ require (
 	github.com/coreos/go-oidc/v3 v3.6.0
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
+	github.com/fatih/camelcase v1.0.0
 	github.com/fluent/fluent-operator/v2 v2.3.0
+	github.com/fvbommel/sortorder v1.0.1
 	github.com/gertd/go-pluralize v0.2.0
 	github.com/go-logr/logr v1.2.4
 	github.com/golang/mock v1.6.0
@@ -20,6 +22,7 @@ require (
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/mattn/go-isatty v0.0.16
+	github.com/mitchellh/go-testing-interface v1.0.0
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.7
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
