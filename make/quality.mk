@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 GO ?= CGO_ENABLED=0 GO111MODULE=on GOPRIVATE=github.com/verrazzano go
@@ -9,7 +9,7 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 ##@ Linting and coverage
 
-GOLANGCI_LINT_VERSION=1.49.0
+GOLANGCI_LINT_VERSION=1.55.2
 
 .PHONY: check
 check: golangci-lint word-linter url-linter ## run all linters
