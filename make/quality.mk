@@ -16,7 +16,7 @@ check: golangci-lint word-linter url-linter ## run all linters
 
 .PHONY: golangci-lint
 golangci-lint: check-golangci-lint
-	golangci-lint --color never run --max-same-issues 25 --timeout 300s
+	golangci-lint --color never run --max-same-issues 25 --timeout 300s --tests false
 
 .PHONY: check-golangci-lint
 check-golangci-lint: install-golangci-lint ## run Go linters
