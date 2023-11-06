@@ -86,7 +86,6 @@ COPY --from=build_base /home/ /home/
 # copy users/groups added in build_base stage
 COPY --from=build_base /etc/passwd /etc/passwd
 COPY --from=build_base /etc/group /etc/group
-COPY --from=build_base /bin/bash /bin/bash
 
 # copy the operator binary
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-platform-operator /usr/local/bin/verrazzano-platform-operator
