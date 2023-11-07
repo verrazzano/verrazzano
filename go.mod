@@ -211,7 +211,7 @@ replace (
 	github.com/cespare/xxhash/v2 => github.com/cespare/xxhash/v2 v2.2.0
 	github.com/containerd/containerd => github.com/containerd/containerd v1.6.18
 	github.com/crossplane/crossplane-runtime => github.com/verrazzano/crossplane-runtime v0.17.0-1
-	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3
+	github.com/crossplane/oam-kubernetes-runtime => github.com/verrazzano/oam-kubernetes-runtime v0.3.3-4
 	github.com/cyphar/filepath-securejoin => github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/docker => github.com/docker/docker v20.10.24+incompatible
