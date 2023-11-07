@@ -22,8 +22,11 @@ spec:
       initContainers:
         - name: webhookswait
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.image }}
-          command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+          image: {{ .Values.ol8SlimImage }}
+          command: [ 'sh', '-c', "/var/scripts/wait4webhook.sh" ]
+          volumeMounts:
+            - name: webhook-wait
+              mountPath: /var/scripts
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
@@ -68,6 +71,13 @@ spec:
       volumes:
         - name: webhook-certs
           emptyDir: {}
+        - name: webhook-wait
+          configMap:
+            name: {{ .Values.name }}-webhook-wait
+            items:
+              - key: wait4webhook.sh
+                path: wait4webhook.sh
+                mode: 0755
       serviceAccountName: {{ .Values.name }}
       securityContext:
         runAsUser: 1000
