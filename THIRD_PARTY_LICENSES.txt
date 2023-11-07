@@ -12,6 +12,7 @@ Copyright (C) 2021, Oracle and/or its affiliates.
 Copyright (C) 2022, 2023, Oracle and/or its affiliates.
 Copyright (C) 2022, Oracle and/or its affiliates.
 Copyright (C) 2023, Oracle and/or its affiliates.
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
 Copyright (c) 2015-2021 Bitnami
 Copyright (c) 2020, 2021, Oracle and/or its affiliates.
@@ -21,7 +22,6 @@ Copyright (c) 2020, 2023, Oracle and/or its affiliates.
 Copyright (c) 2020, Oracle and/or its affiliates.
 Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 Copyright (c) 2021, 2023, Oracle and/or its affiliates.
-Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2021, Oracle and/or its affiliates.
 Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 Copyright (c) 2022, Oracle and/or its affiliates.
@@ -59,7 +59,7 @@ Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-cloud.google.com/go/compute
+cloud.google.com/go/compute/metadata
 
 == License Type
 SPDX:Apache-2.0
@@ -287,6 +287,25 @@ violate applicable laws.
 For more information, please see https://www.bis.doc.gov
 
 See also https://www.apache.org/dev/crypto.html and/or seek legal counsel.
+
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/coreos/go-oidc/v3
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright 2014 CoreOS, Inc
+
+== Notices
+CoreOS Project
+Copyright 2014 CoreOS, Inc
+
+This product includes software developed at CoreOS, Inc.
+(http://www.coreos.com/).
 
 
 --------------------------------- (separator) ----------------------------------
@@ -693,6 +712,26 @@ SPDX:MIT
 == Copyright
 Copyright (c) 2012 James Cooper <james@bitmechanic.com>
 Copyright 2012 James Cooper. All rights reserved.
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
+github.com/go-jose/go-jose/v3
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright (c) 2012 The Go Authors. All rights reserved.
+Copyright 2010 The Go Authors.  All rights reserved.
+Copyright 2010 The Go Authors. All rights reserved.
+Copyright 2011 The Go Authors.  All rights reserved.
+Copyright 2011 The Go Authors. All rights reserved.
+Copyright 2014 Square Inc.
+Copyright 2016 Square, Inc.
+Copyright 2016 Zbigniew Mandziejewicz
+Copyright 2017 Square Inc.
+Copyright 2018 Square Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1286,7 +1325,8 @@ github.com/hashicorp/go-retryablehttp
 SPDX:MPL-2.0
 
 == Copyright
-(no copyright notices found)
+Copyright (c) 2015 HashiCorp, Inc.
+Copyright (c) HashiCorp, Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1704,6 +1744,7 @@ Copyright 2018 Klaus Post. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2019+ Klaus Post. All rights reserved.
 Copyright 2020+ Klaus Post. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2277,6 +2318,7 @@ Copyright 2018 The prometheus-operator Authors
 Copyright 2020 The prometheus-operator Authors
 Copyright 2021 The prometheus-operator Authors
 Copyright 2022 The prometheus-operator Authors
+Copyright 2023 The prometheus-operator Authors
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2613,6 +2655,19 @@ Copyright (c) 2018 Aliaksandr Valialkin
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
+github.com/verrazzano/pkg
+
+== License Type
+SPDX:UPL-1.0
+
+== Copyright
+Copyright (C) 2021, Oracle and/or its affiliates.
+Copyright (c) 2021 Oracle America, Inc. and its affiliates.
+Copyright (c) 2021, Oracle and/or its affiliates.
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
 github.com/verrazzano/verrazzano-modules
 
 == License Type
@@ -2816,7 +2871,9 @@ Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -3263,7 +3320,6 @@ Copyright 2016 Google Inc.
 Copyright 2016 Google LLC
 Copyright 2017 Google Inc.
 Copyright 2018 Google Inc.
-Copyright 2018 Google LLC
 Copyright 2018 The Grafeas Authors. All rights reserved.
 Copyright 2019 Google LLC.
 Copyright 2019 The Grafeas Authors. All rights reserved.
@@ -3273,6 +3329,8 @@ Copyright 2021 Google LLC
 Copyright 2021 Google LLC.
 Copyright 2021 The Grafeas Authors. All rights reserved.
 Copyright 2022 Google LLC
+Copyright 2023 Google LLC
+Copyright 2023 The Grafeas Authors. All rights reserved.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3287,6 +3345,7 @@ Copyright 2014 gRPC authors.
 Copyright 2015 The gRPC Authors
 Copyright 2015 gRPC authors.
 Copyright 2015-2016 gRPC authors.
+Copyright 2016 The gRPC Authors
 Copyright 2016 gRPC authors.
 Copyright 2017 gRPC authors.
 Copyright 2018 The gRPC Authors
@@ -3296,6 +3355,7 @@ Copyright 2020 The gRPC Authors
 Copyright 2020 gRPC authors.
 Copyright 2021 gRPC authors.
 Copyright 2022 gRPC authors.
+Copyright 2023 gRPC authors.
 
 == Notices
 Copyright 2014 gRPC authors.
@@ -3330,6 +3390,8 @@ Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.",
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -4860,5 +4922,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19.11 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  e749cc3089c315c87a015ea827dca19d
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19 Compiler:gc Platform:darwin/arm64}
+=== License file based on go.mod with md5 sum:  03a3317f0b0926c56d0a1ec37126b84a
