@@ -3,7 +3,7 @@
 
 modules:
   - name: ingress-controller
-    version: 1.7.1
+    version: 1.7.1-1
     chart: platform-operator/thirdparty/charts/ingress-nginx
     valuesFiles:
       - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-1
+    version: 0.12.2-2
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
@@ -49,7 +49,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-monitoring-operator
   - name: oam-kubernetes-runtime
-    version: 0.3.3-1
+    version: 0.3.3-2
     chart: platform-operator/thirdparty/charts/oam-kubernetes-runtime
     valuesFiles:
       - platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
