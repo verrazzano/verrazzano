@@ -49,8 +49,6 @@ pipeline {
         OCI_CLI_AUTH = "instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
 
-        OCI_OS_BUCKET = "verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET = "verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         STABLE_COMMIT_OS_LOCATION = "${CLEAN_BRANCH_NAME}/last-stable-commit.txt"
