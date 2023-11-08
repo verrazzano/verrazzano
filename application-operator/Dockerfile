@@ -2,7 +2,7 @@
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 ARG BASE_IMAGE=ghcr.io/oracle/oraclelinux:8-slim
-ARG FINAL_IMAGE=ghcr.io/verrazzano/ol8-base:v0.0.1-20231102152128-e7afc807
+ARG FINAL_IMAGE=ghcr.io/verrazzano/ol8-static:v0.0.1-20231102152128-e7afc807
 
 FROM $BASE_IMAGE AS build_base
 
