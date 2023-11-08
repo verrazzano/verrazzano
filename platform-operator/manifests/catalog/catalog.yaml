@@ -8,7 +8,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
   - name: cert-manager
-    version: 1.9.1-1
+    version: 1.9.1-2
     chart: platform-operator/thirdparty/charts/cert-manager
     valuesFiles:
       - platform-operator/helm_config/overrides/cert-manager-values.yaml
@@ -121,7 +121,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-pushgateway-values.yaml
   - name: prometheus-node-exporter
-    version: 1.6.1
+    version: 1.6.1-1
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-node-exporter-values.yaml
