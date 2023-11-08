@@ -773,7 +773,7 @@
     },
     {
       "name": "prometheus-node-exporter",
-      "version": "1.6.1",
+      "version": "1.6.1-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
