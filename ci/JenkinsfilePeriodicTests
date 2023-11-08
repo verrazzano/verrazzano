@@ -49,7 +49,7 @@ def periodicsUpToDateFailed        = false // If true, indicates that the period
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
+def ociOsBucket = "$OCI_OS_BUCKET"
 def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
 def lastStableCommitFile = "last-stable-commit.txt"
 
@@ -122,8 +122,6 @@ pipeline {
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 

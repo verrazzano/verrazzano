@@ -107,7 +107,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
@@ -213,7 +212,6 @@ pipeline {
                         KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                         OCI_CLI_AUTH="instance_principal"
                         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                         OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                     }
                     steps {

@@ -136,8 +136,6 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
                 CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
             }
@@ -233,7 +231,6 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
@@ -295,7 +292,6 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 sh """
@@ -351,7 +347,6 @@ pipeline {
         stage("Upgrade Verrazzano and execute selected test") {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_CLI_AUTH="instance_principal"
            }
             steps {

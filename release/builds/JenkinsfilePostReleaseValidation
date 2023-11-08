@@ -80,7 +80,6 @@ pipeline {
         stage('Get Images from Object Storage') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
                 OCI_CLI_AUTH="api_key"
                 OCI_CLI_TENANCY = credentials('oci-tenancy')
                 OCI_CLI_USER = credentials('oci-user-ocid')
@@ -90,7 +89,7 @@ pipeline {
                 OCI_REGION = "us-phoenix-1"
             }
             steps {
-                 script {                
+                 script {
                     println("Downloading image list from object storage")
                     sh "oci --region ${OCI_REGION} os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name ${IMAGES_OBJECT_STORE_FILE} --file verrazzano_images.txt"
                 }
@@ -110,8 +109,7 @@ pipeline {
                 }
             }
         }
-        
+
     }
 
 }
-
