@@ -158,7 +158,6 @@ pipeline {
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_REGION  = "us-phoenix-1"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // Environment variable for Verrazzano CLI executable
