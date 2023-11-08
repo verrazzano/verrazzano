@@ -41,8 +41,6 @@ pipeline {
         DOCKER_SCAN_CREDS = credentials('v8odev-ocir')
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET = "verrazzano-builds"
-        OCI_SCAN_BUCKET = "verrazzano-scan-results"
 
         GITHUB_ACCESS_TOKEN = credentials('github-api-token-release-process')
 
