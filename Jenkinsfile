@@ -107,8 +107,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
         OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
 

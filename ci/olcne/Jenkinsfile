@@ -194,7 +194,6 @@ pipeline {
         JENKINS_READ=credentials('jenkins-auditor')
         OCI_OS_NAMESPACE=credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         // OCI_COMPARTMENT_ID=credentials('oci-tiburon-dev-compartment-ocid')
         // OCI_TELEMETRY_URL=credentials('oci-telemetry-url')
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"

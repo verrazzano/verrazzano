@@ -29,8 +29,7 @@ pipeline {
 
     environment {
         OBJECT_STORAGE_NS = credentials('oci-os-namespace')
-        OBJECT_STORAGE_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
+        OBJECT_STORAGE_BUCKET="$OCI_OS_BUCKET"
         OCI_OS_SHARED_BUCKET="build-shared-files"
         OCI_REGION="us-phoenix-1"
         OCI_CLI_AUTH="api_key"
