@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1-1",
+      "version": "1.9.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -52,30 +52,30 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231108025749-df3d99c0",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231108025749-df3d99c0",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231108025749-df3d99c0",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231108025749-df3d99c0",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             },
             {
               "image": "cert-manager-ctl",
-              "tag": "v1.9.1-20230922085719-ec3b7033",
+              "tag": "v1.9.1-20231108025749-df3d99c0",
               "helmFullImageKey": "startupapicheck.image.repository",
               "helmTagKey": "startupapicheck.image.tag"
             }
@@ -781,7 +781,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.6.1-20230925193620-d2d52786",
+              "tag": "v1.6.1-20231108025039-e17b88f1",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
