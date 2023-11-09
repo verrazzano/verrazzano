@@ -60,7 +60,7 @@ Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
-cloud.google.com/go/compute
+cloud.google.com/go/compute/metadata
 
 == License Type
 SPDX:Apache-2.0
@@ -1979,6 +1979,7 @@ Copyright © 2015 Steve Francia <spf@spf13.com>.
 Copyright © 2016 Steve Francia <spf@spf13.com>.
 Copyright © 2018 Steve Francia <spf@spf13.com>.
 Copyright © 2021 Vasily Ovchinnikov <vasily@remerge.io>.
+Copyright © 2022 Steve Francia <spf@spf13.com>.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2212,7 +2213,9 @@ Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
+Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -2303,6 +2306,7 @@ Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -2378,6 +2382,7 @@ Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -2502,6 +2507,7 @@ SPDX:BSD-3-Clause--modified-by-Google
 == Copyright
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright 2015 The Go Authors. All rights reserved.
+Copyright 2022 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -2539,7 +2545,6 @@ SPDX:BSD-3-Clause--modified-by-Google
 == Copyright
 Copyright (c) 2009 The Go Authors. All rights reserved.
 Copyright (c) 2017 The Go Authors. All rights reserved.
-Copyright (c) Microsoft Corporation
 Copyright 2009 The Go Authors. All rights reserved.
 Copyright 2010 The Go Authors. All rights reserved.
 Copyright 2011 The Go Authors. All rights reserved.
@@ -2551,11 +2556,10 @@ Copyright 2016 The Go Authors. All rights reserved.
 Copyright 2017 The Go Authors. All rights reserved.
 Copyright 2018 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.
-Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"github.com/google/safehtml/template\"\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
-Copyright 2019 The Go Authors. All rights reserved.\n// Use of this source code is governed by a BSD-style\n// license that can be found in the LICENSE file.\n\npackage diff_test\n\nimport (\n\t\"fmt\"\n\t\"math/rand\"\n\t\"strings\"\n\t\"testing\"\n\n\t\"golang.org/x/tools/internal/lsp/diff\"\n\t\"golang.org/x/tools/internal/lsp/diff/difftest\"\n\t\"golang.org/x/tools/internal/span\"\n)\n"
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
 Copyright © 1995-1997 C H Forsyth (forsyth@terzarima.net)
 Copyright © 1997-1999 Vita Nuova Limited
@@ -2616,7 +2620,6 @@ Copyright 2016 Google Inc.
 Copyright 2016 Google LLC
 Copyright 2017 Google Inc.
 Copyright 2018 Google Inc.
-Copyright 2018 Google LLC
 Copyright 2018 The Grafeas Authors. All rights reserved.
 Copyright 2019 Google LLC.
 Copyright 2019 The Grafeas Authors. All rights reserved.
@@ -2626,6 +2629,8 @@ Copyright 2021 Google LLC
 Copyright 2021 Google LLC.
 Copyright 2021 The Grafeas Authors. All rights reserved.
 Copyright 2022 Google LLC
+Copyright 2023 Google LLC
+Copyright 2023 The Grafeas Authors. All rights reserved.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2644,6 +2649,8 @@ Copyright 2019 The Go Authors. All rights reserved.
 Copyright 2019 The Go Authors. All rights reserved.",
 Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2021 The Go Authors. All rights reserved.
+Copyright 2022 The Go Authors. All rights reserved.
+Copyright 2023 The Go Authors. All rights reserved.
 
 == Patents
 Additional IP Rights Grant (Patents)
@@ -4173,5 +4180,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19.11 Compiler:gc Platform:darwin/amd64}
-=== License file based on go.mod with md5 sum:  7e4ff85366e2b442d5dd671c55777c71
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19 Compiler:gc Platform:darwin/arm64}
+=== License file based on go.mod with md5 sum:  01e12f6a50e504c9de8276a4c77dee60
