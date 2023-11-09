@@ -44,7 +44,7 @@ pipeline {
                 // 1st choice is the default value
                 choices: [ "1.24", "1.25", "1.26", "1.27" ])
         string (name: 'EXCLUDE_RELEASES',
-                defaultValue: "v1.0, v1.1, v1.2, v1.3",
+                defaultValue: "v1.0, v1.1, v1.2, v1.3, v1.4",
                 description: 'This is to exclude the specified releases from upgrade tests.', trim: true)
         string (name: 'VERRAZZANO_OPERATOR_IMAGE',
                         defaultValue: 'NONE',
@@ -167,16 +167,6 @@ pipeline {
                         echo "Release Branches: ${releaseBranches}"
                         List finalReleaseBranchesList = removeExcludedReleaseBranches(releaseBranches)
 
-                        echo "List of minor release: ${finalReleaseBranchesList}"
-                        def listOfTipOfReleaseUpgradeJobs = []
-                        def releaseCommitMap = [:]
-                        for(releaseBranch in finalReleaseBranchesList){
-                            releaseCommit = getTipOfReleaseBranches(releaseBranch)
-                            String key = "v"+releaseBranch
-                            releaseCommitMap.put(releaseCommit, getTipOfBranchToMasterJob(key, releaseCommit))
-                        }
-                        listOfTipOfReleaseUpgradeJobs.add(releaseCommitMap)
-
                         def NJObs = Integer.parseInt(params.N_JOBS_FOR_EACH_BATCH)
                         echo "Number of jobs to be run in parallel : ${params.N_JOBS_FOR_EACH_BATCH}"
                         def k = 0
@@ -192,12 +182,6 @@ pipeline {
                                 upgradeJobsStageMapping = [:]
                                 k = 0;
                             }
-                            }
-                            echo "Running upgrades from tip of release branch to master:"
-                            print listOfTipOfReleaseUpgradeJobs
-                            for(job in listOfTipOfReleaseUpgradeJobs){
-                                parallel job
-                                sleep 5
                             }
                             print mapOfJobsInBatches
                             for(batch in mapOfJobsInBatches){
@@ -444,41 +428,6 @@ def getStageOfUpgradeJob(job) {
                     catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE'){
                         echo "Caught: ${err}"
                         sh "exit 1"
-                    }
-                }
-            }
-        }
-    }
-}
-
-def getTipOfBranchToMasterJob(String release, String commitSHA) {
-    return {
-        stage("Upgrade Verrazzano from tip of ${release} to master") {
-            if( CLEAN_BRANCH_NAME == 'master') {
-                script{
-                    try{
-                        echo "Running upgrade job from version ${release}-${commitSHA} to master"
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                        def jobStatus =  build job: "/verrazzano-upgrade-path-tests/${CLEAN_BRANCH_NAME}",
-                            parameters: [
-                                string(name: 'GIT_COMMIT_TO_USE', value: "${commitSHA}"),
-                                string(name: 'VERSION_FOR_INSTALL', value: "${release}" ),
-                                string(name: 'VERSION_FOR_UPGRADE', value: "master"),
-                                string(name: 'VZ_INSTALL_CONFIG', value: params.VZ_INSTALL_CONFIG),
-                                string(name: 'IS_TRIGGERED_MANUALLY', value: "NO"),
-                                string(name: 'VERRAZZANO_OPERATOR_IMAGE', value: params.VERRAZZANO_OPERATOR_IMAGE),
-                                string(name: 'WILDCARD_DNS_DOMAIN', value: params.WILDCARD_DNS_DOMAIN),
-                                string(name: 'TAGGED_TESTS', value: params.TAGGED_TESTS),
-                                string(name: 'INCLUDED_TESTS', value: params.INCLUDED_TESTS),
-                                string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
-                                string(name: 'CONSOLE_REPO_BRANCH', value: params.CONSOLE_REPO_BRANCH)
-                            ],  wait: true, propagate: true
-                        }
-                    } catch(err) {
-                        catchError(message: "${STAGE_NAME} Failed with ${err}", buildResult: 'FAILURE', stageResult: 'FAILURE') {
-                            echo "Caught: ${err}"
-                            sh "exit 1"
-                        }
                     }
                 }
             }

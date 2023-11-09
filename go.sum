@@ -850,8 +850,8 @@ github.com/verrazzano/crossplane-runtime v0.17.0-1 h1:juTCAYMWDWITX9vFTdNnF97+Sl
 github.com/verrazzano/crossplane-runtime v0.17.0-1/go.mod h1:fA8Dp1vT5JjpBCE3KlellJ0Z/Xo1aekngOXmuDsryz0=
 github.com/verrazzano/fluent-operator/v2 v2.2.0 h1:rsKzccy5Di5SdbIJW31AdbWqET7cHRW+p0XY10+XXZ0=
 github.com/verrazzano/fluent-operator/v2 v2.2.0/go.mod h1:v/q0zLEOWP6MKHP7xvrhtASZTwlrk4LcCne/kgPQ7J0=
-github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3 h1:bxHzLJ7CtPOQ8RKVEGbxb3q1Zoq7wMH60AF6vSEXdEo=
-github.com/verrazzano/oam-kubernetes-runtime v0.3.3-3/go.mod h1:yw2g1lpW2qcQPPVI/0pcgmnRQL2KU9CucT06laPlG24=
+github.com/verrazzano/oam-kubernetes-runtime v0.3.3-4 h1:32vLP4nf/Z4A3yto7O9O+439leZDB5128EMYecoVuhs=
+github.com/verrazzano/oam-kubernetes-runtime v0.3.3-4/go.mod h1:1p/NurfVWx9Xi5uLuXF9Ojx+XUmIF+z9TPkljcZcd5E=
 github.com/verrazzano/pkg v0.0.2 h1:Q80lpGaAswNPXkZZL/0THIa9PXvewi+c6xSSzWQyhG8=
 github.com/verrazzano/pkg v0.0.2/go.mod h1:l9utTv9KBQZlJI/HYnw2NQwisYTeHeHl82XOlCiZygM=
 github.com/verrazzano/verrazzano-modules v0.0.0-20230915154150-1fe7062cbccd h1:+YEpt1F5UUr20PSeyvy4knsEO//a3SnmjJj1AvAxRqk=
