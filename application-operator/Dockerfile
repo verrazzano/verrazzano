@@ -28,7 +28,6 @@ COPY --from=build_base /etc/group /etc/group
 COPY --from=build_base --chown=verrazzano:verrazzano /home/ /home/
 
 # Copy the operator binary
-#COPY --from=build_base --chown=verrazzano:verrazzano /root/go/src/github.com/verrazzano/application-operator/scripts/wait4webhook.sh /usr/local/bin/wait4webhook.sh
 COPY --from=build_base --chown=verrazzano:verrazzano /usr/local/bin/verrazzano-application-operator /usr/local/bin/verrazzano-application-operator
 
 COPY --from=build_base /root/go/src/github.com/verrazzano/application-operator/THIRD_PARTY_LICENSES.txt /licenses/
