@@ -22,7 +22,7 @@ spec:
       initContainers:
         - name: webhookswait
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.ol8SlimImage }}
+          image: {{ .Values.webhookWaitImage }}
           command: [ 'sh', '-c', "/var/scripts/wait4webhook.sh" ]
           volumeMounts:
             - name: webhook-wait

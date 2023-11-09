@@ -460,6 +460,12 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8-slim",
+              "helmFullImageKey": "webhookWaitImage"
             }
           ]
         }
