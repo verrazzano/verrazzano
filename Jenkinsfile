@@ -3,6 +3,8 @@
 
 import groovy.transform.Field
 
+// dummy comment to touch file
+
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 def SKIP_TRIGGERED_TESTS = false
