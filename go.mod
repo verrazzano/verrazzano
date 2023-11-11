@@ -24,7 +24,7 @@ require (
 	github.com/onsi/gomega v1.27.7
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.64.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.69.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
@@ -41,16 +41,16 @@ require (
 	helm.sh/helm/v3 v3.10.3
 	istio.io/api v0.0.0-20230712174848-a2b2de508c88
 	istio.io/client-go v1.17.4
-	k8s.io/api v0.26.3
-	k8s.io/apiextensions-apiserver v0.26.1
-	k8s.io/apimachinery v0.27.2
+	k8s.io/api v0.28.3
+	k8s.io/apiextensions-apiserver v0.28.3
+	k8s.io/apimachinery v0.28.3
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.26.3
 	k8s.io/code-generator v0.25.4
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubectl v0.25.2
 	sigs.k8s.io/cluster-api v1.3.3
-	sigs.k8s.io/controller-runtime v0.14.6
+	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -169,7 +169,7 @@ require (
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	golang.org/x/crypto v0.14.0
-	golang.org/x/net v0.10.0
+	golang.org/x/net v0.17.0
 	golang.org/x/oauth2 v0.7.0
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.13.0 // indirect
@@ -188,13 +188,13 @@ require (
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491
+	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	oras.land/oras-go v1.2.0 // indirect
 	sigs.k8s.io/gateway-api v0.4.3 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.3.0 // indirect
 )
 
 require (
