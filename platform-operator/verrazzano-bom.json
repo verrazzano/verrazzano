@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-controller",
-      "version": "1.7.1-1",
+      "version": "1.7.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
