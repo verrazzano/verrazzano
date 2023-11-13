@@ -24,8 +24,8 @@ spec:
       initContainers:
         - name: webhookswait
           imagePullPolicy: {{ .Values.imagePullPolicy }}
-          image: {{ .Values.image }}
-          command: [ 'sh', '-c', "/usr/local/bin/wait4webhook.sh" ]
+          image: {{ .Values.webhookWaitImage }}
+          command: [ 'sh', '-c', "curl -4 -k --retry 25 --retry-max-time 120 --retry-delay 5 --retry-connrefused --fail https://verrazzano-cluster-operator-webhook:443/validate-clusters-verrazzano-io-v1alpha1-verrazzanomanagedcluster -H 'Content-Type: application/json'" ]
           securityContext:
             privileged: false
             allowPrivilegeEscalation: false
