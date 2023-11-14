@@ -182,11 +182,11 @@
             },
             {
               "image": "rancher-fleet-agent-jenkins",
-              "tag": "20231114140857-5c9dbf0f"
+              "tag": "20231114142459-432fdd22"
             },
             {
               "image": "rancher-fleet-jenkins",
-              "tag": "20231114140857-5c9dbf0f"
+              "tag": "20231114142459-432fdd22"
             },
             {
               "image": "rancher-gitjob",
