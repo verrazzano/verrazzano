@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-2
+    version: 0.12.2-3
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
