@@ -177,24 +177,24 @@
               "tag": "v0.1.20-20230908151457-b1ce5ae"
             },
             {
-              "image": "rancher-webhook-jenkins",
-              "tag": "20231114210113-e77a046"
+              "image": "rancher-webhook",
+              "tag": "v0.3.6-20231115164958-2a86018"
             },
             {
-              "image": "rancher-fleet-agent-jenkins",
-              "tag": "20231114202844-a30f5a49"
+              "image": "rancher-fleet-agent",
+              "tag": "v0.7.1-20231115165513-42f78998"
             },
             {
-              "image": "rancher-fleet-jenkins",
-              "tag": "20231114202844-a30f5a49"
+              "image": "rancher-fleet",
+              "tag": "v0.7.1-20231115165513-42f78998"
             },
             {
-              "image": "rancher-gitjob-jenkins",
-              "tag": "20231115152246-d817191"
+              "image": "rancher-gitjob",
+              "tag": "v0.1.32-20231115170141-6a4d6ed"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "20231114214147-652aa2e"
+              "tag": "v1.0.0-20231115164124-83ffd98"
             }
           ]
         }
