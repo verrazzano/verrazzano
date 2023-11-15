@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-controller",
-      "version": "1.7.1-1",
+      "version": "1.7.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -28,13 +28,13 @@
           "images": [
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20231107025443-ae3a45db1",
+              "tag": "v1.7.1-20231113191341-3732e6c9e",
               "helmFullImageKey": "controller.image.repository",
               "helmTagKey": "controller.image.tag"
             },
             {
               "image": "nginx-ingress-default-backend",
-              "tag": "v1.7.1-20231107025443-ae3a45db1",
+              "tag": "v1.7.1-20231113191341-3732e6c9e",
               "helmFullImageKey": "defaultBackend.image.repository",
               "helmTagKey": "defaultBackend.image.tag"
             }
@@ -103,7 +103,7 @@
     },
     {
       "name": "external-dns",
-      "version": "0.12.2-2",
+      "version": "0.12.2-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -111,7 +111,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20231107025450-8480e5c7",
+              "tag": "v0.12.2-20231113212417-555c0a85",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -218,7 +218,7 @@
     },
     {
       "name": "capi-oci",
-      "version": "v0.12.1",
+      "version": "v0.13.0",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -226,7 +226,7 @@
           "images": [
             {
               "image": "cluster-api-oci-controller",
-              "tag": "v0.12.1"
+              "tag": "v0.13.0"
             }
           ]
         }
@@ -283,7 +283,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20231107025443-ae3a45db1",
+              "tag": "v1.7.1-20231113191341-3732e6c9e",
               "helmFullImageKey": "api.imageName",
               "helmTagKey": "api.imageVersion"
             },
@@ -342,7 +342,7 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20230913103358-6033fa2",
+              "tag": "v2.0.0-20231109190054-44bb613",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
@@ -373,7 +373,7 @@
             },
             {
               "image": "nginx-ingress-controller",
-              "tag": "v1.7.1-20231107025443-ae3a45db1",
+              "tag": "v1.7.1-20231113191341-3732e6c9e",
               "helmFullImageKey": "monitoringOperator.oidcProxyImage"
             }
           ]
@@ -426,6 +426,12 @@
               "image": "VERRAZZANO_CLUSTER_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_CLUSTER_OPERATOR_TAG",
               "helmFullImageKey": "image"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8-slim",
+              "helmFullImageKey": "webhookWaitImage"
             }
           ]
         }
@@ -460,6 +466,12 @@
               "image": "VERRAZZANO_APPLICATION_OPERATOR_IMAGE",
               "tag": "VERRAZZANO_APPLICATION_OPERATOR_TAG",
               "helmFullImageKey": "image"
+            },
+            {
+              "repository": "oracle",
+              "image": "oraclelinux",
+              "tag": "8-slim",
+              "helmFullImageKey": "webhookWaitImage"
             }
           ]
         }
@@ -792,7 +804,7 @@
     },
     {
       "name": "jaeger-operator",
-      "version": "1.42.0-1",
+      "version": "1.42.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -800,7 +812,7 @@
           "images": [
             {
               "image": "jaeger-operator",
-              "tag": "1.42.0-20230922084214-9970d003",
+              "tag": "1.42.0-20231113173501-e3e86fb8",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -812,7 +824,7 @@
           "images": [
             {
               "image": "jaeger-agent",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -823,7 +835,7 @@
           "images": [
             {
               "image": "jaeger-collector",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -834,7 +846,7 @@
           "images": [
             {
               "image": "jaeger-query",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -845,7 +857,7 @@
           "images": [
             {
               "image": "jaeger-ingester",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -856,7 +868,7 @@
           "images": [
             {
               "image": "jaeger-es-index-cleaner",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -867,7 +879,7 @@
           "images": [
             {
               "image": "jaeger-es-rollover",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -878,7 +890,7 @@
           "images": [
             {
               "image": "jaeger-all-in-one",
-              "tag": "1.42.0-20230925061552-cd357656",
+              "tag": "1.42.0-20231113164841-192e39df",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]

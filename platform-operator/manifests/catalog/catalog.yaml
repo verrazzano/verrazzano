@@ -3,7 +3,7 @@
 
 modules:
   - name: ingress-controller
-    version: 1.7.1-1
+    version: 1.7.1-2
     chart: platform-operator/thirdparty/charts/ingress-nginx
     valuesFiles:
       - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-2
+    version: 0.12.2-3
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
@@ -35,7 +35,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
   - name: cluster-api
-    version: 1.5.3
+    version: 1.5.3-1
   - name: verrazzano
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano
@@ -126,7 +126,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-node-exporter-values.yaml
   - name: jaeger-operator
-    version: 1.42.0-1
+    version: 1.42.0-2
     chart: platform-operator/thirdparty/charts/jaegertracing/jaeger-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/jaeger-operator-values.yaml
