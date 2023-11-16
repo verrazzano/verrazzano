@@ -323,8 +323,8 @@
           "name": "verrazzano-console",
           "images": [
             {
-              "image": "console-jenkins",
-              "tag": "v2.0.0-20231115215548-ac122fd",
+              "image": "console",
+              "tag": "v2.0.0-20231116162144-dddf493",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
