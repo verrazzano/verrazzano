@@ -19,7 +19,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
-	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
+	github.com/gordonklaus/ineffassign v0.1.0
 	github.com/hashicorp/go-retryablehttp v0.7.4
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mitchellh/go-testing-interface v1.0.0
