@@ -49,7 +49,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-monitoring-operator
   - name: oam-kubernetes-runtime
-    version: 0.3.3-2
+    version: 0.3.3-3
     chart: platform-operator/thirdparty/charts/oam-kubernetes-runtime
     valuesFiles:
       - platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
@@ -73,7 +73,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/coherence-values.yaml
   - name: fluent-operator
-    version: 2.2.0-1
+    version: 2.2.0-2
     chart: platform-operator/thirdparty/charts/fluent-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/fluent-operator-values.yaml
