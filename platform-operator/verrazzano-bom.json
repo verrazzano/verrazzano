@@ -736,7 +736,7 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "2.10.0",
+      "version": "2.10.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -744,7 +744,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.10.0-20230925145429-85dfe41a",
+              "tag": "v2.10.0-20231110043525-74ed1d97",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"

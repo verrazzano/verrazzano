@@ -111,7 +111,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
   - name: kube-state-metrics
-    version: 2.10.0
+    version: 2.10.0-1
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics
     valuesFiles:
       - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml
