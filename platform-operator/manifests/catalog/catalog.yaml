@@ -35,7 +35,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
   - name: cluster-api
-    version: 1.5.3-1
+    version: 1.5.3-2
   - name: verrazzano
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano
@@ -73,7 +73,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/coherence-values.yaml
   - name: fluent-operator
-    version: 2.2.0-1
+    version: 2.2.0-2
     chart: platform-operator/thirdparty/charts/fluent-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/fluent-operator-values.yaml
@@ -111,7 +111,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
   - name: kube-state-metrics
-    version: 2.10.0
+    version: 2.10.0-1
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics
     valuesFiles:
       - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml

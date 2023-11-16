@@ -242,11 +242,11 @@
           "images": [
             {
               "image": "cluster-api-ocne-bootstrap-controller",
-              "tag": "v1.7.0-20230815141941-9a36ded"
+              "tag": "v1.7.0-20231115223310-76c6881"
             },
             {
               "image": "cluster-api-ocne-control-plane-controller",
-              "tag": "v1.7.0-20230815141941-9a36ded"
+              "tag": "v1.7.0-20231115223310-76c6881"
             }
           ]
         }
@@ -535,7 +535,7 @@
     },
     {
       "name": "fluent-operator",
-      "version": "2.2.0-1",
+      "version": "2.2.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -543,7 +543,7 @@
           "images": [
             {
               "image": "fluent-operator",
-              "tag": "v2.2.0-20230922080640-052953d",
+              "tag": "v2.2.0-20231115181817-efb7a1e",
               "helmFullImageKey": "operator.container.repository",
               "helmTagKey": "operator.container.tag"
             },
@@ -748,7 +748,7 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "2.10.0",
+      "version": "2.10.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -756,7 +756,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.10.0-20230925145429-85dfe41a",
+              "tag": "v2.10.0-20231110043525-74ed1d97",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"

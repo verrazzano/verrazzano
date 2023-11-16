@@ -7,13 +7,14 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"time"
+
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	appsv1 "k8s.io/api/apps/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"time"
 
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
@@ -78,7 +79,7 @@ var (
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Time the reconcile process and set the metric with the elapsed time
 	startTime := time.Now()
-	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
+	defer func() { reconcileTimeMetric.Set(time.Since(startTime).Seconds()) }()
 
 	if ctx == nil {
 		reconcileErrorCount.Inc()
