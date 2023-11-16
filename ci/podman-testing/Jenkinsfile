@@ -3,7 +3,6 @@ pipeline {
     agent {
        docker {
             image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
-            args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
             label "CFGTST_tvlam-ol9_ben-ol8-large-lhr"
@@ -181,7 +180,7 @@ pipeline {
                 echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                 echo "Create Kind cluster"
                 cd ${TEST_SCRIPTS_DIR}
-                ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true false "NONE" ${KIND_NODE_COUNT}
+                ./create_kind_cluster.sh "${CLUSTER_NAME}" "${GO_REPO_PATH}/verrazzano/platform-operator" "${KUBECONFIG}" "${KIND_KUBERNETES_CLUSTER_VERSION}" true true true false "NONE" "${KIND_NODE_COUNT}"
                 if [ $? -ne 0 ]; then
                   mkdir $WORKSPACE/kind-logs
                   kind export logs $WORKSPACE/kind-logs
