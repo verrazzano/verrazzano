@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/restart"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/helm"
@@ -580,9 +582,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		if err != nil {
 			return nil, err
 		}
-		for i := range scKvs {
-			kvs = append(kvs, scKvs[i])
-		}
+
+		kvs = append(kvs, scKvs...)
 	}
 	return kvs, nil
 }

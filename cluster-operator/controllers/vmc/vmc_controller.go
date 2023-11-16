@@ -72,7 +72,7 @@ var (
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Time the reconcile process and set the metric with the elapsed time
 	startTime := time.Now()
-	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
+	defer func() { reconcileTimeMetric.Set(time.Since(startTime).Seconds()) }()
 
 	if ctx == nil {
 		reconcileErrorCount.Inc()
