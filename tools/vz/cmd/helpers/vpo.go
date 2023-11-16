@@ -52,7 +52,7 @@ func SetDefaultDeleteFunc() {
 	DeleteFunc = deleteLeftoverPlatformOperator
 }
 
-func FakeDeleteFunc(client clipkg.Client) error {
+func FakeDeleteFunc(_ clipkg.Client) error {
 	return nil
 }
 

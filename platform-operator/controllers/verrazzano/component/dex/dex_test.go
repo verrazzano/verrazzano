@@ -5,9 +5,10 @@ package dex
 
 import (
 	"context"
-	"github.com/verrazzano/verrazzano/pkg/test/ip"
 	"strings"
 	"testing"
+
+	"github.com/verrazzano/verrazzano/pkg/test/ip"
 
 	networkv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -38,20 +39,6 @@ var testVZ = &vzapi.Verrazzano{
 			Dex: &vzapi.DexComponent{},
 		},
 	},
-}
-
-var crEnabled = vzapi.Verrazzano{
-	Spec: vzapi.VerrazzanoSpec{
-		Components: vzapi.ComponentSpec{
-			Dex: &vzapi.DexComponent{
-				Enabled: getBoolPtr(true),
-			},
-		},
-	},
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
 }
 
 func createTestNginxService() *v1.Service {

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 //go:build tools
@@ -13,8 +13,14 @@ import (
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"
 	_ "k8s.io/code-generator/cmd/lister-gen"
+
 	// Other tools
 	_ "github.com/gordonklaus/ineffassign"
 	_ "golang.org/x/lint"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
+
+	// Fix for go 1.20
+	_ "github.com/fatih/camelcase"
+	_ "github.com/fvbommel/sortorder"
+	_ "github.com/mitchellh/go-testing-interface"
 )
