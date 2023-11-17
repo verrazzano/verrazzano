@@ -85,7 +85,7 @@
     },
     {
       "name": "cert-manager-webhook-oci",
-      "version": "0.1.0-1",
+      "version": "0.1.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -93,7 +93,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230925072151-7a73e30",
+              "tag": "v0.1.0-20231117190540-ade29ad",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
