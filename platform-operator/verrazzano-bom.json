@@ -92,8 +92,8 @@
           "name": "cert-manager-webhook-oci",
           "images": [
             {
-              "image": "cert-manager-webhook-oci-jenkins",
-              "tag": "v0.1.0-20231116192914-b9bdf39",
+              "image": "cert-manager-webhook-oci",
+              "tag": "v0.1.0-20231117190540-ade29ad",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
