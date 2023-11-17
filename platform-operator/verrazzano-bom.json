@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.19.0",
+      "version": "1.19.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.19.0-20231002202943-1a85d369",
+              "tag": "1.19.3-20231116210157-e7d1556c",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.0-20231002202943-1a85d369",
+              "tag": "1.19.3-20231116210157-e7d1556c",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -1024,7 +1024,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0-1",
+      "version": "2.4.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1032,7 +1032,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20231012121111-9b262f4",
+              "tag": "v2.4.0-20231115144954-5445dca",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
