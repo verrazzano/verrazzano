@@ -352,9 +352,9 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 }
 
 // getClientWithWatch returns a client containing all VPO objects
-/*func getClientWithWatch() client.WithWatch {
+func getClientWithWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
-}*/
+}
 
 // getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
 func getClientWithVZWatch() client.WithWatch {
