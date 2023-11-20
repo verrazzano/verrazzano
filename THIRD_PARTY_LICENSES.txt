@@ -60,6 +60,21 @@ Copyright 2018 The Kubernetes Authors. All Rights Reserved.
 --------------------------------- (separator) ----------------------------------
 
 == Dependency
+cloud.google.com/go/compute/metadata
+
+== License Type
+SPDX:Apache-2.0
+
+== Copyright
+Copyright 2014 Google LLC
+Copyright 2016 Google LLC
+Copyright 2018 Google LLC
+Copyright 2021 Google LLC
+Copyright 2022 Google LLC
+
+--------------------------------- (separator) ----------------------------------
+
+== Dependency
 github.com/BurntSushi/toml
 
 == License Type
@@ -2867,8 +2882,10 @@ Copyright 2016 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
+Copyright 2020 Google LLC
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
+Copyright 2022 Google LLC
 Copyright 2022 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
@@ -4136,4 +4153,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 === ATTRIBUTION-HELPER-GENERATED:
 === Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.20.10 Compiler:gc Platform:darwin/arm64}
-=== License file based on go.mod with md5 sum:  19f6710a65f626350eed93a1290c26c3
+=== License file based on go.mod with md5 sum:  0550c11c33c125df9cba34ad251801ce
