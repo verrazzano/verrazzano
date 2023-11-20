@@ -4922,5 +4922,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19 Compiler:gc Platform:darwin/arm64}
-=== License file based on go.mod with md5 sum:  03a3317f0b0926c56d0a1ec37126b84a
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.20.10 Compiler:gc Platform:darwin/arm64}
+=== License file based on go.mod with md5 sum:  4aab9a985133803c46307a9d6a8e9ffa
