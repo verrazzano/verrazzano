@@ -40,12 +40,12 @@ require (
 	helm.sh/helm/v3 v3.10.3
 	istio.io/api v0.0.0-20221208152505-d807bc07da6a
 	istio.io/client-go v1.15.4
-	k8s.io/api v0.26.3
-	k8s.io/apiextensions-apiserver v0.26.1
+	k8s.io/api v0.25.2
+	k8s.io/apiextensions-apiserver v0.25.2
 	k8s.io/apimachinery v0.27.2
 	k8s.io/cli-runtime v0.25.2
-	k8s.io/client-go v0.26.3
-	k8s.io/code-generator v0.26.1
+	k8s.io/client-go v0.25.2
+	k8s.io/code-generator v0.25.2
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
 	k8s.io/kubectl v0.25.2
 	sigs.k8s.io/cluster-api v1.2.0
@@ -145,9 +145,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiserver v0.26.1 // indirect
+	k8s.io/apiserver v0.25.2 // indirect
 	k8s.io/cluster-bootstrap v0.24.0 // indirect
-	k8s.io/component-base v0.26.1 // indirect
+	k8s.io/component-base v0.25.2 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-aggregator v0.24.2 // indirect
@@ -160,6 +160,8 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute v1.19.1 // indirect
+	cloud.google.com/go/compute/metadata v0.2.3 // indirect
 	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/rogpeppe/go-internal v1.10.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
