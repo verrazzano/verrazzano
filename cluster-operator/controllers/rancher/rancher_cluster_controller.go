@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package rancher
@@ -82,7 +82,7 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Time the reconcile process and set the metric with the elapsed time
 	startTime := time.Now()
-	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
+	defer func() { reconcileTimeMetric.Set(time.Since(startTime).Seconds()) }()
 
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)

@@ -15,7 +15,7 @@ import (
 // GIVEN a call to handleMain
 // WHEN with valid/invalid inputs
 // THEN exit codes returned are as expected
-func TestHandleMain(t *testing.T) {
+func TestHandleMain(_ *testing.T) {
 	// This is setting up the main.logger, do NOT set it as a var here (or you will get a nil reference running
 	// the test)
 	logger = log.GetDebugEnabledLogger()
