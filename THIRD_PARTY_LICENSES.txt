@@ -1899,7 +1899,9 @@ Copyright 2017 The Prometheus Authors
 Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
+Copyright 2020 The Prometheus-operator Authors
 Copyright 2021 The Prometheus Authors
+Copyright 2022 The Prometheus Authors
 
 == Notices
 Common libraries shared by Prometheus Go components.
@@ -1926,6 +1928,7 @@ Copyright 2018 The Prometheus Authors
 Copyright 2019 The Prometheus Authors
 Copyright 2020 The Prometheus Authors
 Copyright 2021 The Prometheus Authors
+Copyright 2022 The Prometheus Authors
 
 == Notices
 procfs provides functions to retrieve system, kernel and process
@@ -2168,7 +2171,9 @@ SPDX:MIT
 
 == Copyright
 Copyright (c) 2017 Uber Technologies, Inc.
-Copyright (c) 2019 Uber Technologies, Inc.
+Copyright (c) 2017-2021 Uber Technologies, Inc.
+Copyright (c) 2020 Uber Technologies, Inc.
+Copyright (c) 2021 Uber Technologies, Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3051,6 +3056,7 @@ Copyright 2020 Intel Coporation.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4180,5 +4186,5 @@ The above copyright notice and either this complete permission notice or at a mi
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 === ATTRIBUTION-HELPER-GENERATED:
-=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.19 Compiler:gc Platform:darwin/arm64}
-=== License file based on go.mod with md5 sum:  01e12f6a50e504c9de8276a4c77dee60
+=== Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.20.10 Compiler:gc Platform:darwin/arm64}
+=== License file based on go.mod with md5 sum:  67cc2176b224ad601ceb7f4209612c2a

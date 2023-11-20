@@ -23,7 +23,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE_1_5}"
+            image "${GOLANG20_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS_1_5}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
