@@ -22,7 +22,8 @@ type Interface interface {
 	VerrazzanoV1alpha1() verrazzanov1alpha1.VerrazzanoV1alpha1Interface
 }
 
-// Clientset contains the clients for groups.
+// Clientset contains the clients for groups. Each group has exactly one
+// version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	verrazzanoV1beta1  *verrazzanov1beta1.VerrazzanoV1beta1Client
