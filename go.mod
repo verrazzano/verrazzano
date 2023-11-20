@@ -13,7 +13,7 @@ require (
 	github.com/fatih/camelcase v1.0.0
 	github.com/fvbommel/sortorder v1.0.1
 	github.com/gertd/go-pluralize v0.2.0
-	github.com/go-logr/logr v1.2.4
+	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.5.9
 	github.com/google/uuid v1.3.0
@@ -21,17 +21,17 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mitchellh/go-testing-interface v1.0.0
-	github.com/onsi/ginkgo/v2 v2.9.1
-	github.com/onsi/gomega v1.27.7
+	github.com/onsi/ginkgo/v2 v2.1.6
+	github.com/onsi/gomega v1.20.1
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.59.1
-	github.com/prometheus/client_golang v1.14.0
+	github.com/prometheus/client_golang v1.12.1
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.8.3
 	github.com/verrazzano/verrazzano-monitoring-operator v0.0.31-0.20230201202534-ac5ebe880e95
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.21.0
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/text v0.13.0
 	golang.org/x/tools v0.7.0
@@ -42,14 +42,14 @@ require (
 	istio.io/client-go v1.15.4
 	k8s.io/api v0.25.2
 	k8s.io/apiextensions-apiserver v0.25.2
-	k8s.io/apimachinery v0.27.2
+	k8s.io/apimachinery v0.25.2
 	k8s.io/cli-runtime v0.25.2
 	k8s.io/client-go v0.25.2
 	k8s.io/code-generator v0.25.2
-	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f
+	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea
 	k8s.io/kubectl v0.25.2
 	sigs.k8s.io/cluster-api v1.2.0
-	sigs.k8s.io/controller-runtime v0.14.6
+	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/controller-tools v0.9.2
 	sigs.k8s.io/kind v0.14.0
 	sigs.k8s.io/yaml v1.3.0
