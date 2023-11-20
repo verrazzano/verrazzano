@@ -455,7 +455,6 @@ SPDX:Apache-2.0
 Copyright 2019 The logr Authors.
 Copyright 2020 The logr Authors.
 Copyright 2021 The logr Authors.
-Copyright 2022 The logr Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -1778,7 +1777,6 @@ SPDX:Apache-2.0
 
 == Copyright
 Copyright (c) 2013, The Prometheus Authors
-Copyright (c) 2015 Björn Rabenstein
 Copyright 2010 The Go Authors
 Copyright 2012-2015 The Prometheus Authors
 Copyright 2013 Matt T. Proud
@@ -2145,12 +2143,10 @@ SPDX:MIT
 Copyright (c) 2016 Uber Technologies, Inc.
 Copyright (c) 2016, 2017 Uber Technologies, Inc.
 Copyright (c) 2016-2017 Uber Technologies, Inc.
-Copyright (c) 2016-2022 Uber Technologies, Inc.
 Copyright (c) 2017 Uber Technologies, Inc.
 Copyright (c) 2018 Uber Technologies, Inc.
 Copyright (c) 2020 Uber Technologies, Inc.
 Copyright (c) 2021 Uber Technologies, Inc.
-Copyright (c) 2022 Uber Technologies, Inc.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -2909,7 +2905,6 @@ Copyright 2019 The Kubernetes Authors.
 Copyright 2020 The Kubernetes Authors.
 Copyright 2021 The Kubernetes Authors.
 Copyright 2022 The Kubernetes Authors.
-Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -3046,20 +3041,15 @@ SPDX:Apache-2.0
 
 == Copyright
 Copyright (C) MongoDB, Inc. 2017-present.
-Copyright (c) 2020 The Go Authors. All rights reserved.
 Copyright 2015 go-swagger maintainers
 Copyright 2016 The Kubernetes Authors.
 Copyright 2017 The Kubernetes Authors.
 Copyright 2017 go-swagger maintainers
 Copyright 2018 The Kubernetes Authors.
 Copyright 2019 The Kubernetes Authors.
-Copyright 2020 The Go Authors. All rights reserved.
 Copyright 2020 The Kubernetes Authors.
-Copyright 2021 The Go Authors. All rights reserved.
 Copyright 2021 The Kubernetes Authors.
-Copyright 2022 The Go Authors. All rights reserved.
 Copyright 2022 The Kubernetes Authors.
-Copyright 2023 The Kubernetes Authors.
 
 --------------------------------- (separator) ----------------------------------
 
@@ -4153,4 +4143,4 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 === ATTRIBUTION-HELPER-GENERATED:
 === Attribution helper version: {Major:0 Minor:11 GitVersion:0.10.0-110-gd8300771 GitCommit:d8300771fadb50f0559a6f0dcf4c61ee69c63412 GitTreeState:clean BuildDate:2023-06-01T14:41:46Z GoVersion:go1.20.10 Compiler:gc Platform:darwin/arm64}
-=== License file based on go.mod with md5 sum:  0550c11c33c125df9cba34ad251801ce
+=== License file based on go.mod with md5 sum:  67cc2176b224ad601ceb7f4209612c2a
