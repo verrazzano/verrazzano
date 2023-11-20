@@ -286,7 +286,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // WHEN I call cmd.Execute without Verrazzano installed
 // THEN expect the command to generate bug report
 func TestBugReportNoVerrazzano(t *testing.T) {
-	c := getClientWithWatch()
+	c := getClientWithVZWatch()
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
