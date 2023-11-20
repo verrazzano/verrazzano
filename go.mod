@@ -185,3 +185,9 @@ replace (
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
 )
+
+require (
+	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d
+	github.com/mitchellh/go-wordwrap v1.0.0
+	github.com/russross/blackfriday v1.5.2
+)
