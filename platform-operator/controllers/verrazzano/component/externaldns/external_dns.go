@@ -54,112 +54,42 @@ func preInstall(compContext spi.ComponentContext) error {
 		return compContext.Log().ErrorfNewErr("Failed to create or update the cert-manager namespace: %v", err)
 	}
 
-	if err := common.CopyOCIDNSSecret(compContext, ComponentNamespace); err != nil {
-		return err
+	// Get OCI DNS secret from the verrazzano-install namespace
+	dns := compContext.EffectiveCR().Spec.Components.DNS
+	dnsSecret := v1.Secret{}
+	if err := compContext.Client().Get(context.TODO(), client.ObjectKey{Name: dns.OCI.OCIConfigSecret, Namespace: constants.VerrazzanoInstallNamespace}, &dnsSecret); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to find secret %s in the %s namespace: %v", dns.OCI.OCIConfigSecret, constants.VerrazzanoInstallNamespace, err)
+	}
+
+	//check if scope value is valid
+	scope := dns.OCI.DNSScope
+	if scope != dnsGlobal && scope != dnsPrivate && scope != "" {
+		return compContext.Log().ErrorfNewErr("Failed, invalid OCI DNS scope value: %s. If set, value can only be 'GLOBAL' or 'PRIVATE", dns.OCI.DNSScope)
+	}
+
+	// Attach compartment field to secret and apply it in the external DNS namespace
+	externalDNSSecret := v1.Secret{}
+	compContext.Log().Debug("Creating the external DNS secret")
+	externalDNSSecret.Namespace = ComponentNamespace
+	externalDNSSecret.Name = dnsSecret.Name
+	if _, err := controllerutil.CreateOrUpdate(context.TODO(), compContext.Client(), &externalDNSSecret, func() error {
+		externalDNSSecret.Data = make(map[string][]byte)
+
+		// Verify that the oci secret has one value
+		if len(dnsSecret.Data) != 1 {
+			return compContext.Log().ErrorNewErr("Failed, OCI secret for OCI DNS should be created from one file")
+		}
+
+		// Extract data and create secret in the external DNS namespace
+		for k := range dnsSecret.Data {
+			externalDNSSecret.Data[ociSecretFileName] = append(dnsSecret.Data[k], []byte(fmt.Sprintf("\ncompartment: %s\n", dns.OCI.DNSZoneCompartmentOCID))...)
+		}
+
+		return nil
+	}); err != nil {
+		return compContext.Log().ErrorfNewErr("Failed to create or update the external DNS secret: %v", err)
 	}
 	return nil
-}
-
-// resolveExernalDNSNamespace implements the HelmComponent contract to resolve a component namespace dynamically
-func resolveExernalDNSNamespace(_ string) string {
-	return ResolveExernalDNSNamespace()
-}
-
-// ResolveExernalDNSNamespace Resolves the namespace for External DNS based on an existing legacy instance vs a new one;
-// if External-DNS exists in the cert-manager namespace AND the namespace is owned by Verrazzano, use the existing
-// installed namespace; otherwise we will install it into the verrazzano-system namespace
-//
-// HelmComponent will cache the results when called from that context
-func ResolveExernalDNSNamespace() string {
-	resolvedNamespace := ComponentNamespace
-	logger := vzlog.DefaultLogger()
-	releaseFound, err := isLegacyNamespaceInstalledFunc(ComponentName, legacyNamespace)
-	if err != nil {
-		logger.ErrorfThrottled("Error listing %s helm release %v", err)
-		return ""
-	}
-	isVerrazzanoManaged, err := namespace.CheckIfVerrazzanoManagedNamespaceExists(legacyNamespace)
-	if err != nil {
-		logger.ErrorfThrottled("Error checking if namespace %s is Verrazzano-managed: %v", legacyNamespace, err)
-		return ""
-	}
-	if releaseFound && isVerrazzanoManaged {
-		resolvedNamespace = legacyNamespace
-	}
-	logger.Oncef("Using namespace %s for component %s", resolvedNamespace, ComponentName)
-	return resolvedNamespace
-}
-
-// preUninstall checks to make sure that all ingresses/services in the Verrazzano namespaces which
-// have the external DNS target containing the word verrazzano have already been uninstalled, and
-// also that the VMO has been uninstalled.
-// If not, they may require external-dns to clean up the corresponding
-// DNS records, so we cannot start external-dns uninstall yet.
-func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
-	log.Progressf("Checking for leftover ingresses in Verrazzano component namespaces before uninstalling %s", ComponentName)
-
-	namespaceList, err := listVerrazzanoNamespaces(cli)
-	if err != nil {
-		return err
-	}
-	for _, ns := range namespaceList.Items {
-		ingressList := netv1.IngressList{}
-		if err := cli.List(context.TODO(), &ingressList, client.InNamespace(ns.Name)); err != nil {
-			log.Errorf("Failed to list ingresses in namespace %s: %v", ns.Name, err)
-			return err
-		}
-		for _, ing := range ingressList.Items {
-			if strings.Contains(ing.Annotations[externalDNSIngressAnnotationKey], constants.VzIngress) {
-				log.Progressf("Component %s pre-uninstall is waiting for ingress %s in namespace %s to be uninstalled", ComponentName, ing.Name, ns.Name)
-				return ctrlerrors.RetryableError{Source: ComponentName}
-			}
-		}
-	}
-
-	vmoUninstalled := verifyVMOUninstalled(log, cli)
-	ingressNginxUninstalled := verifyIngressNginxUninstalled(cli)
-	if !vmoUninstalled {
-		log.Progressf("Component %s pre-uninstall is waiting for %s to be uninstalled", ComponentName, common.VMOComponentName)
-		return ctrlerrors.RetryableError{Source: ComponentName}
-	}
-	if !ingressNginxUninstalled {
-		log.Progressf("Component %s pre-uninstall is waiting for the %s namespace to be deleted", ComponentName, constants.IngressNginxNamespace)
-		return ctrlerrors.RetryableError{Source: ComponentName}
-	}
-	return nil
-}
-
-// listVerrazzanoNamespaces lists all Verrazzano labeled namespaces
-func listVerrazzanoNamespaces(cli client.Client) (*corev1.NamespaceList, error) {
-	// []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace, vzconst.RancherSystemNamespace, vzconst.VerrazzanoMonitoringNamespace}
-	nsList := corev1.NamespaceList{}
-	if err := cli.List(context.TODO(), &nsList, client.HasLabels{vzconst.LabelVerrazzanoNamespace}); client.IgnoreNotFound(err) != nil {
-		return nil, err
-	}
-	return &nsList, nil
-}
-
-func verifyIngressNginxUninstalled(cli client.Client) bool {
-	ns := corev1.Namespace{}
-	// The ingress nginx namespace would be deleted if the ingress nginx component has been uninstalled.
-	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.IngressNginxNamespace}, &ns)
-	return err != nil && errors.IsNotFound(err)
-}
-
-func verifyVMOUninstalled(log vzlog.VerrazzanoLogger, cli client.Client) bool {
-	vmoDeployment := appsv1.Deployment{}
-	err := cli.Get(context.TODO(),
-		types.NamespacedName{Namespace: common.VMOComponentNamespace, Name: common.VMOComponentName},
-		&vmoDeployment)
-
-	if err != nil {
-		// VMO is uninstalled if the VMO deployment does not exist
-		if errors.IsNotFound(err) {
-			return true
-		}
-		log.Errorf("Failed to get VMO deployment: %v", err)
-	}
-	return false
 }
 
 // postUninstall Clean up the cluster role/bindings
