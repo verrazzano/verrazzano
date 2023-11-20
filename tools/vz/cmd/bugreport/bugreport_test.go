@@ -286,7 +286,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // WHEN I call cmd.Execute without Verrazzano installed
 // THEN expect the command to generate bug report
 func TestBugReportNoVerrazzano(t *testing.T) {
-	c := getClientWithVZWatch()
+	c := getClientWithWatch()
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
@@ -352,9 +352,9 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 }
 
 // getClientWithWatch returns a client containing all VPO objects
-/*func getClientWithWatch() client.WithWatch {
+func getClientWithWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
-}*/
+}
 
 // getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
 func getClientWithVZWatch() client.WithWatch {
