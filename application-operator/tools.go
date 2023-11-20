@@ -20,7 +20,10 @@ import (
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 
 	// Fix for go 1.20
+	_ "github.com/exponent-io/jsonpath"
 	_ "github.com/fatih/camelcase"
 	_ "github.com/fvbommel/sortorder"
 	_ "github.com/mitchellh/go-testing-interface"
+	_ "github.com/mitchellh/go-wordwrap"
+	_ "github.com/russross/blackfriday"
 )
