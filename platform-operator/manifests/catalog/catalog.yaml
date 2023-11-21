@@ -28,7 +28,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
   - name: istio
-    version: 1.19.0
+    version: 1.19.3
   - name: rancher
     version: 2.7.8-2
     chart: platform-operator/thirdparty/charts/rancher
