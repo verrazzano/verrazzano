@@ -203,7 +203,7 @@ require (
 require (
 	cloud.google.com/go/compute v1.19.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
+	github.com/go-jose/go-jose/v3 v3.0.1 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 )
