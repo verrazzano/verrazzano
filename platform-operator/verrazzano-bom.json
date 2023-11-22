@@ -106,7 +106,7 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.15.7-20230822201106-52185b9e",
+              "tag": "1.15.7-1-20231122155749-f0a46268",
               "helmFullImageKey": "values.pilot.image"
             },
             {
@@ -183,7 +183,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.15.7-20230822201106-52185b9e",
+              "tag": "1.15.7-1-20231122155749-f0a46268",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
