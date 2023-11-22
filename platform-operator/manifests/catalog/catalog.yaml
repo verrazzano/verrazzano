@@ -132,7 +132,7 @@ modules:
       - platform-operator/helm_config/overrides/jaeger-operator-values.yaml
       - platform-operator/helm_config/overrides/jaeger-production-strategy-values.yaml
   - name: velero
-    version: 1.9.1-2
+    version: 1.9.1-1
     chart: platform-operator/thirdparty/charts/velero
     valuesFiles:
       - platform-operator/helm_config/overrides/velero-override-static-values.yaml
