@@ -3,7 +3,6 @@ Component version updates:
 
 - WebLogic Kubernetes Operator v4.1.4
 - WebLogic Monitoring Exporter v2.1.8
-- Istio v1.19.3
 
 ### v1.6.8
 Component version updates:

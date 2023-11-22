@@ -115,7 +115,7 @@
     },
     {
       "name": "istio",
-      "version": "1.19.3",
+      "version": "1.19.0",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -123,12 +123,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.19.3-20231116210157-e7d1556c",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.3-20231116210157-e7d1556c",
+              "tag": "1.19.0-20231002202943-1a85d369",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
