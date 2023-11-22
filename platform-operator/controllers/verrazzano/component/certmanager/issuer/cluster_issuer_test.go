@@ -6,9 +6,8 @@ package issuer
 import (
 	"context"
 	"fmt"
-	"testing"
-
 	"github.com/verrazzano/verrazzano/pkg/certs"
+	"testing"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -926,7 +925,11 @@ func createCustomCAResources(name string, namespace string) []clipkg.Object {
 	return []clipkg.Object{customcA}
 }
 
-func createClusterIssuerResources() []clipkg.Object {
+func createClusterIssuerResources(ns ...string) []clipkg.Object {
+	//nsToUse := ComponentNamespace
+	//if len(ns) > 0 {
+	//	nsToUse = ns[0]
+	//}
 	customcA := &certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.VerrazzanoClusterIssuerName},
 	}

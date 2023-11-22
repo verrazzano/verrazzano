@@ -34,11 +34,11 @@ func updateOperatorYAMLPrivateRegistry(operatorFilename string, imageRegistry st
 	vpoDeploy := &objectsInYAML[vpoDeployIdx]
 	vpoWebhookDeploy := &objectsInYAML[vpoWebhookDeployIdx]
 
-	vpoDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoDeploy, imageRegistry, imagePrefix)
+	vpoDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoDeploy, imageRegistry, imagePrefix, true)
 	if err != nil {
 		return "", err
 	}
-	vpoWebhookDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoWebhookDeploy, imageRegistry, imagePrefix)
+	vpoWebhookDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoWebhookDeploy, imageRegistry, imagePrefix, false)
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func findVPODeploymentIndices(objectsInYAML []unstructured.Unstructured) (int, i
 
 // updatePrivateRegistryVPODeploy updates the private registry information in the
 // given verrazzano-platform-operator (or webhook) deployment YAML. Returns true if vpoDeploy was modified
-func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageRegistry string, imagePrefix string) (bool, error) {
+func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageRegistry string, imagePrefix string, addRegistryEnvVars bool) (bool, error) {
 	vpoDeployObj := vpoDeploy.Object
 	containersFields := containersFields()
 	initContainersFields := initContainersFields()

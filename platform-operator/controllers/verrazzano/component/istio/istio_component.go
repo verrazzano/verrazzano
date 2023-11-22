@@ -588,8 +588,9 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		if err != nil {
 			return nil, err
 		}
-
-		kvs = append(kvs, scKvs...)
+		for i := range scKvs {
+			kvs = append(kvs, scKvs[i])
+		}
 	}
 	return kvs, nil
 }
