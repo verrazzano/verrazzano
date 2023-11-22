@@ -214,8 +214,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.NotNilf(t, tt.istio, "expected yaml cannot be nil")
-			istioComponent := tt.istio
-			yamlString, err := buildJaegerTracingYaml(fakeContext, &istioComponent, "default")
+			yamlString, err := buildJaegerTracingYaml(fakeContext, &tt.istio, "default")
 			assert.NoError(t, err)
 			assert.NotEmpty(t, tt.expectedYaml, "expected yaml cannot be empty yaml string")
 			assert.YAMLEq(t, tt.expectedYaml, yamlString)

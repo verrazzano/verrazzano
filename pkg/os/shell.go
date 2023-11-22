@@ -13,8 +13,9 @@ var bashRunner CmdRunner = DefaultRunner{}
 // RunBash runs a bash script
 func RunBash(inArgs ...string) (string, string, error) {
 	args := []string{}
-	args = append(args, inArgs...)
-
+	for i := range inArgs {
+		args = append(args, inArgs[i])
+	}
 	cmd := osexec.Command("bash", args...)
 	stdout, stderr, err := bashRunner.Run(cmd)
 	if err != nil {

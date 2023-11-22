@@ -856,32 +856,9 @@ func updateKeycloakUris(ctx spi.ComponentContext, cfg *restclient.Config, cli ku
 
 // configureKeycloakRealms configures the Verrazzano system realm
 func configureKeycloakRealms(ctx spi.ComponentContext) error {
-
 	cfg, cli, err := k8sutil.ClientConfig()
 	if err != nil {
 		return err
-	}
-
-	// If ephemeral storage is configured, additional steps may be required to
-	// rebuild the configuration lost due to MySQL pod getting restarted.
-	if (ctx.EffectiveCR().Spec.Components.Keycloak != nil) && (ctx.EffectiveCR().Spec.Components.Keycloak.MySQL.VolumeSource == nil) {
-		// When the MySQL pod restarts and using ephemeral storage, the
-		// login to Keycloak will fail.  Need to recycle the Keycloak pod
-		// to resolve the condition.
-		err = LoginKeycloak(ctx, cfg, cli)
-		if err != nil {
-			pod := keycloakPod()
-			err1 := ctx.Client().Get(context.TODO(), types.NamespacedName{Namespace: pod.Namespace, Name: pod.Name}, pod)
-			if err1 != nil {
-				ctx.Log().Progressf("Component Keycloak failed to get pod %s: %v", pod.Name, err1)
-				return err1
-			}
-			err2 := ctx.Client().Delete(context.TODO(), pod)
-			if err2 != nil {
-				ctx.Log().Errorf("Component Keycloak failed to recycle pod %s: %v", pod.Name, err2)
-			}
-			return err
-		}
 	}
 
 	// Login to Keycloak
