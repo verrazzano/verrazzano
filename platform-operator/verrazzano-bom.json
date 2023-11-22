@@ -899,7 +899,7 @@
     },
     {
       "name": "velero",
-      "version": "1.9.1-1",
+      "version": "1.9.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
