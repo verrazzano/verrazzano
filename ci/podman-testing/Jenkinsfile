@@ -173,7 +173,9 @@ pipeline {
         stage('test') {
             steps {
                 sh """
-                    echo test
+                    cd ${GO_REPO_PATH}/verrazzano
+                    echo "tests will execute" > ${TESTS_EXECUTED_FILE}
+                    echo "Create Kind cluster"
                 """
             }
         }
