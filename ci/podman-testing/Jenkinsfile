@@ -171,12 +171,12 @@ pipeline {
             }
         }
 
-        stage('Create Kind Cluster') {
-            steps {
-                sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                """
-            {
-        }
+//         stage('Create Kind Cluster') {
+//             steps {
+//                 sh """
+//                     cd ${GO_REPO_PATH}/verrazzano
+//                 """
+//             {
+//         }
     }
 }
