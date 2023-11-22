@@ -170,6 +170,14 @@ pipeline {
 //                 }
             }
         }
+        stage('test') {
+            steps {
+                sh """
+                    echo test
+                """
+            }
+        }
+
 
 //         stage('Create Kind Cluster') {
 //             steps {
