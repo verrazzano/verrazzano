@@ -3,16 +3,14 @@
 
 module github.com/verrazzano/verrazzano
 
-go 1.20
+go 1.19
 
 require (
 	github.com/Jeffail/gabs/v2 v2.6.1
 	github.com/cert-manager/cert-manager v1.9.1
 	github.com/crossplane/crossplane-runtime v0.17.0
 	github.com/crossplane/oam-kubernetes-runtime v0.3.3
-	github.com/fatih/camelcase v1.0.0
 	github.com/fluent/fluent-operator/v2 v2.3.0
-	github.com/fvbommel/sortorder v1.0.1
 	github.com/gertd/go-pluralize v0.2.0
 	github.com/go-logr/logr v1.2.4
 	github.com/golang/mock v1.6.0
@@ -21,7 +19,6 @@ require (
 	github.com/gordonklaus/ineffassign v0.0.0-20210104184537-8eed68eb605f
 	github.com/hashicorp/go-retryablehttp v0.6.8
 	github.com/mattn/go-isatty v0.0.16
-	github.com/mitchellh/go-testing-interface v1.0.0
 	github.com/onsi/ginkgo/v2 v2.9.1
 	github.com/onsi/gomega v1.27.7
 	github.com/oracle/oci-go-sdk/v53 v53.1.0
@@ -199,23 +196,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.7.0 // indirect
-	github.com/Microsoft/go-winio v0.5.1 // indirect
-	github.com/Microsoft/hcsshim v0.9.3 // indirect
-	github.com/bugsnag/osext v0.0.0-20130617224835-0dd3f918b21b // indirect
-	github.com/containerd/cgroups v1.0.3 // indirect
-	github.com/containerd/console v1.0.3 // indirect
-	github.com/containerd/continuity v0.2.2 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
-	github.com/gogo/googleapis v1.4.0 // indirect
-	github.com/moby/sys/mountinfo v0.5.0 // indirect
-	github.com/moby/sys/signal v0.6.0 // indirect
-	github.com/opencontainers/runc v1.1.2 // indirect
-	github.com/opencontainers/runtime-spec v1.0.3-0.20210326190908-1c3f411f0417 // indirect
-	github.com/opencontainers/selinux v1.10.1 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
-	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/mod v0.9.0 // indirect
 )
 
@@ -248,29 +229,4 @@ replace (
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/controller-tools => sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kind => github.com/verrazzano/kind v0.0.0-20221129215948-885481909133
-)
-
-require (
-	github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d
-	github.com/bugsnag/bugsnag-go v0.0.0-20141110184014-b1d153021fcd
-	github.com/bugsnag/panicwrap v0.0.0-20151223152923-e2c28503fcd0
-	github.com/containerd/aufs v1.0.0
-	github.com/containerd/btrfs v1.0.0
-	github.com/containerd/fifo v1.0.0
-	github.com/containerd/go-runc v1.0.0
-	github.com/containerd/nri v0.1.0
-	github.com/containerd/ttrpc v1.1.0
-	github.com/containerd/typeurl v1.0.2
-	github.com/containerd/zfs v1.0.0
-	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c
-	github.com/docker/libtrust v0.0.0-20150114040149-fa567046d9b1
-	github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible
-	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980
-	github.com/stretchr/objx v0.2.0
-	github.com/urfave/cli v1.22.2
-	github.com/yvasiyarov/go-metrics v0.0.0-20140926110328-57bccd1ccd43
-	github.com/yvasiyarov/gorelic v0.0.0-20141212073537-a9bba5b9ab50
-	github.com/yvasiyarov/newrelic_platform_go v0.0.0-20140908184405-b21fdbd4370f
-	go.mozilla.org/pkcs7 v0.0.0-20200128120323-432b2356ecb1
-	gopkg.in/square/go-jose.v2 v2.5.1
 )
