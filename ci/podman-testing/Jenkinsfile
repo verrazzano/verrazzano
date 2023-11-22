@@ -175,10 +175,6 @@ pipeline {
             steps {
                 sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    echo "tests will execute" > ${TESTS_EXECUTED_FILE}
-                    echo "Create Kind cluster"
-
-                    kubectl version
                 """
             {
         }
