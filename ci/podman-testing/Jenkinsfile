@@ -176,6 +176,7 @@ pipeline {
                     cd ${GO_REPO_PATH}/verrazzano
                     echo "tests will execute" > ${TESTS_EXECUTED_FILE}
                     echo "Create Kind cluster"
+                    cd ${TEST_SCRIPTS_DIR}
                 """
             }
         }
