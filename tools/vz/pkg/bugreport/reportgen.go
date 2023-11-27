@@ -390,7 +390,6 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Verrazzano, bugReportDir string, c clipkg.Client) {
 	if vz == nil {
 		pkghelpers.LogMessage("Can't find vz resource")
-
 	}
 	defer wg.Done()
 	err := pkghelpers.AddEffectiveCr(c, bugReportDir, vz)
