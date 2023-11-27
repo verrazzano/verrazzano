@@ -877,11 +877,6 @@ func AddEffectiveCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) 
 		Namespace: vz.ObjectMeta.Namespace,
 		Name:      vz.ObjectMeta.Name + effConfigSuffix,
 	}, &effCRConfigmap)
-	if effCRConfigmap.Data == nil {
-		LogError(fmt.Sprintf("Error capturing the effective custom resource"))
-		return nil
-
-	}
 
 	if err != nil {
 		LogMessage(fmt.Sprintf("Error:%s", err.Error()))

@@ -142,15 +142,6 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 		t.Fatal("found bug report file in current directory")
 	}
 }
-func createVz() *v1beta1.Verrazzano {
-	return &v1beta1.Verrazzano{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-			Name:      "verrazzano",
-		},
-	}
-}
 
 // TestInstallCmdDefaultNoVPO
 // GIVEN a CLI install command with all defaults and no VPO found
