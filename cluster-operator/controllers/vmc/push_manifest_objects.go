@@ -6,6 +6,7 @@ package vmc
 import (
 	"context"
 	"fmt"
+
 	clusterapi "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
 	constants2 "github.com/verrazzano/verrazzano/pkg/constants"
