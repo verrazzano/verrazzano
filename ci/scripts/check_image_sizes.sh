@@ -86,12 +86,12 @@ for IMAGENAME in "${!IMAGENAME_SIZES_FILE_OS[@]}"; do
 # Check if image size has increased by the threshold or more
   if [ -n "$FILE_SIZE_OS" ] && [ -n "$FILE_SIZE_GENERATED" ] && [ "$FILE_SIZE_GENERATED" -gt 0 ] && [ "$FILE_SIZE_GENERATED" -gt "$((FILE_SIZE_OS+IMAGE_SIZE_INCREASE_THRESHOLD))" ]; then
         IMAGE_SIZE_DIFF_FOUND="true"
-    echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/result.txt
+    echo "Image size for $IMAGENAME has increased from $((FILE_SIZE_OS/1000000))MB to $((FILE_SIZE_GENERATED/1000000))MB " >> ${WORKSPACE}/image-increases.txt
   fi
 done
 if [ $IMAGE_SIZE_DIFF_FOUND == "true" ]; then
          echo "Image size difference found: "
-         cat ${WORKSPACE}/result.txt
+         cat ${WORKSPACE}/image-increases.txt
 fi
 
 if [ $NEW_IMAGE_FOUND == "true" ]; then

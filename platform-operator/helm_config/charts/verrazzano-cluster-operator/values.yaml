@@ -14,3 +14,6 @@ syncClusters:
 
 # TTL in minutes
 argoCDClusterTokenTTL: 240
+
+# Image to use for the webhookswait init container
+webhookWaitImage: ghcr.io/oracle/oraclelinux:8-slim
