@@ -182,8 +182,8 @@
               "tag": "v0.7.1-20231127113723-ac1e6d47"
             },
             {
-              "image": "rancher-gitjob",
-              "tag": "v0.1.32-20231115170141-6a4d6ed"
+              "image": "rancher-gitjob-jenkins",
+              "tag": "20231127153552-75853ff"
             },
             {
               "image": "rancher-cleanup",
