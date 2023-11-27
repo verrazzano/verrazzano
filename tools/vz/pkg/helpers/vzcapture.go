@@ -867,16 +867,27 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 
 // AddEffectiveCr converts the effective verrazzano  resource configmap into a Json file
 func AddEffectiveCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
+	if vz == nil {
+		return nil
+		//var err error
+		//return fmt.Errorf(errBugReport, err.Error())
+	}
 	var effCRConfigmap corev1.ConfigMap
 	err := c.Get(context.Background(), clipkg.ObjectKey{
 		Namespace: vz.ObjectMeta.Namespace,
 		Name:      vz.ObjectMeta.Name + effConfigSuffix,
 	}, &effCRConfigmap)
+	if effCRConfigmap.Data == nil {
+		LogError(fmt.Sprintf("Error capturing the effective custom resource"))
+		return nil
+
+	}
 
 	if err != nil {
 		LogMessage(fmt.Sprintf("Error:%s", err.Error()))
 		return err
 	}
+
 	var effvzRes = filepath.Join(captureDir, constants.EffVzResource)
 	f, err := os.OpenFile(effvzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 
