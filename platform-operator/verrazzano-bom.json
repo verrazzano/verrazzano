@@ -174,12 +174,12 @@
               "tag": "v0.3.5-20230922100255-1a77563"
             },
             {
-              "image": "rancher-fleet-agent-jenkins",
-              "tag": "20231122185742-df63ce78"
+              "image": "rancher-fleet-agent",
+              "tag": "v0.7.1-20231127113723-ac1e6d47"
             },
             {
-              "image": "rancher-fleet-jenkins",
-              "tag": "20231122185742-df63ce78"
+              "image": "rancher-fleet",
+              "tag": "v0.7.1-20231127113723-ac1e6d47"
             },
             {
               "image": "rancher-gitjob",
