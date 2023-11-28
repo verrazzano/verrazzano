@@ -20,7 +20,7 @@
     },
     {
       "name": "ingress-controller",
-      "version": "1.7.1-2",
+      "version": "1.7.1-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -85,7 +85,7 @@
     },
     {
       "name": "cert-manager-webhook-oci",
-      "version": "0.1.0-1",
+      "version": "0.1.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -93,7 +93,7 @@
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20230925072151-7a73e30",
+              "tag": "v0.1.0-20231117190540-ade29ad",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -1012,7 +1012,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0-1",
+      "version": "2.4.0-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1020,7 +1020,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20231012121111-9b262f4",
+              "tag": "v2.4.0-20231128050258-c7700be",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
