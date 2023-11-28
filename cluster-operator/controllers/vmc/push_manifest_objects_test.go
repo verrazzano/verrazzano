@@ -75,44 +75,62 @@ func TestPushManifestObjects(t *testing.T) {
 		Status: corev1.ConditionTrue,
 	})
 
-	mocker := gomock.NewController(t)
-
 	tests := []struct {
-		name    string
-		vmc     *v1alpha1.VerrazzanoManagedCluster
-		updated bool
-		mock    *mocks.MockRequestSender
+		name       string
+		vmc        *v1alpha1.VerrazzanoManagedCluster
+		updated    bool
+		active     bool
+		vzNsExists bool
+		mockerFunc func(*mocks.MockRequestSender, *asserts.Assertions, *v1alpha1.VerrazzanoManagedCluster, *VerrazzanoManagedClusterReconciler, string) *mocks.MockRequestSender
+		mock       *mocks.MockRequestSender
 	}{
 		{
-			name:    "test not active",
-			vmc:     vmc,
-			updated: false,
-			mock:    addInactiveClusterMock(mocks.NewMockRequestSender(mocker), vmc.Status.RancherRegistration.ClusterID),
+			name:       "test not active",
+			vmc:        vmc,
+			updated:    false,
+			active:     false,
+			vzNsExists: false,
 		},
 		{
-			name:    "test no verrazzano-system namespace",
-			vmc:     vmc,
-			updated: false,
-			mock:    addNoVerrazzanoSystemNSMock(mocks.NewMockRequestSender(mocker), a, vmc, r),
+			name:       "test no verrazzano-system namespace",
+			vmc:        vmc,
+			updated:    false,
+			active:     true,
+			vzNsExists: false,
 		},
 		{
-			name:    "test active",
-			vmc:     vmc,
-			updated: true,
-			mock:    addActiveClusterNSExistsMock(mocks.NewMockRequestSender(mocker), a, vmc, r, vmc.Status.RancherRegistration.ClusterID),
+			name:       "test active",
+			vmc:        vmc,
+			updated:    true,
+			active:     true,
+			vzNsExists: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// clear any cached user auth tokens when the test completes
 			defer rancherutil.DeleteStoredTokens()
-
-			rancherutil.RancherHTTPClient = tt.mock
+			mocker := gomock.NewController(t)
+			sender := addManagedClusterMocks(mocker, tt.active, tt.vzNsExists, a, vmc, r)
+			rancherutil.RancherHTTPClient = sender
 			updated, err := r.pushManifestObjects(context.TODO(), true, tt.vmc)
 			a.Equal(tt.updated, updated)
 			a.NoError(err)
+			mocker.Finish()
 		})
 	}
+}
+
+func addManagedClusterMocks(mocker *gomock.Controller, clusterIsActive bool, vzNsExists bool, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler) *mocks.MockRequestSender {
+	sender := mocks.NewMockRequestSender(mocker)
+	clusterID := vmc.Status.RancherRegistration.ClusterID
+	if clusterIsActive && vzNsExists {
+		return addActiveClusterNSExistsMock(sender, a, vmc, r, clusterID)
+	}
+	if !clusterIsActive {
+		return addInactiveClusterMock(sender, clusterID)
+	}
+	return addNoVerrazzanoSystemNSMock(sender, a, vmc, r, clusterID)
 }
 
 func generateClientObjects() client.WithWatch {
@@ -192,20 +210,19 @@ func addInactiveClusterMock(httpMock *mocks.MockRequestSender, clusterID string)
 				Body:       r,
 			}
 			return resp, nil
-		})
-	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
+		}).Times(2)
 	return httpMock
 }
 
-func addNoVerrazzanoSystemNSMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler) *mocks.MockRequestSender {
+func addNoVerrazzanoSystemNSMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
 	addTokenMock(httpMock)
-	addActiveClusterMock(httpMock, a, vmc, r, vmc.Status.RancherRegistration.ClusterID)
+	addActiveClusterMock(httpMock, 2)
 	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, false)
 	return httpMock
 }
 
 func addActiveClusterNSExistsMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
-	addActiveClusterMock(httpMock, a, vmc, r, vmc.Status.RancherRegistration.ClusterID)
+	addActiveClusterMock(httpMock, 2)
 	addVerrazzanoSystemNamespaceMock(httpMock, clusterID, true)
 	agentSecret, err := r.getSecret(vmc.Namespace, GetAgentSecretName(vmc.Name), true)
 	a.NoError(err)
@@ -221,13 +238,13 @@ func addActiveClusterNSExistsMock(httpMock *mocks.MockRequestSender, a *asserts.
 	return httpMock
 }
 
-func addActiveClusterMock(httpMock *mocks.MockRequestSender, a *asserts.Assertions, vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID string) *mocks.MockRequestSender {
+func addActiveClusterMock(httpMock *mocks.MockRequestSender, times int) *mocks.MockRequestSender {
 	httpMock = addTokenMock(httpMock)
-	expectActiveCluster(httpMock)
+	expectActiveCluster(httpMock, times)
 	return httpMock
 }
 
-func expectActiveCluster(httpMock *mocks.MockRequestSender) {
+func expectActiveCluster(httpMock *mocks.MockRequestSender, times int) {
 	httpMock.EXPECT().
 		Do(gomock.Not(gomock.Nil()), mockmatchers.MatchesURI(clustersPath+"/"+clusterID)).
 		DoAndReturn(func(httpClient *http.Client, req *http.Request) (*http.Response, error) {
@@ -238,7 +255,7 @@ func expectActiveCluster(httpMock *mocks.MockRequestSender) {
 				Body:       r,
 			}
 			return resp, nil
-		})
+		}).Times(times)
 }
 
 func addTokenMock(httpMock *mocks.MockRequestSender) *mocks.MockRequestSender {
