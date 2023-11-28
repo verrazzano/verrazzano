@@ -149,11 +149,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 //	WHEN I call cmd.Execute for install
 //	THEN the CLI install command fails and a bug report should be generated
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
-
-	//vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
-	//rc = getClientWithWatch()
-	//rc.testhelpers.SetClient(c)
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
 	// Run install command
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)

@@ -395,7 +395,5 @@ func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v
 	err := pkghelpers.AddEffectiveCr(c, bugReportDir, vz)
 	if err != nil {
 		ec <- ErrorsChannel{ErrorMessage: err.Error()}
-
 	}
-
 }

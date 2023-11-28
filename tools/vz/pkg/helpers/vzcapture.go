@@ -869,8 +869,6 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 func AddEffectiveCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) error {
 	if vz == nil {
 		return nil
-		//var err error
-		//return fmt.Errorf(errBugReport, err.Error())
 	}
 	var effCRConfigmap corev1.ConfigMap
 	err := c.Get(context.Background(), clipkg.ObjectKey{
