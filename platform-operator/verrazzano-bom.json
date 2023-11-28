@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.8-2",
+      "version": "2.7.8-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -174,7 +174,7 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.20-20231116202652-de67b15"
+              "tag": "v0.1.20-20231121214943-e141521"
             },
             {
               "image": "rancher-webhook",
@@ -182,15 +182,15 @@
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.1-20231115165513-42f78998"
+              "tag": "v0.7.1-20231127113723-ac1e6d47"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.1-20231115165513-42f78998"
+              "tag": "v0.7.1-20231127113723-ac1e6d47"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20231115170141-6a4d6ed"
+              "tag": "v0.1.32-20231127180810-1d71079"
             },
             {
               "image": "rancher-cleanup",
