@@ -6,7 +6,7 @@ pipeline {
             args "${EXPERIMENTAL_RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "CFGTST_tvlam-ol9_ben-ol8-large-iad"
+            label "CFGTST_tvlam-ol9_ben-ol8-large-phx"
         }
     }
 
