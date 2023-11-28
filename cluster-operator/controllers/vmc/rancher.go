@@ -7,12 +7,13 @@ import (
 	"context"
 	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"fmt"
+	"io"
+	"net/http"
+
 	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
-	"io"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	"net/http"
 
 	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
@@ -47,7 +48,8 @@ const (
 
 	k8sClustersPath = "/k8s/clusters/"
 
-	rancherClusterStateActive = "active"
+	rancherClusterStateActive   = "active"
+	rancherClusterStateInactive = "inactive"
 )
 
 type RancherCluster struct {
@@ -378,6 +380,11 @@ func isNamespaceCreated(vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoMan
 
 	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
 	if err != nil || rc == nil {
+		return false, err
+	}
+
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	if err != nil || !isActive {
 		return false, err
 	}
 
