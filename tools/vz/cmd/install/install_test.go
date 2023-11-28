@@ -151,6 +151,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+
 	// Run install command
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()

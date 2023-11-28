@@ -391,6 +391,7 @@ func captureVZEffectiveResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v
 	if vz == nil {
 		pkghelpers.LogMessage("Can't find vz resource")
 	}
+
 	defer wg.Done()
 	err := pkghelpers.AddEffectiveCr(c, bugReportDir, vz)
 	if err != nil {

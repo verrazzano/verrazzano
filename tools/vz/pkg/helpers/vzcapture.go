@@ -870,6 +870,7 @@ func AddEffectiveCr(c clipkg.Client, captureDir string, vz *v1beta1.Verrazzano) 
 	if vz == nil {
 		return nil
 	}
+
 	var effCRConfigmap corev1.ConfigMap
 	err := c.Get(context.Background(), clipkg.ObjectKey{
 		Namespace: vz.ObjectMeta.Namespace,
