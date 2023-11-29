@@ -637,7 +637,7 @@
     },
     {
       "name": "keycloak",
-      "version": "20.0.1-1",
+      "version": "20.0.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -645,7 +645,7 @@
           "images": [
             {
               "image": "keycloak",
-              "tag": "v20.0.1-20230928072224-3874ea5092",
+              "tag": "v20.0.1-20231128184318-18c3c14b9f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
