@@ -9,7 +9,7 @@ def installProfiles = [ "dev", "prod", "managed-cluster" ]
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
