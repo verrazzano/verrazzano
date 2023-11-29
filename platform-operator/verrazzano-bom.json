@@ -1006,15 +1006,15 @@
     },
     {
       "name": "dex",
-      "version": "2.37.0",
+      "version": "2.37.0-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "dex",
           "images": [
             {
-              "image": "dex",
-              "tag": "v2.37.0-20230911122845-caabc629",
+              "image": "dex-jenkins",
+              "tag": "20231128213706-38c8fcbd",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
