@@ -62,7 +62,7 @@ HelmReleases:
 - Description: write logs to STDOUT 10 times a second
   Name: psr-ops-s1-writelogs-0
   Namespace: psr
-  OverrideFile: writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
   WorkerConfigPath: opensearch/writelogs.yaml
 ID: ops-s1
 Name: opensearch-s1
@@ -70,7 +70,7 @@ Namespace: default
 ScenarioWorkerConfigOverridesAbsDir: temp-dir
 WorkerConfigs:
 - Description: write logs to STDOUT 10 times a second
-  OverrideFile: writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
   WorkerConfigPath: opensearch/writelogs.yaml
 `)),
 		},

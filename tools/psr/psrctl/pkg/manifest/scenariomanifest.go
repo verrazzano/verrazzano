@@ -8,8 +8,8 @@ type WorkerConfig struct {
 	// WorkerConfigPath specifies the manifest relative path of the worker config, e.g. opensearch/writelogs.yaml
 	WorkerConfigPath string
 
-	// OverrideFile is the use case override file in the scenario worker-overrides directory, e.g. writelogs-fast.yaml
-	OverrideFile string
+	// WorkerOverrideFile is the use case override file in the scenario worker-overrides directory, e.g. writelogs-fast.yaml
+	WorkerOverrideFile string
 
 	// Description is a description of the use case in the context of the scenario
 	Description string
@@ -28,7 +28,7 @@ type ScenarioManifest struct {
 	Description string
 
 	// WorkerConfigs are the scenario worker configurations
-	WorkerConfigs []WorkerConfig
+	WorkerConfigs []WorkerConfig `json:"workers"`
 
 	// This is the absolute directory that contains scenario.yaml and scenario worker config overrides.
 	// It is not specified by the user, but built at runtime

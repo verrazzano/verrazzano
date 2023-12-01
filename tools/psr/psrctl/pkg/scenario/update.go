@@ -60,7 +60,7 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: tmpPath})
 
 	// Build scenario override absolute path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-	scOverride := filepath.Join(scman.ScenarioWorkerConfigOverridesAbsDir, hr.OverrideFile)
+	scOverride := filepath.Join(scman.ScenarioWorkerConfigOverridesAbsDir, hr.WorkerOverrideFile)
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 	if m.Verbose {
