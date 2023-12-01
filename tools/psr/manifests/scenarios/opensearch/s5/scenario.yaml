@@ -5,7 +5,7 @@ ID: ops-s5
 name: opensearch-s5
 description: |
   This is a scenario that scales the OpenSearch master-tier pods out and in continuously
-usecases:
-  - usecasePath: opensearch/scale.yaml
-    overrideFile: scale-master.yaml
+workers:
+  - workerConfigPath: opensearch/scale.yaml
+    workerOverrideFile: scale-master.yaml
     description: scales master nodes

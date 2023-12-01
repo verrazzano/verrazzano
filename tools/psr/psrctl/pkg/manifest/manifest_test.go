@@ -25,7 +25,7 @@ func TestEmbeddedManifests(t *testing.T) {
 	assert.NoError(t, err)
 	defer os.RemoveAll(tmpDir)
 	assertDirExists(t, man.ScenarioAbsDir)
-	assertDirExists(t, man.UseCasesAbsDir)
+	assertDirExists(t, man.WorkerConfigAbsDir)
 	assertDirExists(t, man.WorkerChartAbsDir)
 }
 

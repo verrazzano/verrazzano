@@ -5,6 +5,6 @@ ID: prom-s1
 name: prometheus-s1
 description: |
   This is a scenario that receives alerts from Prometheus and generates events
-usecases:
-  - usecasePath: prometheus/alerts.yaml
-    overrideFile: alerts.yaml
+workers:
+  - workerConfigPath: prometheus/alerts.yaml
+    workerOverrideFile: alerts.yaml

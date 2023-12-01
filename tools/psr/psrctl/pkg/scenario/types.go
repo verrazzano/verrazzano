@@ -26,5 +26,5 @@ type HelmRelease struct {
 	types.NamespacedName
 
 	// The scenario use case for this HelmRelase
-	manifest.Usecase
+	manifest.WorkerConfig
 }

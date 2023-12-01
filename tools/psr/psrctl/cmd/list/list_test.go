@@ -36,10 +36,10 @@ const psrRoot = "../../.."
 //	THEN ensure the output correctly shows running scenarios
 func TestList(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -63,15 +63,15 @@ HelmReleases:
   Name: psr-ops-s1-writelogs-0
   Namespace: psr
   OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 ID: ops-s1
 Name: opensearch-s1
 Namespace: default
-ScenarioUsecaseOverridesAbsDir: temp-dir
-Usecases:
+ScenarioWorkerConfigOverridesAbsDir: temp-dir
+WorkerConfigs:
 - Description: write logs to STDOUT 10 times a second
   OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 `)),
 		},
 	}
@@ -105,10 +105,10 @@ Usecases:
 //	THEN ensure the output correctly shows no running scenarios
 func TestEmptyListDefault(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -139,10 +139,10 @@ func TestEmptyListDefault(t *testing.T) {
 //	THEN ensure the output correctly shows no running scenarios
 func TestEmptyListCluster(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()

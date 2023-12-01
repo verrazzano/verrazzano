@@ -45,16 +45,16 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 
 	// Helm install each use case
 	var i int
-	for _, uc := range scenarioManifest.Usecases {
+	for _, uc := range scenarioManifest.WorkerConfigs {
 		// Create the set of HelmOverrides, initialized from the manager settings
 		helmOverrides := m.HelmOverrides
 
 		// Build the usecase path, E.G. manifests/usecases/opensearch/getlogs/getlogs.yaml
-		ucOverride := filepath.Join(manifestMan.Manifest.UseCasesAbsDir, uc.UsecasePath)
+		ucOverride := filepath.Join(manifestMan.Manifest.WorkerConfigAbsDir, uc.WorkerConfigPath)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-		scOverride := filepath.Join(scenarioManifest.ScenarioUsecaseOverridesAbsDir, uc.OverrideFile)
+		scOverride := filepath.Join(scenarioManifest.ScenarioWorkerConfigOverridesAbsDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
@@ -66,7 +66,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		relname := fmt.Sprintf("psr-%s-%s-%v", scenarioManifest.ID, wType, i)
 
 		if m.Verbose {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
+			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.WorkerConfigPath, m.Namespace, relname)
 		}
 		_, err = StartUpgradeFunc(m.Log, relname, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 		if err != nil {
@@ -79,7 +79,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 				Namespace: m.Namespace,
 				Name:      relname,
 			},
-			Usecase: uc,
+			WorkerConfig: uc,
 		}
 		helmReleases = append(helmReleases, helmRelease)
 		i++
@@ -98,7 +98,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 	return "", nil
 }
 
-// readWorkerType reads the worker type from the use case worker YAML file at psr/manifests/usecases/...
+// readWorkerType reads the worker type from the use case worker YAML file at psr/manifests/worker_config/...
 func readWorkerType(ucOverride string) (string, error) {
 	// Read in the manifests/usecases/.. YAML file to get the worker type
 	var wt WorkerType

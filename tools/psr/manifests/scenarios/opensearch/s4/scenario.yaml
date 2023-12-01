@@ -5,13 +5,13 @@ ID: ops-s4
 name: opensearch-s4
 description: |
   This is a scenario that restarts pods on all 3 OpenSearch tiers simultaneously
-usecases:
-  - usecasePath: opensearch/restart.yaml
-    overrideFile: restart-master.yaml
+workers:
+  - workerConfigPath: opensearch/restart.yaml
+    workerOverrideFile: restart-master.yaml
     description: restarts master nodes
-  - usecasePath: opensearch/restart.yaml
-    overrideFile: restart-data.yaml
+  - workerConfigPath: opensearch/restart.yaml
+    workerOverrideFile: restart-data.yaml
     description: restarts data nodes
-  - usecasePath: opensearch/restart.yaml
-    overrideFile: restart-ingest.yaml
+  - workerConfigPath: opensearch/restart.yaml
+    workerOverrideFile: restart-ingest.yaml
     description: restarts ingest nodes

@@ -14,10 +14,10 @@ import (
 // PsrManifests contains information related to the manifests, along with the temp
 // directory path.
 type PsrManifests struct {
-	RootTmpDir        string
-	WorkerChartAbsDir string
-	UseCasesAbsDir    string
-	ScenarioAbsDir    string
+	RootTmpDir         string
+	WorkerChartAbsDir  string
+	WorkerConfigAbsDir string
+	ScenarioAbsDir     string
 }
 
 var Manifests *PsrManifests
@@ -71,10 +71,10 @@ func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
 	copyManifestsDir(tmpRootDir)
 
 	man := PsrManifests{
-		RootTmpDir:        tmpRootDir,
-		WorkerChartAbsDir: filepath.Join(tmpRootDir, "charts/worker"),
-		UseCasesAbsDir:    filepath.Join(tmpRootDir, "usecases"),
-		ScenarioAbsDir:    filepath.Join(tmpRootDir, "scenarios"),
+		RootTmpDir:         tmpRootDir,
+		WorkerChartAbsDir:  filepath.Join(tmpRootDir, "charts/worker"),
+		WorkerConfigAbsDir: filepath.Join(tmpRootDir, "worker_config"),
+		ScenarioAbsDir:     filepath.Join(tmpRootDir, "scenarios"),
 	}
 	return man, nil
 }
