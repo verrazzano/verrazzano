@@ -29,7 +29,7 @@ type WorkerType struct {
 }
 
 // StartScenario starts a Scenario
-func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, scman *manifest.ScenarioManifest, vzHelper helpers.VZHelper) (string, error) {
+func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, scenarioManifest *manifest.ScenarioManifest, vzHelper helpers.VZHelper) (string, error) {
 	helmReleases := []HelmRelease{}
 
 	// Make sure the scenario is not running already
@@ -38,14 +38,14 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		return "", err
 	}
 	for _, sc := range running {
-		if strings.EqualFold(sc.ID, scman.ID) {
+		if strings.EqualFold(sc.ID, scenarioManifest.ID) {
 			return "", fmt.Errorf("Scenario %s already running in namespace %s", sc.ID, m.Namespace)
 		}
 	}
 
 	// Helm install each use case
 	var i int
-	for _, uc := range scman.Usecases {
+	for _, uc := range scenarioManifest.Usecases {
 		// Create the set of HelmOverrides, initialized from the manager settings
 		helmOverrides := m.HelmOverrides
 
@@ -54,7 +54,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-		scOverride := filepath.Join(scman.ScenarioUsecaseOverridesAbsDir, uc.OverrideFile)
+		scOverride := filepath.Join(scenarioManifest.ScenarioUsecaseOverridesAbsDir, uc.OverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
@@ -63,7 +63,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		}
 
 		// Build release name psr-<scenarioID>-workertype-<index>
-		relname := fmt.Sprintf("psr-%s-%s-%v", scman.ID, wType, i)
+		relname := fmt.Sprintf("psr-%s-%s-%v", scenarioManifest.ID, wType, i)
 
 		if m.Verbose {
 			fmt.Fprintf(vzHelper.GetOutputStream(), "Installing use case %s as Helm release %s/%s\n", uc.UsecasePath, m.Namespace, relname)
@@ -89,7 +89,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 	sc := Scenario{
 		Namespace:        m.Namespace,
 		HelmReleases:     helmReleases,
-		ScenarioManifest: scman,
+		ScenarioManifest: scenarioManifest,
 	}
 	_, err = m.createConfigMap(sc)
 	if err != nil {
