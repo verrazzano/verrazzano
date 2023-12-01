@@ -5,10 +5,10 @@ name: weblogic-s3
 ID: wls-s3
 description: |
   This is a scenario that scales the WebLogic domain and sends GET requests at the same time
-usecases:
-  - usecasePath: weblogic/scale.yaml
-    overrideFile: scale.yaml
+workers:
+  - workerConfigPath: weblogic/scale.yaml
+    workerOverrideFile: scale.yaml
     description: scales WebLogic domain
-  - usecasePath: http/get.yaml
-    overrideFile: get.yaml
+  - workerConfigPath: http/get.yaml
+    workerOverrideFile: get.yaml
     description: access the application deployed to the cluster

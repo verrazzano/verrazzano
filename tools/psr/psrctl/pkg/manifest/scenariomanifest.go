@@ -3,12 +3,12 @@
 
 package manifest
 
-// Usecase specifies a PSR usecase that does a single worker task running in a pod
-type Usecase struct {
-	// UsecasePath specifies the manifest relative path of the use case, e.g. opensearch/writelogs.yaml
-	UsecasePath string
+// WorkerConfig specifies a PSR worker config used by a single worker task running in a pod
+type WorkerConfig struct {
+	// WorkerConfigPath specifies the manifest relative path of the worker config, e.g. opensearch/writelogs.yaml
+	WorkerConfigPath string
 
-	// OverrideFile is the use case override file in the scenario usecase-overrides directory, e.g. writelogs-fast.yaml
+	// OverrideFile is the use case override file in the scenario worker-overrides directory, e.g. writelogs-fast.yaml
 	OverrideFile string
 
 	// Description is a description of the use case in the context of the scenario
@@ -27,10 +27,10 @@ type ScenarioManifest struct {
 	// Description is the scenario description
 	Description string
 
-	// Usecases are the scenario use cases
-	Usecases []Usecase
+	// WorkerConfigs are the scenario worker configurations
+	WorkerConfigs []WorkerConfig
 
-	// This is the absolute directory that contains scenario.yaml and scenario usecase-overrides.  It is not specified by the user,
-	// but built at runtime
-	ScenarioUsecaseOverridesAbsDir string
+	// This is the absolute directory that contains scenario.yaml and scenario worker config overrides.
+	// It is not specified by the user, but built at runtime
+	ScenarioWorkerConfigOverridesAbsDir string
 }

@@ -60,11 +60,11 @@ func (m ScenarioMananger) doHelmUpgrade(manifestMan manifest.ManifestManager, sc
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: tmpPath})
 
 	// Build scenario override absolute path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-	scOverride := filepath.Join(scman.ScenarioUsecaseOverridesAbsDir, hr.OverrideFile)
+	scOverride := filepath.Join(scman.ScenarioWorkerConfigOverridesAbsDir, hr.OverrideFile)
 	helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 	if m.Verbose {
-		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.Usecase.UsecasePath, hr.Namespace, hr.Name))
+		fmt.Fprintf(vzHelper.GetOutputStream(), fmt.Sprintf("Updating use case %s for Helm release %s/%s\n", hr.WorkerConfig.WorkerConfigPath, hr.Namespace, hr.Name))
 	}
 	_, err = UpdateUpgradeFunc(m.Log, hr.Name, m.Namespace, manifestMan.Manifest.WorkerChartAbsDir, true, m.DryRun, helmOverrides)
 	if err != nil {

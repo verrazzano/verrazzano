@@ -5,7 +5,7 @@ name: weblogic-s2
 ID: wls-s2
 description: |
   This is a scenario that sends get requests to the todo-list application (which must be running)
-usecases:
-  - usecasePath: http/get.yaml
-    overrideFile: get.yaml
+workers:
+  - workerConfigPath: http/get.yaml
+    workerOverrideFile: get.yaml
     description: access the application deployed to the cluster
