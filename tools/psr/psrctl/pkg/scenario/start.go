@@ -54,7 +54,7 @@ func (m ScenarioMananger) StartScenario(manifestMan manifest.ManifestManager, sc
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: ucOverride})
 
 		// Build scenario override path for the use case, E.G manifests/scenarios/opensearch/s1/usecase-overrides/getlogs-fast.yaml
-		scOverride := filepath.Join(scenarioManifest.ScenarioWorkerConfigOverridesAbsDir, uc.OverrideFile)
+		scOverride := filepath.Join(scenarioManifest.ScenarioWorkerConfigOverridesAbsDir, uc.WorkerOverrideFile)
 		helmOverrides = append(helmOverrides, helmcli.HelmOverrides{FileOverride: scOverride})
 
 		wType, err := readWorkerType(ucOverride)
