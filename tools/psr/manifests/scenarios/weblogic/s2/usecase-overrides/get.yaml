@@ -3,7 +3,7 @@
 
 global:
   envVars:
-    SERVICE_NAME: todolist-adminserver
+    SERVICE_NAME: tododomain-adminserver
     SERVICE_NAMESPACE: todo-list
-    SERVICE_PORT: 7001
-    URL_PATH: /todo/
+    SERVICE_PORT: 8080
+    URL_PATH: todo/
