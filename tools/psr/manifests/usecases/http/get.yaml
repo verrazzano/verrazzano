@@ -9,7 +9,7 @@ global:
     SERVICE_NAME:
     SERVICE_NAMESPACE:
     SERVICE_PORT:
-    PATH:
+    URL_PATH:
 
 # activate subchart
 http:
