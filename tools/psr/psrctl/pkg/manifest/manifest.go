@@ -73,7 +73,7 @@ func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
 	man := PsrManifests{
 		RootTmpDir:         tmpRootDir,
 		WorkerChartAbsDir:  filepath.Join(tmpRootDir, "charts/worker"),
-		WorkerConfigAbsDir: filepath.Join(tmpRootDir, "worker_config"),
+		WorkerConfigAbsDir: filepath.Join(tmpRootDir, "worker-config"),
 		ScenarioAbsDir:     filepath.Join(tmpRootDir, "scenarios"),
 	}
 	return man, nil

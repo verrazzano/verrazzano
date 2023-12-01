@@ -15,8 +15,8 @@ import (
 	"strings"
 )
 
-// The required use case overrides directory
-const usecaseOverrideDir = "usecase-overrides"
+// The scenario worker overrides directory
+const workerOverrideDir = "worker-overrides"
 
 // ManifestManager contains the information needed to manage a Scenario
 type ManifestManager struct {
@@ -66,7 +66,7 @@ func (m ManifestManager) ListScenarioManifests() ([]ScenarioManifest, error) {
 		}
 
 		// Build the parent directory name that has the scenario.yaml.
-		sman.ScenarioWorkerConfigOverridesAbsDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
+		sman.ScenarioWorkerConfigOverridesAbsDir = filepath.Join(filepath.Dir(f), workerOverrideDir)
 		scenarios = append(scenarios, sman)
 	}
 	return scenarios, nil
