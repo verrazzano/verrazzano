@@ -36,7 +36,7 @@ const (
 
 	// Path specifies the path in the URL
 	// By default, the path is not specified
-	Path = "PATH"
+	Path = "URL_PATH"
 )
 
 type worker struct {
