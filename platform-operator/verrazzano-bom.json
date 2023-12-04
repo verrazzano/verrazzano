@@ -174,7 +174,7 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.20-20231121214943-e141521"
+              "tag": "v0.1.20-20231204184619-874fbbf"
             },
             {
               "image": "rancher-webhook",
