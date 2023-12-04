@@ -171,7 +171,7 @@
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.5-20231127161818-9b65e7d"
+              "tag": "v0.3.5-20231204200251-54eb093"
             },
             {
               "image": "rancher-fleet-agent",
