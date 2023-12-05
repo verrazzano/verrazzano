@@ -183,7 +183,7 @@
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20231127180810-1d71079"
+              "tag": "v0.1.32-20231205020907-52b92ba"
             },
             {
               "image": "rancher-cleanup",
