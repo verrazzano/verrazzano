@@ -76,3 +76,6 @@ https://oracle.github.io/coherence-operator/charts
 
 # Until we have the advice versioned, ignore new advice not in all releases
 https://verrazzano.io/latest/docs/troubleshooting/diagnostictools/analysisadvice/ingressinvalidshape
+
+# This got archived on Dec 5, 2023, ignore for now
+https://microservices-demo.github.io/
