@@ -131,13 +131,13 @@
             {
               "image": "rancher",
               "dashboard": "v2.7.2-20230509143745-870a44e17",
-              "tag": "v2.7.3-release-1.5-20231201232542-6d12c185c",
+              "tag": "v2.7.3-release-1.5-20231204172500-23715c978",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.3-release-1.5-20231201232542-6d12c185c"
+              "tag": "v2.7.3-release-1.5-20231204172500-23715c978"
             }
           ]
         },
@@ -147,27 +147,27 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.18-20231129143214-53f88a6"
+              "tag": "v0.1.18-20231204185524-88224c8"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.3-20231129161117-0f7a4da"
+              "tag": "v0.3.3-20231204201907-11799e9"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.6.0-20231129171332-a1b7cb4"
+              "tag": "v0.6.0-20231205015732-a1e3576"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.6.0-20231129171332-a1b7cb4"
+              "tag": "v0.6.0-20231205015732-a1e3576"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.30-20231130135833-42a8fe6"
+              "tag": "v0.1.30-20231205021809-f29918c"
             },
             {
               "image": "rancher-cleanup",
-              "tag": "v1.0.0-20231115164124-83ffd98"
+              "tag": "v1.0.0-20231205022606-4bdef1c"
             }
           ]
         }
