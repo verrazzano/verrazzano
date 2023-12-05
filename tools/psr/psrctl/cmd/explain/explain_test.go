@@ -37,7 +37,7 @@ func TestExplainScenario(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -77,7 +77,7 @@ func TestExplainScenarioVerbose(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -118,7 +118,7 @@ func TestExplainNoScenario(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 

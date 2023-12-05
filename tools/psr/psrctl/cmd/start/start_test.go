@@ -38,7 +38,7 @@ func TestStartCmd(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -51,7 +51,7 @@ func TestStartCmd(t *testing.T) {
 
 	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
 	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (*release.Release, error) {
-		assert.Equal(t, 4, len(overrides))
+		assert.Equal(t, 3, len(overrides))
 		assert.Equal(t, "psr-ops-s1-ops-writelogs-0", releaseName)
 		assert.Equal(t, "psr", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
@@ -86,7 +86,7 @@ func TestStartExisting(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -155,7 +155,7 @@ func TestStartInvalid(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -190,7 +190,7 @@ func TestStartDir(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -203,7 +203,7 @@ func TestStartDir(t *testing.T) {
 
 	defer func() { scenario.StartUpgradeFunc = helmcli.Upgrade }()
 	scenario.StartUpgradeFunc = func(log vzlog.VerrazzanoLogger, releaseName string, namespace string, chartDir string, wait bool, dryRun bool, overrides []helmcli.HelmOverrides) (*release.Release, error) {
-		assert.Equal(t, 4, len(overrides))
+		assert.Equal(t, 3, len(overrides))
 		assert.Equal(t, "psr-ops-test-ops-writelogs-0", releaseName)
 		assert.Equal(t, "default", namespace)
 		assert.Contains(t, chartDir, "manifests/charts/worker")
@@ -238,7 +238,7 @@ func TestStartDirError(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
