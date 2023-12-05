@@ -38,7 +38,7 @@ func TestList(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -107,7 +107,7 @@ func TestEmptyListDefault(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
@@ -141,7 +141,7 @@ func TestEmptyListCluster(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
 		RootTmpDir:         psrRoot,
 		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
-		WorkerConfigAbsDir: psrRoot + "/manifests/worker_config",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
 		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
