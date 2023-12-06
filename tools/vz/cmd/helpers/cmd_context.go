@@ -6,8 +6,9 @@ package helpers
 import (
 	"fmt"
 	"io"
-	"k8s.io/client-go/discovery"
 	"net/http"
+
+	"k8s.io/client-go/discovery"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
