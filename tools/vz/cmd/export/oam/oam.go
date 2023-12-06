@@ -118,6 +118,9 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	// Export each resource that matches the OAM filters
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
+		if gvr.Group == "oam.verrazzano.io" {
+			continue
+		}
 		labels := item.GetLabels()
 		if labels["app.oam.dev/name"] != appName {
 			continue
