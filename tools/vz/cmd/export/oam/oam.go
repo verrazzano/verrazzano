@@ -29,7 +29,7 @@ TBD
 `
 )
 
-var apiExclusionList = []string{"pods", "replicasets", "endpoints"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints", "bindings"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
