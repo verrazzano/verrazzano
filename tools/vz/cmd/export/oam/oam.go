@@ -136,6 +136,11 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 		delete(mc, "ownerReferences")
 		delete(mc, "resourceVersion")
 		delete(mc, "uid")
+
+		annotations := mc["annotations"].(map[string]interface{})
+		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+		mc["annotations"] = annotations
+
 		item.UnstructuredContent()["metadata"] = mc
 		delete(itemContent, "status")
 
