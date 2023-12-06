@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package manifest
@@ -15,8 +15,8 @@ import (
 	"strings"
 )
 
-// The required use case overrides directory
-const usecaseOverrideDir = "usecase-overrides"
+// The scenario worker overrides directory
+const workerOverrideDir = "worker-overrides"
 
 // ManifestManager contains the information needed to manage a Scenario
 type ManifestManager struct {
@@ -66,7 +66,7 @@ func (m ManifestManager) ListScenarioManifests() ([]ScenarioManifest, error) {
 		}
 
 		// Build the parent directory name that has the scenario.yaml.
-		sman.ScenarioUsecaseOverridesAbsDir = filepath.Join(filepath.Dir(f), usecaseOverrideDir)
+		sman.ScenarioWorkerConfigOverridesAbsDir = filepath.Join(filepath.Dir(f), workerOverrideDir)
 		scenarios = append(scenarios, sman)
 	}
 	return scenarios, nil
