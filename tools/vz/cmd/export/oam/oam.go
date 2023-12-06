@@ -21,11 +21,12 @@ import (
 )
 
 const (
-	flagErrorStr = "error fetching flag: %s"
-	CommandName  = "oam"
-	helpShort    = "Export OAM"
-	helpLong     = `Export the standard Kubernetes definition of an OAM application.`
-	helpExample  = `
+	flagErrorStr     = "error fetching flag: %s"
+	defaultNamespace = "default"
+	CommandName      = "oam"
+	helpShort        = "Export OAM"
+	helpLong         = `Export the standard Kubernetes definition of an OAM application.`
+	helpExample      = `
 TBD
 `
 )
@@ -111,6 +112,10 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 }
 
 func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string) error {
+	// Cluster wide and namespaced resources are passed it.  Override the command line namespace to include cluster context objects.
+	if namespace != defaultNamespace && !resource.Namespaced {
+		namespace = defaultNamespace
+	}
 	list, err := client.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
