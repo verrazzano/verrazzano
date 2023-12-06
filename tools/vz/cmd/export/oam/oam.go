@@ -142,6 +142,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 		item.UnstructuredContent()
 		mc := item.UnstructuredContent()["metadata"].(map[string]interface{})
 		delete(mc, "creationTimestamp")
+		delete(mc, "generation")
 		delete(mc, "generateName")
 		delete(mc, "managedFields")
 		delete(mc, "ownerReferences")
