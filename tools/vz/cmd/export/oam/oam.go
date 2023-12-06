@@ -6,6 +6,7 @@ package oam
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -29,7 +30,7 @@ TBD
 `
 )
 
-var apiExclusionList = []string{"pods", "replicasets", "endpoints", "bindings"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -87,6 +88,9 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			return err
 		}
 		for _, resource := range list.APIResources {
+			if len(resource.Verbs) == 0 && !strings.Contains(resource.Verbs.String(), "list") {
+				continue
+			}
 			// Skip items contained on the exclusion list
 			if slices.Contains(apiExclusionList, resource.Name) {
 				continue
