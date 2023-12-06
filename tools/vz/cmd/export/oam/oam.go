@@ -32,7 +32,8 @@ TBD
 )
 
 // apiExclusionList - list of API resources to always exclude (note this is not currently taking into account group/version)
-var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions", "events"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions", "events",
+	"applicationconfigurations", "components"}
 
 // apiInclusionList - list of API resources to always include (note this is not currently taking into account group/version)
 var apiInclusionList = []string{"servicemonitors"}
