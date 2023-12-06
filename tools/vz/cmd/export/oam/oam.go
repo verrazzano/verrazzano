@@ -6,6 +6,8 @@ package oam
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -16,7 +18,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/utils/strings/slices"
 	"sigs.k8s.io/yaml"
 )
 
@@ -29,14 +30,43 @@ const (
 	helpExample      = `
 TBD
 `
+	groupVerrazzanoOAM = "oam.verrazzano.io"
+	versionV1Alpha1    = "v1alpha1"
+	specKey            = "spec"
+	metadataKey        = "metadata"
+	statusKey          = "status"
 )
 
-// apiExclusionList - list of API resources to always exclude (note this is not currently taking into account group/version)
-var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions", "events",
-	"applicationconfiguration", "component"}
+var metadataRuntimeKeys = []string{"creationTimestamp", "generation", "generateName", "managedFields", "ownerReferences", "resourceVersion", "uid"}
+var serviceSpecRuntimeKeys = []string{"clusterIP", "clusterIPs"}
 
-// apiInclusionList - list of API resources to always include (note this is not currently taking into account group/version)
-var apiInclusionList = []string{"servicemonitors"}
+// excludedAPIResources map of API resources to always exclude (note this is not currently taking into account group/version)
+var excludedAPIResources = map[string]bool{
+	"pods":                     true,
+	"replicasets":              true,
+	"endpoints":                true,
+	"endpointslices":           true,
+	"controllerrevisions":      true,
+	"events":                   true,
+	"applicationconfiguration": true,
+	"component":                true,
+}
+
+// includedAPIResources map of API resources to always include (note this is not currently taking into account group/version)
+var includedAPIResources = map[string]bool{
+	"servicemonitors": true,
+}
+
+var gvrIngressTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "ingresstraits")
+var gvrLoggingTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "loggingtraits")
+var gvrManualScalerTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "manualscalertraits")
+var gvrMetricsTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "metricstraits")
+var traitTypes = []schema.GroupVersionResource{
+	gvrIngressTrait,
+	gvrLoggingTrait,
+	gvrManualScalerTrait,
+	gvrMetricsTrait,
+}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -77,6 +107,11 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		return err
 	}
 
+	ownerRefs, err := getOwnerRefs(dynamicClient, namespace, appName)
+	if err != nil {
+		return err
+	}
+
 	// Get the list of API namespaced resources
 	disco, err := vzHelper.GetDiscoveryClient(cmd)
 	if err != nil {
@@ -98,12 +133,12 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 				continue
 			}
 			// Skip items contained on the exclusion list
-			if slices.Contains(apiExclusionList, resource.Name) {
+			if excludedAPIResources[resource.Name] {
 				continue
 			}
 
 			gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: resource.Name}
-			if err = exportResource(dynamicClient, vzHelper, resource, gvr, namespace, appName); err != nil {
+			if err = exportResource(dynamicClient, vzHelper, resource, gvr, namespace, appName, ownerRefs); err != nil {
 				return err
 			}
 		}
@@ -112,8 +147,30 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
+func getOwnerRefs(client dynamic.Interface, namespace, appName string) (map[string]bool, error) {
+	ownerResourceNames := map[string]bool{
+		appName: true,
+	}
+
+	for _, traitGVR := range traitTypes {
+		list, err := client.Resource(traitGVR).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) || meta.IsNoMatchError(err) {
+				continue
+			}
+			return nil, err
+		}
+		for _, item := range list.Items {
+			if isOAMAppLabel(item.GetLabels(), appName) {
+				ownerResourceNames[item.GetName()] = true
+			}
+		}
+	}
+	return ownerResourceNames, nil
+}
+
 // exportResource - export a single, sanitized resource to the output stream
-func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string) error {
+func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string, ownerRefs map[string]bool) error {
 	// Cluster wide and namespaced resources are passed it.  Override the command line namespace to include cluster context objects.
 	if namespace != defaultNamespace && !resource.Namespaced {
 		namespace = defaultNamespace
@@ -129,52 +186,90 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	// Export each resource that matches the OAM filters
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
-		if !slices.Contains(apiInclusionList, resource.Name) {
+		if !includedAPIResources[resource.Name] {
 			if gvr.Group == "oam.verrazzano.io" {
 				continue
 			}
 
 			labels := item.GetLabels()
-			labelMatched := false
-			if labels != nil && labels["app.oam.dev/name"] == appName {
-				labelMatched = true
-			}
+			isAppResource := isOAMAppLabel(labels, appName)
+
 			// Do a secondary check on owner references to include objects like Gateway and AuthorizationPolicy
-			if !labelMatched {
+			if !isAppResource {
 				for _, ownerRef := range item.GetOwnerReferences() {
-					if ownerRef.Name == appName {
-						labelMatched = true
+					if ownerRefs[ownerRef.Name] {
+						isAppResource = true
 						break
 					}
 				}
 			}
-			if !labelMatched {
+			if !isAppResource {
 				continue
 			}
 		}
 
-		// Strip out some of the runtime information
-		annotations := item.GetAnnotations()
-		if annotations != nil {
-			delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
-			item.SetAnnotations(annotations)
-		}
-		itemContent := item.UnstructuredContent()
-		item.UnstructuredContent()
-		mc := item.UnstructuredContent()["metadata"].(map[string]interface{})
-		delete(mc, "creationTimestamp")
-		delete(mc, "generation")
-		delete(mc, "generateName")
-		delete(mc, "managedFields")
-		delete(mc, "ownerReferences")
-		delete(mc, "resourceVersion")
-		delete(mc, "uid")
-		item.UnstructuredContent()["metadata"] = mc
-		delete(itemContent, "status")
-
+		itemContent := sanitize(item)
 		// Marshall into yaml format and output
 		yamlBytes, _ := yaml.Marshal(itemContent)
 		fmt.Fprintf(vzHelper.GetOutputStream(), "%s\n---\n", yamlBytes)
 	}
 	return nil
+}
+
+func isOAMAppLabel(labels map[string]string, appName string) bool {
+	return labels != nil && labels["app.oam.dev/name"] == appName
+}
+
+// sanitize removes runtime metadata from objects
+func sanitize(item unstructured.Unstructured) map[string]interface{} {
+	// Strip out some of the runtime information
+	annotations := item.GetAnnotations()
+	if annotations != nil {
+		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+		item.SetAnnotations(annotations)
+	}
+	itemContent := item.UnstructuredContent()
+	item.UnstructuredContent()
+	delete(itemContent, statusKey)
+	deleteNestedKeys(itemContent, metadataKey, metadataRuntimeKeys)
+	gvk := item.GroupVersionKind()
+	switch gvk {
+	case gvkFor("", "v1", "Service"):
+		deleteNestedKeys(itemContent, specKey, serviceSpecRuntimeKeys)
+	}
+	return itemContent
+}
+
+func deleteNestedKeys(m map[string]interface{}, key string, toDelete []string) {
+	n, ok := m[key].(map[string]interface{})
+	if !ok {
+		return
+	}
+	for _, k := range toDelete {
+		delete(n, k)
+	}
+	m[key] = n
+}
+
+func gvrFor(group, version, resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+}
+
+func gvkFor(group, version, kind string) schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   group,
+		Version: version,
+		Kind:    kind,
+	}
+}
+
+func listResource(client dynamic.Interface, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
+	if resource.Namespaced {
+		return client.Resource(gvr).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+	}
+	return client.Resource(gvr).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 }
