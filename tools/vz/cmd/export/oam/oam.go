@@ -30,7 +30,11 @@ TBD
 `
 )
 
+// apiExclusionList - list of API resources to always exclude (note this is not currently taking into account group/version)
 var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions"}
+
+// apiInclusionList - list of API resources to always include (note this is not currently taking into account group/version)
+var apiInclusionList = []string{"servicemonitors"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -118,12 +122,14 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	// Export each resource that matches the OAM filters
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
-		if gvr.Group == "oam.verrazzano.io" {
-			continue
-		}
-		labels := item.GetLabels()
-		if labels["app.oam.dev/name"] != appName {
-			continue
+		if !slices.Contains(apiInclusionList, resource.Name) {
+			if gvr.Group == "oam.verrazzano.io" {
+				continue
+			}
+			labels := item.GetLabels()
+			if labels["app.oam.dev/name"] != appName {
+				continue
+			}
 		}
 
 		// Strip out some of the runtime information
