@@ -111,6 +111,7 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
+// exportResource - export a single, sanitized resource to the output stream
 func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string) error {
 	// Cluster wide and namespaced resources are passed it.  Override the command line namespace to include cluster context objects.
 	if namespace != defaultNamespace && !resource.Namespaced {
@@ -132,8 +133,18 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 				continue
 			}
 			labels := item.GetLabels()
-			if labels["app.oam.dev/name"] != appName {
-				continue
+			if labels != nil && labels["app.oam.dev/name"] != appName {
+				// Do a secondary check on owner references to include objects like Gateway and AuthorizationPolicy
+				found := false
+				for _, ownerRef := range item.GetOwnerReferences() {
+					if ownerRef.Name == appName {
+						found = true
+						break
+					}
+				}
+				if !found {
+					continue
+				}
 			}
 		}
 
