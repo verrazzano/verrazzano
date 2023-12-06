@@ -30,10 +30,10 @@ const psrRoot = "../../.."
 // TestUpdateCmd tests that the psrctl command works correctly
 func TestUpdateCmd(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -56,16 +56,16 @@ HelmReleases:
 - Description: write logs to STDOUT 10 times a second
   Name: psr-ops-s1-writelogs-0
   Namespace: psr
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 ID: ops-s1
 Name: opensearch-s1
 Namespace: default
-ScenarioUsecaseOverridesAbsDir: temp-dir
-Usecases:
+ScenarioWorkerConfigOverridesAbsDir: temp-dir
+WorkerConfigs:
 - Description: write logs to STDOUT 10 times a second
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 `)),
 		},
 	}
@@ -112,10 +112,10 @@ Usecases:
 
 func TestUpdateNoConfigmap(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
