@@ -7,20 +7,16 @@ import (
 	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/api/errors"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"k8s.io/client-go/dynamic"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"k8s.io/utils/strings/slices"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/utils/strings/slices"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -33,8 +29,7 @@ TBD
 `
 )
 
-// apiIgnoreList - list of APIs to ignore for export
-var apiIgnoreList = []string{"events", "pods", "poddisruptionbudgets", "localsubjectaccessreviews", "controllerrevisions", "csistoragecapacities", "leases"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -86,12 +81,19 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	}
 
 	for _, list := range lists {
+		// Parse the group/version
+		gv, err := schema.ParseGroupVersion(list.GroupVersion)
+		if err != nil {
+			return err
+		}
 		for _, resource := range list.APIResources {
-			// Skip the following resource types
-			if slices.Contains(apiIgnoreList, resource.Name) {
+			// Skip items contained on the exclusion list
+			if slices.Contains(apiExclusionList, resource.Name) {
 				continue
 			}
-			if err = exportResource(dynamicClient, vzHelper, resource, namespace, appName); err != nil {
+
+			gvr := schema.GroupVersionResource{Group: gv.Group, Version: gv.Version, Resource: resource.Name}
+			if err = exportResource(dynamicClient, vzHelper, resource, gvr, namespace, appName); err != nil {
 				return err
 			}
 		}
@@ -100,21 +102,39 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	return nil
 }
 
-func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, namespace string, appName string) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Processing resource %q in namespace %q for OAM app %q \n", resource.Name, namespace, appName)
-
-	foo := schema.GroupVersionResource{Group: resource.Group, Version: resource.Version, Resource: resource.Name}
-	list, err := client.Resource(foo).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string) error {
+	list, err := client.Resource(gvr).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
 		}
-		return err
+		return fmt.Errorf("failed to list GVR %s/%s/%s: %v", gvr.Group, gvr.Version, resource.Name, err)
 	}
 
 	// Export each resource that matches the OAM filters
 	for _, item := range list.Items {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Found item %s", item.GetName())
+		// Skip items that do not match the OAM filtering rules
+		labels := item.GetLabels()
+		if labels["app.oam.dev/name"] != appName {
+			continue
+		}
+
+		// Strip out some of the runtime information
+		itemContent := item.UnstructuredContent()
+		item.UnstructuredContent()
+		mc := item.UnstructuredContent()["metadata"].(map[string]interface{})
+		delete(mc, "creationTimestamp")
+		delete(mc, "generateName")
+		delete(mc, "managedFields")
+		delete(mc, "ownerReferences")
+		delete(mc, "resourceVersion")
+		delete(mc, "uid")
+		item.UnstructuredContent()["metadata"] = mc
+		delete(itemContent, "status")
+
+		// Marshall into yaml format and output
+		yamlBytes, _ := yaml.Marshal(itemContent)
+		fmt.Fprintf(vzHelper.GetOutputStream(), "%s\n---\n", yamlBytes)
 	}
 	return nil
 }
