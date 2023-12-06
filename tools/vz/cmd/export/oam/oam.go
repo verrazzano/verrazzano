@@ -33,7 +33,7 @@ TBD
 
 // apiExclusionList - list of API resources to always exclude (note this is not currently taking into account group/version)
 var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions", "events",
-	"applicationconfigurations", "components"}
+	"applicationconfiguration", "component"}
 
 // apiInclusionList - list of API resources to always include (note this is not currently taking into account group/version)
 var apiInclusionList = []string{"servicemonitors"}
@@ -133,19 +133,23 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 			if gvr.Group == "oam.verrazzano.io" {
 				continue
 			}
+
 			labels := item.GetLabels()
-			if labels != nil && labels["app.oam.dev/name"] != appName {
-				// Do a secondary check on owner references to include objects like Gateway and AuthorizationPolicy
-				found := false
+			labelMatched := false
+			if labels != nil && labels["app.oam.dev/name"] == appName {
+				labelMatched = true
+			}
+			// Do a secondary check on owner references to include objects like Gateway and AuthorizationPolicy
+			if !labelMatched {
 				for _, ownerRef := range item.GetOwnerReferences() {
 					if ownerRef.Name == appName {
-						found = true
+						labelMatched = true
 						break
 					}
 				}
-				if !found {
-					continue
-				}
+			}
+			if !labelMatched {
+				continue
 			}
 		}
 
