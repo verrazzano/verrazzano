@@ -30,7 +30,7 @@ TBD
 `
 )
 
-var apiExclusionList = []string{"pods", "replicasets", "endpoints"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -127,6 +127,11 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 		}
 
 		// Strip out some of the runtime information
+		annotations := item.GetAnnotations()
+		if annotations != nil {
+			delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+			item.SetAnnotations(annotations)
+		}
 		itemContent := item.UnstructuredContent()
 		item.UnstructuredContent()
 		mc := item.UnstructuredContent()["metadata"].(map[string]interface{})
@@ -136,11 +141,6 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 		delete(mc, "ownerReferences")
 		delete(mc, "resourceVersion")
 		delete(mc, "uid")
-
-		annotations := mc["annotations"].(map[string]interface{})
-		delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
-		mc["annotations"] = annotations
-
 		item.UnstructuredContent()["metadata"] = mc
 		delete(itemContent, "status")
 
