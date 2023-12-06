@@ -30,7 +30,7 @@ TBD
 `
 )
 
-var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices"}
+var apiExclusionList = []string{"pods", "replicasets", "endpoints", "endpointslices", "controllerrevisions"}
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -76,7 +76,7 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	if err != nil {
 		return err
 	}
-	lists, err := disco.ServerPreferredNamespacedResources()
+	lists, err := disco.ServerPreferredResources()
 	if err != nil {
 		return err
 	}
