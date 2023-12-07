@@ -224,7 +224,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 
 // Get all the items
 func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
-	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/items",
+	URL := fmt.Sprintf("http://%s.%s.svc.cluster.local:%s/todo/rest/items",
 		config.PsrEnv.GetEnv(ServiceName),
 		config.PsrEnv.GetEnv(ServiceNamespace),
 		config.PsrEnv.GetEnv(ServicePort))
@@ -248,7 +248,7 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 }
 
 func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
-	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%v",
+	URL := fmt.Sprintf("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%v",
 		config.PsrEnv.GetEnv(ServiceName),
 		config.PsrEnv.GetEnv(ServiceNamespace),
 		config.PsrEnv.GetEnv(ServicePort),
