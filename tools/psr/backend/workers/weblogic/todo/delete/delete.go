@@ -4,7 +4,6 @@
 package get
 
 import (
-	"fmt"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo"
 	"net/http"
 	"sync/atomic"
@@ -17,10 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
 )
-
-type httpFunc func(url string) (resp *http.Response, err error)
-
-var httpGetFunc httpFunc = http.Get
 
 const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
@@ -43,19 +38,17 @@ const (
 	Path = "URL_PATH"
 )
 
+// workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
+type workerMetricDef struct {
+	metricDef todo.HttpMetricDef
+}
+
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetricDef
 }
 
 var _ spi.Worker = worker{}
-
-// workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
-type workerMetricDef struct {
-	metricDef todo.HttpMetricDef
-}
-
-var ID atomic.Int64
 
 func NewTodoWorker() (spi.Worker, error) {
 	w := worker{
@@ -143,19 +136,6 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	newID := ID.Add(1)
-	IDstr := fmt.Sprint("%v", newID)
-
-	err := w.doGet(log, IDstr)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (w worker) doGet(log vzlog.VerrazzanoLogger, ID string) error {
-	// Get
 	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
 		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
 		".svc.cluster.local:" +
@@ -164,7 +144,7 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger, ID string) error {
 	atomic.AddInt64(&w.workerMetricDef.metricDef.RequestsCountTotal.Val, 1)
 	startTime := time.Now().UnixNano()
 	resp, err := http.Get(URL)
-	todo.HandleResponse(log, URL, &w.workerMetricDef.metricDef, resp, err)
+	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricDef, resp, err)
 	if err != nil {
 		return err
 	}
