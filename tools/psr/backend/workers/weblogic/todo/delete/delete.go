@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package delete
@@ -22,7 +22,7 @@ import (
 
 const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-	metricsPrefix = "http_get"
+	metricsPrefix = "todo"
 
 	// ServiceName specifies the name of the service in the local cluster
 	// By default, the ServiceName is not specified
@@ -151,8 +151,8 @@ func NewWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDes for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:    config.WorkerTypeWlsTodo,
-		Description:   "The get worker makes inserts an entry into TODO_LIST, gets it, then deletes it",
+		WorkerType:    config.WorkerTypeWlsTodoDelete,
+		Description:   "The get worker makes gets all entries in the TODO LIST database and deletes them all.",
 		MetricsPrefix: metricsPrefix,
 	}
 }
@@ -194,7 +194,7 @@ func (w worker) PreconditionsMet() (bool, error) {
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	// Get all the items
 	atomic.AddInt64(&w.workerMetricDef.metricGetDef.RequestsCountTotal.Val, 1)
-	body, err := w.doGet(conf, log)
+	body, err := w.doGet(log)
 	if err != nil {
 		atomic.AddInt64(&w.metricGetDef.RequestsFailedCountTotal.Val, 1)
 	}
@@ -223,7 +223,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 }
 
 // Get all the items
-func (w worker) doGet(conf config.CommonConfig, log vzlog.VerrazzanoLogger) ([]byte, error) {
+func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/items",
 		config.PsrEnv.GetEnv(ServiceName),
 		config.PsrEnv.GetEnv(ServiceNamespace),
@@ -247,8 +247,8 @@ func (w worker) doGet(conf config.CommonConfig, log vzlog.VerrazzanoLogger) ([]b
 	return body, nil
 }
 
-func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
-	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%s",
+func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
+	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%v",
 		config.PsrEnv.GetEnv(ServiceName),
 		config.PsrEnv.GetEnv(ServiceNamespace),
 		config.PsrEnv.GetEnv(ServicePort),
@@ -276,7 +276,7 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
 // Build the items from JSON
 func buildItemsFromJSON(log vzlog.VerrazzanoLogger, body []byte) (TodoItems, error) {
 	var items TodoItems
-	err := json.Unmarshal([]byte(body), &items)
+	err := json.Unmarshal(body, &items)
 	if err != nil {
 		return TodoItems{}, log.ErrorfNewErr("Failed to parse response body %v: %v", body, err)
 	}

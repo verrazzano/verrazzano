@@ -21,6 +21,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/prometheus/alerts"
 	wlsscale "github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/scale"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo/delete"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -114,6 +115,10 @@ func getWorker(wt string) (spi.Worker, error) {
 		return wlsscale.NewScaleWorker()
 	case config.WorkerTypeReceiveAlerts:
 		return alerts.NewAlertsWorker()
+	case config.WorkerTypeWlsTodoDelete:
+		return delete.NewWorker()
+	case config.WorkerTypeWlsTodoPut:
+		return delete.NewWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
