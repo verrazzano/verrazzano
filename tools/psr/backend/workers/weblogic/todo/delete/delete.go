@@ -85,7 +85,7 @@ func NewWorker() (spi.Worker, error) {
 					Help: "The total number of failed GET requests",
 					Type: prometheus.CounterValue,
 				},
-				RequestDurationMillis: metrics.MetricItem{
+				RequestDurationMicros: metrics.MetricItem{
 					Name: "get_request_duration_millis",
 					Help: "The duration of GET request round trip in milliseconds",
 					Type: prometheus.CounterValue,
@@ -107,7 +107,7 @@ func NewWorker() (spi.Worker, error) {
 					Help: "The total number of failed DELETE requests",
 					Type: prometheus.CounterValue,
 				},
-				RequestDurationMillis: metrics.MetricItem{
+				RequestDurationMicros: metrics.MetricItem{
 					Name: "delete_request_duration_millis",
 					Help: "The duration of DELETE request round trip in milliseconds",
 					Type: prometheus.CounterValue,
@@ -128,11 +128,11 @@ func NewWorker() (spi.Worker, error) {
 		&w.metricGetDef.RequestsCountTotal,
 		&w.metricGetDef.RequestsSucceededCountTotal,
 		&w.metricGetDef.RequestsFailedCountTotal,
-		&w.metricGetDef.RequestDurationMillis,
+		&w.metricGetDef.RequestDurationMicros,
 		&w.metricDeleteDef.RequestsCountTotal,
 		&w.metricDeleteDef.RequestsSucceededCountTotal,
 		&w.metricDeleteDef.RequestsFailedCountTotal,
-		&w.metricDeleteDef.RequestDurationMillis,
+		&w.metricDeleteDef.RequestDurationMicros,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	// Init IDs
@@ -170,11 +170,11 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.metricGetDef.RequestsCountTotal.BuildMetric(),
 		w.metricGetDef.RequestsSucceededCountTotal.BuildMetric(),
 		w.metricGetDef.RequestsFailedCountTotal.BuildMetric(),
-		w.metricGetDef.RequestDurationMillis.BuildMetric(),
+		w.metricGetDef.RequestDurationMicros.BuildMetric(),
 		w.metricDeleteDef.RequestsCountTotal.BuildMetric(),
 		w.metricDeleteDef.RequestsSucceededCountTotal.BuildMetric(),
 		w.metricDeleteDef.RequestsFailedCountTotal.BuildMetric(),
-		w.metricDeleteDef.RequestDurationMillis.BuildMetric(),
+		w.metricDeleteDef.RequestDurationMicros.BuildMetric(),
 	}
 }
 
@@ -226,8 +226,8 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 
 	startTime := time.Now().UnixNano()
 	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	durationMillis := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMillis.Val, durationMillis)
+	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return nil, log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -235,7 +235,7 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 	if err != nil {
 		return nil, log.ErrorfNewErr("HTTP GET failed for URL %s returned error %v", URL, err)
 	}
-	body, err := todo.HandleResponse(log, URL, &w.workerMetricDef.metricGetDef, resp, err)
+	body, err := todo.HandleResponse(log, URL, resp, err, true)
 	if err != nil {
 		return nil, err
 	}
@@ -251,8 +251,8 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
 
 	startTime := time.Now().UnixNano()
 	req, err := http.NewRequest(http.MethodDelete, URL, nil)
-	durationMillis := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMillis.Val, durationMillis)
+	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -260,7 +260,7 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
 	if err != nil {
 		return log.ErrorfNewErr("HTTP GET failed for URL %s returned error %v", URL, err)
 	}
-	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricGetDef, resp, err)
+	_, err = todo.HandleResponse(log, URL, resp, err, false)
 	if err != nil {
 		return err
 	}

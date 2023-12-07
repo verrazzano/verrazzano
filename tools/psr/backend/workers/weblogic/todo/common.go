@@ -14,11 +14,11 @@ type HttpMetricDef struct {
 	RequestsCountTotal          metrics.MetricItem
 	RequestsSucceededCountTotal metrics.MetricItem
 	RequestsFailedCountTotal    metrics.MetricItem
-	RequestDurationMillis       metrics.MetricItem
+	RequestDurationMicros       metrics.MetricItem
 }
 
 // HandleResponse processes the HTTP response and updates metrics
-func HandleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *HttpMetricDef, resp *http.Response, err error) ([]byte, error) {
+func HandleResponse(log vzlog.VerrazzanoLogger, URL string, resp *http.Response, err error, require200 bool) ([]byte, error) {
 	if err != nil {
 		return nil, log.ErrorfNewErr("HTTP request %s returned error %v", URL, err)
 	}
@@ -31,8 +31,14 @@ func HandleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *HttpMetri
 		return nil, log.ErrorfNewErr("HTTP request body ReadAll for URL %s returned error %v", URL, err)
 	}
 
-	if resp.StatusCode != 200 {
-		return nil, log.ErrorfNewErr("HTTP request %s returned StatusCode &v", URL, resp.StatusCode)
+	if require200 {
+		if resp.StatusCode != 200 {
+			return nil, log.ErrorfNewErr("HTTP request %s returned StatusCode &v", URL, resp.StatusCode)
+		}
+	} else {
+		if resp.StatusCode > 300 {
+			return nil, log.ErrorfNewErr("HTTP request %s returned StatusCode &v", URL, resp.StatusCode)
+		}
 	}
 
 	return body, nil
