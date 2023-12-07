@@ -273,7 +273,7 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
 // Build the items from JSON
 func buildItemsFromJSON(log vzlog.VerrazzanoLogger, body []byte) (TodoItems, error) {
 	var items TodoItems
-	err := json.Unmarshal(body, &items)
+	err := json.Unmarshal(body, &items.ToDos)
 	if err != nil {
 		return TodoItems{}, log.ErrorfNewErr("Failed to parse response body %v: %v", body, err)
 	}
