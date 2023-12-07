@@ -147,7 +147,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/argocd-values.yaml
   - name: thanos
-    version: 0.32.2
+    version: 0.32.2-1
     chart: platform-operator/thirdparty/charts/thanos
     valuesFiles:
       - platform-operator/helm_config/overrides/thanos-values.yaml
