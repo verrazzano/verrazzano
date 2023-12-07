@@ -35,10 +35,6 @@ const (
 	// ServicePort specifies the port of the service in the local cluster
 	// By default, the ServicePort is not specified
 	ServicePort = "SERVICE_PORT"
-
-	// Path specifies the path in the URL
-	// By default, the path is not specified
-	Path = "URL_PATH"
 )
 
 // TodoItems is needed to unmarshal the REST GET response
@@ -162,7 +158,6 @@ func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 		{Key: ServiceName, DefaultVal: "", Required: true},
 		{Key: ServiceNamespace, DefaultVal: "", Required: true},
 		{Key: ServicePort, DefaultVal: "", Required: true},
-		{Key: Path, DefaultVal: "", Required: true},
 	}
 }
 

@@ -34,7 +34,6 @@ func HandleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *HttpMetri
 	if resp.StatusCode != 200 {
 		return nil, log.ErrorfNewErr("HTTP request %s returned StatusCode &v", URL, resp.StatusCode)
 	}
-	// Success
-	log.Progressf("Http request to URL %s succeeded", URL)
+
 	return body, nil
 }

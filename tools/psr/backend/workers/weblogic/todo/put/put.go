@@ -34,10 +34,6 @@ const (
 	// ServicePort specifies the port of the service in the local cluster
 	// By default, the ServicePort is not specified
 	ServicePort = "SERVICE_PORT"
-
-	// Path specifies the path in the URL
-	// By default, the path is not specified
-	Path = "URL_PATH"
 )
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
@@ -122,7 +118,6 @@ func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 		{Key: ServiceName, DefaultVal: "", Required: true},
 		{Key: ServiceNamespace, DefaultVal: "", Required: true},
 		{Key: ServicePort, DefaultVal: "", Required: true},
-		{Key: Path, DefaultVal: "", Required: true},
 	}
 }
 
@@ -154,7 +149,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
 	}
 	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
-	log.Progressf("PUT succeeded")
+	log.Progressf("PUT todo item succeeded")
 	return nil
 }
 
