@@ -4,6 +4,7 @@
 package todo
 
 import (
+	"fmt"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -61,6 +62,8 @@ type httpMetricDef struct {
 	requestsFailedCountTotal    metrics.MetricItem
 	requestDurationMillis       metrics.MetricItem
 }
+
+var ID atomic.Int64
 
 func NewTodoWorker() (spi.Worker, error) {
 	getMetricDef := httpMetricDef{
@@ -215,14 +218,20 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	var lc, ls, lf int64
+	newID := ID.Add(1)
+	IDstr := fmt.Sprint("%v", newID)
 
-	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
-		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
-		"/" + config.PsrEnv.GetEnv(Path)
-	err := w.doHttp(log, URL, httpGetFunc, &w.workerMetricDef.httpGetMetricDef)
+	err := w.doPut(log, IDstr)
+	if err != nil {
+		return err
+	}
+
+	err = w.doGet(log, IDstr)
+	if err != nil {
+		return err
+	}
+
+	err = w.doDelete(log, IDstr)
 	if err != nil {
 		return err
 	}
@@ -230,28 +239,76 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	return nil
 }
 
-func (w worker) doHttp(log vzlog.VerrazzanoLogger, URL string, f httpFunc,
-	metricDef *httpMetricDef) error {
-	var lc, ls, lf int64
-
-	lc = atomic.AddInt64(&metricDef.requestsCountTotal.Val, 1)
-
+func (w worker) doGet(log vzlog.VerrazzanoLogger, ID string) error {
+	// Get
+	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
+		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+		".svc.cluster.local:" +
+		config.PsrEnv.GetEnv(ServicePort) +
+		"/todo/rest/item/" + ID
+	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
 	startTime := time.Now().UnixNano()
-	resp, err := f(URL)
+	resp, err := http.Get(URL)
+	w.handleResponse(log, URL, &w.workerMetricDef.httpGetMetricDef, resp, err)
+	if err != nil {
+		return err
+	}
 	durationMillis := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&metricDef.requestDurationMillis.Val, durationMillis)
+	atomic.StoreInt64(&w.workerMetricDef.httpGetMetricDef.requestDurationMillis.Val, durationMillis)
+	return nil
+}
 
+func (w worker) doPut(log vzlog.VerrazzanoLogger, ID string) error {
+	// Put (Insert)
+	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
+		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+		".svc.cluster.local:" +
+		config.PsrEnv.GetEnv(ServicePort) +
+		"/todo/rest/item/" + ID + "item-" + ID
+	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
+	startTime := time.Now().UnixNano()
+	resp, err := http.Get(URL)
+	w.handleResponse(log, URL, &w.workerMetricDef.httpGetMetricDef, resp, err)
+	if err != nil {
+		return err
+	}
+	durationMillis := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.httpGetMetricDef.requestDurationMillis.Val, durationMillis)
+	return nil
+}
+
+func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
+	// Delete
+	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
+		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+		".svc.cluster.local:" +
+		config.PsrEnv.GetEnv(ServicePort) +
+		"/" + config.PsrEnv.GetEnv(Path)
+	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
+	startTime := time.Now().UnixNano()
+	resp, err := http.Get(URL)
+	w.handleResponse(log, URL, &w.workerMetricDef.httpGetMetricDef, resp, err)
+	if err != nil {
+		return err
+	}
+	durationMillis := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.httpGetMetricDef.requestDurationMillis.Val, durationMillis)
+	return nil
+}
+
+// handleResponse processes the HTTP response and updates metrics
+func (w worker) handleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *httpMetricDef, resp *http.Response, err error) error {
 	if err != nil {
 		atomic.AddInt64(&metricDef.requestsFailedCountTotal.Val, 1)
 		return log.ErrorfNewErr("HTTP request %s returned error %v", URL, err)
 	}
 	if resp == nil {
 		atomic.AddInt64(&metricDef.requestsFailedCountTotal.Val, 1)
-		return log.ErrorfNewErr("HTTP request %s returned nil", URL)
+		return log.ErrorfNewErr("HTTP request %s returned nil response", URL)
 	}
 	if resp.StatusCode != 200 {
 		atomic.AddInt64(&metricDef.requestsFailedCountTotal.Val, 1)
-		return log.ErrorfNewErr("HTTP request %s error code &v", URL, resp.StatusCode)
+		return log.ErrorfNewErr("HTTP request %s returned StatusCode &v", URL, resp.StatusCode)
 	}
 	// Success
 	atomic.AddInt64(&metricDef.requestsSucceededCountTotal.Val, 1)
