@@ -160,9 +160,9 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 
 func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	newID := w.ID.Add(1)
-	item := fmt.Sprint("%v-%v", newID, w.UUID)
+	item := fmt.Sprintf("%v-%v", newID, w.UUID)
 
-	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%s",
+	URL := fmt.Sprintf("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%s",
 		config.PsrEnv.GetEnv(ServiceName),
 		config.PsrEnv.GetEnv(ServiceNamespace),
 		config.PsrEnv.GetEnv(ServicePort),
