@@ -192,6 +192,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	body, err := w.doGet(log)
 	if err != nil {
 		atomic.AddInt64(&w.metricGetDef.RequestsFailedCountTotal.Val, 1)
+		return err
 	}
 	atomic.AddInt64(&w.metricGetDef.RequestsSucceededCountTotal.Val, 1)
 
@@ -208,9 +209,9 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		err := w.doDelete(log, item.ID)
 		if err != nil {
 			atomic.AddInt64(&w.metricDeleteDef.RequestsFailedCountTotal.Val, 1)
+			return err
 		}
 		atomic.AddInt64(&w.metricDeleteDef.RequestsSucceededCountTotal.Val, 1)
-
 	}
 
 	log.Progressf("DELETE all todo items succeeded")
@@ -226,8 +227,6 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 
 	startTime := time.Now().UnixNano()
 	req, err := http.NewRequest(http.MethodGet, URL, nil)
-	durationMicros := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return nil, log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -239,6 +238,9 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	return body, nil
 }
 

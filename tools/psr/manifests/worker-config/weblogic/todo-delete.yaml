@@ -4,7 +4,7 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: todo-delete
+    PSR_WORKER_TYPE: wls-todo-delete
     # SERVICE_NAME, SERVICE_NAMESPACE, SERVICE_PORT and PATH are required to form HTTP endpoint URL to access. HTTPS is not supported.
     SERVICE_NAME:
     SERVICE_NAMESPACE:
