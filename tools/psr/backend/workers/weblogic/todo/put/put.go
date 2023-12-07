@@ -1,7 +1,7 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package get
+package put
 
 import (
 	"fmt"
@@ -154,6 +154,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
 	}
 	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
+	log.Progressf("PUT succeeded")
 	return nil
 }
 
@@ -175,7 +176,9 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
 	resp, err := w.client.Do(req)
-
+	if err != nil {
+		return log.ErrorfNewErr("HTTP PUT failed for URL %s returned error %v", URL, err)
+	}
 	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricDef, resp, err)
 	if err != nil {
 		return err
