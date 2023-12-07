@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package put
@@ -21,7 +21,7 @@ import (
 
 const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-	metricsPrefix = "http_get"
+	metricsPrefix = "todo"
 
 	// ServiceName specifies the name of the service in the local cluster
 	// By default, the ServiceName is not specified
@@ -111,8 +111,8 @@ func NewWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDes for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:    config.WorkerTypeWlsTodo,
-		Description:   "The get worker makes inserts an entry into TODO_LIST, gets it, then deletes it",
+		WorkerType:    config.WorkerTypeWlsTodoPut,
+		Description:   "The get worker makes inserts an entry into TODO LIST database",
 		MetricsPrefix: metricsPrefix,
 	}
 }

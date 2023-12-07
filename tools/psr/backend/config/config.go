@@ -56,7 +56,8 @@ const (
 	WorkerTypeHTTPGet       = "http-get"
 	WorkerTypeReceiveAlerts = "prom-alerts"
 	WorkerTypeWlsScale      = "wls-scale"
-	WorkerTypeWlsTodo       = "wls-todo"
+	WorkerTypeWlsTodoDelete = "wls-todo-delete"
+	WorkerTypeWlsTodoPut    = "wls-todo-put"
 )
 
 const (
