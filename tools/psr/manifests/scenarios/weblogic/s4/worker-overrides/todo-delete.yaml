@@ -5,6 +5,3 @@ global:
   envVars:
     PSR_LOOP_SLEEP: 500ms
     PSR_WORKER_THREAD_COUNT: 1
-    SERVICE_NAME: tododomain-adminserver
-    SERVICE_NAMESPACE: todo-list
-    SERVICE_PORT: 8080
