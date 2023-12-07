@@ -71,7 +71,7 @@ func NewWorker() (spi.Worker, error) {
 					Help: "The total number of failed PUT requests",
 					Type: prometheus.CounterValue,
 				},
-				RequestDurationMillis: metrics.MetricItem{
+				RequestDurationMicros: metrics.MetricItem{
 					Name: "put_request_duration_millis",
 					Help: "The duration of PUT request round trip in milliseconds",
 					Type: prometheus.CounterValue,
@@ -92,7 +92,7 @@ func NewWorker() (spi.Worker, error) {
 		&w.metricDef.RequestsCountTotal,
 		&w.metricDef.RequestsSucceededCountTotal,
 		&w.metricDef.RequestsFailedCountTotal,
-		&w.metricDef.RequestDurationMillis,
+		&w.metricDef.RequestDurationMicros,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
 
 	// Init IDs
@@ -130,7 +130,7 @@ func (w worker) GetMetricList() []prometheus.Metric {
 		w.metricDef.RequestsCountTotal.BuildMetric(),
 		w.metricDef.RequestsSucceededCountTotal.BuildMetric(),
 		w.metricDef.RequestsFailedCountTotal.BuildMetric(),
-		w.metricDef.RequestDurationMillis.BuildMetric(),
+		w.metricDef.RequestDurationMicros.BuildMetric(),
 	}
 }
 
@@ -165,8 +165,8 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 
 	startTime := time.Now().UnixNano()
 	req, err := http.NewRequest(http.MethodPut, URL, nil)
-	durationMillis := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMillis.Val, durationMillis)
+	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -174,7 +174,7 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 	if err != nil {
 		return log.ErrorfNewErr("HTTP PUT failed for URL %s returned error %v", URL, err)
 	}
-	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricDef, resp, err)
+	_, err = todo.HandleResponse(log, URL, resp, err, false)
 	if err != nil {
 		return err
 	}
