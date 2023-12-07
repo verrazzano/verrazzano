@@ -147,6 +147,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	err := w.doPut(conf, log)
 	if err != nil {
 		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
+		return err
 	}
 	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
 	log.Progressf("PUT todo item succeeded")
@@ -165,8 +166,6 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 
 	startTime := time.Now().UnixNano()
 	req, err := http.NewRequest(http.MethodPut, URL, nil)
-	durationMicros := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -178,5 +177,8 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 	if err != nil {
 		return err
 	}
+
+	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 	return nil
 }

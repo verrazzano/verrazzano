@@ -5,6 +5,7 @@ package workmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo/put"
 	"sync"
 	"time"
 
@@ -118,7 +119,7 @@ func getWorker(wt string) (spi.Worker, error) {
 	case config.WorkerTypeWlsTodoDelete:
 		return delete.NewWorker()
 	case config.WorkerTypeWlsTodoPut:
-		return delete.NewWorker()
+		return put.NewWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
