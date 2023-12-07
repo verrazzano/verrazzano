@@ -178,15 +178,6 @@ func getOwnerRefs(client dynamic.Interface, namespace, appName string) (map[stri
 	return ownerResourceNames, nil
 }
 
-func isOwned(item unstructured.Unstructured, ownerRefs map[string]bool) bool {
-	for _, ownerRef := range item.GetOwnerReferences() {
-		if ownerRefs[ownerRef.Name] {
-			return true
-		}
-	}
-	return false
-}
-
 // exportResource - export a single, sanitized resource to the output stream
 func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string, ownerRefs map[string]bool) error {
 	// Cluster wide and namespaced resources are passed it.  Override the command line namespace to include cluster context objects.
@@ -210,7 +201,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 			}
 
 			labels := item.GetLabels()
-			isAppResource := isOAMAppLabel(labels, appName) || isOwned(item, ownerRefs)
+			isAppResource := isOAMAppLabel(labels, appName) || isOwned(item, ownerRefs) || isFluentdConfigMap(item)
 			if !isAppResource {
 				continue
 			}
@@ -278,6 +269,19 @@ func getServerCredentialName(server interface{}) *string {
 
 func isOAMAppLabel(labels map[string]string, appName string) bool {
 	return labels != nil && labels["app.oam.dev/name"] == appName
+}
+
+func isOwned(item unstructured.Unstructured, ownerRefs map[string]bool) bool {
+	for _, ownerRef := range item.GetOwnerReferences() {
+		if ownerRefs[ownerRef.Name] {
+			return true
+		}
+	}
+	return false
+}
+
+func isFluentdConfigMap(item unstructured.Unstructured) bool {
+	return item.GetKind() == "ConfigMap" && strings.HasPrefix(item.GetName(), "fluentd-config-")
 }
 
 func printSanitized(item unstructured.Unstructured, vzHelper helpers.VZHelper) {
