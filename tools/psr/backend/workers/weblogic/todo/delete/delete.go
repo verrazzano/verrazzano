@@ -1,9 +1,12 @@
 // Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package get
+package delete
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo"
 	"net/http"
 	"sync/atomic"
@@ -38,23 +41,39 @@ const (
 	Path = "URL_PATH"
 )
 
+// TodoItems is needed to unmarshal the REST GET response
+type TodoItems struct {
+	ToDos []TodoItem
+}
+
+// TodoItem is needed to unmarshal the REST GET response
+type TodoItem struct {
+	ID          int    `json:"id"`
+	Description string `json:"description"`
+	Done        bool   `json:"done"`
+}
+
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetricDef struct {
-	metricDef todo.HttpMetricDef
+	metricGetDef    todo.HttpMetricDef
+	metricDeleteDef todo.HttpMetricDef
 }
 
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetricDef
+	ID     *atomic.Int64
+	UUID   uuid.UUID
+	client *http.Client
 }
 
 var _ spi.Worker = worker{}
 
-func NewTodoWorker() (spi.Worker, error) {
+func NewWorker() (spi.Worker, error) {
 	w := worker{
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
-			metricDef: todo.HttpMetricDef{
+			metricGetDef: todo.HttpMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
 					Name: "get_request_count_total",
 					Help: "The total number of GET requests",
@@ -76,6 +95,28 @@ func NewTodoWorker() (spi.Worker, error) {
 					Type: prometheus.CounterValue,
 				},
 			},
+			metricDeleteDef: todo.HttpMetricDef{
+				RequestsCountTotal: metrics.MetricItem{
+					Name: "delete_request_count_total",
+					Help: "The total number of DELETE requests",
+					Type: prometheus.CounterValue,
+				},
+				RequestsSucceededCountTotal: metrics.MetricItem{
+					Name: "delete_request_succeeded_count_total",
+					Help: "The total number of successful DELETE requests",
+					Type: prometheus.CounterValue,
+				},
+				RequestsFailedCountTotal: metrics.MetricItem{
+					Name: "delete_request_failed_count_total",
+					Help: "The total number of failed DELETE requests",
+					Type: prometheus.CounterValue,
+				},
+				RequestDurationMillis: metrics.MetricItem{
+					Name: "delete_request_duration_millis",
+					Help: "The duration of DELETE request round trip in milliseconds",
+					Type: prometheus.CounterValue,
+				},
+			},
 		},
 	}
 
@@ -88,15 +129,26 @@ func NewTodoWorker() (spi.Worker, error) {
 	}
 
 	w.metricDescList = metrics.BuildMetricDescList([]*metrics.MetricItem{
-		&w.metricDef.RequestsCountTotal,
-		&w.metricDef.RequestsSucceededCountTotal,
-		&w.metricDef.RequestsFailedCountTotal,
-		&w.metricDef.RequestDurationMillis,
+		&w.metricGetDef.RequestsCountTotal,
+		&w.metricGetDef.RequestsSucceededCountTotal,
+		&w.metricGetDef.RequestsFailedCountTotal,
+		&w.metricGetDef.RequestDurationMillis,
+		&w.metricDeleteDef.RequestsCountTotal,
+		&w.metricDeleteDef.RequestsSucceededCountTotal,
+		&w.metricDeleteDef.RequestsFailedCountTotal,
+		&w.metricDeleteDef.RequestDurationMillis,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
+
+	// Init IDs
+	w.UUID = uuid.New()
+	w.ID = &atomic.Int64{}
+
+	// Create http client
+	w.client = &http.Client{}
 	return w, nil
 }
 
-// GetWorkerDesc returns the WorkerDesc for the worker
+// GetWorkerDesc returns the WorkerDes for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:    config.WorkerTypeWlsTodo,
@@ -120,10 +172,14 @@ func (w worker) GetMetricDescList() []prometheus.Desc {
 
 func (w worker) GetMetricList() []prometheus.Metric {
 	return []prometheus.Metric{
-		w.metricDef.RequestsCountTotal.BuildMetric(),
-		w.metricDef.RequestsSucceededCountTotal.BuildMetric(),
-		w.metricDef.RequestsFailedCountTotal.BuildMetric(),
-		w.metricDef.RequestDurationMillis.BuildMetric(),
+		w.metricGetDef.RequestsCountTotal.BuildMetric(),
+		w.metricGetDef.RequestsSucceededCountTotal.BuildMetric(),
+		w.metricGetDef.RequestsFailedCountTotal.BuildMetric(),
+		w.metricGetDef.RequestDurationMillis.BuildMetric(),
+		w.metricDeleteDef.RequestsCountTotal.BuildMetric(),
+		w.metricDeleteDef.RequestsSucceededCountTotal.BuildMetric(),
+		w.metricDeleteDef.RequestsFailedCountTotal.BuildMetric(),
+		w.metricDeleteDef.RequestDurationMillis.BuildMetric(),
 	}
 }
 
@@ -136,19 +192,93 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
-		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
-		"/todo/rest/item/" + ID
-	atomic.AddInt64(&w.workerMetricDef.metricDef.RequestsCountTotal.Val, 1)
-	startTime := time.Now().UnixNano()
-	resp, err := http.Get(URL)
-	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricDef, resp, err)
+	// Get all the items
+	atomic.AddInt64(&w.workerMetricDef.metricGetDef.RequestsCountTotal.Val, 1)
+	body, err := w.doGet(conf, log)
+	if err != nil {
+		atomic.AddInt64(&w.metricGetDef.RequestsFailedCountTotal.Val, 1)
+	}
+	atomic.AddInt64(&w.metricGetDef.RequestsSucceededCountTotal.Val, 1)
+
+	items, err := buildItemsFromJSON(log, body)
 	if err != nil {
 		return err
 	}
-	durationMillis := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMillis.Val, durationMillis)
+
+	log.Progressf("GET all todo items succeeded")
+
+	// Delete all the items that match this UUID
+	for _, item := range items.ToDos {
+		atomic.AddInt64(&w.workerMetricDef.metricDeleteDef.RequestsCountTotal.Val, 1)
+		err := w.doDelete(log, item.ID)
+		if err != nil {
+			atomic.AddInt64(&w.metricDeleteDef.RequestsFailedCountTotal.Val, 1)
+		}
+		atomic.AddInt64(&w.metricDeleteDef.RequestsSucceededCountTotal.Val, 1)
+
+	}
+
+	log.Progressf("DELETE all todo items succeeded")
 	return nil
+}
+
+// Get all the items
+func (w worker) doGet(conf config.CommonConfig, log vzlog.VerrazzanoLogger) ([]byte, error) {
+	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/items",
+		config.PsrEnv.GetEnv(ServiceName),
+		config.PsrEnv.GetEnv(ServiceNamespace),
+		config.PsrEnv.GetEnv(ServicePort))
+
+	startTime := time.Now().UnixNano()
+	req, err := http.NewRequest(http.MethodGet, URL, nil)
+	durationMillis := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMillis.Val, durationMillis)
+	if err != nil {
+		return nil, log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
+	}
+	resp, err := w.client.Do(req)
+	if err != nil {
+		return nil, log.ErrorfNewErr("HTTP GET failed for URL %s returned error %v", URL, err)
+	}
+	body, err := todo.HandleResponse(log, URL, &w.workerMetricDef.metricGetDef, resp, err)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
+}
+
+func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
+	URL := fmt.Sprint("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%s",
+		config.PsrEnv.GetEnv(ServiceName),
+		config.PsrEnv.GetEnv(ServiceNamespace),
+		config.PsrEnv.GetEnv(ServicePort),
+		ID)
+
+	startTime := time.Now().UnixNano()
+	req, err := http.NewRequest(http.MethodDelete, URL, nil)
+	durationMillis := (time.Now().UnixNano() - startTime) / 1000
+	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMillis.Val, durationMillis)
+	if err != nil {
+		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
+	}
+	resp, err := w.client.Do(req)
+	if err != nil {
+		return log.ErrorfNewErr("HTTP GET failed for URL %s returned error %v", URL, err)
+	}
+	_, err = todo.HandleResponse(log, URL, &w.workerMetricDef.metricGetDef, resp, err)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Build the items from JSON
+func buildItemsFromJSON(log vzlog.VerrazzanoLogger, body []byte) (TodoItems, error) {
+	var items TodoItems
+	err := json.Unmarshal([]byte(body), &items)
+	if err != nil {
+		return TodoItems{}, log.ErrorfNewErr("Failed to parse response body %v: %v", body, err)
+	}
+	return items, nil
 }
