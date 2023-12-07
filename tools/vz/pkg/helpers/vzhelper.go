@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -213,6 +214,7 @@ func NewScheme() *runtime.Scheme {
 	_ = oam.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
 	_ = certv1.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
 	return scheme
 }
 

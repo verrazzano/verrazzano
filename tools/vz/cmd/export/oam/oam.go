@@ -37,7 +37,7 @@ TBD
 	statusKey          = "status"
 )
 
-var metadataRuntimeKeys = []string{"creationTimestamp", "generation", "generateName", "managedFields", "ownerReferences", "resourceVersion", "uid"}
+var metadataRuntimeKeys = []string{"creationTimestamp", "generation", "generateName", "managedFields", "ownerReferences", "resourceVersion", "uid", "finalizers"}
 var serviceSpecRuntimeKeys = []string{"clusterIP", "clusterIPs"}
 
 // excludedAPIResources map of API resources to always exclude (note this is not currently taking into account group/version)
@@ -61,11 +61,17 @@ var gvrIngressTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "ingresstraits
 var gvrLoggingTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "loggingtraits")
 var gvrManualScalerTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "manualscalertraits")
 var gvrMetricsTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "metricstraits")
+var gvrCoherenceWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanocoherenceworkloads")
+var gvrHelidonWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanohelidonworkloads")
+var gvrWeblogicWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanoweblogiceworkloads")
 var traitTypes = []schema.GroupVersionResource{
 	gvrIngressTrait,
 	gvrLoggingTrait,
 	gvrManualScalerTrait,
 	gvrMetricsTrait,
+	gvrCoherenceWorkload,
+	gvrHelidonWorkload,
+	gvrWeblogicWorkload,
 }
 
 func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
@@ -143,6 +149,9 @@ func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 			}
 		}
 	}
+	if err := exportTLSSecrets(dynamicClient, vzHelper, namespace, ownerRefs); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -169,6 +178,15 @@ func getOwnerRefs(client dynamic.Interface, namespace, appName string) (map[stri
 	return ownerResourceNames, nil
 }
 
+func isOwned(item unstructured.Unstructured, ownerRefs map[string]bool) bool {
+	for _, ownerRef := range item.GetOwnerReferences() {
+		if ownerRefs[ownerRef.Name] {
+			return true
+		}
+	}
+	return false
+}
+
 // exportResource - export a single, sanitized resource to the output stream
 func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string, appName string, ownerRefs map[string]bool) error {
 	// Cluster wide and namespaced resources are passed it.  Override the command line namespace to include cluster context objects.
@@ -192,32 +210,81 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 			}
 
 			labels := item.GetLabels()
-			isAppResource := isOAMAppLabel(labels, appName)
-
-			// Do a secondary check on owner references to include objects like Gateway and AuthorizationPolicy
-			if !isAppResource {
-				for _, ownerRef := range item.GetOwnerReferences() {
-					if ownerRefs[ownerRef.Name] {
-						isAppResource = true
-						break
-					}
-				}
-			}
+			isAppResource := isOAMAppLabel(labels, appName) || isOwned(item, ownerRefs)
 			if !isAppResource {
 				continue
 			}
 		}
 
-		itemContent := sanitize(item)
-		// Marshall into yaml format and output
-		yamlBytes, _ := yaml.Marshal(itemContent)
-		fmt.Fprintf(vzHelper.GetOutputStream(), "%s\n---\n", yamlBytes)
+		printSanitized(item, vzHelper)
 	}
 	return nil
 }
 
+func exportTLSSecrets(client dynamic.Interface, vzHelper helpers.VZHelper, namespace string, ownerRefs map[string]bool) error {
+	gateways, err := client.Resource(gvrFor("networking.istio.io", "v1beta1", "gateways")).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+	var ownedGateways []unstructured.Unstructured
+	for _, gw := range gateways.Items {
+		if isOwned(gw, ownerRefs) {
+			ownedGateways = append(ownedGateways, gw)
+		}
+	}
+	credentialNames := getGatewayCredentialNames(ownedGateways)
+
+	secrets, err := client.Resource(gvrFor("", "v1", "secrets")).Namespace("istio-system").List(context.Background(), metav1.ListOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		return err
+	}
+
+	for _, secret := range secrets.Items {
+		if credentialNames[secret.GetName()] {
+			printSanitized(secret, vzHelper)
+		}
+	}
+	return nil
+}
+
+func getGatewayCredentialNames(gateways []unstructured.Unstructured) map[string]bool {
+	credentialNames := map[string]bool{}
+	for _, gw := range gateways {
+		servers, found, err := unstructured.NestedSlice(gw.Object, "spec", "servers")
+		if !found || err != nil {
+			continue
+		}
+		for _, server := range servers {
+			credentialName := getServerCredentialName(server)
+			if credentialName != nil {
+				credentialNames[*credentialName] = true
+			}
+		}
+	}
+	return credentialNames
+}
+
+func getServerCredentialName(server interface{}) *string {
+	serverMap, ok := server.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	credentialName, found, err := unstructured.NestedString(serverMap, "tls", "credentialName")
+	if !found || err != nil {
+		return nil
+	}
+	return &credentialName
+}
+
 func isOAMAppLabel(labels map[string]string, appName string) bool {
 	return labels != nil && labels["app.oam.dev/name"] == appName
+}
+
+func printSanitized(item unstructured.Unstructured, vzHelper helpers.VZHelper) {
+	itemContent := sanitize(item)
+	// Marshall into yaml format and output
+	yamlBytes, _ := yaml.Marshal(itemContent)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "%s\n---\n", yamlBytes)
 }
 
 // sanitize removes runtime metadata from objects
