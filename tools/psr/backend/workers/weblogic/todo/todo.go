@@ -5,6 +5,7 @@ package todo
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo/get"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -15,31 +16,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/osenv"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
-)
-
-type httpFunc func(url string) (resp *http.Response, err error)
-
-var httpGetFunc httpFunc = http.Get
-
-const (
-	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
-	metricsPrefix = "http_get"
-
-	// ServiceName specifies the name of the service in the local cluster
-	// By default, the ServiceName is not specified
-	ServiceName = "SERVICE_NAME"
-
-	// ServiceNamespace specifies the namespace of the service in the local cluster
-	// By default, the ServiceNamespace is not specified
-	ServiceNamespace = "SERVICE_NAMESPACE"
-
-	// ServicePort specifies the port of the service in the local cluster
-	// By default, the ServicePort is not specified
-	ServicePort = "SERVICE_PORT"
-
-	// Path specifies the path in the URL
-	// By default, the path is not specified
-	Path = "URL_PATH"
 )
 
 type worker struct {
@@ -175,16 +151,16 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
 		WorkerType:    config.WorkerTypeWlsTodo,
 		Description:   "The get worker makes inserts an entry into TODO_LIST, gets it, then deletes it",
-		MetricsPrefix: metricsPrefix,
+		MetricsPrefix: get.metricsPrefix,
 	}
 }
 
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
-		{Key: ServiceName, DefaultVal: "", Required: true},
-		{Key: ServiceNamespace, DefaultVal: "", Required: true},
-		{Key: ServicePort, DefaultVal: "", Required: true},
-		{Key: Path, DefaultVal: "", Required: true},
+		{Key: get.ServiceName, DefaultVal: "", Required: true},
+		{Key: get.ServiceNamespace, DefaultVal: "", Required: true},
+		{Key: get.ServicePort, DefaultVal: "", Required: true},
+		{Key: get.Path, DefaultVal: "", Required: true},
 	}
 }
 
@@ -241,10 +217,10 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 
 func (w worker) doGet(log vzlog.VerrazzanoLogger, ID string) error {
 	// Get
-	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+	URL := "http://" + config.PsrEnv.GetEnv(get.ServiceName) +
+		"." + config.PsrEnv.GetEnv(get.ServiceNamespace) +
 		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
+		config.PsrEnv.GetEnv(get.ServicePort) +
 		"/todo/rest/item/" + ID
 	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
 	startTime := time.Now().UnixNano()
@@ -260,10 +236,10 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger, ID string) error {
 
 func (w worker) doPut(log vzlog.VerrazzanoLogger, ID string) error {
 	// Put (Insert)
-	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+	URL := "http://" + config.PsrEnv.GetEnv(get.ServiceName) +
+		"." + config.PsrEnv.GetEnv(get.ServiceNamespace) +
 		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
+		config.PsrEnv.GetEnv(get.ServicePort) +
 		"/todo/rest/item/" + ID + "item-" + ID
 	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
 	startTime := time.Now().UnixNano()
@@ -279,11 +255,11 @@ func (w worker) doPut(log vzlog.VerrazzanoLogger, ID string) error {
 
 func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
 	// Delete
-	URL := "http://" + config.PsrEnv.GetEnv(ServiceName) +
-		"." + config.PsrEnv.GetEnv(ServiceNamespace) +
+	URL := "http://" + config.PsrEnv.GetEnv(get.ServiceName) +
+		"." + config.PsrEnv.GetEnv(get.ServiceNamespace) +
 		".svc.cluster.local:" +
-		config.PsrEnv.GetEnv(ServicePort) +
-		"/" + config.PsrEnv.GetEnv(Path)
+		config.PsrEnv.GetEnv(get.ServicePort) +
+		"/" + config.PsrEnv.GetEnv(get.Path)
 	atomic.AddInt64(&w.workerMetricDef.httpGetMetricDef.requestsCountTotal.Val, 1)
 	startTime := time.Now().UnixNano()
 	resp, err := http.Get(URL)
@@ -297,7 +273,7 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID string) error {
 }
 
 // handleResponse processes the HTTP response and updates metrics
-func (w worker) handleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *httpMetricDef, resp *http.Response, err error) error {
+func handleResponse(log vzlog.VerrazzanoLogger, URL string, metricDef *httpMetricDef, resp *http.Response, err error) error {
 	if err != nil {
 		atomic.AddInt64(&metricDef.requestsFailedCountTotal.Val, 1)
 		return log.ErrorfNewErr("HTTP request %s returned error %v", URL, err)
