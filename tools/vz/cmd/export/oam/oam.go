@@ -63,7 +63,7 @@ var gvrManualScalerTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "manualsc
 var gvrMetricsTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "metricstraits")
 var gvrCoherenceWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanocoherenceworkloads")
 var gvrHelidonWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanohelidonworkloads")
-var gvrWeblogicWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanoweblogiceworkloads")
+var gvrWeblogicWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanowebLogicworkloads")
 var traitTypes = []schema.GroupVersionResource{
 	gvrIngressTrait,
 	gvrLoggingTrait,
