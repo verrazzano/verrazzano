@@ -88,7 +88,7 @@ func NewWorker() (spi.Worker, error) {
 				RequestDurationMicros: metrics.MetricItem{
 					Name: "get_request_duration_micros",
 					Help: "The duration of GET request round trip in microseconds",
-					Type: prometheus.CounterValue,
+					Type: prometheus.GaugeValue,
 				},
 			},
 			metricDeleteDef: todo.HttpMetricDef{
@@ -110,7 +110,7 @@ func NewWorker() (spi.Worker, error) {
 				RequestDurationMicros: metrics.MetricItem{
 					Name: "delete_request_duration_micros",
 					Help: "The duration of DELETE request round trip in microseconds",
-					Type: prometheus.CounterValue,
+					Type: prometheus.GaugeValue,
 				},
 			},
 		},

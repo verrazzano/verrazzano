@@ -74,7 +74,7 @@ func NewWorker() (spi.Worker, error) {
 				RequestDurationMicros: metrics.MetricItem{
 					Name: "put_request_duration_micros",
 					Help: "The duration of PUT request round trip in microseconds",
-					Type: prometheus.CounterValue,
+					Type: prometheus.GaugeValue,
 				},
 			},
 		},
