@@ -72,8 +72,8 @@ func NewWorker() (spi.Worker, error) {
 					Type: prometheus.CounterValue,
 				},
 				RequestDurationMicros: metrics.MetricItem{
-					Name: "put_request_duration_millis",
-					Help: "The duration of PUT request round trip in milliseconds",
+					Name: "put_request_duration_micros",
+					Help: "The duration of PUT request round trip in microseconds",
 					Type: prometheus.CounterValue,
 				},
 			},
@@ -164,7 +164,7 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 		config.PsrEnv.GetEnv(ServicePort),
 		item)
 
-	startTime := time.Now().UnixNano()
+	startTime := time.Now().UnixMicro()
 	req, err := http.NewRequest(http.MethodPut, URL, nil)
 	if err != nil {
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
@@ -178,7 +178,7 @@ func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) erro
 		return err
 	}
 
-	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 	return nil
 }

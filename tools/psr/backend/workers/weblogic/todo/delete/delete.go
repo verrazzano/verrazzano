@@ -86,8 +86,8 @@ func NewWorker() (spi.Worker, error) {
 					Type: prometheus.CounterValue,
 				},
 				RequestDurationMicros: metrics.MetricItem{
-					Name: "get_request_duration_millis",
-					Help: "The duration of GET request round trip in milliseconds",
+					Name: "get_request_duration_micros",
+					Help: "The duration of GET request round trip in microseconds",
 					Type: prometheus.CounterValue,
 				},
 			},
@@ -108,8 +108,8 @@ func NewWorker() (spi.Worker, error) {
 					Type: prometheus.CounterValue,
 				},
 				RequestDurationMicros: metrics.MetricItem{
-					Name: "delete_request_duration_millis",
-					Help: "The duration of DELETE request round trip in milliseconds",
+					Name: "delete_request_duration_micros",
+					Help: "The duration of DELETE request round trip in microseconds",
 					Type: prometheus.CounterValue,
 				},
 			},
@@ -225,7 +225,7 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 		config.PsrEnv.GetEnv(ServiceNamespace),
 		config.PsrEnv.GetEnv(ServicePort))
 
-	startTime := time.Now().UnixNano()
+	startTime := time.Now().UnixMicro()
 	req, err := http.NewRequest(http.MethodGet, URL, nil)
 	if err != nil {
 		return nil, log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
@@ -239,7 +239,7 @@ func (w worker) doGet(log vzlog.VerrazzanoLogger) ([]byte, error) {
 		return nil, err
 	}
 
-	durationMicros := (time.Now().UnixNano() - startTime) / 1000
+	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	return body, nil
 }
@@ -251,10 +251,8 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
 		config.PsrEnv.GetEnv(ServicePort),
 		ID)
 
-	startTime := time.Now().UnixNano()
+	startTime := time.Now().UnixMicro()
 	req, err := http.NewRequest(http.MethodDelete, URL, nil)
-	durationMicros := (time.Now().UnixNano() - startTime) / 1000
-	atomic.StoreInt64(&w.workerMetricDef.metricGetDef.RequestDurationMicros.Val, durationMicros)
 	if err != nil {
 		return log.ErrorfNewErr("HTTP request body NewRequest for URL %s returned error %v", URL, err)
 	}
@@ -267,6 +265,8 @@ func (w worker) doDelete(log vzlog.VerrazzanoLogger, ID int) error {
 		return err
 	}
 
+	durationMicros := time.Now().UnixMicro() - startTime
+	atomic.StoreInt64(&w.workerMetricDef.metricDeleteDef.RequestDurationMicros.Val, durationMicros)
 	return nil
 }
 
