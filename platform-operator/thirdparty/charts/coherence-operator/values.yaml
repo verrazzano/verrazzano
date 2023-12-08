@@ -6,7 +6,7 @@
 image:
   registry: "ghcr.io/oracle"
   name: "coherence-operator"
-  tag: "3.3.1"
+  tag: "3.3.2"
 
 # defaultCoherenceImage is the default application image that will be used if a Coherence
 # resource does not specify an image name.
