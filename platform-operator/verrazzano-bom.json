@@ -442,7 +442,7 @@
     },
     {
       "name": "coherence-operator",
-      "version": "3.2.10",
+      "version": "3.3.2",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -450,7 +450,7 @@
           "images": [
             {
               "image": "coherence-operator",
-              "tag": "3.2.10",
+              "tag": "3.3.2",
               "helmFullImageKey": "image"
             }
           ]
