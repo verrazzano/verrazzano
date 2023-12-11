@@ -6,9 +6,10 @@ package oam
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"strings"
 
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
@@ -25,10 +26,11 @@ const (
 	flagErrorStr     = "error fetching flag: %s"
 	defaultNamespace = "default"
 	CommandName      = "oam"
-	helpShort        = "Export OAM"
-	helpLong         = `Export the standard Kubernetes definition of an OAM application.`
+	helpShort        = "Export Kubernetes objects for an OAM application"
+	helpLong         = `Export the standard Kubernetes objects that were generated for an OAM application`
 	helpExample      = `
-TBD
+# Export the Kubernetes objects that were generated for the OAM application named hello-helidon
+vz export oam --namespace hello-helidon --name hello-helidon > myapp.yaml
 `
 	groupVerrazzanoOAM = "oam.verrazzano.io"
 	versionV1Alpha1    = "v1alpha1"

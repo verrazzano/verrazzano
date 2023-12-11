@@ -13,15 +13,11 @@ import (
 const (
 	CommandName = "export"
 	helpShort   = "Export content"
-	helpLong    = `Export the yaml of the subcomponent specified.`
-	helpExample = `
-TBD
-`
+	helpLong    = `Export the content of the subcomponent specified`
 )
 
 func NewCmdExport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
-	cmd.Example = helpExample
 
 	// Add commands
 	cmd.AddCommand(oam.NewCmdExportOAM(vzHelper))
