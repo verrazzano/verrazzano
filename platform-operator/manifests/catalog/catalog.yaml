@@ -73,7 +73,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/coherence-values.yaml
   - name: fluent-operator
-    version: 2.2.0-1
+    version: 2.2.0-2
     chart: platform-operator/thirdparty/charts/fluent-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/fluent-operator-values.yaml
