@@ -78,7 +78,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/fluent-operator-values.yaml
   - name: fluentbit-opensearch-output
-    version: 2.0.11
+    version: 2.0.12
     chart: platform-operator/helm_config/charts/fluentbit-opensearch-output
   - name: kiali-server
     version: 1.73.0-2
