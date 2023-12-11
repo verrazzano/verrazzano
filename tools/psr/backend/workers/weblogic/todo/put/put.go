@@ -44,8 +44,6 @@ type workerMetricDef struct {
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetricDef
-	ID     *atomic.Int64
-	UUID   uuid.UUID
 	client *http.Client
 }
 
@@ -94,10 +92,6 @@ func NewWorker() (spi.Worker, error) {
 		&w.metricDef.RequestsFailedCountTotal,
 		&w.metricDef.RequestDurationMicros,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
-
-	// Init IDs
-	w.UUID = uuid.New()
-	w.ID = &atomic.Int64{}
 
 	// Create http client
 	w.client = &http.Client{}
@@ -155,8 +149,7 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 }
 
 func (w worker) doPut(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	newID := w.ID.Add(1)
-	item := fmt.Sprintf("%v-%v", newID, w.UUID)
+	item := fmt.Sprintf("item-%v", uuid.New())
 
 	URL := fmt.Sprintf("http://%s.%s.svc.cluster.local:%s/todo/rest/item/%s",
 		config.PsrEnv.GetEnv(ServiceName),

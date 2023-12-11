@@ -6,7 +6,6 @@ package delete
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo"
 	"net/http"
 	"sync/atomic"
@@ -58,8 +57,6 @@ type workerMetricDef struct {
 type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetricDef
-	ID     *atomic.Int64
-	UUID   uuid.UUID
 	client *http.Client
 }
 
@@ -134,10 +131,6 @@ func NewWorker() (spi.Worker, error) {
 		&w.metricDeleteDef.RequestsFailedCountTotal,
 		&w.metricDeleteDef.RequestDurationMicros,
 	}, metricsLabels, w.GetWorkerDesc().MetricsPrefix)
-
-	// Init IDs
-	w.UUID = uuid.New()
-	w.ID = &atomic.Int64{}
 
 	// Create http client
 	w.client = &http.Client{}
