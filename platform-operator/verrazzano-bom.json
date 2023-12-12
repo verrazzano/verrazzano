@@ -535,7 +535,7 @@
     },
     {
       "name": "fluent-operator",
-      "version": "2.2.0-2",
+      "version": "2.2.0-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
