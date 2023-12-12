@@ -204,7 +204,7 @@ func TestAppendOverrides(t *testing.T) {
 	externalDNSZone := "mydomain.com"
 
 	reloaderSidecarKVS := map[string]string{
-		"ruler.sidecars[0].image":                                    `ghcr.io/verrazzano/prometheus-config-reloader(?:-.*)?.+:v\d+\.\d+\.\d+-.+-.+`,
+		"ruler.sidecars[0].image":                                    `ghcr.io/verrazzano/prometheus-config-reloader:v\d+\.\d+\.\d+-.+-.+`,
 		"ruler.sidecars[0].name":                                     configReloaderSubcomponentName,
 		"ruler.sidecars[0].command[0]":                               "/bin/prometheus-config-reloader",
 		"ruler.sidecars[0].args[0]":                                  "--listen-address=:8080",
