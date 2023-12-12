@@ -8,7 +8,7 @@ Component version updates:
 
 Features:
 
-- Added "export oam" option to VZ CLI to export the Kubernetes objects created for a deployed OAM application.
+- Added an `export oam` option to the VZ CLI to export the Kubernetes objects created for a deployed OAM application.
 
 Fixes:
 
