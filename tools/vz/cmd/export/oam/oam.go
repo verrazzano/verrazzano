@@ -338,10 +338,3 @@ func gvkFor(group, version, kind string) schema.GroupVersionKind {
 		Kind:    kind,
 	}
 }
-
-func listResource(client dynamic.Interface, resource metav1.APIResource, gvr schema.GroupVersionResource, namespace string) (*unstructured.UnstructuredList, error) {
-	if resource.Namespaced {
-		return client.Resource(gvr).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-	}
-	return client.Resource(gvr).Namespace(namespace).List(context.Background(), metav1.ListOptions{})
-}
