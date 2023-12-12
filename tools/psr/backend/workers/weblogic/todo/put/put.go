@@ -38,7 +38,7 @@ const (
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetricDef struct {
-	metricDef todo.HttpMetricDef
+	metricDef todo.HTTPMetricDef
 }
 
 type worker struct {
@@ -53,7 +53,7 @@ func NewWorker() (spi.Worker, error) {
 	w := worker{
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
-			metricDef: todo.HttpMetricDef{
+			metricDef: todo.HTTPMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
 					Name: "put_request_count_total",
 					Help: "The total number of PUT requests",

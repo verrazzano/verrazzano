@@ -50,8 +50,8 @@ type TodoItem struct {
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetricDef struct {
-	metricGetDef    todo.HttpMetricDef
-	metricDeleteDef todo.HttpMetricDef
+	metricGetDef    todo.HTTPMetricDef
+	metricDeleteDef todo.HTTPMetricDef
 }
 
 type worker struct {
@@ -66,7 +66,7 @@ func NewWorker() (spi.Worker, error) {
 	w := worker{
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
-			metricGetDef: todo.HttpMetricDef{
+			metricGetDef: todo.HTTPMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
 					Name: "get_request_count_total",
 					Help: "The total number of GET requests",
@@ -88,7 +88,7 @@ func NewWorker() (spi.Worker, error) {
 					Type: prometheus.GaugeValue,
 				},
 			},
-			metricDeleteDef: todo.HttpMetricDef{
+			metricDeleteDef: todo.HTTPMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
 					Name: "delete_request_count_total",
 					Help: "The total number of DELETE requests",

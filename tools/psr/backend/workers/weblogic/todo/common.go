@@ -10,7 +10,7 @@ import (
 	"net/http"
 )
 
-type HttpMetricDef struct {
+type HTTPMetricDef struct {
 	RequestsCountTotal          metrics.MetricItem
 	RequestsSucceededCountTotal metrics.MetricItem
 	RequestsFailedCountTotal    metrics.MetricItem
