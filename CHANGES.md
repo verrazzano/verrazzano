@@ -1,14 +1,9 @@
-### v1.6.10
-
-Features:
-
-- Added an `export oam` option to the VZ CLI to export the Kubernetes objects created for a deployed OAM application.
-
 ### v1.6.9
+Component version updates:
 
-Fixes:
-
-- Fixed an issue where the Keycloak pod was repeatedly deleted
+- WebLogic Kubernetes Operator v4.1.4
+- WebLogic Monitoring Exporter v2.1.8
+- Istio v1.19.3
 
 ### v1.6.8
 Component version updates:
