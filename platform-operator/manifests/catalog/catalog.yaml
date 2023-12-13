@@ -35,7 +35,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-values.yaml
   - name: cluster-api
-    version: 1.5.3-3
+    version: 1.5.3-4
   - name: verrazzano
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano
