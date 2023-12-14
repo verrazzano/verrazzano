@@ -2,6 +2,7 @@
 
 Component version updates:
 
+- Coherence Operator 3.3.2
 - Rancher 2.7.8
 - WebLogic Kubernetes Operator v4.1.4
 - WebLogic Monitoring Exporter v2.1.8
