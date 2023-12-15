@@ -16,7 +16,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.10"
+    app.kubernetes.io/version: "3.3.2"
     app.kubernetes.io/component: webhook
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -28,7 +28,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.10"
+    app.kubernetes.io/version: "3.3.2"
     app.kubernetes.io/component: manager
 ---
 apiVersion: v1
@@ -40,7 +40,7 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-rest
-    app.kubernetes.io/version: "3.2.10"
+    app.kubernetes.io/version: "3.3.2"
     app.kubernetes.io/component: rest
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
@@ -52,7 +52,7 @@ spec:
   selector:
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.10"
+    app.kubernetes.io/version: "3.3.2"
     app.kubernetes.io/component: manager
 ---
 apiVersion: apps/v1
@@ -64,11 +64,18 @@ metadata:
     control-plane: coherence
     app.kubernetes.io/name: coherence-operator
     app.kubernetes.io/instance: coherence-operator-manager
-    app.kubernetes.io/version: "3.2.10"
+    app.kubernetes.io/version: "3.3.2"
     app.kubernetes.io/component: manager
     app.kubernetes.io/part-of: coherence-operator
     app.kubernetes.io/managed-by: helm
     app.kubernetes.io/created-by: controller-manager
+{{- if .Values.deploymentLabels }}
+{{ toYaml .Values.deploymentLabels | indent 4 }}
+{{- end }}
+{{- if .Values.deploymentAnnotations }}
+  annotations:
+{{ toYaml .Values.deploymentAnnotations | indent 4 }}
+{{- end }}
 spec:
   replicas: {{ default 3 .Values.replicas }}
   selector:
@@ -77,15 +84,21 @@ spec:
   template:
     metadata:
       labels:
-        sidecar.istio.io/inject: 'false'
         control-plane: coherence
         app.kubernetes.io/name: coherence-operator
         app.kubernetes.io/instance: coherence-operator-manager
-        app.kubernetes.io/version: "3.2.10"
+        app.kubernetes.io/version: "3.3.2"
         app.kubernetes.io/component: manager
         app.kubernetes.io/part-of: coherence-operator
         app.kubernetes.io/managed-by: helm
         app.kubernetes.io/created-by: controller-manager
+{{- if .Values.labels }}
+{{ toYaml .Values.labels | indent 8 }}
+{{- end }}
+{{- if .Values.annotations }}
+      annotations:
+{{ toYaml .Values.annotations | indent 8 }}
+{{- end }}
     spec:
       serviceAccountName: {{ default "coherence-operator" .Values.serviceAccountName }}
 {{- if .Values.podSecurityContext }}
@@ -125,13 +138,21 @@ spec:
         - name: CERT_TYPE
           value: {{ default "self-signed" .Values.webhookCertType | quote }}
         - name: COHERENCE_IMAGE
+{{- if kindIs "string" .Values.defaultCoherenceImage }}
           value: {{ .Values.defaultCoherenceImage | quote }}
+{{- else }}
+          value: {{ printf "%s/%s:%s" .Values.defaultCoherenceImage.registry .Values.defaultCoherenceImage.name .Values.defaultCoherenceImage.tag | quote }}
+{{- end }}
         - name: RACK_LABEL
           value: {{ .Values.rackLabel | quote }}
         - name: SITE_LABEL
           value: {{ .Values.siteLabel | quote }}
         - name: OPERATOR_IMAGE
-          value: {{ .Values.defaultCoherenceUtilsImage | quote }}
+{{- if kindIs "string" .Values.image }}
+          value: {{ .Values.image | quote }}
+{{- else }}
+          value: {{ printf "%s/%s:%s" .Values.image.registry .Values.image.name .Values.image.tag | quote }}
+{{- end }}
         - name: WATCH_NAMESPACE
 {{- if .Values.onlySameNamespace }}
           value: {{ .Release.Namespace | quote }}
@@ -142,7 +163,11 @@ spec:
           value: {{ .Release.Namespace | quote }}
 {{-   end }}
 {{- end }}
-        image: {{ .Values.image }}
+{{- if kindIs "string" .Values.image }}
+        image: {{ .Values.image | quote }}
+{{- else }}
+        image: {{ printf "%s/%s:%s" .Values.image.registry .Values.image.name .Values.image.tag | quote }}
+{{- end }}
         ports:
         - containerPort: 8000
           name: operator
@@ -209,7 +234,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.10"
+                    app.kubernetes.io/version: "3.3.2"
               weight: 50
             - podAffinityTerm:
                 topologyKey: "oci.oraclecloud.com/fault-domain"
@@ -218,7 +243,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.10"
+                    app.kubernetes.io/version: "3.3.2"
               weight: 10
             - podAffinityTerm:
                 topologyKey: "kubernetes.io/hostname"
@@ -227,7 +252,7 @@ spec:
                     control-plane: coherence
                     app.kubernetes.io/name: coherence-operator
                     app.kubernetes.io/instance: coherence-operator-manager
-                    app.kubernetes.io/version: "3.2.10"
+                    app.kubernetes.io/version: "3.3.2"
               weight: 1
 {{- end }}
       volumes:
