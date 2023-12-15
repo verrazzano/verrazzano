@@ -498,7 +498,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.73.0-20231005093008-db373114",
+              "tag": "v1.73.0-20231215145100-8474271b",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -826,18 +826,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.9.1-20231121201509-a233e1dd",
+              "tag": "v1.9.1-20231214220002-52c8f1fc",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.5.0-20231121190640-0a60cf3a",
+              "tag": "v1.5.0-20231215143502-6f82d913",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.9.1-20231121201509-a233e1dd",
+              "tag": "v1.9.1-20231214220002-52c8f1fc",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
