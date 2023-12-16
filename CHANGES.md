@@ -1,7 +1,6 @@
 ### v1.6.9
 Component version updates:
 
-- Coherence Operator 3.3.2
 - WebLogic Kubernetes Operator v4.1.4
 - WebLogic Monitoring Exporter v2.1.8
 - Istio v1.19.3
