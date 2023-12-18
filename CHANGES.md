@@ -1,6 +1,7 @@
 ### v1.5.8
 Component version updates:
 
+- Coherence Operator 3.3.2
 - WebLogic Kubernetes Operator v4.0.10
 - WebLogic Monitoring Exporter v2.1.8
 
