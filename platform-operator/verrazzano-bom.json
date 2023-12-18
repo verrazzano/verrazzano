@@ -146,7 +146,7 @@
     },
     {
       "name": "rancher",
-      "version": "2.7.8-6",
+      "version": "2.7.8-7",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -158,13 +158,13 @@
               "rancherUI": "v2.7.2-17/release-2.7.2",
               "ocneDriverVersion": "v0.26.0",
               "ocneDriverChecksum": "687ab81766302e84351364f3df1151478117e454553d64dc2a58a0a630ece0a2",
-              "tag": "v2.7.8-20231204165452-c72b17b77",
+              "tag": "v2.7.8-20231213193922-53ac25fbd",
               "helmFullImageKey": "rancherImage",
               "helmTagKey": "rancherImageTag"
             },
             {
               "image": "rancher-agent",
-              "tag": "v2.7.8-20231204165452-c72b17b77"
+              "tag": "v2.7.8-20231213193922-53ac25fbd"
             }
           ]
         },
@@ -174,23 +174,23 @@
           "images": [
             {
               "image": "rancher-shell",
-              "tag": "v0.1.20-20231204184619-874fbbf"
+              "tag": "v0.1.20-20231213172822-f358478"
             },
             {
               "image": "rancher-webhook",
-              "tag": "v0.3.6-20231204194426-f5a2cc2"
+              "tag": "v0.3.6-20231213123745-0c0ef21"
             },
             {
               "image": "rancher-fleet-agent",
-              "tag": "v0.7.1-20231204203332-146b3ff4"
+              "tag": "v0.7.1-20231213133912-b639ce6a"
             },
             {
               "image": "rancher-fleet",
-              "tag": "v0.7.1-20231204203332-146b3ff4"
+              "tag": "v0.7.1-20231213133912-b639ce6a"
             },
             {
               "image": "rancher-gitjob",
-              "tag": "v0.1.32-20231205020907-52b92ba"
+              "tag": "v0.1.32-20231213144436-287d99d"
             },
             {
               "image": "rancher-cleanup",
@@ -566,7 +566,7 @@
     },
     {
       "name": "kiali-server",
-      "version": "1.73.0-2",
+      "version": "1.73.0-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -574,7 +574,7 @@
           "images": [
             {
               "image": "kiali",
-              "tag": "v1.73.0-20231005093008-db373114",
+              "tag": "v1.73.0-20231215145100-8474271b",
               "helmFullImageKey": "deployment.image_name",
               "helmTagKey": "deployment.image_version"
             }
@@ -899,7 +899,7 @@
     },
     {
       "name": "velero",
-      "version": "1.9.1-2",
+      "version": "1.9.1-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -907,18 +907,18 @@
           "images": [
             {
               "image": "velero",
-              "tag": "v1.9.1-20231121201509-a233e1dd",
+              "tag": "v1.9.1-20231214220002-52c8f1fc",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "velero-plugin-for-aws",
-              "tag": "v1.5.0-20231121190640-0a60cf3a",
+              "tag": "v1.5.0-20231215143502-6f82d913",
               "helmFullImageKey": "initContainers[0].image"
             },
             {
               "image": "velero-restic-restore-helper",
-              "tag": "v1.9.1-20231121201509-a233e1dd",
+              "tag": "v1.9.1-20231214220002-52c8f1fc",
               "helmFullImageKey": "configMaps.restic-restore-action-config.data.image"
             }
           ]
@@ -1024,7 +1024,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0-3",
+      "version": "2.4.0-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1032,7 +1032,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20231128050258-c7700be",
+              "tag": "v2.4.0-20231215095828-4db3183",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
