@@ -53,7 +53,7 @@ var excludedAPIResources = map[string]bool{
 	"events":                   true,
 	"applicationconfiguration": true,
 	"component":                true,
-	"manualscalertrait":        true,
+	"manualscalertraits":       true,
 }
 
 // includedAPIResources map of API resources to always include (note this is not currently taking into account group/version)
