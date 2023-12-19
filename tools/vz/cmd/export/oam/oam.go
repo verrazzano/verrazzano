@@ -32,7 +32,9 @@ const (
 vz export oam --namespace hello-helidon --name hello-helidon > myapp.yaml
 `
 	groupVerrazzanoOAM = "oam.verrazzano.io"
+	groupOAM           = "core.oam.dev"
 	versionV1Alpha1    = "v1alpha1"
+	versionV1Alpha2    = "v1alpha2"
 	specKey            = "spec"
 	metadataKey        = "metadata"
 	statusKey          = "status"
@@ -60,7 +62,7 @@ var includedAPIResources = map[string]bool{
 
 var gvrIngressTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "ingresstraits")
 var gvrLoggingTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "loggingtraits")
-var gvrManualScalerTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "manualscalertraits")
+var gvrManualScalerTrait = gvrFor(groupOAM, versionV1Alpha2, "manualscalertraits")
 var gvrMetricsTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "metricstraits")
 var gvrCoherenceWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanocoherenceworkloads")
 var gvrHelidonWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanohelidonworkloads")
