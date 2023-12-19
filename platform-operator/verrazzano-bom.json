@@ -728,7 +728,7 @@
           "images": [
             {
               "image": "rancher-backup-restore-operator",
-              "tag": "v3.1.0-20230922084053-385811a",
+              "tag": "v3.1.0-20231219154728-85e0ac5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
