@@ -53,6 +53,7 @@ var excludedAPIResources = map[string]bool{
 	"events":                   true,
 	"applicationconfiguration": true,
 	"component":                true,
+	"manualscalertrait":        true,
 }
 
 // includedAPIResources map of API resources to always include (note this is not currently taking into account group/version)
@@ -199,7 +200,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
 		if !includedAPIResources[resource.Name] {
-			if gvr.Group == groupVerrazzanoOAM || gvr.Group == groupCoreOAM {
+			if gvr.Group == groupVerrazzanoOAM {
 				continue
 			}
 
