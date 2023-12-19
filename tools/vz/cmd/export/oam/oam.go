@@ -199,7 +199,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
 		if !includedAPIResources[resource.Name] {
-			if gvr.Group == "oam.verrazzano.io" {
+			if gvr.Group == "oam.verrazzano.io" || gvr.Group == "core.oam.dev" {
 				continue
 			}
 
