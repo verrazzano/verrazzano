@@ -665,7 +665,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-4",
+      "version": "0.64.1-5",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -673,7 +673,7 @@
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.64.1-20230922083452-0d565bbd",
+              "tag": "v0.64.1-20231215094947-fed24abf",
               "helmRegKey": "prometheusOperator.image.registry",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
@@ -693,7 +693,7 @@
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.64.1-20230922083452-0d565bbd",
+              "tag": "v0.64.1-20231215094947-fed24abf",
               "helmRegKey": "prometheusOperator.prometheusConfigReloader.image.registry",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
@@ -1024,7 +1024,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0-3",
+      "version": "2.4.0-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1032,7 +1032,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20231128050258-c7700be",
+              "tag": "v2.4.0-20231215095828-4db3183",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }
