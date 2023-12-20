@@ -8,7 +8,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
   - name: cert-manager
-    version: 1.9.1-2
+    version: 1.9.1-3
     chart: platform-operator/thirdparty/charts/cert-manager
     valuesFiles:
       - platform-operator/helm_config/overrides/cert-manager-values.yaml
@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-2
+    version: 0.12.2-3
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
@@ -111,7 +111,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
   - name: kube-state-metrics
-    version: 2.10.0-1
+    version: 2.10.0-2
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-state-metrics
     valuesFiles:
       - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml
@@ -121,7 +121,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-pushgateway-values.yaml
   - name: prometheus-node-exporter
-    version: 1.6.1-1
+    version: 1.6.1-2
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-node-exporter
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-node-exporter-values.yaml
