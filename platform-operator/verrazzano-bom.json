@@ -44,7 +44,7 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1-2",
+      "version": "1.9.1-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -52,30 +52,30 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             },
             {
               "image": "cert-manager-ctl",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "startupapicheck.image.repository",
               "helmTagKey": "startupapicheck.image.tag"
             }
@@ -103,7 +103,7 @@
     },
     {
       "name": "external-dns",
-      "version": "0.12.2-3",
+      "version": "0.12.2-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -111,7 +111,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20231113212417-555c0a85",
+              "tag": "v0.12.2-20231219112424-52012475",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -748,7 +748,7 @@
     },
     {
       "name": "kube-state-metrics",
-      "version": "2.10.0-1",
+      "version": "2.10.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -756,7 +756,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.10.0-20231110043525-74ed1d97",
+              "tag": "v2.10.0-20231219115433-74ed1d97",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -785,7 +785,7 @@
     },
     {
       "name": "prometheus-node-exporter",
-      "version": "1.6.1-1",
+      "version": "1.6.1-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -793,7 +793,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.6.1-20231108025039-e17b88f1",
+              "tag": "v1.6.1-20231219132249-faff8a2e",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -927,7 +927,7 @@
     },
     {
       "name": "rancher-backup",
-      "version": "3.1.0-1",
+      "version": "3.1.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -935,7 +935,7 @@
           "images": [
             {
               "image": "rancher-backup-restore-operator",
-              "tag": "v3.1.0-20230922084053-385811a",
+              "tag": "v3.1.0-20231219154728-85e0ac5",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
