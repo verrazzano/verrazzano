@@ -52,24 +52,24 @@
           "images": [
             {
               "image": "cert-manager-controller",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
               "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
               "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
               "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20231108025749-df3d99c0",
+              "tag": "v1.9.1-20231219115213-4c06aea1",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             }
@@ -104,7 +104,7 @@
           "images": [
             {
               "image": "external-dns",
-              "tag": "v0.12.2-20231107025450-8480e5c7",
+              "tag": "v0.12.2-20231219112424-52012475",
               "helmFullImageKey": "image.repository",
               "helmRegKey": "image.registry",
               "helmTagKey": "image.tag"
@@ -678,7 +678,7 @@
           "images": [
             {
               "image": "kube-state-metrics",
-              "tag": "v2.8.2-20231116043307-86306638",
+              "tag": "v2.8.2-20231220052739-86306638",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
@@ -713,7 +713,7 @@
           "images": [
             {
               "image": "node-exporter",
-              "tag": "v1.3.1-20231116134013-92516a9d",
+              "tag": "v1.3.1-20231220064005-f480b991",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
