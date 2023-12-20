@@ -46,7 +46,6 @@ var modulesNotInBom = []string{
 }
 
 var subcomponentOverrides = map[string][]bomSubcomponentOverrides{
-	"fluentbit-opensearch-output": {{subcomponentName: "fluent-operator", imageName: "fluent-bit"}},
 	"opensearch":                  {{subcomponentName: "verrazzano-monitoring-operator", imageName: "opensearch"}},
 	"opensearch-dashboards":       {{subcomponentName: "verrazzano-monitoring-operator", imageName: "opensearch-dashboards"}},
 	"grafana":                     {{subcomponentName: "verrazzano-monitoring-operator", imageName: "grafana"}},
