@@ -23,6 +23,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -213,6 +214,7 @@ func NewScheme() *runtime.Scheme {
 	_ = oam.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
 	_ = certv1.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
 	return scheme
 }
 

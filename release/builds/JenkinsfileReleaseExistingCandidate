@@ -152,6 +152,9 @@ pipeline {
                     } else if (env.BRANCH_NAME =~ /release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "patch release detected"
                         IS_PATCH_RELEASE = 'true'
+                    } else if (env.BRANCH_NAME =~ /release-\d+\.\d+\.\d$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.\d+\-[1-9]+$/){
+                        echo "patch update release detected treat as a patch release"
+                        IS_PATCH_RELEASE = 'true'
                     } else if (params.TEST_RUN && env.BRANCH_NAME =~ /mock-release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
                         echo "test patch release detected"
                         IS_PATCH_RELEASE = 'true'
