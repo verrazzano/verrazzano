@@ -42,19 +42,19 @@ create_kind_cluster() {
   fi
 
    if [ "${K8S_VERSION}" == "1.21" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.21.14-20230510140100-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.21.14-20231221162101-79530327"
     elif [ "${K8S_VERSION}" == "1.22" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.22.15-20230510133529-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.22.15-20231221162101-79530327"
     elif [ "${K8S_VERSION}" == "1.23" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.23.13-20230510133509-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.23.13-20231221162101-79530327"
     elif [ "${K8S_VERSION}" == "1.24" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.24.10-20230510133459-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.24.10-20231221125111-79530327"
     elif [ "${K8S_VERSION}" == "1.25" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.25.8-20230510133540-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.25.8-20231221162101-79530327"
     elif [ "${K8S_VERSION}" == "1.26" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.26.3-20230512053749-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.26.3-20231221162101-79530327"
     elif [ "${K8S_VERSION}" == "1.27" ]; then
-      KIND_IMAGE="ghcr.io/verrazzano/kind:v1.27.2-20230823164336-7d934451"
+      KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.27.2-20231221162101-79530327"
     else
       echo "ERROR: Invalid value for Kubernetes Version ${K8S_VERSION}."
       exit 1
