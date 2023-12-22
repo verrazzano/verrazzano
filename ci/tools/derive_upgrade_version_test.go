@@ -13,7 +13,7 @@ import (
 // THEN install release version with two minor release difference is expected
 func TestGetInstallReleaseWithoutMajorVersion(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "install-version"})
+	parseCliArgs([]string{pwd, "install-version", "v1.6.0"})
 	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2"}
 	assert.Equal(t, "v1.2.2", getInstallRelease(releaseTags))
 }
@@ -23,8 +23,8 @@ func TestGetInstallReleaseWithoutMajorVersion(t *testing.T) {
 // THEN install release version with two minor release difference is expected
 func TestGetInstallReleaseWithMajorRelease(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "install-version"})
-	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v2.0.0", "v2.1.0"}
+	parseCliArgs([]string{pwd, "install-version", "v2.2.0"})
+	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.21", "v1.5.0", "v2.0.0", "v2.1.0"}
 	assert.Equal(t, "v1.5.0", getInstallRelease(releaseTags))
 }
 
@@ -33,7 +33,7 @@ func TestGetInstallReleaseWithMajorRelease(t *testing.T) {
 // THEN install release version with the first minor release is expected
 func TestGetInstallReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "install-version"})
+	parseCliArgs([]string{pwd, "install-version", "v1.6.0"})
 	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
 	assert.Equal(t, "v1.4.0", getInstallRelease(releaseTags))
 }
@@ -43,7 +43,7 @@ func TestGetInstallReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
 // THEN interim release version with one minor release difference is expected
 func TestGetInterimReleaseWithoutMajorVersion(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "interim-version"})
+	parseCliArgs([]string{pwd, "interim-version", "v1.5.0"})
 	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2"}
 	assert.Equal(t, "v1.3.8", getInterimRelease(releaseTags))
 }
@@ -53,7 +53,7 @@ func TestGetInterimReleaseWithoutMajorVersion(t *testing.T) {
 // THEN interim release version with one minor release difference is expected
 func TestGetInterimReleaseWithMajorVersion(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "interim-version"})
+	parseCliArgs([]string{pwd, "interim-version", "v2.1.0"})
 	releaseTags := []string{"v1.0.0", "v1.0.1", "v1.0.2", "v1.0.3", "v1.0.4", "v1.1.0", "v1.1.1", "v1.1.2", "v1.2.0", "v1.2.1", "v1.2.2", "v1.3.0", "v1.3.1", "v1.3.2", "v1.3.3", "v1.3.4", "v1.3.5", "v1.3.6", "v1.3.7", "v1.3.8", "v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "2.0.0"}
 	assert.Equal(t, "v1.5.0", getInterimRelease(releaseTags))
 }
@@ -63,7 +63,7 @@ func TestGetInterimReleaseWithMajorVersion(t *testing.T) {
 // THEN interim release version with the first patch release of the last minor release is expected
 func TestGetInterimReleaseNotMoreThanTwoMinorVersions(t *testing.T) {
 	pwd, _ := os.Getwd()
-	parseCliArgs([]string{pwd, "interim-version"})
+	parseCliArgs([]string{pwd, "interim-version", "v1.6.0"})
 	releaseTags := []string{"v1.4.0", "v1.4.1", "v1.4.2", "v1.5.0", "v1.5.1"}
 	assert.Equal(t, "v1.4.2", getInterimRelease(releaseTags))
 }
