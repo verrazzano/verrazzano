@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.19.3",
+      "version": "1.19.3-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
