@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -6,17 +6,18 @@ package helpers
 import (
 	"fmt"
 	"io"
+	"k8s.io/client-go/discovery"
 	"net/http"
+
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -108,15 +109,4 @@ func (rc *RootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.Disc
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
 	return discoveryClient, nil
-}
-
-// VerifyCLIArgsNil checks that command args are not set at the creation of the command
-func (rc *RootCmdContext) VerifyCLIArgsNil(cmd *cobra.Command) error {
-	cmd.Args = func(cmd *cobra.Command, args []string) error {
-		if len(args) != 0 {
-			return fmt.Errorf("invalid arguments specified: %s", args)
-		}
-		return nil
-	}
-	return nil
 }

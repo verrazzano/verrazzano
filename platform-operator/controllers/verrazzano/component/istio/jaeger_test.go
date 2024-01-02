@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -214,8 +214,7 @@ func TestBuildJaegerTracingYaml(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.NotNilf(t, tt.istio, "expected yaml cannot be nil")
-			istioComponent := tt.istio
-			yamlString, err := buildJaegerTracingYaml(fakeContext, &istioComponent, "default")
+			yamlString, err := buildJaegerTracingYaml(fakeContext, &tt.istio, "default")
 			assert.NoError(t, err)
 			assert.NotEmpty(t, tt.expectedYaml, "expected yaml cannot be empty yaml string")
 			assert.YAMLEq(t, tt.expectedYaml, yamlString)

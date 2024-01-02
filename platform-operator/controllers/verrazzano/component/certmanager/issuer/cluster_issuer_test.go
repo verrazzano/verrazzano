@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package issuer
@@ -6,9 +6,8 @@ package issuer
 import (
 	"context"
 	"fmt"
-	"testing"
-
 	"github.com/verrazzano/verrazzano/pkg/certs"
+	"testing"
 
 	acmev1 "github.com/cert-manager/cert-manager/pkg/apis/acme/v1"
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -926,7 +925,11 @@ func createCustomCAResources(name string, namespace string) []clipkg.Object {
 	return []clipkg.Object{customcA}
 }
 
-func createClusterIssuerResources() []clipkg.Object {
+func createClusterIssuerResources(ns ...string) []clipkg.Object {
+	//nsToUse := ComponentNamespace
+	//if len(ns) > 0 {
+	//	nsToUse = ns[0]
+	//}
 	customcA := &certv1.ClusterIssuer{
 		ObjectMeta: metav1.ObjectMeta{Name: constants.VerrazzanoClusterIssuerName},
 	}

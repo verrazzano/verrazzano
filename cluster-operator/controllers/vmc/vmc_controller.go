@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package vmc
@@ -73,7 +73,7 @@ var (
 func (r *VerrazzanoManagedClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	// Time the reconcile process and set the metric with the elapsed time
 	startTime := time.Now()
-	defer func() { reconcileTimeMetric.Set(time.Since(startTime).Seconds()) }()
+	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
 
 	if ctx == nil {
 		reconcileErrorCount.Inc()
