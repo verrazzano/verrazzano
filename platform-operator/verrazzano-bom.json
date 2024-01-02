@@ -884,7 +884,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.7.2-20231207123510-b47fb278",
+              "tag": "v2.7.2-20230919043605-fc41216e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
