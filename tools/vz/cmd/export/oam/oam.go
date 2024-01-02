@@ -32,9 +32,7 @@ const (
 vz export oam --namespace hello-helidon --name hello-helidon > myapp.yaml
 `
 	groupVerrazzanoOAM = "oam.verrazzano.io"
-	groupCoreOAM       = "core.oam.dev"
 	versionV1Alpha1    = "v1alpha1"
-	versionV1Alpha2    = "v1alpha2"
 	specKey            = "spec"
 	metadataKey        = "metadata"
 	statusKey          = "status"
@@ -53,7 +51,6 @@ var excludedAPIResources = map[string]bool{
 	"events":                   true,
 	"applicationconfiguration": true,
 	"component":                true,
-	"manualscalertraits":       true,
 }
 
 // includedAPIResources map of API resources to always include (note this is not currently taking into account group/version)
@@ -63,7 +60,7 @@ var includedAPIResources = map[string]bool{
 
 var gvrIngressTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "ingresstraits")
 var gvrLoggingTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "loggingtraits")
-var gvrManualScalerTrait = gvrFor(groupCoreOAM, versionV1Alpha2, "manualscalertraits")
+var gvrManualScalerTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "manualscalertraits")
 var gvrMetricsTrait = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "metricstraits")
 var gvrCoherenceWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanocoherenceworkloads")
 var gvrHelidonWorkload = gvrFor(groupVerrazzanoOAM, versionV1Alpha1, "verrazzanohelidonworkloads")
@@ -200,7 +197,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 	for _, item := range list.Items {
 		// Skip items that do not match the OAM filtering rules
 		if !includedAPIResources[resource.Name] {
-			if gvr.Group == groupVerrazzanoOAM {
+			if gvr.Group == "oam.verrazzano.io" {
 				continue
 			}
 
