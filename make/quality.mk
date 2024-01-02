@@ -9,16 +9,14 @@ GO_LDFLAGS ?= -extldflags -static -X main.buildVersion=${BUILDVERSION} -X main.b
 #
 ##@ Linting and coverage
 
-GOLANGCI_LINT_VERSION=1.55.2
+GOLANGCI_LINT_VERSION=1.49.0
 
 .PHONY: check
 check: golangci-lint word-linter url-linter ## run all linters
 
 .PHONY: golangci-lint
 golangci-lint: check-golangci-lint
-	golangci-lint --color never run --max-same-issues 25 --timeout 300s --exclude "unused" --exclude "dot-imports" --exclude "aliasing" --exclude "indent-error-flow" --exclude "superfluous-else" --exclude "appends" --exclude "empty-block"
-# replace after fixing the errors
-#golangci-lint --color never run --max-same-issues 25 --timeout 300s
+	golangci-lint --color never run --max-same-issues 25 --timeout 300s
 
 .PHONY: check-golangci-lint
 check-golangci-lint: install-golangci-lint ## run Go linters

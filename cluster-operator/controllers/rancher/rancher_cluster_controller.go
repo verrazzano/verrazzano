@@ -82,7 +82,7 @@ func (r *RancherClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 
 	// Time the reconcile process and set the metric with the elapsed time
 	startTime := time.Now()
-	defer func() { reconcileTimeMetric.Set(time.Since(startTime).Seconds()) }()
+	defer reconcileTimeMetric.Set(time.Since(startTime).Seconds())
 
 	cluster := &unstructured.Unstructured{}
 	cluster.SetGroupVersionKind(gvk)
