@@ -131,16 +131,6 @@ const (
 	DetailedReport = "detailed"
 )
 
-// Constants for export
-const (
-	NamespaceFlag        = "namespace"
-	NamespaceFlagDefault = "default"
-	NamespaceFlagUsage   = "The namespace containing the OAM application to export"
-	AppNameFlag          = "name"
-	AppNameFlagDefault   = ""
-	AppNameFlagUsage     = "The name of the OAM application to export"
-)
-
 // Constants for bug report
 const (
 	BugReportLogFlagDefault   = false

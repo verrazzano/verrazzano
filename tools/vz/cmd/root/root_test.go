@@ -10,14 +10,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/bugreport"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/export"
+
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/upgrade"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -33,7 +34,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 
 	// Verify the expected commands are defined
-	assert.Len(t, rootCmd.Commands(), 8)
+	assert.Len(t, rootCmd.Commands(), 7)
 	foundCount := 0
 	for _, cmd := range rootCmd.Commands() {
 		switch cmd.Name() {
@@ -51,11 +52,9 @@ func TestNewRootCmd(t *testing.T) {
 			foundCount++
 		case bugreport.CommandName:
 			foundCount++
-		case export.CommandName:
-			foundCount++
 		}
 	}
-	assert.Equal(t, 8, foundCount)
+	assert.Equal(t, 7, foundCount)
 
 	// Verify the expected global flags are defined
 	assert.NotNil(t, rootCmd.PersistentFlags().Lookup(constants.GlobalFlagKubeConfig))
