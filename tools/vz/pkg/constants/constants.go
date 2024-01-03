@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -129,16 +129,6 @@ const (
 
 	SummaryReport  = "summary"
 	DetailedReport = "detailed"
-)
-
-// Constants for export
-const (
-	NamespaceFlag        = "namespace"
-	NamespaceFlagDefault = "default"
-	NamespaceFlagUsage   = "The namespace containing the OAM application to export"
-	AppNameFlag          = "name"
-	AppNameFlagDefault   = ""
-	AppNameFlagUsage     = "The name of the OAM application to export"
 )
 
 // Constants for bug report

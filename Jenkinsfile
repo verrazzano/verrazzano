@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -24,7 +24,7 @@ pipeline {
 
     agent {
        docker {
-            image "${GOLANG20_RUNNER_DOCKER_IMAGE}"
+            image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'

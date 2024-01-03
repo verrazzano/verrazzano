@@ -1,10 +1,15 @@
-### v1.6.9
-Component version updates:
+### 1.6.10
 
-- Coherence Operator 3.3.2
-- WebLogic Kubernetes Operator v4.1.4
-- WebLogic Monitoring Exporter v2.1.8
-- Istio v1.19.3
+Fixes:
+
+- Fixed an issue where pods would crash frequently with an Envoy core dump.
+- Fixed Envoy build to be RELEASE type.
+
+### 1.6.9
+
+Fixes:
+
+- Fixed an issue in which the Keycloak pod was repeatedly deleted.
 
 ### v1.6.8
 Component version updates:
