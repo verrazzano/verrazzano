@@ -1,3 +1,16 @@
+### 1.6.10
+
+Fixes:
+
+- Fixed an issue where pods would crash frequently with an Envoy core dump.
+- Fixed Envoy build to be RELEASE type.
+
+### 1.6.9
+
+Fixes:
+
+- Fixed an issue in which the Keycloak pod was repeatedly deleted.
+
 ### v1.6.8
 Component version updates:
 
