@@ -665,7 +665,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-5",
+      "version": "0.64.1-6",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -718,8 +718,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus",
-              "tag": "v2.44.0-20230922084259-74087370",
+              "image": "prometheus-jenkins",
+              "tag": "v2.44.0-20240103123723-092952cc",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
