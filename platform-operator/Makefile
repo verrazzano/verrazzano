@@ -55,7 +55,7 @@ endif
 
 VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
 
-ISTIO_ISTIOCTL_IMAGE ?= ghcr.io/verrazzano/istio-istioctl:1.19.3-20231223010704-694a68a8
+ISTIO_ISTIOCTL_IMAGE ?= ghcr.io/verrazzano/istio-istioctl:1.19.3-20240104211928-419dfb47
 
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go
