@@ -503,8 +503,10 @@
           "name": "weblogic-operator",
           "images": [
             {
+              "registry": "iad.ocir.io",
+              "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.4",
+              "tag": "v1",
               "helmFullImageKey": "image"
             },
             {
