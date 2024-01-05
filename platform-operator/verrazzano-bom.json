@@ -506,7 +506,7 @@
               "registry": "iad.ocir.io",
               "repository": "odsbuilddev/sandboxes/aditya.b.bharadwaj",
               "image": "weblogic-kubernetes-operator",
-              "tag": "v1",
+              "tag": "v2",
               "helmFullImageKey": "image"
             },
             {
