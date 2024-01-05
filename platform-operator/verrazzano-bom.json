@@ -706,7 +706,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.26.0-20230926210945-375556bb",
+              "tag": "v0.26.0-1-20240104075936-ad417e73",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -730,7 +730,7 @@
     },
     {
       "name": "prometheus-adapter",
-      "version": "0.10.0-1",
+      "version": "0.10.0-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -738,7 +738,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.10.0-20230922082621-9313ff7b",
+              "tag": "v0.10.0-20240104072813-af669795",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -775,7 +775,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.6.2-20230925134721-9944fc39",
+              "tag": "v1.6.2-1-20240104075814-f66f60f0",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

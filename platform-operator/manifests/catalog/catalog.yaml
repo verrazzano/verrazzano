@@ -106,7 +106,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-operator-values.yaml
   - name: prometheus-adapter
-    version: 0.10.0-1
+    version: 0.10.0-2
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
