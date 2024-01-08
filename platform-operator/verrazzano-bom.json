@@ -718,8 +718,8 @@
           "name": "prometheus",
           "images": [
             {
-              "image": "prometheus-jenkins",
-              "tag": "v2.44.0-20240103123723-092952cc",
+              "image": "prometheus",
+              "tag": "v2.44.0-20240105075642-2d4a3348",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
@@ -767,7 +767,7 @@
     },
     {
       "name": "prometheus-pushgateway",
-      "version": "1.6.2",
+      "version": "1.6.2-1",
       "subcomponents": [
         {
           "repository": "verrazzano",
