@@ -120,6 +120,7 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	// Get the controller runtime client
+	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err

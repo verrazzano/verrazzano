@@ -6,6 +6,7 @@ package bugreport
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"io/fs"
 	"os"
 	"strings"
@@ -79,6 +80,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	newCmd := analyze.NewCmdAnalyze(vzHelper)
 	err := setUpFlags(cmd, newCmd)
 	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 		return fmt.Errorf(flagErrorStr, err.Error())
 	}
 	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)

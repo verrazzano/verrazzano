@@ -5,7 +5,6 @@ package version
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -46,7 +45,7 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdVersion(vzHelper helpers.VZHelper) error {
-
+	fmt.Fprintf(vzHelper.GetOutputStream(), GetVZCLIVersionMessageString())
 	templateValues := map[string]string{
 		"cli_version": cliVersion,
 		"build_date":  buildDate,
@@ -73,4 +72,8 @@ func GetEffectiveDocsVersion() string {
 
 func GetCLIVersion() string {
 	return cliVersion
+}
+
+func GetVZCLIVersionMessageString() string {
+	return "This command was run with VZ CLI Version " + GetCLIVersion() + "\n"
 }

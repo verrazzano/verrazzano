@@ -6,6 +6,7 @@ package oam
 import (
 	"context"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -97,6 +98,7 @@ func NewCmdExportOAM(vzHelper helpers.VZHelper) *cobra.Command {
 
 func RunCmdExportOAM(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	// Get the OAM application name
+	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	appName, err := cmd.PersistentFlags().GetString(constants.AppNameFlag)
 	if err != nil {
 		return fmt.Errorf(flagErrorStr, err.Error())
