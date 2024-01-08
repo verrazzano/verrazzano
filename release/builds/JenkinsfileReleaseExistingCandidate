@@ -149,7 +149,7 @@ pipeline {
                         echo "major/minor release detected. test=${params.TEST_RUN}"
                         IS_PATCH_RELEASE = 'false'
                     // patch should be using a "release-#.#" branch and have a version ending in a digit other than 0
-                    } else if (env.BRANCH_NAME =~ /release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9]+$/){
+                    } else if (env.BRANCH_NAME =~ /release-\d+\.\d+$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.[1-9][0-9]*$/){
                         echo "patch release detected"
                         IS_PATCH_RELEASE = 'true'
                     } else if (env.BRANCH_NAME =~ /release-\d+\.\d+\.\d$/ && VERRAZZANO_DEV_VERSION =~ /^\d+\.\d+\.\d+\-[1-9]+$/){
