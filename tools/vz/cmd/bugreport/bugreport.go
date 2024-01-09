@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bugreport
@@ -6,7 +6,6 @@ package bugreport
 import (
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"io/fs"
 	"os"
 	"strings"
@@ -80,7 +79,6 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	newCmd := analyze.NewCmdAnalyze(vzHelper)
 	err := setUpFlags(cmd, newCmd)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 		return fmt.Errorf(flagErrorStr, err.Error())
 	}
 	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)

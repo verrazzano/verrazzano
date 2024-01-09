@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
@@ -120,7 +120,6 @@ func NewCmdInstall(vzHelper helpers.VZHelper) *cobra.Command {
 
 func runCmdInstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	// Get the controller runtime client
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err

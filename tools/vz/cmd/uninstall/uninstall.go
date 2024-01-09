@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"io"
 	"os"
 	"regexp"
@@ -98,7 +97,6 @@ func NewCmdUninstall(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUninstall(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	// Get the controller runtime client.
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {

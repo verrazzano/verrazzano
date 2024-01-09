@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package upgrade
@@ -76,7 +76,6 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	if err := validateCmd(cmd); err != nil {
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}
