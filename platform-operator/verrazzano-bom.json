@@ -122,7 +122,7 @@
     },
     {
       "name": "istio",
-      "version": "1.19.3-1",
+      "version": "1.19.3-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -130,12 +130,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.19.3-20231223010704-694a68a8",
+              "tag": "1.19.3-20240104211928-419dfb47",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.3-20231223010704-694a68a8",
+              "tag": "1.19.3-20240104211928-419dfb47",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -278,7 +278,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.19.3-20231223010704-694a68a8",
+              "tag": "1.19.3-20240104211928-419dfb47",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -342,13 +342,13 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v2.0.0-20231215103102-48d63ca",
+              "tag": "v2.0.0-20240104065731-f9eff53",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.3-20231223010704-694a68a8",
+              "tag": "1.19.3-20240104211928-419dfb47",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -987,7 +987,7 @@
     },
     {
       "name": "thanos",
-      "version": "0.32.2-1",
+      "version": "0.32.2-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -995,7 +995,7 @@
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.32.2-20231207081749-3250b1ff",
+              "tag": "v0.32.2-20240105050456-60b9043c",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
