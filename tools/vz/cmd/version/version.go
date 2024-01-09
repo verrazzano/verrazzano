@@ -45,7 +45,6 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdVersion(vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), GetVZCLIVersionMessageString())
 	templateValues := map[string]string{
 		"cli_version": cliVersion,
 		"build_date":  buildDate,
