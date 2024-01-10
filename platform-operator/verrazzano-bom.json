@@ -665,7 +665,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-6",
+      "version": "0.64.1-7",
       "subcomponents": [
         {
           "repository": "verrazzano",
