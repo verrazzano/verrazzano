@@ -535,7 +535,7 @@
     },
     {
       "name": "fluent-operator",
-      "version": "2.2.0-3",
+      "version": "2.2.0-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -771,10 +771,10 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "pushgateway",
+          "name": "prometheus-pushgateway",
           "images": [
             {
-              "image": "prometheus-pushgateway",
+              "image": "pushgateway",
               "tag": "v1.6.2-1-20240104075814-f66f60f0",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
