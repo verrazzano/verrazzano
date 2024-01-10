@@ -771,7 +771,7 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "prometheus-pushgateway",
+          "name": "pushgateway",
           "images": [
             {
               "image": "prometheus-pushgateway",
