@@ -41,9 +41,14 @@ func SanitizeString(l string) string {
 	}
 	knownHostNamesMutex.Unlock()
 	for _, eachRegex := range regexToReplacementList {
-		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
+		l = regexp.MustCompile(eachRegex).ReplaceAllStringFunc(l, redact)
 	}
 	return l
+}
+
+// redact outputs a string, representing a piece of redacted text
+func redact(s string) string {
+	return "REDACTED-" + getSha256Hash(s)
 }
 
 // getSha256Hash generates the one way hash for the input string
