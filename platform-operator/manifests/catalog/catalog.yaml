@@ -18,7 +18,7 @@ modules:
   - name: cluster-issuer
     version: VERRAZZANO_VERSION
   - name: dex
-    version: 2.37.0-2
+    version: 2.37.0-3
     chart: platform-operator/thirdparty/charts/dex
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
