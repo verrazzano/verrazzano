@@ -224,6 +224,7 @@ func (issueReporter *IssueReporter) AddKnownIssueMessagesFiles(issueType string,
 	// If this is a new issue, get a new one
 	if issue, ok := issueReporter.PendingIssues[issueType]; !ok {
 		issueReporter.PendingIssues[issueType] = NewKnownIssueMessagesFiles(issueType, source, messages, fileNames)
+		fmt.Println("ok")
 	} else {
 		supportData := SupportData{
 			Messages:     messages,
