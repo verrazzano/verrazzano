@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -26,9 +26,14 @@ func SanitizeString(l string) string {
 		InitRegexToReplacementMap()
 	}
 	for _, eachRegex := range regexToReplacementList {
-		l = regexp.MustCompile(eachRegex).ReplaceAllString(l, getSha256Hash(l))
+		l = regexp.MustCompile(eachRegex).ReplaceAllStringFunc(l, redact)
 	}
 	return l
+}
+
+// redact outputs a string, representing a piece of redacted text
+func redact(s string) string {
+	return "REDACTED-" + getSha256Hash(s)
 }
 
 // getSha256Hash generates the one way hash for the input string
