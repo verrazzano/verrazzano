@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mysql
@@ -691,6 +691,9 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	if rootPassword == nil {
+		ctx.Log().Progressf("%s is empty in %s", mySQLRootKey, rootSec)
+	}
 
 	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
 	execCmd := []string{"bash", "-c", sqlCmd}
@@ -699,12 +702,11 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 		return err
 	}
 	mysqlPod := mySQLPod()
-
 	// Run script defined by mySQLGrantXAAdminCommand from the MySQL pod as root user to grant XA_RECOVER_ADMIN
-	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
+	_, stdErr, err := k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
 	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v", err))
-		ctx.Log().Error(errorMsg)
+		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v, stdErr = %s", err, stdErr))
+		ctx.Log().Progressf(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}
 	ctx.Log().Debug("Granted XA_RECOVER_ADMIN to Keycloak user successfully")
