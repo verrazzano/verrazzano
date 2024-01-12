@@ -101,12 +101,12 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/keycloak-values.yaml
   - name: prometheus-operator
-    version: 0.64.1-6
+    version: 0.64.1-7
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-operator-values.yaml
   - name: prometheus-adapter
-    version: 0.10.0-1
+    version: 0.10.0-2
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-adapter
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-adapter-values.yaml
@@ -116,7 +116,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml
   - name: prometheus-pushgateway
-    version: 1.6.2
+    version: 1.6.2-1
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-pushgateway-values.yaml
