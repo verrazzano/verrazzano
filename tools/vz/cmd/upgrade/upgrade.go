@@ -76,7 +76,6 @@ func NewCmdUpgrade(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdUpgrade(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	if err := validateCmd(cmd); err != nil {
 		return fmt.Errorf("Command validation failed: %s", err.Error())
 	}

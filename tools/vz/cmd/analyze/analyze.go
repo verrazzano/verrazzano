@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -94,7 +93,6 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())

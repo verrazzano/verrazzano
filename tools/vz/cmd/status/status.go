@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"reflect"
 	"strings"
 
@@ -85,7 +84,6 @@ func NewCmdStatus(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdStatus - run the "vz status" command
 func runCmdStatus(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	fmt.Fprintf(vzHelper.GetOutputStream(), version.GetVZCLIVersionMessageString())
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
 		return err
