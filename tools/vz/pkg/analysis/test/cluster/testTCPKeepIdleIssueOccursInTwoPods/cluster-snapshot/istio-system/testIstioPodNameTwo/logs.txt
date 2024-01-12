@@ -1,0 +1,6 @@
+==== START logs for container istio-proxy of pod istio-system/istio-ingressgateway-3843943 ====
+2023-10-18T06:14:44.665432Z	info	Readiness succeeded in 8.3824298429s
+2023-10-18T06:14:44.665432Z info	Envoy proxy is ready
+2023-10-18T06:14:44.665432Z	   warning    envoy connection external/envoy/source/common/network/socket_option_impl.cc:8349343    Setting IPPROTO_TCP/TCP_KEEPIDLE option on socket failed: Invalid argument    thread=39043
+2023-10-18T06:14:44.685432Z	   warning    envoy connection external/envoy/source/common/network/socket_option_impl.cc:8349343    Setting IPPROTO_TCP/TCP_KEEPIDLE option on socket failed: Invalid argument    thread=39043
+==== END logs for container istio-proxy of pod istio-system/istio-ingressgateway-3843943 ====

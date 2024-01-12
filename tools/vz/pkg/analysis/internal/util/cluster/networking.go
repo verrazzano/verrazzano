@@ -5,7 +5,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"go.uber.org/zap"
 	"regexp"
-	"strings"
 )
 
 func AnalyzeNetworkingIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
@@ -31,12 +30,12 @@ func AnalyzeNetworkingIssues(log *zap.SugaredLogger, clusterRoot string) (err er
 // reportVZClientHangingIssue reports when a VZ Client issue has occurred due to certificate approval
 func reportTCPKeepIdleHasOccuredIssue(clusterRoot string, issueReporter *report.IssueReporter, listOfFilesWhereErrorIsFoundInPodLogs []string) {
 	files := listOfFilesWhereErrorIsFoundInPodLogs
-	initialMessageString := "Issues regarding TCP Keep Idle have occured In the istio-system namespace in these files: "
+	initialMessageString := "Issues regarding TCP Keep Idle have occured in the istio-system namespace in these files: "
 	for _, filename := range files {
 		initialMessageString = initialMessageString + filename + ", "
 	}
 	// This removes the uncessary ", " that would occur at the end of the string
-	sanitizedMessageString := initialMessageString[0 : len(initialMessageString)-3]
+	sanitizedMessageString := initialMessageString[0 : len(initialMessageString)-2]
 	message := []string{sanitizedMessageString}
 	issueReporter.AddKnownIssueMessagesFiles(report.TCPKeepIdleIssues, clusterRoot, message, files)
 }
@@ -52,24 +51,23 @@ func determineIfTCPKeepIdleIssueHasOccurred(log *zap.SugaredLogger, clusterRoot 
 	if len(allIstioPodLogFiles) == 0 {
 		return false, nil, nil
 	}
-	// If pod logs are found, go through each IstioPodLog file and each of the messages in that file to find a match for that issue
+	// If pod logs are found, go through each istioPodLog file and each of the messages in that file to find a match for that issue
 	numberOfIstioPodsWithTCPKeepIdleIssues := 0
+	regexpExpressionForError := regexp.MustCompile("Setting IPPROTO_TCP/TCP_KEEPIDLE option on socket failed")
 	for _, istioPodLogFile := range allIstioPodLogFiles {
-		istioPodLogList, err := files.ConvertToGenericLogMessage(istioPodLogFile)
+		istioPodLogMatches, err := files.SearchFile(log, istioPodLogFile, regexpExpressionForError, nil)
 		if err != nil {
 			log.Error("Failed to convert files to the vpo message")
 			return false, nil, err
 		}
-		for _, istioPodLog := range istioPodLogList {
-			if strings.Contains(istioPodLog, "Setting IPPROTO_TCP/TCP_KEEPIDLE option on socket failed") {
-				listOfIstioPodsWithTCPKeepIdleIssues = append(listOfIstioPodsWithTCPKeepIdleIssues, istioPodLogFile)
-				numberOfIstioPodsWithTCPKeepIdleIssues = numberOfIstioPodsWithTCPKeepIdleIssues + 1
-				break
-			}
+		// If a match is found, add the file that it was found to the list of pods with the issue and increment the number of pods that have this issue
+		if len(istioPodLogMatches) > 0 {
+			listOfIstioPodsWithTCPKeepIdleIssues = append(listOfIstioPodsWithTCPKeepIdleIssues, istioPodLogFile)
+			numberOfIstioPodsWithTCPKeepIdleIssues = numberOfIstioPodsWithTCPKeepIdleIssues + 1
 		}
-		if numberOfIstioPodsWithTCPKeepIdleIssues > 0 {
-			return true, listOfIstioPodsWithTCPKeepIdleIssues, nil
-		}
+	}
+	if numberOfIstioPodsWithTCPKeepIdleIssues > 0 {
+		return true, listOfIstioPodsWithTCPKeepIdleIssues, nil
 	}
 	return false, nil, nil
 }
