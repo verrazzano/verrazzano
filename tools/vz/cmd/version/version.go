@@ -74,5 +74,5 @@ func GetCLIVersion() string {
 }
 
 func GetVZCLIVersionMessageString() string {
-	return "This command was run with vz CLI Version " + GetCLIVersion() + "\n"
+	return "\nThis command was run with vz CLI Version " + GetCLIVersion() + "\n"
 }

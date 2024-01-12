@@ -1,3 +1,5 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ==== START logs for container istio-proxy of pod istio-system/istio-ingressgateway-3843943 ====
 2023-10-18T06:14:44.665432Z	info	Readiness succeeded in 8.3824298429s
 2023-10-18T06:14:44.665432Z info	Envoy proxy is ready
