@@ -128,6 +128,10 @@ const (
 	ReportFileFlagValue = ""
 	ReportFileFlagUsage = "Name of the report output file. (default stdout)"
 
+	TarFileFlagName  = "tar.gz-file"
+	TarFileFlagValue = ""
+	TarFileFlagUsage = "Name of the cluster-dump tar.gz file"
+
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
 
