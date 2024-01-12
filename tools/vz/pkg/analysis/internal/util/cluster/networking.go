@@ -49,7 +49,7 @@ func determineIfTCPKeepIdleIssueHasOccurred(log *zap.SugaredLogger, clusterRoot 
 	listOfMatches, err := files.FindFilesAndSearch(log, clusterRoot, istioPodLogRegExp, regexpExpressionForError, nil)
 	// This generates a map of unique filenames that contain the error
 	var uniqueFileNames = make(map[string]bool)
-	for i, _ := range listOfMatches {
+	for i := range listOfMatches {
 		uniqueFileNames[listOfMatches[i].FileName] = true
 	}
 	if err != nil {
@@ -59,7 +59,7 @@ func determineIfTCPKeepIdleIssueHasOccurred(log *zap.SugaredLogger, clusterRoot 
 		return false, nil, nil
 	}
 	// If a match/matches are found, iterate through the unique filenames and add it to the list of unique filenames
-	for filename, _ := range uniqueFileNames {
+	for filename := range uniqueFileNames {
 		listOfIstioPodsWithTCPKeepIdleIssues = append(listOfIstioPodsWithTCPKeepIdleIssues, filename)
 	}
 	return true, listOfIstioPodsWithTCPKeepIdleIssues, nil
