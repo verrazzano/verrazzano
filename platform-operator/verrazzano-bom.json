@@ -1013,8 +1013,8 @@
           "name": "dex",
           "images": [
             {
-              "image": "dex-jenkins",
-              "tag": "20240111060937-adb513d2",
+              "image": "dex",
+              "tag": "v2.37.0-20240111092116-096a4329",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
