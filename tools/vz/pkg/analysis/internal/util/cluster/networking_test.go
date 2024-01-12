@@ -37,7 +37,7 @@ func TestDetermineIfTCPKeepIdleIssueHasOccurred(t *testing.T) {
 	assert.True(t, len(reportedIssues) == 1)
 	// This test tests that this issue is not reported when it does not occur
 	report.ClearReports()
-	err = AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdleNotOccuring/cluster-snapshot")
+	err = AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdleNotOccurring/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 0)

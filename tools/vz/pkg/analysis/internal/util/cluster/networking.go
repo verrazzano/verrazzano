@@ -17,12 +17,12 @@ func AnalyzeNetworkingIssues(log *zap.SugaredLogger, clusterRoot string) (err er
 		PendingIssues: make(map[string]report.Issue),
 	}
 
-	resultOfTCPKeepIdleHasOccured, listOfFiles, err := determineIfTCPKeepIdleIssueHasOccurred(log, clusterRoot)
+	resultOfTCPKeepIdleHasOccurred, listOfFiles, err := determineIfTCPKeepIdleIssueHasOccurred(log, clusterRoot)
 	if err != nil {
 		return err
 	}
-	if resultOfTCPKeepIdleHasOccured {
-		reportTCPKeepIdleHasOccuredIssue(clusterRoot, &issueReporter, listOfFiles)
+	if resultOfTCPKeepIdleHasOccurred {
+		reportTCPKeepIdleHasOccurredIssue(clusterRoot, &issueReporter, listOfFiles)
 	}
 	issueReporter.Contribute(log, clusterRoot)
 
@@ -30,7 +30,7 @@ func AnalyzeNetworkingIssues(log *zap.SugaredLogger, clusterRoot string) (err er
 }
 
 // reportVZClientHangingIssue reports when a VZ Client issue has occurred due to certificate approval
-func reportTCPKeepIdleHasOccuredIssue(clusterRoot string, issueReporter *report.IssueReporter, listOfFilesWhereErrorIsFoundInPodLogs []string) {
+func reportTCPKeepIdleHasOccurredIssue(clusterRoot string, issueReporter *report.IssueReporter, listOfFilesWhereErrorIsFoundInPodLogs []string) {
 	files := listOfFilesWhereErrorIsFoundInPodLogs
 	initialMessageString := "Issues regarding TCP Keep Idle have occurred in the istio-system namespace in these files: "
 	for _, filename := range files {
