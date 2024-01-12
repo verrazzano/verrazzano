@@ -3,7 +3,6 @@
 package cluster
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
@@ -50,7 +49,6 @@ func TestDetermineIfTCPKeepIdleIssueHasOccurred(t *testing.T) {
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
 	messageForSupportingDataForIssue := reportedIssues[0].SupportingData[0].Messages[0]
-	fmt.Println(messageForSupportingDataForIssue)
 	assert.True(t, strings.Contains(messageForSupportingDataForIssue, "cluster-snapshot/istio-system/testIstioPodNameTwo/logs.txt"))
 	assert.True(t, strings.Contains(messageForSupportingDataForIssue, "cluster-snapshot/istio-system/testIstioPodName/logs.txt"))
 }

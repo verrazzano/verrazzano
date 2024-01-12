@@ -41,23 +41,6 @@ func ConvertToLogMessage(path string) ([]LogMessage, error) {
 	return allMessages, nil
 }
 
-// ConvertToLogMessage reads the install log and creates a list of Strings that correspond to the logs
-// This function should be used when reading not Verrazzano specific logs
-func ConvertToGenericLogMessage(path string) ([]string, error) {
-	readFile, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer readFile.Close()
-	fileScanner := bufio.NewScanner(readFile)
-	fileScanner.Split(bufio.ScanLines)
-	var fileLines []string
-	for fileScanner.Scan() {
-		fileLines = append(fileLines, fileScanner.Text())
-	}
-	return fileLines, nil
-}
-
 // FilterLogsByLevelComponent filters the install log for a given log level and component and returns the matching list of LogMessage
 func FilterLogsByLevelComponent(level string, component string, allMessages []LogMessage) ([]LogMessage, error) {
 	var filteredLogs []LogMessage
