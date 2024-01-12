@@ -47,13 +47,13 @@ func determineIfTCPKeepIdleIssueHasOccurred(log *zap.SugaredLogger, clusterRoot 
 	istioPodLogRegExp := regexp.MustCompile("istio-system/.*/logs.txt")
 	regexpExpressionForError := regexp.MustCompile("Setting IPPROTO_TCP/TCP_KEEPIDLE option on socket failed")
 	listOfMatches, err := files.FindFilesAndSearch(log, clusterRoot, istioPodLogRegExp, regexpExpressionForError, nil)
+	if err != nil {
+		return false, nil, err
+	}
 	// This generates a map of unique filenames that contain the error
 	var uniqueFileNames = make(map[string]bool)
 	for i := range listOfMatches {
 		uniqueFileNames[listOfMatches[i].FileName] = true
-	}
-	if err != nil {
-		return false, nil, err
 	}
 	if len(listOfMatches) == 0 {
 		return false, nil, nil
