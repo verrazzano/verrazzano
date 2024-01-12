@@ -32,7 +32,7 @@ func AnalyzeNetworkingIssues(log *zap.SugaredLogger, clusterRoot string) (err er
 // reportVZClientHangingIssue reports when a VZ Client issue has occurred due to certificate approval
 func reportTCPKeepIdleHasOccuredIssue(clusterRoot string, issueReporter *report.IssueReporter, listOfFilesWhereErrorIsFoundInPodLogs []string) {
 	files := listOfFilesWhereErrorIsFoundInPodLogs
-	initialMessageString := "Issues regarding TCP Keep Idle have occured in the istio-system namespace in these files: "
+	initialMessageString := "Issues regarding TCP Keep Idle have occurred in the istio-system namespace in these files: "
 	for _, filename := range files {
 		initialMessageString = initialMessageString + filename + ", "
 	}
