@@ -4,10 +4,13 @@
 package helpers
 
 import (
+	"encoding/csv"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 )
 
 var (
@@ -38,4 +41,46 @@ func TestSanitizeALine(t *testing.T) {
 	strictCheck(testSSH, testSSHToRemove)
 	strictCheck(testUserData, testUserDataToRemove)
 	strictCheck(testOPCID, testOPCIDToRemove)
+}
+
+func TestWriteRedactionMapFile(t *testing.T) {
+	a := assert.New(t)
+	// redact a variety of inputs, as well as inputting a value more than once.
+	testInputs := []string{testIP, testOCID, testSSH, testUserData, testIP}
+	for _, input := range testInputs {
+		r := redact(input)
+		a.Contains(r, "REDACTED")
+		a.NotContains(r, input)
+	}
+	numUniqueInputs := 4
+	a.Len(redactedValues, numUniqueInputs)
+
+	// write the redacted values to /tmp/redaction-map.csv
+	err := WriteRedactionMapFile("/tmp")
+	a.Nil(err)
+
+	// open the file
+	f, err := os.Open("/tmp/" + constants.RedactionMap)
+	a.Nil(err)
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	// read the file line by line
+	numLines := 0
+	reader := csv.NewReader(f)
+	record, err := reader.Read()
+	for record != nil {
+		numLines += 1
+		a.Nil(err)
+
+		// check that this line of the CSV file is as expected
+		hash, found := redactedValues[record[1]]
+		a.True(found)
+		a.Equal(record[0], hash)
+
+		record, err = reader.Read()
+	}
+
+	// expected number of lines in the csv
+	a.Equal(numUniqueInputs, numLines)
 }

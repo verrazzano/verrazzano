@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -166,6 +166,9 @@ const (
 	// File containing list of resources captured by the tool
 	BugReportOut = "bug-report.out"
 	BugReportErr = "bug-report.err"
+
+	// File containing a map from redacted values to their original values
+	RedactionMap = "redaction-map.csv"
 
 	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"

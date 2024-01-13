@@ -5,10 +5,16 @@ package helpers
 
 import (
 	"crypto/sha256"
+	"encoding/csv"
 	"encoding/hex"
+	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 )
 
 type regexPlan struct {
@@ -20,6 +26,7 @@ type regexPlan struct {
 var regexToReplacementList = []regexPlan{}
 var KnownHostNames = make(map[string]bool)
 var knownHostNamesMutex = &sync.Mutex{}
+var redactedValues = make(map[string]string)
 
 var ipv4Regex = regexPlan{regex: "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"}
 var userData = regexPlan{regex: "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""}
@@ -77,9 +84,36 @@ func (rp regexPlan) compilePlan() func(string) string {
 	}
 }
 
-// redact outputs a string, representing a piece of redacted text
+// WriteRedactionMapFile creates a CSV file to document all the values this tool has
+// redacted so far, stored in the redactedValues map.
+func WriteRedactionMapFile(captureDir string) error {
+	fileName := filepath.Join(captureDir, constants.RedactionMap)
+	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, fileName, err.Error())
+	}
+	defer f.Close()
+
+	csvWriter := csv.NewWriter(f)
+	for s, r := range redactedValues {
+		if err = csvWriter.Write([]string{r, s}); err != nil {
+			LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", fileName, err.Error()))
+			return err
+		}
+	}
+	csvWriter.Flush()
+	return nil
+}
+
+// redact outputs a string, representing a piece of redacted text.
+// If a new string is encountered, keep track of it.
 func redact(s string) string {
-	return "REDACTED-" + getSha256Hash(s)
+	if r, ok := redactedValues[s]; ok {
+		return r
+	}
+	r := "REDACTED-" + getSha256Hash(s)
+	redactedValues[s] = r
+	return r
 }
 
 // getSha256Hash generates the one way hash for the input string
