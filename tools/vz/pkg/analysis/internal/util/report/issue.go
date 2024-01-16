@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -120,6 +120,7 @@ const (
 	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
 	RancherIssues                = "RancherIssues"
 	ClusterAPIClusterIssues      = "ClusterAPIClusterIssues"
+	TCPKeepIdleIssues            = "TCPKeepIdleIssues"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -151,6 +152,7 @@ var knownIssues = map[string]Issue{
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
 	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
 	ClusterAPIClusterIssues:      {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
+	TCPKeepIdleIssues:            {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
 }
 
 // NewKnownIssueSupportingData adds a known issue
