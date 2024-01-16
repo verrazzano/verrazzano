@@ -70,7 +70,7 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	reader := csv.NewReader(f)
 	record, err := reader.Read()
 	for record != nil {
-		numLines += 1
+		numLines++
 		a.Nil(err)
 
 		// check that this line of the CSV file is as expected
