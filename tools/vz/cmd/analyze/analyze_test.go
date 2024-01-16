@@ -4,6 +4,7 @@
 package analyze
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
@@ -213,6 +214,24 @@ func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 	buf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(buf), "Cluster Analyzer runAnalysis didn't find any clusters")
+}
+func TestAnalyzeCommandTarGZFile(t *testing.T) {
+	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/testCertificatesNotGranted.tar.gz")
+	err := cmd.Execute()
+	fmt.Println(err)
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), "is not valid and experiencing issues")
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

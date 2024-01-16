@@ -97,7 +97,14 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
 
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
+	tarGZstring, err := cmd.PersistentFlags().GetString(constants.TarFileFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.TarFileFlagName, err.Error())
+	}
+	if (directoryFlag.Value.String() != "") && tarGZstring != "" {
+		return fmt.Errorf("A directory and a tar.gz file cannot be both specified")
+	}
+	if err := setVzK8sVersion(tarGZstring, directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
@@ -113,13 +120,6 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	}
 	helpers.SetVerboseOutput(isVerbose)
 	directory := ""
-	tarGZstring, err := cmd.PersistentFlags().GetString(constants.TarFileFlagName)
-	if err != nil {
-		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.TarFileFlagName, err.Error())
-	}
-	if (directoryFlag.Value.String() != "") && tarGZstring != "" {
-		return fmt.Errorf("A directory and a tar.gz file cannot be both specified")
-	}
 	if (directoryFlag.Value.String() == "") && tarGZstring == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
@@ -137,7 +137,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 		defer os.RemoveAll(directory)
-		cmd := exec.Command("tar", "-xf", "-C", directory)
+		cmd := exec.Command("tar", "-xf", tarGZstring, "-C", directory)
 		err = cmd.Run()
 		if err != nil {
 			return fmt.Errorf("An error occured while trying to untar the file")
@@ -153,8 +153,8 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 }
 
 // setVzK8sVersion sets vz and k8s version
-func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
-	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+func setVzK8sVersion(targzString string, directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if (directoryFlag == nil || directoryFlag.Value.String() == "") && targzString == "" {
 		// Get the controller runtime client
 		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
