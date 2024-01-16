@@ -1,0 +1,11 @@
+# Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: weblogic-s5
+ID: wls-s5
+description: |
+  This is a scenario delets entries into the TODO LIST, gets them
+workers:
+  - workerConfigPath: weblogic/todo-delete.yaml
+    workerOverrideFile: todo-delete.yaml
+    description: delete all the entries from the TODO LIST

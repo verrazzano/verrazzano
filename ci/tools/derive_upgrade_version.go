@@ -80,6 +80,8 @@ func parseCliArgs(args []string) {
 		workspace = args[0]
 		// Receive version type such as interimVersionForUpgrade or versionForInstall argument
 		versionType = args[1]
+		// Receive development version of the current branch.
+		developmentVersion = args[2]
 	} else {
 		fmt.Printf("no worspace path and version type line arguments were specified\n")
 		os.Exit(1)
@@ -89,11 +91,7 @@ func parseCliArgs(args []string) {
 		for index, arg := range args {
 			// Remove any ',' or ']' suffixes and remove any '[' prefix
 			trimArg := strings.TrimPrefix(strings.TrimSuffix(strings.TrimSuffix(arg, ","), "]"), "[")
-			if index > 1 {
-				if versionType == LatestVersionForCurrentBranch {
-					developmentVersion = trimArg
-					return
-				}
+			if index > 2 {
 				excludeReleaseTags = append(excludeReleaseTags, trimArg)
 			}
 		}
@@ -127,6 +125,7 @@ func getReleaseTags(workspace string, excludeReleaseTags []string) []string {
 			}
 		}
 	}
+
 	return releaseTags
 }
 
@@ -180,7 +179,8 @@ func getLatestReleaseForCurrentBranch(releaseTags []string) string {
 // Derives interim version which is the latest git release tag - 1 minor version.
 // If there are only two unique minor versions then latest patch is derived.
 func getInterimRelease(releaseTags []string) string {
-	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
+	resultTags, _ := getTagsLTMinorRelease(releaseTags, developmentVersion)
+	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(resultTags)
 	uniqueMinorReleaseCount := len(uniqueMinorVersions)
 
 	// Handles edge cases such as having less than 2 minor releases.
@@ -204,7 +204,8 @@ func getInterimRelease(releaseTags []string) string {
 // Derives install version which is the latest git release tag - 2 minor version.
 // If there are only two unique minor versions then oldest patch is derived.
 func getInstallRelease(releaseTags []string) string {
-	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(releaseTags)
+	resultTags, _ := getTagsLTMinorRelease(releaseTags, developmentVersion)
+	minorAndPatchesVersionMap, uniqueMinorVersions := getUniqueMajorMinorAndPatchVersionMap(resultTags)
 	uniqueMinorReleaseCount := len(uniqueMinorVersions)
 
 	// Handles edge cases such as having less than 2 minor releases.
@@ -248,6 +249,33 @@ func getTagsLT(tags []string, oldestAllowedVersion string) (string, error) {
 	}
 
 	return builder.String(), nil
+}
+
+func getTagsLTMinorRelease(tags []string, developmentVersion string) ([]string, error) {
+	builder := strings.Builder{}
+	var resultTags []string
+	o, err := semver.NewSemVersion(developmentVersion)
+	o.Patch = 0
+	if err != nil {
+		return resultTags, err
+	}
+
+	for _, tag := range tags {
+		var t = tag
+		if tag[0] == 'v' || tag[0] == 'V' {
+			t = tag[1:]
+		}
+		tagVersion, err := semver.NewSemVersion(t)
+		if err != nil {
+			return resultTags, err
+		}
+		if tagVersion.IsLessThan(o) {
+			builder.WriteString(tag)
+			builder.WriteString(" ")
+		}
+	}
+	resultTags = strings.Fields(builder.String())
+	return resultTags, nil
 }
 
 func getTagsGTE(tags []string, oldestAllowedVersion string) (string, error) {
