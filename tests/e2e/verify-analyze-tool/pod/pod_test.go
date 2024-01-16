@@ -6,13 +6,14 @@
 package pod
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 var (
@@ -30,6 +31,11 @@ var client = &kubernetes.Clientset{}
 var _ = BeforeSuite(beforeSuite)
 var beforeSuite = t.BeforeSuiteFunc(func() {
 	client, err = k8util.GetKubernetesClientset()
+	if err != nil {
+		Fail(err.Error())
+	}
+
+	err := patch()
 	if err != nil {
 		Fail(err.Error())
 	}
@@ -54,10 +60,6 @@ func patch() error {
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-pod-issues"), func() {
 	t.Context("During Pod Issue Analysis", func() {
-		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			patch()
-		})
-
 		t.It("Should Have PodProblemsNotReported Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
 				return utility.VerifyIssue(utility.ReportAnalysis[utility.PodProblemsNotReported][0], utility.PodProblemsNotReported)
