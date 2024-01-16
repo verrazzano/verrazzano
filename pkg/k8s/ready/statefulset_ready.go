@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package ready
@@ -33,7 +33,7 @@ func StatefulSetsAreReady(log vzlog.VerrazzanoLogger, client client.Client, name
 		}
 		if statefulset.Status.UpdatedReplicas < expectedReplicas {
 			log.Progressf("%s is waiting for statefulset %s replicas to be %v. Current updated replicas is %v", prefix, namespacedName,
-				expectedReplicas, statefulset.Status.ReadyReplicas)
+				expectedReplicas, statefulset.Status.UpdatedReplicas)
 			return false
 		}
 		if statefulset.Status.ReadyReplicas < expectedReplicas {
