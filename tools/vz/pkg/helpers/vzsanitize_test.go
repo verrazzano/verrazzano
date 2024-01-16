@@ -43,6 +43,17 @@ func TestSanitizeALine(t *testing.T) {
 	strictCheck(testOPCID, testOPCIDToRemove)
 }
 
+func TestWriteRedactionMapFileEmpty(t *testing.T) {
+	a := assert.New(t)
+	err := WriteRedactionMapFile("/tmp")
+	a.Nil(err)
+	fileName := "/tmp/" + constants.RedactionMap
+	_, err = os.Stat(fileName)
+	a.Nil(err, "redaction file %s does not exist", fileName)
+	err = os.Remove(fileName)
+	a.Nil(err)
+}
+
 func TestWriteRedactionMapFile(t *testing.T) {
 	a := assert.New(t)
 	// redact a variety of inputs, as well as inputting a value more than once.
