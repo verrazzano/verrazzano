@@ -3,5 +3,6 @@
 
 global:
   envVars:
+    PSR_WORKER_TYPE: echo-client
     PSR_LOOP_SLEEP: 100ms
     PSR_WORKER_THREAD_COUNT: 5
