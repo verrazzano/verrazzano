@@ -13,7 +13,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -124,7 +123,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			break
 		}
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		// This means that it is a regular file that we write to disk
@@ -133,8 +132,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			if err != nil {
 				return err
 			}
-			err = fileToWrite.Chmod(os.FileMode(header.Mode))
-			if err != nil {
+			if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
 				return err
 			}
 			_, err = io.Copy(fileToWrite, tarReader)

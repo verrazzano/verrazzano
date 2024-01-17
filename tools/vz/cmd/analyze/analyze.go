@@ -6,7 +6,6 @@ package analyze
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
@@ -95,15 +94,18 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
 
-	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-	tarGZstring, err := cmd.PersistentFlags().GetString(constants.TarFileFlagName)
+	directoryFlag, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.DirectoryFlagName, err.Error())
+	}
+	tarFileString, err := cmd.PersistentFlags().GetString(constants.TarFileFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.TarFileFlagName, err.Error())
 	}
-	if (directoryFlag.Value.String() != "") && tarGZstring != "" {
-		return fmt.Errorf("A directory and a tar.gz file cannot be both specified")
+	if (directoryFlag != "") && tarFileString != "" {
+		return fmt.Errorf("a directory and a tar file cannot be both specified")
 	}
-	if err := setVzK8sVersion(tarGZstring, directoryFlag, vzHelper, cmd); err == nil {
+	if err := setVzK8sVersion(tarFileString, directoryFlag, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
@@ -119,7 +121,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	}
 	helpers.SetVerboseOutput(isVerbose)
 	directory := ""
-	if (directoryFlag.Value.String() == "") && tarGZstring == "" {
+	if directoryFlag == "" && tarFileString == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
 		if err != nil {
@@ -129,21 +131,21 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 		if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
 			return err
 		}
-	} else if tarGZstring != "" && (directoryFlag == nil || directoryFlag.Value.String() == "") {
+	} else if tarFileString != "" && directoryFlag == "" {
 		//This is the case where only the tar string is specified
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 		defer os.RemoveAll(directory)
-		file, err := os.Open(tarGZstring)
+		file, err := os.Open(tarFileString)
 		if err != nil {
-			return err
+			return fmt.Errorf("an error occured when trying to open a file at this file path")
 		}
 		defer file.Close()
-		helpers.UntarArchive(directory, file)
+		err = helpers.UntarArchive(directory, file)
 		if err != nil {
-			return fmt.Errorf("An error occured while trying to untar the file")
+			return fmt.Errorf("an error occurred while trying to untar the file")
 		}
 	} else {
 		// This case is a directory string is specified, but the tar string is not
@@ -156,8 +158,8 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 }
 
 // setVzK8sVersion sets vz and k8s version
-func setVzK8sVersion(targzString string, directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
-	if (directoryFlag == nil || directoryFlag.Value.String() == "") && targzString == "" {
+func setVzK8sVersion(tarFileString string, directoryFlag string, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if directoryFlag == "" && tarFileString == "" {
 		// Get the controller runtime client
 		client, err := vzHelper.GetClient(cmd)
 		if err != nil {
