@@ -79,7 +79,7 @@ const kcInitContainerValueTemplate = `
       args:
         - -c
         - |
-          echo \"Copying theme...\"
+          echo-client \"Copying theme...\"
           cp -R /oracle/* /theme
       volumeMounts:
         - name: theme

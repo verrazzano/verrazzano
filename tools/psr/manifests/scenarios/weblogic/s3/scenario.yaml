@@ -6,8 +6,8 @@ ID: wls-s3
 description: |
   This is a scenario that scales the WebLogic domain and sends GET requests at the same time
 workers:
-  - workerConfigPath: weblogic/scale.yaml
-    workerOverrideFile: scale.yaml
+  - workerConfigPath: weblogic/echo.yaml
+    workerOverrideFile: echo.yaml
     description: scales WebLogic domain
   - workerConfigPath: http/get.yaml
     workerOverrideFile: get.yaml

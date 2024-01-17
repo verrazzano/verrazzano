@@ -219,7 +219,7 @@ spec:
         - sh
         args:
         - "-c"
-        - "rm -f key && echo -e \"${SSH_KEY}\" >key \
+        - "rm -f key && echo-client -e \"${SSH_KEY}\" >key \
            && chmod 400 key \
            && timeout {{ .Values.restore.timeout }} \
                 scp -i key \

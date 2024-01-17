@@ -58,7 +58,7 @@ const (
 	WorkerTypeWlsScale      = "wls-scale"
 	WorkerTypeWlsTodoDelete = "wls-todo-delete"
 	WorkerTypeWlsTodoPut    = "wls-todo-put"
-	WorkerEchoClient        = "echo-client"
+	WorkerEchoClient        = "echo-client-client"
 )
 
 const (

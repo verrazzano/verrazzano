@@ -304,7 +304,7 @@ query:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param query.sidecars Extra containers running as sidecars to Thanos Query pods
@@ -942,7 +942,7 @@ queryFrontend:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param queryFrontend.sidecars Extra containers running as sidecars to Thanos Query Frontend pods
@@ -1369,7 +1369,7 @@ bucketweb:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param bucketweb.sidecars Extra containers running as sidecars to Thanos Bucket Web pods
@@ -1797,7 +1797,7 @@ compactor:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param compactor.sidecars Extra containers running as sidecars to Thanos Compactor pods
@@ -2237,7 +2237,7 @@ storegateway:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param storegateway.sidecars Extra containers running as sidecars to Thanos Store Gateway pods
@@ -2852,7 +2852,7 @@ ruler:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param ruler.sidecars Extra containers running as sidecars to Thanos Ruler pods
@@ -3331,7 +3331,7 @@ receive:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param receive.sidecars Extra containers running as sidecars to Thanos Receive pods
@@ -3771,7 +3771,7 @@ receiveDistributor:
   ##  - name: your-image-name
   ##    image: your-image
   ##    imagePullPolicy: Always
-  ##    command: ['sh', '-c', 'echo "hello world"']
+  ##    command: ['sh', '-c', 'echo-client "hello world"']
   ##
   initContainers: []
   ## @param receiveDistributor.sidecars Extra containers running as sidecars to Thanos Receive Distributor pods

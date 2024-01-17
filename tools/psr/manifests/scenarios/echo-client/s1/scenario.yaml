@@ -1,0 +1,11 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+name: echo-client-s1
+ID: ec-s1
+description: |
+  This is a scenario that runs the echo client with 5 threads, where each thread does HTTP PUT to the echo server every 100 ms
+workers:
+  - workerConfigPath: echo/echo-client.yaml
+    workerOverrideFile: echo.yaml
+    description: runs echo client

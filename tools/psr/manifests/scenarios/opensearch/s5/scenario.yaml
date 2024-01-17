@@ -6,6 +6,6 @@ name: opensearch-s5
 description: |
   This is a scenario that scales the OpenSearch master-tier pods out and in continuously
 workers:
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-master.yaml
     description: scales master nodes

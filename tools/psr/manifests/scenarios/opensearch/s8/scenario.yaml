@@ -15,12 +15,12 @@ workers:
   - workerConfigPath: opensearch/restart.yaml
     workerOverrideFile: restart-ingest.yaml
     description: restarts ingest nodes
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-master.yaml
     description: scales master nodes
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-data.yaml
     description: scales data nodes
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-ingest.yaml
     description: scales ingest nodes
