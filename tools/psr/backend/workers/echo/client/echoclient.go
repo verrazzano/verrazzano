@@ -71,22 +71,22 @@ func NewWorker() (spi.Worker, error) {
 		workerMetricDef: &workerMetricDef{
 			metricDef: todo.HTTPMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
-					Name: "put_request_count_total",
+					Name: "count_total",
 					Help: "The total number of PUT requests",
 					Type: prometheus.CounterValue,
 				},
 				RequestsSucceededCountTotal: metrics.MetricItem{
-					Name: "put_request_succeeded_count_total",
+					Name: "succeeded_count_total",
 					Help: "The total number of successful PUT requests",
 					Type: prometheus.CounterValue,
 				},
 				RequestsFailedCountTotal: metrics.MetricItem{
-					Name: "put_request_failed_count_total",
+					Name: "failed_count_total",
 					Help: "The total number of failed PUT requests",
 					Type: prometheus.CounterValue,
 				},
 				RequestDurationMicros: metrics.MetricItem{
-					Name: "put_request_duration_micros",
+					Name: "duration_micros",
 					Help: "The duration of PUT request round trip in microseconds",
 					Type: prometheus.GaugeValue,
 				},
@@ -154,27 +154,20 @@ func (w worker) PreconditionsMet() (bool, error) {
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	atomic.AddInt64(&w.workerMetricDef.metricDef.RequestsCountTotal.Val, 1)
-	err := w.singleEcho(conf, log)
-	if err != nil {
-		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
-		return err
-	}
-	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
-	log.Progressf("PUT todo item succeeded")
-	return nil
-}
-
-func (w worker) singleEcho(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
 	startTime := time.Now().UnixMicro()
 
 	_, err := w.putEcho()
 	if err != nil {
-		log.Errorf("Port %d, Error %v - stopping test for this thread", w.port, err)
+		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
+		log.Errorf("Port %d, Error %v - sleeping for a few secs", w.port, err)
+		time.Sleep(5 * time.Second)
 		return err
 	}
-
+	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
 	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
+
+	log.Progressf("PUT todo item succeeded")
 	return nil
 }
 

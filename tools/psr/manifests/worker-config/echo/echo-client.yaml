@@ -3,11 +3,8 @@
 
 global:
   envVars:
-    PSR_WORKER_TYPE: echo-client
-    # SERVICE_NAME, SERVICE_NAMESPACE, SERVICE_PORT are required to form HTTP endpoint URL to access. HTTPS is not supported.
-    SERVICE_NAME: tododomain-adminserver
-    SERVICE_NAMESPACE: todo-list
-    SERVICE_PORT: 7001
+    PSR_LOOP_SLEEP: 100ms
+    PSR_WORKER_THREAD_COUNT: 10
 
 # activate subchart
 http:
