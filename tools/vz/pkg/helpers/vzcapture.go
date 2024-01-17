@@ -104,17 +104,18 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 func UntarArchive(captureDir string, tarFile *os.File) error {
 	var tarReader *tar.Reader
 	// If it is compressed, we need to decompress it
-	if strings.HasSuffix(tarFile.Name(), "gz") {
+	if strings.HasSuffix(tarFile.Name(), ".tgz") || strings.HasSuffix(tarFile.Name(), ".tar.gz") {
 		uncompressedTarFile, err := gzip.NewReader(tarFile)
 		if err != nil {
 			return err
 		}
 		defer uncompressedTarFile.Close()
 		tarReader = tar.NewReader(uncompressedTarFile)
-	} else {
+	} else if strings.HasSuffix(tarFile.Name(), ".tar") {
 		tarReader = tar.NewReader(tarFile)
+	} else {
+		return fmt.Errorf("the file given as input is not in .tar, .tgz, or .tar.gz format")
 	}
-	defer tarFile.Close()
 	// This loops through each entry in the tar archive
 	for {
 		header, err := tarReader.Next()
