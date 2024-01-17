@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
-	"os/exec"
 	"path/filepath"
 )
 
@@ -137,8 +136,12 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 		defer os.RemoveAll(directory)
-		cmd := exec.Command("tar", "-xf", tarGZstring, "-C", directory)
-		err = cmd.Run()
+		file, err := os.Open(tarGZstring)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+		helpers.UntarArchive(directory, file)
 		if err != nil {
 			return fmt.Errorf("An error occured while trying to untar the file")
 		}

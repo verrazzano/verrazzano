@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -95,6 +96,60 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 
 	if err := filepath.Walk(captureDir, walkFn); err != nil {
 		return err
+	}
+	return nil
+}
+
+// UntarArchive untars the specified file and puts it in the capture directory
+func UntarArchive(captureDir string, tarFile *os.File) error {
+	var tarReader *tar.Reader
+	// If it is compressed, we need to decompress it
+	if strings.HasSuffix(tarFile.Name(), "gz") {
+		uncompressedTarFile, err := gzip.NewReader(tarFile)
+		if err != nil {
+			return err
+		}
+		defer uncompressedTarFile.Close()
+		tarReader = tar.NewReader(uncompressedTarFile)
+	} else {
+		tarReader = tar.NewReader(tarFile)
+	}
+	defer tarFile.Close()
+	// This loops through each entry in the tar archive
+	for {
+		header, err := tarReader.Next()
+		// This means that we have reached the end of the archive, so we break out of the loop
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// This means that it is a regular file that we write to disk
+		if header.Typeflag == 48 {
+			fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
+			if err != nil {
+				return err
+			}
+			err = fileToWrite.Chmod(os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+			_, err = io.Copy(fileToWrite, tarReader)
+			if err != nil {
+				return err
+			}
+
+		}
+		// This means that is a directory that is written
+		if header.Typeflag == 53 {
+			err = os.Mkdir(captureDir+string(os.PathSeparator)+header.Name, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 	return nil
 }
