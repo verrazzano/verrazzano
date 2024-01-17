@@ -25,7 +25,7 @@ const (
 	// metricsPrefix is the prefix that is automatically pre-pended to all metrics exported by this worker.
 	metricsPrefix = "echo_client"
 
-	// EnvServiceNamespace specifies the name of the service in the local cluster
+	// EnvServiceName specifies the name of the service in the local cluster
 	// By default, the ServiceName is not istio-ingressgateway
 	EnvServiceName = "SERVICE_NAME"
 
@@ -33,7 +33,7 @@ const (
 	// By default, the ServiceNamespace is istio-system
 	EnvServiceNamespace = "SERVICE_NAMESPACE"
 
-	// Payload specifies the payload to PUT
+	// EnvPayload specifies the payload to PUT
 	EnvPayload = "PAYLOAD"
 )
 
@@ -53,7 +53,7 @@ type worker struct {
 	port    int
 	host    string
 	path    string
-	payLoad string
+	payload string
 }
 
 var _ spi.Worker = worker{}
@@ -66,7 +66,7 @@ func NewWorker() (spi.Worker, error) {
 	w := worker{
 		host:           host,
 		port:           getPort(),
-		payLoad:        config.PsrEnv.GetEnv(EnvPayload),
+		payload:        config.PsrEnv.GetEnv(EnvPayload),
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
 			metricDef: todo.HTTPMetricDef{
@@ -126,7 +126,7 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: EnvServiceName, DefaultVal: "istio-ingressgateway", Required: false},
-		{Key: EnvServiceNamespace, DefaultVal: "isti-syste", Required: false},
+		{Key: EnvServiceNamespace, DefaultVal: "istio-system", Required: false},
 		{Key: EnvPayload, DefaultVal: "aaa=bbb", Required: false},
 	}
 }
@@ -165,41 +165,35 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 }
 
 func (w worker) singleEcho(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
-	//	fmt.Printf("Single echo for port %v\n", port)
-	transport := &http.Transport{Proxy: nil}
-	cli := &http.Client{Transport: transport}
-	host := "echo.100.101.68.27.nip.io"
-	IPAddress := "100.101.68.27"
 	startTime := time.Now().UnixMicro()
 
-	_, err := w.putEcho(cli, host, IPAddress, w.port)
+	_, err := w.putEcho()
 	if err != nil {
 		log.Errorf("Port %d, Error %v - stopping test for this thread", w.port, err)
 		return err
 	}
 
-	// log.Info("BODY %s\n", body)
 	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 	return nil
 }
 
 // getUserToken gets a user token from a secret
-func (w worker) putEcho(cli *http.Client, host string, IPaddress string, port int) (string, error) {
+func (w worker) putEcho() (string, error) {
 	reqURL := fmt.Sprintf("http://%s:%d/%s", w.host, w.port, w.path)
 	req, err := http.NewRequest(http.MethodPut, reqURL, strings.NewReader(w.payload))
 	if err != nil {
 		return "", err
 	}
 
-	hostPort := fmt.Sprintf("%s:%v", host, port)
+	hostPort := fmt.Sprintf("%s:%v", w.host, w.port)
 	req.Header.Add("Host", hostPort)
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
 	req.Header.Add("accept", "*/*")
 	req.Header.Add("accept-encoding", "*")
 	req.Host = hostPort
 
-	resp, err := cli.Do(req)
+	resp, err := w.client.Do(req)
 	if err != nil {
 		return "", err
 	}
