@@ -19,8 +19,8 @@ then
     TIME_METRIC="${JOB}_time{${LABELS}} $DURATION"
 fi
 
-echo "Sending to ${PROMETHEUS_GW_URL}/metrics/job/${JOB}"
-cat <<EOF | curl -i --data-binary @- ${PROMETHEUS_GW_URL}/metrics/job/${JOB}/instance/${INSTANCE} -u $PROMETHEUS_CRED
-${JOB}_status{${LABELS}} $STATUS
-${TIME_METRIC}
-EOF
+echo "Not sending to ${PROMETHEUS_GW_URL}/metrics/job/${JOB}"
+#cat <<EOF | curl -i --data-binary @- ${PROMETHEUS_GW_URL}/metrics/job/${JOB}/instance/${INSTANCE} -u $PROMETHEUS_CRED
+#${JOB}_status{${LABELS}} $STATUS
+#${TIME_METRIC}
+#EOF

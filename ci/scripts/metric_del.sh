@@ -12,4 +12,4 @@ if [ -z "$4" ]
   then
     URL="${PROMETHEUS_GW_URL}/metrics/job/$JOB"
 fi
-curl -i -X DELETE "$URL" -u $PROMETHEUS_CRED
+# curl -i -X DELETE "$URL" -u $PROMETHEUS_CRED

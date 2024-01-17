@@ -47,23 +47,7 @@ func createTestMetricsReceiver(testName string) (testmetrics.MetricsReceiver, er
 // create the appropriate metrics receiver
 func createMetricsConfigFromEnv(name string) (testmetrics.MetricsReceiverConfig, error) {
 	metricsReceiverType := getMetricsReceiverType()
-	switch metricsReceiverType {
-	case promReceiverType:
-		cfg := &testmetrics.PrometheusMetricsReceiverConfig{
-			PushGatewayURL:      getenvFunc(promPushURLEnvVarName),
-			PushGatewayUser:     getenvFunc(promPushUserEnvVarName),
-			PushGatewayPassword: getenvFunc(promPushPasswordEnvVarName),
-			PushInterval:        defaultPushInterval,
-			Name:                name,
-		}
-		if cfg.PushGatewayURL == "" || cfg.PushGatewayUser == "" || cfg.PushGatewayPassword == "" {
-			return nil, fmt.Errorf("missing entries in Prometheus configuration. %s, %s and %s must be set",
-				promPushURLEnvVarName, promPushUserEnvVarName, promPushPasswordEnvVarName)
-		}
-		return cfg, nil
-	default:
-		return nil, fmt.Errorf("unsupported %s value: %s", metricsReceiverTypeEnvVarName, metricsReceiverType)
-	}
+	return nil, fmt.Errorf("unsupported %s value: %s", metricsReceiverTypeEnvVarName, metricsReceiverType)
 }
 
 // Get the metrics receiver type set in the environment, defaulting to Prometheus
