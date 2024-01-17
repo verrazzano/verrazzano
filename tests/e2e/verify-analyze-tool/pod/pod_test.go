@@ -6,6 +6,7 @@
 package pod
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -37,7 +38,7 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 
 	err := patch()
 	if err != nil {
-		Fail(err.Error())
+		Fail(fmt.Sprintf("error while patching verrazzano-related resources: %v", err.Error()))
 	}
 })
 
