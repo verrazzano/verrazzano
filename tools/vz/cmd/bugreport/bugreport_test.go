@@ -496,6 +496,52 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// TestBugReportLogsFromAllNamespaces
+// GIVEN a CLI bug-report command
+// WHEN I call cmd.Execute with include logs, I should get the logs of all resources across all namespaces
+// THEN expect the command to show the resources captured in the standard output and create the bug report file
+func TestBugReportLogsFromAllNamespaces(t *testing.T) {
+	tests := []struct {
+		name          string
+		logsFlag      bool
+		namespaceFlag bool
+		success       bool
+	}{
+		{"VZ bug-report, --include-logs=true", true, false, true},
+		{"VZ bug-report --include-logs=false, default bug-report", false, false, true},
+		{"VZ bug-report --include-logs=true, --include-namespace=true", true, true, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			cmd := setUpAndVerifyResources(t)
+
+			tmpDir, _ := os.MkdirTemp("", "bug-report")
+			defer cleanupTempDir(t, tmpDir)
+
+			bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+			setUpGlobalFlags(cmd)
+
+			if tt.logsFlag {
+				err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+				assert.NoError(t, err)
+			}
+			if tt.namespaceFlag {
+				err := cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
+				assert.NoError(t, err)
+			}
+
+			err := cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+			assert.NoError(t, err)
+			err = cmd.Execute()
+			if !tt.success {
+				assert.Error(t, err)
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func setUpGlobalFlags(cmd *cobra.Command) {
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
