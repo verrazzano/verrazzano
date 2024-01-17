@@ -35,6 +35,7 @@ var dbLoadJobCompletedRe = regexp.MustCompile(`.*Keycloak DB successfully migrat
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
 // if we need a more precise match
+var blockStorageLimitExceeded = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been exceeded`)
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
@@ -217,6 +218,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		errorSyncingLoadBalancerCheck := false
 		invalidLBShapeCheck := false
 		loadBalancerCheck := false
+		blockStorageLimitExceededCheck := false
 
 		var reportPodIssue string
 		var reportEvent string
@@ -273,6 +275,13 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
 				issueReporter.AddKnownIssueMessagesFiles(report.NginxIngressPrivateSubnet, clusterRoot, messages, files)
+				issueDetected = true
+				loadBalancerCheck = true
+				issueReporter.Contribute(log, clusterRoot)
+			} else if blockStorageLimitExceeded.MatchString(event.Message) && !blockStorageLimitExceededCheck {
+				messages := make(StringSlice, 1)
+				messages[0] = event.Message
+				issueReporter.AddKnownIssueMessagesFiles(report.BlockStorageLimitExceeded, clusterRoot, messages, files) // Need to change NginxIngressPrivateSubnet to new issue
 				issueDetected = true
 				loadBalancerCheck = true
 				issueReporter.Contribute(log, clusterRoot)
