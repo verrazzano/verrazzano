@@ -84,7 +84,7 @@ function scan_images_in_bom() {
     # Check if any Results section was included or not, only convert to CSV if there are Results there
     results_size=$(cat ${RESULT_FILE_PREFIX}-trivy-details.json |  jq '.Results' | wc -l)
     if [[ results_size -gt 1 ]]; then
-      cat ${RESULT_FILE_PREFIX}-trivy-details.json | jq -r '.Results[]' | sed 's/null//g' | jq -r '.Vulnerabilities' | sed 's/null//g' | jq -r ' .[] | { sev: .Severity, cve: ."VulnerabilityID", description: .Description } ' | sed 's/\\\\/\\/g' | sed 's/\\[nt]/ /g' | sed 's/\\[rt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-trivy-details.csv
+      cat ${RESULT_FILE_PREFIX}-trivy-details.json | jq -r '.Results[]' | sed 's/null//g' | jq -r '.Vulnerabilities' | sed 's/null//g' | jq -r ' .[] | { sev: .Severity, cve: ."VulnerabilityID", description: .Description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-trivy-details.csv
     else
       echo "No Results section found in ${RESULT_FILE_PREFIX}-trivy-details.json, so no need to generate CSV for it"
     fi
