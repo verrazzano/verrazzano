@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # Scan images in a specified BOM
+
+set -e
+set -o pipefail
 
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 TOOL_SCRIPT_DIR=${SCRIPT_DIR}/../../tools/scripts
@@ -91,7 +94,8 @@ function scan_images_in_bom() {
 
     echo "performing grype scan for $BOM_IMAGE"
     grype ${SCAN_IMAGE} -o json > ${RESULT_FILE_PREFIX}-grype-details.json 2> ${RESULT_FILE_PREFIX}-grype.err || echo "grype scan failed for $SCAN_IMAGE"
-    cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | sed 's/\\\\/ /g' | sed 's/\\[nt]/ /g' | sed 's/\\[rt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv
+    cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv
+    # cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | sed 's/\\\\/ /g' | sed 's/\\[nt]/ /g' | sed 's/\\[rt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv
   done <$bomimages
   rm $bomimages
 }

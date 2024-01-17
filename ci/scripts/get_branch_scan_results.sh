@@ -144,8 +144,8 @@ if [ $? -eq 0 ]; then
   fi
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/latest-periodic
   mkdir -p ${SCAN_RESULTS_DIR}
-  ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-  ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE}
+  ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_PERIODIC_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE} || exit 1
+  ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_PERIODIC_BOM_FILE} || exit 1
   ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "periodic" ${SCAN_DATETIME} ${BUILD_NUMBER}
   ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "periodic" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
   publish_results "last-clean-periodic-test" ${SCAN_LAST_PERIODIC_BOM_FILE} ${SCAN_RESULTS_DIR}
@@ -161,8 +161,8 @@ if [ $? -eq 0 ]; then
   echo "Fetching scan results for BOM: ${SCAN_LAST_SNAPSHOT_BOM_FILE}"
   export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/last-snapshot-possibly-old
   mkdir -p ${SCAN_RESULTS_DIR}
-  ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_SNAPSHOT_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-  ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE}
+  ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_LAST_SNAPSHOT_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE} || exit 1
+  ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_LAST_SNAPSHOT_BOM_FILE} || exit 1
   ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "snapshot" ${SCAN_DATETIME} ${BUILD_NUMBER}
   ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "snapshot" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
   publish_results "last-snapshot" ${SCAN_LAST_SNAPSHOT_BOM_FILE} ${SCAN_RESULTS_DIR}
@@ -179,8 +179,8 @@ if [[ "${CLEAN_BRANCH_NAME}" != "master" ]] && [[ "${CLEAN_BRANCH_NAME}" != rele
     echo "Fetching scan results for BOM: ${SCAN_FEATURE_BOM_FILE}"
     export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/feature-branch-latest
     mkdir -p ${SCAN_RESULTS_DIR}
-    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_FEATURE_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_FEATURE_BOM_FILE}
+    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_FEATURE_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE} || exit 1
+    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_FEATURE_BOM_FILE} || exit 1
     ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} "feature" ${SCAN_DATETIME} ${BUILD_NUMBER}
     ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "feature" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
     publish_results "feature" ${SCAN_FEATURE_BOM_FILE} ${SCAN_RESULTS_DIR}
@@ -214,8 +214,8 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     mkdir -p ${SCAN_RESULTS_DIR}
 
     echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
-    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
+    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE} || exit 1
+    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE} || exit 1
     ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
     ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
     publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
