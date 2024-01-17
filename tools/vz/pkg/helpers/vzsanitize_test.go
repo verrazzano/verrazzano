@@ -19,8 +19,8 @@ var (
 	testSSH              = "abcd/0: ssh-rsa AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/ foo@foo-mac"
 	testUserData         = "az0:/\"user_data\": \"abcABC012=+\"az0:/"
 	testUserDataToRemove = "\"user_data\": \"abcABC012=+\""
-	testOPCID            = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id: a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
-	testOPCIDToRemove    = " a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
+	testOPCID            = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id:  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
+	testOPCIDToRemove    = "  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
 )
 
 func TestSanitizeALine(t *testing.T) {

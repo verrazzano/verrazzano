@@ -29,7 +29,7 @@ var opcid = regexPlan{
 	preprocess: func(s string) string {
 		return strings.Trim(strings.TrimPrefix(s, "Opc request id:"), " ")
 	},
-	regex: "(?:Opc request id:)[ ,A-Z,a-z,/,0-9]+",
+	regex: "(?:Opc request id:) *[A-Z,a-z,/,0-9]+",
 	postprocess: func(s string) string {
 		return "Opc request id: " + s
 	},
