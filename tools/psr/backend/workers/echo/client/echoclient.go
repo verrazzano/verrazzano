@@ -71,6 +71,7 @@ func NewWorker() (spi.Worker, error) {
 	w := worker{
 		host:           host,
 		port:           getPort(),
+		path:           "hello-world",
 		payload:        config.PsrEnv.GetEnv(EnvPayload),
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
@@ -192,7 +193,9 @@ func (w worker) putEcho() (string, error) {
 		return "", err
 	}
 
-	hostPort := fmt.Sprintf("%s:%v", w.host, w.port)
+	// Temp - get host from VS
+	vsHost := "echo.100.101.68.27.nip.io"
+	hostPort := fmt.Sprintf("%s:%v", vsHost, w.port)
 	req.Header.Add("Host", hostPort)
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
 	req.Header.Add("accept", "*/*")
