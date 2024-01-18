@@ -136,12 +136,12 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 			//This is the case where only the tar string is specified
 			file, err := os.Open(tarFileString)
 			if err != nil {
-				return fmt.Errorf("an error occured when trying to open a file at this file path")
+				return fmt.Errorf("an error occurred when trying to open %s: %s", tarFileString, err.Error())
 			}
 			defer file.Close()
 			err = helpers.UntarArchive(directory, file)
 			if err != nil {
-				return fmt.Errorf("an error occurred while trying to untar the file")
+				return fmt.Errorf("an error occurred while trying to untar %s: %s", tarFileString, err.Error())
 			}
 		}
 	}
@@ -149,8 +149,8 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 }
 
 // setVzK8sVersion sets vz and k8s version
-func setVzK8sVersion(tarFileString string, directoryFlag string, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
-	if directoryFlag == "" && tarFileString == "" {
+func setVzK8sVersion(tarFileString string, directory string, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if directory == "" && tarFileString == "" {
 		// Get the controller runtime client
 		client, err := vzHelper.GetClient(cmd)
 		if err != nil {

@@ -297,7 +297,7 @@ func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 	err := cmd.Execute()
-	assert.ErrorContains(t, err, "an error occured when trying to open a file")
+	assert.ErrorContains(t, err, "an error occurred when trying to open ../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
