@@ -135,8 +135,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
 				return err
 			}
-			_, err = io.Copy(fileToWrite, tarReader)
-			if err != nil {
+			if _, err = io.Copy(fileToWrite, tarReader); err != nil {
 				return err
 			}
 

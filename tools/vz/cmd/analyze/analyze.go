@@ -94,7 +94,7 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
 
-	directoryFlag, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
+	directory, err := cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.DirectoryFlagName, err.Error())
 	}
@@ -102,10 +102,10 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.TarFileFlagName, err.Error())
 	}
-	if (directoryFlag != "") && tarFileString != "" {
+	if (directory != "") && tarFileString != "" {
 		return fmt.Errorf("a directory and a tar file cannot be both specified")
 	}
-	if err := setVzK8sVersion(tarFileString, directoryFlag, vzHelper, cmd); err == nil {
+	if err := setVzK8sVersion(tarFileString, directory, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
@@ -120,38 +120,29 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
-	directory := ""
-	if directoryFlag == "" && tarFileString == "" {
+	if directory == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 		defer os.RemoveAll(directory)
-		if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
-			return err
-		}
-	} else if tarFileString != "" && directoryFlag == "" {
-		//This is the case where only the tar string is specified
-		directory, err = os.MkdirTemp("", constants.BugReportDir)
-		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
-		}
-		defer os.RemoveAll(directory)
-		file, err := os.Open(tarFileString)
-		if err != nil {
-			return fmt.Errorf("an error occured when trying to open a file at this file path")
-		}
-		defer file.Close()
-		err = helpers.UntarArchive(directory, file)
-		if err != nil {
-			return fmt.Errorf("an error occurred while trying to untar the file")
-		}
-	} else {
-		// This case is a directory string is specified, but the tar string is not
-		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
-		if err != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+
+		if tarFileString == "" {
+			if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
+				return err
+			}
+		} else if tarFileString != "" {
+			//This is the case where only the tar string is specified
+			file, err := os.Open(tarFileString)
+			if err != nil {
+				return fmt.Errorf("an error occured when trying to open a file at this file path")
+			}
+			defer file.Close()
+			err = helpers.UntarArchive(directory, file)
+			if err != nil {
+				return fmt.Errorf("an error occurred while trying to untar the file")
+			}
 		}
 	}
 	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat, printReportToConsole)
