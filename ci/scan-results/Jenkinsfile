@@ -66,7 +66,6 @@ pipeline {
                     }
 
                     sh """
-                        set -e
                         git fetch --tags
                         echo "${env.GITHUB_ACCESS_TOKEN}" | gh auth login --with-token
 

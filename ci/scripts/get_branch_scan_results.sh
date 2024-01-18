@@ -10,6 +10,9 @@
 #   2) OCI credentials have been configured to allow the OCI CLI to fetch scan results from OCIR
 #   3) "gh auth login" has been done to allow the github CLI to list releases and fetch release artifacts
 #
+
+set -e
+
 SCRIPT_DIR=$(cd $(dirname "$0"); pwd -P)
 RELEASE_SCRIPT_DIR=${SCRIPT_DIR}/../../release/scripts
 
