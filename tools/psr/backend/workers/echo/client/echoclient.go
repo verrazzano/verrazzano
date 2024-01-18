@@ -5,7 +5,6 @@ package client
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo"
 	"io"
 	"net/http"
 	"strings"
@@ -39,7 +38,14 @@ const (
 
 // workerMetrics holds the metrics produced by the worker. Metrics must be thread safe.
 type workerMetricDef struct {
-	metricDef todo.HTTPMetricDef
+	metricDef HTTPMetricDef
+}
+
+type HTTPMetricDef struct {
+	RequestsCountTotal          metrics.MetricItem
+	RequestsSucceededCountTotal metrics.MetricItem
+	RequestsFailedCountTotal    metrics.MetricItem
+	RequestDurationMicros       metrics.MetricItem
 }
 
 var portMutex sync.Mutex
@@ -75,7 +81,7 @@ func NewWorker() (spi.Worker, error) {
 		payload:        config.PsrEnv.GetEnv(EnvPayload),
 		metricDescList: nil,
 		workerMetricDef: &workerMetricDef{
-			metricDef: todo.HTTPMetricDef{
+			metricDef: HTTPMetricDef{
 				RequestsCountTotal: metrics.MetricItem{
 					Name: "count_total",
 					Help: "The total number of PUT requests",
@@ -123,8 +129,8 @@ func NewWorker() (spi.Worker, error) {
 // GetWorkerDesc returns the WorkerDes for the worker
 func (w worker) GetWorkerDesc() spi.WorkerDesc {
 	return spi.WorkerDesc{
-		WorkerType:    config.WorkerTypeWlsTodoPut,
-		Description:   "The get worker makes inserts an entry into TODO LIST database",
+		WorkerType:    config.WorkerEchoClient,
+		Description:   "The get worker calls the echo server",
 		MetricsPrefix: metricsPrefix,
 	}
 }
@@ -181,7 +187,10 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 
-	log.Progressf("PUT todo item succeeded")
+	numSucceeded := atomic.LoadInt64(&w.metricDef.RequestsSucceededCountTotal.Val) % 100
+	if numSucceeded%100 == 0 {
+		log.Progressf("%v PUTs succeeded", numSucceeded)
+	}
 	return nil
 }
 
