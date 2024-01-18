@@ -64,7 +64,7 @@ func NewWorker() (spi.Worker, error) {
 		return nil, err
 	}
 
-	host := fmt.Sprintf("%s/%s.svc.cluster.local",
+	host := fmt.Sprintf("%s.%s.svc.cluster.local",
 		config.PsrEnv.GetEnv(EnvServiceName),
 		config.PsrEnv.GetEnv(EnvServiceNamespace))
 
