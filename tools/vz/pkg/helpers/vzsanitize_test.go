@@ -60,13 +60,11 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
 	// redact a variety of inputs, as well as inputting a value more than once.
-	testInputs := []string{testIP, testOCID, testSSH, testUserData, testIP}
+	testInputs := []string{testIP, testOCID, testSSH, testUserData, testOPCID, testIP}
 	for _, input := range testInputs {
-		r := redact(input, testRedactedValues)
-		a.Contains(r, "REDACTED")
-		a.NotContains(r, input)
+		redact(input, testRedactedValues)
 	}
-	numUniqueInputs := 4
+	numUniqueInputs := 5
 	a.Len(testRedactedValues, numUniqueInputs)
 
 	// write the redacted values to /tmp/redaction-map.csv
@@ -97,4 +95,28 @@ func TestWriteRedactionMapFile(t *testing.T) {
 
 	// expected number of lines in the csv
 	a.Equal(numUniqueInputs, numLines)
+}
+
+func TestRedact(t *testing.T) {
+	a := assert.New(t)
+	testRedactedValues := make(map[string]string)
+
+	// test that redacting the same value repeatedly returns the same value
+	redactedIP := redact(testIP, testRedactedValues)
+	a.Contains(redactedIP, "REDACTED-")
+	a.NotContains(redactedIP, testIP)
+	for i := 0; i < 2; i++ {
+		r := redact(testIP, testRedactedValues)
+		a.Equal(redactedIP, r)
+	}
+
+	// test a redacting a different value
+	redactedSSH := redact(testSSH, testRedactedValues)
+	a.Contains(redactedSSH, "REDACTED-")
+	a.NotContains(redactedSSH, testSSH)
+	a.NotEqual(redactedSSH, redactedIP)
+
+	// test redacting the same value yet again returns the same value
+	r := redact(testIP, testRedactedValues)
+	a.Equal(redactedIP, r)
 }
