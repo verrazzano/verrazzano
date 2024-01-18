@@ -70,20 +70,6 @@ func SanitizeString(l string) string {
 	return l
 }
 
-func (rp regexPlan) compilePlan() func(string) string {
-	return func(s string) string {
-		var i string
-		if rp.preprocess != nil {
-			i = rp.preprocess(s)
-		}
-		i = redact(i)
-		if rp.postprocess != nil {
-			return rp.postprocess(i)
-		}
-		return i
-	}
-}
-
 // WriteRedactionMapFile creates a CSV file to document all the values this tool has
 // redacted so far, stored in the redactedValues map.
 func WriteRedactionMapFile(captureDir string) error {
@@ -103,6 +89,20 @@ func WriteRedactionMapFile(captureDir string) error {
 	}
 	csvWriter.Flush()
 	return nil
+}
+
+func (rp regexPlan) compilePlan() func(string) string {
+	return func(s string) string {
+		var i string
+		if rp.preprocess != nil {
+			i = rp.preprocess(s)
+		}
+		i = redact(i)
+		if rp.postprocess != nil {
+			return rp.postprocess(i)
+		}
+		return i
+	}
 }
 
 // redact outputs a string, representing a piece of redacted text.
