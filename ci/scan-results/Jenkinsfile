@@ -25,7 +25,7 @@ pipeline {
     triggers { cron("@daily") }
 
     environment {
-        CLEAN_BRANCH_NAME = "release-1.6"
+        CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
 
         OCI_CLI_TENANCY = credentials('oci-dev-tenancy')
         OCI_CLI_USER = credentials('oci-dev-user-ocid')
