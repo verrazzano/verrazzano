@@ -135,7 +135,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
 				return err
 			}
-			if _, err = io.Copy(fileToWrite, tarReader); err != nil {
+			if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
 				return err
 			}
 
@@ -148,6 +148,18 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			}
 		}
 
+	}
+	return nil
+}
+
+func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
+	for true {
+		_, err := io.CopyN(dst, src, chunkSize)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
 	}
 	return nil
 }
