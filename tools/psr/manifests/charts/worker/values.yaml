@@ -31,3 +31,5 @@ prometheus:
 
 http:
   enabled: false
+
+nodeAffinity: ""
