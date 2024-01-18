@@ -27,10 +27,11 @@ var (
 )
 
 func TestSanitizeALine(t *testing.T) {
+	testRedactedValues := make(map[string]string)
 	strictCheck := func(message string, toRemove string) {
 		assert.Contains(t, message, toRemove, "The test case does not contain the expression to remove: "+toRemove)
 		i := strings.Index(message, toRemove)
-		sanitized := SanitizeString(message)
+		sanitized := SanitizeString(message, testRedactedValues)
 		assert.NotContains(t, sanitized, toRemove, "Failed to remove expression from string: "+toRemove)
 		hashLength := (len(sanitized) - len(message)) + len(toRemove)
 		reconstructed := sanitized[:i] + toRemove + sanitized[i+hashLength:]
@@ -45,7 +46,8 @@ func TestSanitizeALine(t *testing.T) {
 
 func TestWriteRedactionMapFileEmpty(t *testing.T) {
 	a := assert.New(t)
-	err := WriteRedactionMapFile("/tmp")
+	testRedactedValues := make(map[string]string)
+	err := WriteRedactionMapFile("/tmp", testRedactedValues)
 	a.Nil(err)
 	fileName := "/tmp/" + constants.RedactionMap
 	_, err = os.Stat(fileName)
@@ -56,18 +58,19 @@ func TestWriteRedactionMapFileEmpty(t *testing.T) {
 
 func TestWriteRedactionMapFile(t *testing.T) {
 	a := assert.New(t)
+	testRedactedValues := make(map[string]string)
 	// redact a variety of inputs, as well as inputting a value more than once.
 	testInputs := []string{testIP, testOCID, testSSH, testUserData, testIP}
 	for _, input := range testInputs {
-		r := redact(input)
+		r := redact(input, testRedactedValues)
 		a.Contains(r, "REDACTED")
 		a.NotContains(r, input)
 	}
 	numUniqueInputs := 4
-	a.Len(redactedValues, numUniqueInputs)
+	a.Len(testRedactedValues, numUniqueInputs)
 
 	// write the redacted values to /tmp/redaction-map.csv
-	err := WriteRedactionMapFile("/tmp")
+	err := WriteRedactionMapFile("/tmp", testRedactedValues)
 	a.Nil(err)
 
 	// open the file
@@ -85,7 +88,7 @@ func TestWriteRedactionMapFile(t *testing.T) {
 		a.Nil(err)
 
 		// check that this line of the CSV file is as expected
-		hash, found := redactedValues[record[1]]
+		hash, found := testRedactedValues[record[1]]
 		a.True(found)
 		a.Equal(record[0], hash)
 

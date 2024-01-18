@@ -54,7 +54,7 @@ func InitRegexToReplacementMap() {
 
 // SanitizeString sanitizes each line in a given file,
 // Sanitizes based on the regex map initialized above, which is currently filtering for IPv4 addresses and hostnames
-func SanitizeString(l string) string {
+func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
 	}
@@ -65,14 +65,15 @@ func SanitizeString(l string) string {
 	}
 	knownHostNamesMutex.Unlock()
 	for _, eachRegex := range regexToReplacementList {
-		l = regexp.MustCompile(eachRegex.regex).ReplaceAllStringFunc(l, eachRegex.compilePlan())
+		l = regexp.MustCompile(eachRegex.regex).ReplaceAllStringFunc(l, eachRegex.compilePlan(redactedValuesOverride))
 	}
 	return l
 }
 
 // WriteRedactionMapFile creates a CSV file to document all the values this tool has
 // redacted so far, stored in the redactedValues map.
-func WriteRedactionMapFile(captureDir string) error {
+func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]string) error {
+	redactedValues := determineRedactedValuesMap(redactedValuesOverride)
 	fileName := filepath.Join(captureDir, constants.RedactionMap)
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -91,12 +92,12 @@ func WriteRedactionMapFile(captureDir string) error {
 	return nil
 }
 
-func (rp regexPlan) compilePlan() func(string) string {
+func (rp regexPlan) compilePlan(redactedValuesOverride map[string]string) func(string) string {
 	return func(s string) string {
 		if rp.preprocess != nil {
 			s = rp.preprocess(s)
 		}
-		s = redact(s)
+		s = redact(s, redactedValuesOverride)
 		if rp.postprocess != nil {
 			return rp.postprocess(s)
 		}
@@ -106,7 +107,8 @@ func (rp regexPlan) compilePlan() func(string) string {
 
 // redact outputs a string, representing a piece of redacted text.
 // If a new string is encountered, keep track of it.
-func redact(s string) string {
+func redact(s string, redactedValuesOverride map[string]string) string {
+	redactedValues := determineRedactedValuesMap(redactedValuesOverride)
 	if r, ok := redactedValues[s]; ok {
 		return r
 	}
@@ -121,4 +123,12 @@ func getSha256Hash(line string) string {
 	hashedVal := sha256.Sum256(data)
 	hexString := hex.EncodeToString(hashedVal[:])
 	return hexString
+}
+
+// determineRedactedValuesMap returns the what map of redacted values to use, according to the override provided
+func determineRedactedValuesMap(redactedValuesOverride map[string]string) map[string]string {
+	if redactedValuesOverride != nil {
+		return redactedValuesOverride
+	}
+	return RedactedValues
 }
