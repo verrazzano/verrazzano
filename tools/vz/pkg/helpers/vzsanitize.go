@@ -130,5 +130,5 @@ func determineRedactedValuesMap(redactedValuesOverride map[string]string) map[st
 	if redactedValuesOverride != nil {
 		return redactedValuesOverride
 	}
-	return RedactedValues
+	return redactedValues
 }
