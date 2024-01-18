@@ -93,15 +93,14 @@ func WriteRedactionMapFile(captureDir string) error {
 
 func (rp regexPlan) compilePlan() func(string) string {
 	return func(s string) string {
-		var i string
 		if rp.preprocess != nil {
-			i = rp.preprocess(s)
+			s = rp.preprocess(s)
 		}
-		i = redact(i)
+		s = redact(s)
 		if rp.postprocess != nil {
-			return rp.postprocess(i)
+			return rp.postprocess(s)
 		}
-		return i
+		return s
 	}
 }
 
