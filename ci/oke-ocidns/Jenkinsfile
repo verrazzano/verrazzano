@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This runs the acceptance tests on an OKE cluster with OCI DNS
@@ -35,7 +35,7 @@ pipeline {
 
     agent {
         docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS} --cap-add=NET_ADMIN"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             label "${agentLabel}"

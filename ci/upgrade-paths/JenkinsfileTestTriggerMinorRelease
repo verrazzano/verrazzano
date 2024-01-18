@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
@@ -12,11 +12,11 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${EXPERIMENTAL_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "${agentLabel}"
+            label "CFGTST_tvlagent5_2.0-large"
         }
     }
     // Use cases:
@@ -352,7 +352,7 @@ List extractReleaseTags(final String fileContent) {
     return releases
 }
 
-def getTipOfReleaseBranches(releaseNumber){ 
+def getTipOfReleaseBranches(releaseNumber){
     completeReleaseVersionCommit = "release-" + releaseNumber
     scmReleaseBranchInfo = checkout([
         $class: 'GitSCM',
