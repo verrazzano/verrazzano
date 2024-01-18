@@ -20,7 +20,7 @@ spec:
         psr.verrazzano.io/worker-type: {{ .Values.global.envVars.PSR_WORKER_TYPE }}
         version: v1
     spec:
-      { { - if .Values.nodeAffinity } }
+      {{- if .Values.nodeAffinity }}
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -29,8 +29,8 @@ spec:
                   - key: psr.verrazzano.io/affinity
                     operator: In
                     values:
-                      - { { .Values.nodeAffinity } }
-      { { - end } }
+                      - {{ .Values.nodeAffinity }}
+      {{- end }}
       containers:
         - name: psr-backend
           image: {{  .Values.imageName }}
