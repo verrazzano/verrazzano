@@ -59,7 +59,7 @@ type worker struct {
 var _ spi.Worker = worker{}
 
 func NewWorker() (spi.Worker, error) {
-	
+
 	if err := config.PsrEnv.LoadFromEnv(getEnvDescList()); err != nil {
 		return nil, err
 	}
