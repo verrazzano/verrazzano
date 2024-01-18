@@ -153,7 +153,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 }
 
 func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
-	for true {
+	for {
 		_, err := io.CopyN(dst, src, chunkSize)
 		if err == io.EOF {
 			break
