@@ -40,7 +40,6 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	if err != nil {
 		Fail(fmt.Sprintf("error while patching verrazzano-related resources: %v", err.Error()))
 	}
-	fmt.Printf("ReportAnalysis: %+v\n", utility.ReportAnalysis)
 })
 
 // patches an image for all the issues listed into 'issuesToBeDiagnosed'
