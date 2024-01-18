@@ -94,7 +94,7 @@ function scan_images_in_bom() {
 
     echo "performing grype scan for $BOM_IMAGE"
     grype ${SCAN_IMAGE} -o json > ${RESULT_FILE_PREFIX}-grype-details.json 2> ${RESULT_FILE_PREFIX}-grype.err || echo "grype scan failed for $SCAN_IMAGE"
-    cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | sed 's/\\\\/ /g' | sed 's/\\[nt]/ /g' | sed 's/\\[rt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv
+    cat ${RESULT_FILE_PREFIX}-grype-details.json | jq -r '.matches[] | { sev: .vulnerability.severity, cve: .vulnerability.id, description: .vulnerability.description } ' | sed 's/\\\\/ /g' | sed 's/\\[nt]/ /g' | sed 's/\\[rt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-grype-details.csv || exit 1
   done <$bomimages
   rm $bomimages
 }
