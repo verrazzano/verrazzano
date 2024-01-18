@@ -171,4 +171,3 @@ func getReportFormat(cmd *cobra.Command) string {
 	return reportFormat.Value.String()
 }
 
-//test2
