@@ -59,6 +59,11 @@ type worker struct {
 var _ spi.Worker = worker{}
 
 func NewWorker() (spi.Worker, error) {
+	
+	if err := config.PsrEnv.LoadFromEnv(getEnvDescList()); err != nil {
+		return nil, err
+	}
+
 	host := fmt.Sprintf("%s/%s.svc.cluster.local",
 		config.PsrEnv.GetEnv(EnvServiceName),
 		config.PsrEnv.GetEnv(EnvServiceNamespace))
@@ -124,6 +129,14 @@ func (w worker) GetWorkerDesc() spi.WorkerDesc {
 }
 
 func (w worker) GetEnvDescList() []osenv.EnvVarDesc {
+	return []osenv.EnvVarDesc{
+		{Key: EnvServiceName, DefaultVal: "istio-ingressgateway", Required: false},
+		{Key: EnvServiceNamespace, DefaultVal: "istio-system", Required: false},
+		{Key: EnvPayload, DefaultVal: "aaa=bbb", Required: false},
+	}
+}
+
+func getEnvDescList() []osenv.EnvVarDesc {
 	return []osenv.EnvVarDesc{
 		{Key: EnvServiceName, DefaultVal: "istio-ingressgateway", Required: false},
 		{Key: EnvServiceNamespace, DefaultVal: "istio-system", Required: false},
