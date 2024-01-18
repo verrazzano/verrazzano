@@ -17,7 +17,15 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 )
 
-var regexToReplacementList = []string{}
+type regexPlan struct {
+	preprocess  func(string) string
+	regex       string
+	postprocess func(string) string
+}
+
+var regexToReplacementList = []regexPlan{}
+var KnownHostNames = make(map[string]bool)
+var knownHostNamesMutex = &sync.Mutex{}
 
 // A map to keep track of all the strings that have been redacted.
 var redactedValues = make(map[string]string)
@@ -44,6 +52,7 @@ func InitRegexToReplacementMap() {
 	regexToReplacementList = append(regexToReplacementList, userData)
 	regexToReplacementList = append(regexToReplacementList, sshAuthKeys)
 	regexToReplacementList = append(regexToReplacementList, ocid)
+	regexToReplacementList = append(regexToReplacementList, opcid)
 }
 
 // SanitizeString sanitizes each line in a given file,
