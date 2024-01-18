@@ -511,3 +511,35 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
 }
+
+//		TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
+//	 	GIVEN a k8s cluster,
+//		WHEN I call functions to get the namespace resource for that namespace
+//		THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateNamespaceFile(t *testing.T) {
+	listOfFinalizers := []corev1.FinalizerName{"test-finalizer-name"}
+	sampleNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-namespace",
+		},
+		Spec: corev1.NamespaceSpec{
+			Finalizers: listOfFinalizers,
+		},
+		Status: corev1.NamespaceStatus{
+			Phase: corev1.NamespaceTerminating,
+		},
+	}
+	client := k8sfake.NewSimpleClientset(&sampleNamespace)
+	captureDir, err := os.MkdirTemp("", "testcapturefornamespaces")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureNamespaces(client, "test-namespace", captureDir, rc)
+	assert.NoError(t, err)
+}

@@ -189,6 +189,7 @@ const (
 	McComponentJSON  = "multicluster-components.json"
 	VzProjectsJSON   = "verrazzano-projects.json"
 	VmcJSON          = "verrazzano-managed-clusters.json"
+	NamespaceJSON    = "namespace.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "

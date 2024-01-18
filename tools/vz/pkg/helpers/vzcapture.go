@@ -126,6 +126,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -221,6 +224,18 @@ func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, 
 		if err = createFile(pods, namespace, constants.PodsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// captureNamespaces captures the namespace resource for a given namespace, as a JSON file
+func captureNamespaces(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	namespaceResource, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the namespace resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if err = createFile(namespaceResource, namespace, constants.NamespaceJSON, captureDir, vzHelper); err != nil {
+		return err
 	}
 	return nil
 }
