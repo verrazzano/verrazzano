@@ -1,7 +1,7 @@
 # Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-imageName: ghcr.io/verrazzano/psr-backend:local-16472dd
+imageName: ghcr.io/verrazzano/psr-backend:local-2729516
 imagePullSecrets:
   - name: verrazzano-container-registry
 imagePullPolicy: IfNotPresent
