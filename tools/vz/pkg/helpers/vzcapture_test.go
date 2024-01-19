@@ -335,6 +335,13 @@ func TestGetVZManagedNamespaces(t *testing.T) {
 
 // TestIsErrorReported tests the functionality to see if an error had been reported when capturing the k8s resources.
 func TestIsErrorReported(t *testing.T) {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp("", "testfile")
+	defer cleanupFile(t, tempFile)
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
 	assert.False(t, IsErrorReported())
 	LogError("dummy error msg")
 	assert.True(t, IsErrorReported())
