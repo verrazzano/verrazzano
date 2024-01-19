@@ -24,8 +24,6 @@ const (
 	defaultPushInterval        = time.Minute
 )
 
-var getenvFunc = os.Getenv
-
 // isBodyFunc - return boolean indicating if the interface is a function
 func isBodyFunc(body interface{}) bool {
 	bodyType := reflect.TypeOf(body)
