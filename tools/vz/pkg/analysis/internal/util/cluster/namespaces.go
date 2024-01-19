@@ -32,6 +32,9 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 		if err != nil {
 			return err
 		}
+		if namespaceObject == nil {
+			continue
+		}
 		if isNamespaceCurrentlyInTerminatingStatus(namespaceObject) {
 			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile)
 
