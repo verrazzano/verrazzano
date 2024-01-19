@@ -12,6 +12,8 @@ import (
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework/metrics"
 )
 
+var getenvFunc = os.Getenv
+
 // TestIsBodyFunc - test function for introspecting an interface value
 func TestIsBodyFunc(t *testing.T) {
 	type args struct {
