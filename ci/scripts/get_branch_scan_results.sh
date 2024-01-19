@@ -208,6 +208,7 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     GIT_COMMIT=$(git rev-list -n 1 ${VERSION})
     echo "Fetching BOM for ${VERSION}"
 
+    ls -ltr ${BOM_DIR}
     export SCAN_BOM_FILE=${BOM_DIR}/${VERSION}-bom.json
     get_bom_from_release ${VERSION} ${SCAN_BOM_FILE}
 
@@ -215,11 +216,12 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
     mkdir -p ${SCAN_RESULTS_DIR}
 
     echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
-    ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
-    ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
-    ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
-    ${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
-    publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
+
+    #${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
+    #${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
+    #${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
+    #${RELEASE_SCRIPT_DIR}/generate_upload_file.sh ${SCAN_RESULTS_DIR}/consolidated.csv "${VERSION}" > ${SCAN_RESULTS_DIR}/consolidated-upload.json
+    #publish_results ${VERSION} ${SCAN_BOM_FILE} ${SCAN_RESULTS_DIR}
   else
     echo "There are no released versions for v${MAJOR_MINOR_VERSION} yet"
   fi
