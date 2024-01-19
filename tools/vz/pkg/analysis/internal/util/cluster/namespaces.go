@@ -71,6 +71,6 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace) 
 func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev1.Namespace, issueReporter *report.IssueReporter, namespaceFile string) {
 	files := []string{namespaceFile}
 	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
-	issueReporter.AddKnownIssueMessagesFiles(report.VZClientHangingIssueDueToLongCertificateApproval, clusterRoot, message, files)
+	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingState, clusterRoot, message, files)
 
 }
