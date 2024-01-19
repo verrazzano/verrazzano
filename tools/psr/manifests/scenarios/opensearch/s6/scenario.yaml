@@ -7,13 +7,13 @@ description: |
   This is a scenario that combines the writelogs, getlogs, and putlogs use cases while scaling all OpenSearch tiers
   Namespace needs to be labeled with istio-injection=enabled
 workers:
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-master.yaml
     description: scales master nodes
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-data.yaml
     description: scales data nodes
-  - workerConfigPath: opensearch/scale.yaml
+  - workerConfigPath: opensearch/echo.yaml
     workerOverrideFile: scale-ingest.yaml
     description: scales ingest nodes
   - workerConfigPath: opensearch/getlogs.yaml

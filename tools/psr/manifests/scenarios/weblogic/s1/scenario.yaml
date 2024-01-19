@@ -6,6 +6,6 @@ ID: wls-s1
 description: |
   This is a scenario that scales the WebLogic domain continously.
 workers:
-  - workerConfigPath: weblogic/scale.yaml
-    workerOverrideFile: scale.yaml
+  - workerConfigPath: weblogic/echo.yaml
+    workerOverrideFile: echo.yaml
     description: scales WebLogic domain
