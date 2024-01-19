@@ -56,7 +56,6 @@ type worker struct {
 	metricDescList []prometheus.Desc
 	*workerMetricDef
 	client  *http.Client
-	port    int
 	host    string
 	path    string
 	payload string
@@ -76,7 +75,6 @@ func NewWorker() (spi.Worker, error) {
 
 	w := worker{
 		host:           host,
-		port:           getPort(),
 		path:           "hello-world",
 		payload:        config.PsrEnv.GetEnv(EnvPayload),
 		metricDescList: nil,
@@ -173,21 +171,21 @@ func (w worker) PreconditionsMet() (bool, error) {
 }
 
 func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) error {
+	port := getPort()
 	atomic.AddInt64(&w.workerMetricDef.metricDef.RequestsCountTotal.Val, 1)
 	startTime := time.Now().UnixMicro()
 
-	_, err := w.putEcho()
+	_, err := w.putEcho(port)
 	if err != nil {
 		atomic.AddInt64(&w.metricDef.RequestsFailedCountTotal.Val, 1)
-		log.Errorf("Port %d, Error %v - sleeping for a few secs", w.port, err)
+		log.Errorf("Port %d, Error %v - sleeping for a few secs", port, err)
 		time.Sleep(5 * time.Second)
 		return err
 	}
-	atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
+	numSucceeded := atomic.AddInt64(&w.metricDef.RequestsSucceededCountTotal.Val, 1)
 	durationMicros := time.Now().UnixMicro() - startTime
 	atomic.StoreInt64(&w.workerMetricDef.metricDef.RequestDurationMicros.Val, durationMicros)
 
-	numSucceeded := atomic.LoadInt64(&w.metricDef.RequestsSucceededCountTotal.Val) % 100
 	if numSucceeded%100 == 0 {
 		log.Progressf("%v PUTs succeeded", numSucceeded)
 	}
@@ -195,8 +193,8 @@ func (w worker) DoWork(conf config.CommonConfig, log vzlog.VerrazzanoLogger) err
 }
 
 // getUserToken gets a user token from a secret
-func (w worker) putEcho() (string, error) {
-	reqURL := fmt.Sprintf("http://%s:%d/%s", w.host, w.port, w.path)
+func (w worker) putEcho(port int) (string, error) {
+	reqURL := fmt.Sprintf("http://%s:%d/%s", w.host, port, w.path)
 	req, err := http.NewRequest(http.MethodPut, reqURL, strings.NewReader(w.payload))
 	if err != nil {
 		return "", err
@@ -204,7 +202,7 @@ func (w worker) putEcho() (string, error) {
 
 	// Temp - get host from VS
 	vsHost := "echo.100.101.68.27.nip.io"
-	hostPort := fmt.Sprintf("%s:%v", vsHost, w.port)
+	hostPort := fmt.Sprintf("%s:%v", vsHost, port)
 	req.Header.Add("Host", hostPort)
 	req.Header.Add("content-type", "application/x-www-form-urlencoded")
 	req.Header.Add("accept", "*/*")
