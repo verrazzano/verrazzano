@@ -123,22 +123,22 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 	if directory == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
 		directory, err = os.MkdirTemp("", constants.BugReportDir)
+		defer os.RemoveAll(directory)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
-		defer os.RemoveAll(directory)
 
 		if tarFileString == "" {
 			if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
 				return err
 			}
-		} else if tarFileString != "" {
+		} else {
 			//This is the case where only the tar string is specified
 			file, err := os.Open(tarFileString)
+			defer file.Close()
 			if err != nil {
 				return fmt.Errorf("an error occurred when trying to open %s: %s", tarFileString, err.Error())
 			}
-			defer file.Close()
 			err = helpers.UntarArchive(directory, file)
 			if err != nil {
 				return fmt.Errorf("an error occurred while trying to untar %s: %s", tarFileString, err.Error())
