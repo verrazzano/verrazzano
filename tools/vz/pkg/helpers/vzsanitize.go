@@ -125,7 +125,7 @@ func getSha256Hash(line string) string {
 	return hexString
 }
 
-// determineRedactedValuesMap returns the what map of redacted values to use, according to the override provided
+// determineRedactedValuesMap returns the map of redacted values to use, according to the override provided
 func determineRedactedValuesMap(redactedValuesOverride map[string]string) map[string]string {
 	if redactedValuesOverride != nil {
 		return redactedValuesOverride
