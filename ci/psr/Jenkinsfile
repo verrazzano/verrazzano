@@ -76,8 +76,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_OS_REGION="us-phoenix-1"
 
         // used to emit metrics

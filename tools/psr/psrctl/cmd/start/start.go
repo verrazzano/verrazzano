@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package start
@@ -47,38 +47,42 @@ func NewCmdStart(vzHelper helpers.VZHelper) *cobra.Command {
 
 // RunCmdStart - Run the "psrctl start" command
 func RunCmdStart(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
-	// GetScenarioManifest gets the ScenarioManifest for the given scenarioID
-	manifestMan, err := manifest.NewManager(scenarioDir)
+	// GetscenarioManifestifest gets the scenarioManifestifest for the given scenarioID
+	manifestManager, err := manifest.NewManager(scenarioDir)
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
+		return fmt.Errorf("Failed to create scenario scenarioManifestanger %v", err)
 	}
-	scenarioMan, err := manifestMan.FindScenarioManifestByID(scenarioID)
+	scenarioManifest, err := manifestManager.FindScenarioManifestByID(scenarioID)
 	if err != nil {
 		return fmt.Errorf("Failed to find scenario manifest %s: %v", scenarioID, err)
 	}
-	if scenarioMan == nil {
+	if scenarioManifest == nil {
 		return fmt.Errorf("Failed to find scenario manifest with ID %s", scenarioID)
 	}
 
-	m, err := scenario.NewManager(namespace, buildHelmOverrides()...)
+	scenarioManager, err := scenario.NewManager(namespace, buildHelmOverrides()...)
 	if err != nil {
-		return fmt.Errorf("Failed to create scenario ScenarioMananger %v", err)
+		return fmt.Errorf("Failed to create scenario scenarioManifestanger %v", err)
 	}
 
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Starting scenario %s\n", scenarioMan.ID)
-	msg, err := m.StartScenario(manifestMan, scenarioMan, vzHelper)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Starting scenario %s\n", scenarioManifest.ID)
+	msg, err := scenarioManager.StartScenario(manifestManager, scenarioManifest, vzHelper)
 	if err != nil {
 		// Cobra will display failure message
 		return fmt.Errorf("Failed to start scenario %s/%s: %v\n%s", namespace, scenarioID, err, msg)
 	}
-	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully started\n", scenarioMan.ID)
+	fmt.Fprintf(vzHelper.GetOutputStream(), "Scenario %s successfully started\n", scenarioManifest.ID)
 
 	return nil
 }
 
 func buildHelmOverrides() []helmcli.HelmOverrides {
-	return []helmcli.HelmOverrides{
-		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)},
-		{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)},
+	var ov []helmcli.HelmOverrides
+	if len(workerImage) > 0 {
+		ov = append(ov, helmcli.HelmOverrides{SetOverrides: fmt.Sprintf("%s=%s", constants.ImageNameKey, workerImage)})
 	}
+	if len(imagePullSecret) > 0 {
+		ov = append(ov, helmcli.HelmOverrides{SetOverrides: fmt.Sprintf("%s=%s", constants.ImagePullSecKey, imagePullSecret)})
+	}
+	return ov
 }

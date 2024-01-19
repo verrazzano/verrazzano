@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package explain
@@ -26,7 +26,7 @@ var (
 	expectedID          = "ops-s1"
 	expectedName        = "opensearch-s1"
 	expectedDescription = "This is a scenario that writes logs to STDOUT and gets logs from OpenSearch at a moderated rate."
-	expectedUseCase     = "Usecase path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
+	expectedUseCase     = "WorkerConfig path opensearch/writelogs.yaml:  Description: write logs to STDOUT 10 times a second"
 )
 
 // TestExplainScenario tests the NewCmdExplain and RunCmdExplain functions
@@ -35,10 +35,10 @@ var (
 //	THEN ensure the output is correct for that scenario
 func TestExplainScenario(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -75,10 +75,10 @@ func TestExplainScenario(t *testing.T) {
 //	THEN ensure the output includes the verbose usecases
 func TestExplainScenarioVerbose(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -116,10 +116,10 @@ func TestExplainScenarioVerbose(t *testing.T) {
 //	THEN ensure the output correctly lists all scenarios
 func TestExplainNoScenario(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()

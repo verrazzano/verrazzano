@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -121,9 +121,6 @@ pipeline {
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         TEST_ENV = "KIND"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -136,8 +133,6 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_BUCKET="verrazzano-builds"
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
                 CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
             }
@@ -233,7 +228,6 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 OPERATOR_YAML="${OPERATOR_YAML_FILE}"
                 CLUSTER_SNAPSHOT_DIR="${WORKSPACE}/verrazzano/build/resources/pre-install-resources"
@@ -295,7 +289,6 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 sh """
@@ -350,7 +343,6 @@ pipeline {
         stage("Upgrade Verrazzano and execute selected test") {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_CLI_AUTH="instance_principal"
            }
             steps {

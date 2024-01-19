@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This runs the acceptance tests on an OKE cluster with OCI DNS
@@ -16,11 +16,11 @@ def testEnvironments = env.JOB_NAME.contains('oci-dns-acceptance')
                        : ["kind", "magicdns_oke", "ocidns_oke"]
 def acmeEnvironments = [ "staging", "production" ]
 def certIssuers = [ "self-signed", "acme" ]
-def agentLabel = env.JOB_NAME.contains('-dns-') ? "" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
+def agentLabel = env.JOB_NAME.contains('-dns-') ? "pipeline-job-single-large" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 def runExamples = env.JOB_NAME.contains('-examples')
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def keepOKEClusterOnFailure = "false"
 def OKE_CLUSTER_PREFIX = ""
@@ -171,7 +171,6 @@ pipeline {
         JENKINS_READ = credentials('jenkins-auditor')
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         //OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
@@ -180,9 +179,6 @@ pipeline {
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"

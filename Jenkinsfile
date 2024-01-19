@@ -1,4 +1,4 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -24,7 +24,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${GOLANG20_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -112,8 +112,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_OS_REGION="us-phoenix-1" // where to download existing artifacts from
         OCI_OS_DIST_REGION="eu-frankfurt-1" // where to upload distributions to
 
@@ -403,12 +401,6 @@ pipeline {
                         expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
-            }
-
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
             steps {

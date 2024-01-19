@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -35,7 +35,7 @@ def backendTestsUpToDateFailed        = false // If true, indicates that the bac
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
+def ociOsBucket = "$OCI_OS_BUCKET"
 def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
 def lastStableCommitFile = "last-stable-commit.txt"
 
@@ -117,8 +117,6 @@ pipeline {
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
@@ -201,11 +199,6 @@ pipeline {
                 }
 
                 stage('vz analyze tool') {
-                    environment {
-                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-                    }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {

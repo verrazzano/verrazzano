@@ -1,10 +1,11 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package workmanager
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo/put"
 	"sync"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/writelogs"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/prometheus/alerts"
 	wlsscale "github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/scale"
+	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/weblogic/todo/delete"
 )
 
 var startMetricsFunc = metrics2.StartMetricsServerOrDie
@@ -114,6 +116,10 @@ func getWorker(wt string) (spi.Worker, error) {
 		return wlsscale.NewScaleWorker()
 	case config.WorkerTypeReceiveAlerts:
 		return alerts.NewAlertsWorker()
+	case config.WorkerTypeWlsTodoDelete:
+		return delete.NewWorker()
+	case config.WorkerTypeWlsTodoPut:
+		return put.NewWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}

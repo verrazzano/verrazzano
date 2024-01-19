@@ -1,0 +1,9 @@
+# Copyright (c) 2023, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}-webhook-wait
+  namespace: {{ .Values.namespace }}
+data:
+  wait4webhook.sh: |- {{ $.Files.Get "wait4webhook.sh" | nindent 4 }}

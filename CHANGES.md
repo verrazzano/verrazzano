@@ -1,3 +1,19 @@
+### v1.7.1
+
+Component version updates:
+
+- WebLogic Kubernetes Operator v4.1.4
+- WebLogic Monitoring Exporter v2.1.8
+- Istio 1.19.3
+
+Features:
+
+- Added an `export oam` option to the VZ CLI to export the Kubernetes objects created for a deployed OAM application.
+
+Fixes:
+
+- Fixed an issue with ArgoCD SSO with Keycloak using Let's Encrypt staging certificates
+
 ### v1.7.0
 Component version updates:
 

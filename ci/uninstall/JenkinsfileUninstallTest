@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -143,9 +143,6 @@ pipeline {
         TEST_ENV_LABEL = "kind"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         TEST_ENV = "KIND"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -158,7 +155,6 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
@@ -251,7 +247,6 @@ pipeline {
                 KIND_KUBERNETES_CLUSTER_VERSION="${params.KUBERNETES_CLUSTER_VERSION}"
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 OCI_OS_LOCATION="ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}"
                 CAPTURE_FULL_CLUSTER="${params.CAPTURE_FULL_CLUSTER}"
 		    }
@@ -649,6 +644,8 @@ def dumpPodsAndLogs(stage) {
     dumpNginxIngressControllerLogs(dumpPath)
     dumpVerrazzanoPlatformOperatorLogs(dumpPath)
     dumpVerrazzanoApplicationOperatorLogs(dumpPath)
+    dumpVerrazzanoClusterOperatorLogs(dumpPath)
+    dumpVerrazzanoClusterAgentLogs(dumpPath)
     dumpOamKubernetesRuntimeLogs(dumpPath)
     dumpVerrazzanoApiLogs(dumpPath)
 }
@@ -705,6 +702,30 @@ def dumpVerrazzanoApplicationOperatorLogs(dumpPath) {
         kubectl -n verrazzano-system describe pod --selector=app=verrazzano-application-operator > ${dumpPath}/verrazzano-application-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
         echo "verrazzano-application-operator logs dumped to verrazzano-application-operator-pod.log"
         echo "verrazzano-application-operator pod description dumped to verrazzano-application-operator-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoClusterAgentLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
+    sh """
+        ## dump out verrazzano-cluster-agent logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-cluster-agent --tail -1 > ${dumpPath}/verrazzano-cluster-agent-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-cluster-agent > ${dumpPath}/verrazzano-cluster-agent-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-cluster-agent logs dumped to verrazzano-cluster-agent-pod.log"
+        echo "verrazzano-cluster-agent pod description dumped to verrazzano-cluster-agent-pod.out"
+        echo "------------------------------------------"
+    """
+}
+
+def dumpVerrazzanoClusterOperatorLogs(dumpPath) {
+    createPathIfNecessary(dumpPath)
+    sh """
+        ## dump out verrazzano-cluster-operator logs
+        kubectl -n verrazzano-system logs --selector=app=verrazzano-cluster-operator --tail -1 > ${dumpPath}/verrazzano-cluster-operator-pod.log || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        kubectl -n verrazzano-system describe pod --selector=app=verrazzano-cluster-operator > ${dumpPath}/verrazzano-cluster-operator-pod.out || echo "failed" > ${POST_DUMP_FAILED_FILE}
+        echo "verrazzano-cluster-operator logs dumped to verrazzano-cluster-operator-pod.log"
+        echo "verrazzano-cluster-operator pod description dumped to verrazzano-cluster-operator-pod.out"
         echo "------------------------------------------"
     """
 }

@@ -1,10 +1,10 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 def okeCNITypes = ['FLANNEL_OVERLAY', 'OCI_VCN_IP_NATIVE']
 Collections.shuffle(availableRegions)
 Collections.shuffle(okeCNITypes)
@@ -111,7 +111,6 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics from Ginkgo suites
@@ -119,9 +118,6 @@ pipeline {
         TEST_ENV_LABEL = "kind"
         TEST_ENV = "KIND"
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"

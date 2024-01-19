@@ -9,12 +9,11 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	"github.com/verrazzano/verrazzano/pkg/bom"
-	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"reflect"
 	"strings"
 	"time"
 
+	"github.com/verrazzano/verrazzano/pkg/bom"
 	vzconst "github.com/verrazzano/verrazzano/pkg/constants"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	"github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -26,6 +25,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/keycloak"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/spi"
+	"github.com/verrazzano/verrazzano/platform-operator/internal/config"
 	"github.com/verrazzano/verrazzano/platform-operator/internal/vzconfig"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -185,7 +185,6 @@ const (
 	ClusterAdminRoleName        = "cluster-admin"
 	AdminRoleName               = "admin"
 	VerrazzanoAdminRoleName     = "verrazzano-admin"
-	ViewRoleName                = "view"
 	VerrazzanoMonitorRoleName   = "verrazzano-monitor"
 	ClusterMemberRoleName       = "cluster-member"
 	VerrazzanoAdminsGroupName   = "verrazzano-admins"
@@ -207,6 +206,7 @@ const (
 	rancherRke2ChartsClusterRepoName    = "rancher-rke2-charts"
 
 	chartDefaultBranchName = "chart-default-branch"
+	rke2                   = "rke2"
 )
 
 var GVKCluster = common.GetRancherMgmtAPIGVKForKind("Cluster")
@@ -230,10 +230,6 @@ var GroupRolePairs = []map[string]string{
 	},
 	{
 		GroupKey:       VerrazzanoMonitorsGroupName,
-		ClusterRoleKey: ViewRoleName,
-	},
-	{
-		GroupKey:       VerrazzanoMonitorsGroupName,
 		ClusterRoleKey: VerrazzanoMonitorRoleName,
 	},
 	{
@@ -246,6 +242,12 @@ var cattleSettingsGVR = schema.GroupVersionResource{
 	Group:    "management.cattle.io",
 	Version:  "v3",
 	Resource: "settings",
+}
+
+var cattleFeaturesGVR = schema.GroupVersionResource{
+	Group:    "management.cattle.io",
+	Version:  "v3",
+	Resource: "features",
 }
 
 var cattleClusterReposGVR = schema.GroupVersionResource{
@@ -412,6 +414,23 @@ func deleteClusterRepos(log vzlog.VerrazzanoLogger) error {
 			return err
 		}
 		log.Infof("Rancher deleteClusterRepos: Deleted clusterrepos.catalog.cattle.io %s", name)
+	}
+
+	return nil
+}
+
+// deleteRKE2Feature deletes the RKE2 feature if it exists since it may cause startup issues for the Rancher pods
+func deleteRKE2Feature(log vzlog.VerrazzanoLogger) error {
+	dynamicClient, err := dynamicClientFunc()
+	if err != nil {
+		log.Errorf("Rancher deleteRKE2Feature: Failed creating dynamic client: %v", err)
+		return err
+	}
+
+	err = dynamicClient.Resource(cattleFeaturesGVR).Delete(context.TODO(), rke2, metav1.DeleteOptions{})
+	if err != nil && !errors.IsNotFound(err) {
+		log.Errorf("Rancher deleteRKE2Feature: Failed deleting features.management.cattle.io %s: %v", rke2, err)
+		return err
 	}
 
 	return nil

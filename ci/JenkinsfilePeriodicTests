@@ -49,7 +49,7 @@ def periodicsUpToDateFailed        = false // If true, indicates that the period
 def verrazzanoDistributionsFile = "verrazzano_distributions.html"
 
 def ociOsRegion = "us-phoenix-1"
-def ociOsBucket = "verrazzano-builds"
+def ociOsBucket = "$OCI_OS_BUCKET"
 def urlTriggerBranchName = env.BRANCH_NAME.replace('/', '%2F')
 def lastStableCommitFile = "last-stable-commit.txt"
 
@@ -122,8 +122,6 @@ pipeline {
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
@@ -297,19 +295,6 @@ pipeline {
                                                 string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS),
                                                 booleanParam(name: 'ENABLE_JWT_TESTING', value: true),
                                                 booleanParam(name: 'RUN_CLUSTERAPI_OVERRIDE_TESTS', value: true)
-                                        ], wait: true
-                            }
-                        }
-                    }
-                }
-                stage('Verrazzano a-la-carte') {
-                    steps {
-                        retry(count: JOB_PROMOTION_RETRIES) {
-                            script {
-                                build job: "/verrazzano-a-la-carte/${CLEAN_BRANCH_NAME}",
-                                        parameters: [
-                                                string(name: 'KUBERNETES_CLUSTER_VERSION', value: '1.27'),
-                                                string(name: 'GIT_COMMIT_TO_USE', value: env.GIT_COMMIT),
                                         ], wait: true
                             }
                         }

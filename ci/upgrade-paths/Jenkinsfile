@@ -1,10 +1,10 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
 EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 def acmeEnvironments = [ "staging", "production" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
@@ -200,17 +200,12 @@ pipeline {
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         OCI_OS_LOCATION="${OCI_OS_LOCATION}"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "${params.TEST_ENV}"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // sample app deployed before upgrade and UI console tests
         SAMPLE_APP_NAME="hello-helidon"
@@ -996,7 +991,7 @@ def getPlatformOperatorForRelease(){
 
         if(params.VERSION_FOR_UPGRADE == "master"){
             operatorCMD = "oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/operator.yaml --file"
-        
+
         //Command to retrieve the platform operator yaml of the release branch for patch release upgrade testing.
         }else if(params.VERSION_FOR_UPGRADE != "current_branch" && params.IS_TRIGGERED_MANUALLY != "YES" && params.VERSION_FOR_UPGRADE != "NONE"){
 
@@ -1805,6 +1800,7 @@ def dumpInstallLogsOnCluster(count, logDir, namespace) {
                 mkdir -p $logDir
                 kubectl -n $namespace logs --selector=job-name=verrazzano-install-my-verrazzano > $logDir/${VERRAZZANO_INSTALL_LOG} --tail -1
                 kubectl -n $namespace describe pod --selector=job-name=verrazzano-install-my-verrazzano > $logDir/verrazzano-install-job-pod.out
+                kubectl get features > $logDir/verrazzano-install-features.out || true
                 echo "------------------------------------------"
             """
         }
@@ -1972,7 +1968,7 @@ def downloadCLI() {
     script {
         sh "echo Downloading VZ CLI from object storage"
         if(VERSION_FOR_UPGRADE_ENV == "master"){
-            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"           
+            sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_BUCKET} --name master/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
         }else{
             sh "oci --region us-phoenix-1 os object  get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}"
         }
@@ -2033,7 +2029,7 @@ def performSourceCodeCheckout() {
             def scmInfo = checkout scm
             env.GIT_COMMIT = scmInfo.GIT_COMMIT
             env.GIT_BRANCH = scmInfo.GIT_BRANCH
-        // The master branch is checked out specifically when the upgrade target branch is master. 
+        // The master branch is checked out specifically when the upgrade target branch is master.
         // This is done to ensure the master branch upgrade test suites are run after the upgrade is completed.
         // Since the target upgrade branch is the master, then the tests run after upgrade must also be from the master branch.
         // This is here to ensure that happens.
@@ -2091,6 +2087,7 @@ def performDescribeVerrazzanoResource() {
                 echo "Performing describe on Verrazzano resource on cluster ${count}"
                 export KUBECONFIG="${KUBECONFIG_DIR}/${count}/kube_config"
                 kubectl get vz -o yaml
+                kubectl get features || true
             """
         }
     }

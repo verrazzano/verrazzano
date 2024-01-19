@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package manifest
@@ -14,10 +14,10 @@ import (
 // PsrManifests contains information related to the manifests, along with the temp
 // directory path.
 type PsrManifests struct {
-	RootTmpDir        string
-	WorkerChartAbsDir string
-	UseCasesAbsDir    string
-	ScenarioAbsDir    string
+	RootTmpDir         string
+	WorkerChartAbsDir  string
+	WorkerConfigAbsDir string
+	ScenarioAbsDir     string
 }
 
 var Manifests *PsrManifests
@@ -71,10 +71,10 @@ func newPsrManifests(tmpRootDir string) (PsrManifests, error) {
 	copyManifestsDir(tmpRootDir)
 
 	man := PsrManifests{
-		RootTmpDir:        tmpRootDir,
-		WorkerChartAbsDir: filepath.Join(tmpRootDir, "charts/worker"),
-		UseCasesAbsDir:    filepath.Join(tmpRootDir, "usecases"),
-		ScenarioAbsDir:    filepath.Join(tmpRootDir, "scenarios"),
+		RootTmpDir:         tmpRootDir,
+		WorkerChartAbsDir:  filepath.Join(tmpRootDir, "charts/worker"),
+		WorkerConfigAbsDir: filepath.Join(tmpRootDir, "worker-config"),
+		ScenarioAbsDir:     filepath.Join(tmpRootDir, "scenarios"),
 	}
 	return man, nil
 }

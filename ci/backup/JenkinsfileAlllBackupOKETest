@@ -1,11 +1,11 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 def agentLabel = env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 def OKE_CLUSTER_PREFIX = ""
 def ociOsBucketName = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def backup_id = 'dummy'
@@ -128,9 +128,6 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "magicdns_oke"
         TEST_ENV = "OKE"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -158,7 +155,6 @@ pipeline {
         BACKUP_OPENSEARCH_STORAGE = "storage-opensearch-${OCI_OS_BUCKET_ID}"
         BACKUP_MYSQL_STORAGE = "storage-mysql-${OCI_OS_BUCKET_ID}"
         BACKUP_REGION  = "us-phoenix-1"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
 
         // Environment variable for Verrazzano CLI executable

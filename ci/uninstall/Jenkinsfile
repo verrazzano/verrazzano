@@ -1,11 +1,11 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def EFFECTIVE_DUMP_K8S_CLUSTER_ON_SUCCESS = false
 
 // pulling "ap-*" from the test regions given discovery of image pull issues
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 def OKE_CLUSTER_PREFIX = ""
 Collections.shuffle(availableRegions)
 
@@ -20,6 +20,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
+            label 'pipeline-job-single-large'
         }
     }
 
@@ -123,9 +124,6 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         TEST_ENV_LABEL = "magicdns_oke"
         TEST_ENV = "OKE"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"
@@ -138,7 +136,6 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             steps {
@@ -236,7 +233,6 @@ pipeline {
         stage('Install Verrazzano') {
             environment {
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
             }
             steps {
                 script {

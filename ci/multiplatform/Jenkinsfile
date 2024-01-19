@@ -1,9 +1,9 @@
-// Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
 def SKIP_ACCEPTANCE_TESTS = false
-def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-frankfurt-1", "eu-zurich-1", "uk-london-1" ]
+def availableRegions = [  "us-ashburn-1", "ca-montreal-1", "ca-toronto-1", "eu-amsterdam-1", "eu-zurich-1", "uk-london-1" ]
 Collections.shuffle(availableRegions)
 def zoneId = UUID.randomUUID().toString().substring(0,6).replace('-','')
 def dns_zone_ocid = 'dummy'
@@ -110,9 +110,6 @@ pipeline {
 
         // used to emit metrics
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
     }
 
     stages {
@@ -120,7 +117,6 @@ pipeline {
             environment {
                 OCI_CLI_AUTH="instance_principal"
                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                 VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
             }
             steps {
@@ -214,7 +210,6 @@ pipeline {
                             environment {
                                 OCI_CLI_AUTH="instance_principal"
                                 OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-                                OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
                             }
                             parallel {
                                 stage ('Install platform operator') {

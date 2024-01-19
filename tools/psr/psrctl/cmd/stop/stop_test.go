@@ -35,10 +35,10 @@ var ID = "ops-s1"
 //	THEN ensure the scenario is uninstalled
 func TestStopCmd(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer manifest.ResetManifests()
@@ -61,16 +61,16 @@ HelmReleases:
 - Description: write logs to STDOUT 10 times a second
   Name: psr-ops-s1-writelogs-0
   Namespace: psr
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 ID: ops-s1
 Name: opensearch-s1
 Namespace: default
-ScenarioUsecaseOverridesAbsDir: temp-dir
-Usecases:
+ScenarioWorkerConfigOverridesAbsDir: temp-dir
+WorkerConfigs:
 - Description: write logs to STDOUT 10 times a second
-  OverrideFile: writelogs.yaml
-  UsecasePath: opensearch/writelogs.yaml
+  WorkerOverrideFile: writelogs.yaml
+  WorkerConfigPath: opensearch/writelogs.yaml
 `)),
 		},
 	}
@@ -113,10 +113,10 @@ Usecases:
 //	THEN ensure the output correctly tells the user their operation is invalid
 func TestStopEmpty(t *testing.T) {
 	manifest.Manifests = &manifest.PsrManifests{
-		RootTmpDir:        psrRoot,
-		WorkerChartAbsDir: psrRoot + "/manifests/charts/worker",
-		UseCasesAbsDir:    psrRoot + "/manifests/usecases",
-		ScenarioAbsDir:    psrRoot + "/manifests/scenarios",
+		RootTmpDir:         psrRoot,
+		WorkerChartAbsDir:  psrRoot + "/manifests/charts/worker",
+		WorkerConfigAbsDir: psrRoot + "/manifests/worker-config",
+		ScenarioAbsDir:     psrRoot + "/manifests/scenarios",
 	}
 
 	defer func() { k8sutil.GetCoreV1Func = k8sutil.GetCoreV1Client }()

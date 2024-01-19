@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 def DOCKER_IMAGE_TAG
@@ -100,8 +100,6 @@ pipeline {
         SHORT_COMMIT_HASH = params.GIT_COMMIT_TO_USE.substring(0, 8)
 
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
 
         // Variables to set the OCI CLI user context to the CI user
         OCI_CLI_TENANCY = credentials('oci-tenancy')
@@ -129,9 +127,6 @@ pipeline {
         PROMETHEUS_CREDENTIALS = credentials('prometheus-credentials')
         K8S_VERSION_LABEL = "${params.KUBERNETES_CLUSTER_VERSION}"
         TEST_ENV = "KIND"
-        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
 
         // used to generate Ginkgo test reports
         TEST_REPORT = "test-report.xml"

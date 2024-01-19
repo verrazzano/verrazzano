@@ -43,6 +43,7 @@ var modulesNotInBom = []string{
 	"verrazzano-grafana-dashboards",
 	"verrazzano-network-policies",
 	"cluster-issuer",
+	"fluentbit-opensearch-output",
 }
 
 var subcomponentOverrides = map[string][]bomSubcomponentOverrides{

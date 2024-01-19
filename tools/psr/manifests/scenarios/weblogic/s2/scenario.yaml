@@ -4,11 +4,8 @@
 name: weblogic-s2
 ID: wls-s2
 description: |
-  This is a scenario that scales the WebLogic domain and accesses the application parallelly.
-usecases:
-  - usecasePath: weblogic/scale.yaml
-    overrideFile: scale.yaml
-    description: scales WebLogic domain
-  - usecasePath: http/get.yaml
-    overrideFile: get.yaml
+  This is a scenario that sends get requests to the todo-list application (which must be running)
+workers:
+  - workerConfigPath: http/get.yaml
+    workerOverrideFile: get.yaml
     description: access the application deployed to the cluster

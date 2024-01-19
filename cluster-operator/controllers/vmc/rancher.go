@@ -4,10 +4,16 @@
 package vmc
 
 import (
+	"context"
 	"crypto/md5" //nolint:gosec //#gosec G501 // package used for caching only, not security
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	internalcapi "github.com/verrazzano/verrazzano/cluster-operator/internal/capi"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/Jeffail/gabs/v2"
 	cons "github.com/verrazzano/verrazzano/pkg/constants"
@@ -42,7 +48,8 @@ const (
 
 	k8sClustersPath = "/k8s/clusters/"
 
-	rancherClusterStateActive = "active"
+	rancherClusterStateActive   = "active"
+	rancherClusterStateInactive = "inactive"
 )
 
 type RancherCluster struct {
@@ -344,11 +351,40 @@ func GetCACertFromManagedClusterSecret(rc *rancherutil.RancherConfig, clusterID,
 }
 
 // isNamespaceCreated attempts to ascertain whether the given namesapce is created in the cluster
-func isNamespaceCreated(client client.Client, ingressHost, clusterID, namespace string, log vzlog.VerrazzanoLogger) (bool, error) {
+func isNamespaceCreated(vmc *v1alpha1.VerrazzanoManagedCluster, r *VerrazzanoManagedClusterReconciler, clusterID, namespace string) (bool, error) {
+	if vmc.Status.ClusterRef != nil {
+		cluster := &unstructured.Unstructured{}
+		cluster.SetGroupVersionKind(internalcapi.GVKCAPICluster)
+		err := r.Get(context.TODO(), types.NamespacedName{Namespace: vmc.Status.ClusterRef.Namespace, Name: vmc.Status.ClusterRef.Name}, cluster)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return false, err
+		}
+		workloadClient, err := r.getWorkloadClusterClient(cluster)
+		if err != nil {
+			r.log.Errorf("Error getting workload cluster %s client: %v", cluster.GetName(), err)
+			return false, err
+		}
+		err = workloadClient.Get(context.TODO(),
+			types.NamespacedName{Name: constants.VerrazzanoSystemNamespace},
+			&corev1.Namespace{})
+		if err != nil {
+			if !apierrors.IsNotFound(err) {
+				return false, err
+			}
+			return false, nil
+		}
+		return true, nil
+	}
+
 	const k8sAPISecretPattern = "%s/api/v1/namespaces/%s" //nolint:gosec //#gosec G101
 
-	rc, err := rancherutil.NewAdminRancherConfig(client, ingressHost, log)
+	rc, err := rancherutil.NewAdminRancherConfig(r.Client, r.RancherIngressHost, r.log)
 	if err != nil || rc == nil {
+		return false, err
+	}
+
+	isActive, err := isManagedClusterActiveInRancher(rc, clusterID, r.log)
+	if err != nil || !isActive {
 		return false, err
 	}
 
@@ -357,7 +393,7 @@ func isNamespaceCreated(client client.Client, ingressHost, clusterID, namespace 
 	headers := map[string]string{"Authorization": "Bearer " + rc.APIAccessToken}
 
 	reqURL := fmt.Sprintf(k8sAPISecretPattern, baseReqURL, namespace)
-	response, _, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, log)
+	response, _, err := rancherutil.SendRequest(http.MethodGet, reqURL, headers, "", rc, r.log)
 
 	if response != nil {
 		if response.StatusCode == http.StatusNotFound {

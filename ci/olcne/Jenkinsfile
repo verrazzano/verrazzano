@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This pipeline is configured to test Verrazzano using OCNE environment
@@ -11,7 +11,7 @@
 // -> Cleanup resources
 
 def testEnvironments=["OCNE"]
-def agentLabel=env.JOB_NAME.contains('-ocne') ? "" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
+def agentLabel=env.JOB_NAME.contains('-ocne') ? "pipeline-job-single-large" : env.JOB_NAME.contains('master') ? "2.0-large-phx" : "2.0-large"
 // pulling "ap-*" from the test regions given discovery of image pull issues
 def availableRegions=["us-ashburn-1"]
 def availableDomains=["hXgQ:US-ASHBURN-AD-1", "hXgQ:US-ASHBURN-AD-2", "hXgQ:US-ASHBURN-AD-3"]
@@ -195,7 +195,6 @@ pipeline {
         JENKINS_READ=credentials('jenkins-auditor')
         OCI_OS_NAMESPACE=credentials('oci-os-namespace')
         OCI_OS_ARTIFACT_BUCKET="build-failure-artifacts"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         // OCI_COMPARTMENT_ID=credentials('oci-tiburon-dev-compartment-ocid')
         // OCI_TELEMETRY_URL=credentials('oci-telemetry-url')
         VZ_CLI_TARGZ="vz-linux-amd64.tar.gz"
@@ -203,9 +202,6 @@ pipeline {
         // used to emit metrics
         PROMETHEUS_CREDENTIALS=credentials('prometheus-credentials')
         TEST_ENV_LABEL="${params.TEST_ENV}"
-        SEARCH_HTTP_ENDPOINT=credentials('search-gw-url')
-        SEARCH_PASSWORD="$PROMETHEUS_CREDENTIALS_PSW"
-        SEARCH_USERNAME="$PROMETHEUS_CREDENTIALS_USR"
 
         // used to generate Ginkgo test reports
         TEST_REPORT="test-report.xml"

@@ -1,0 +1,15 @@
+# Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+
+global:
+  envVars:
+    PSR_WORKER_TYPE: wls-todo-delete
+    # SERVICE_NAME, SERVICE_NAMESPACE, SERVICE_PORT are required to form HTTP endpoint URL to access. HTTPS is not supported.
+    SERVICE_NAME: tododomain-adminserver
+    SERVICE_NAMESPACE: todo-list
+    SERVICE_PORT: 7001
+
+# activate subchart
+http:
+  enabled:

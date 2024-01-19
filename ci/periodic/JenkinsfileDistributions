@@ -67,8 +67,6 @@ pipeline {
 
         OCI_CLI_AUTH="instance_principal"
         OCI_OS_NAMESPACE = credentials('oci-os-namespace')
-        OCI_OS_BUCKET="verrazzano-builds"
-        OCI_OS_COMMIT_BUCKET="verrazzano-builds-by-commit"
         CLEAN_BRANCH_NAME = "${env.BRANCH_NAME.replace("/", "%2F")}"
         SERVICE_KEY = credentials('PAGERDUTY_SERVICE_KEY')
 
@@ -156,27 +154,28 @@ pipeline {
             }
             steps {
                 script {
-                    def commitList = getCommitList()
-                    withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
-                        def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
-                        SUSPECT_LIST = getSuspectList(commitList, userMappings)
-                        echo "Suspect list: ${SUSPECT_LIST}"
-                    }
-                }
-              script {
                     sh """
                         ci/scripts/check_image_sizes.sh
                     """
-                    BASELINE_COMMIT_SHORT_HASH = sh(returnStdout: true, script: "cat ${WORKSPACE}/commitID.txt")
-                     if ( fileExists("${WORKSPACE}/result.txt") ){
-                        COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${BASELINE_COMMIT_SHORT_HASH}...${env.GIT_COMMIT}"
-                        slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
-                     }
-               }
+                    if (NOTIFY_IMAGE_SIZE_INCREASE_FAILURES.equals("true") && (env.BRANCH_NAME.equals("master") || env.BRANCH_NAME.startsWith("release-"))) {
+                        BASELINE_COMMIT_SHORT_HASH = sh(returnStdout: true, script: "cat ${WORKSPACE}/commitID.txt")
+                        if ( fileExists("${WORKSPACE}/image-increases.txt") ){
+                            def commitList = getCommitList()
+                            withCredentials([file(credentialsId: 'jenkins-to-slack-users', variable: 'JENKINS_TO_SLACK_JSON')]) {
+                                def userMappings = readJSON file: JENKINS_TO_SLACK_JSON
+                                SUSPECT_LIST = getSuspectList(commitList, userMappings)
+                                echo "Suspect list: ${SUSPECT_LIST}"
+                            }
+                            COMPARISON_URL_ON_FAILURE = "https://github.com/verrazzano/verrazzano/compare/${BASELINE_COMMIT_SHORT_HASH}...${env.GIT_COMMIT}"
+                            slackSend ( channel: "$SLACK_PERF_ALERT_CHANNEL", message: "Image Size Has Increased - \"${env.JOB_NAME}\" build: ${env.BUILD_NUMBER}\n\nView the log at:\n ${env.BUILD_URL}\n\nBlue Ocean:\n${env.RUN_DISPLAY_URL}\n\nSuspects:\n${SUSPECT_LIST}\n\nChange comparison: ${COMPARISON_URL_ON_FAILURE}" )
+                        }
+                    }
+                }
             }
             post {
                 always {
                     archiveArtifacts artifacts: 'image-sizes-objectstore.txt', allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'image-increases.txt', allowEmptyArchive: true
                 }
             }
         }

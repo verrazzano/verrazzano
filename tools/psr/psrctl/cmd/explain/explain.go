@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package explain
@@ -67,8 +67,8 @@ func RunCmdExplain(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 		// If verbose
 		if verbose {
 			fmt.Fprintln(vzHelper.GetOutputStream(), "Use cases:")
-			for _, uc := range sc.Usecases {
-				fmt.Fprintf(vzHelper.GetOutputStream(), "Usecase path %s:  Description: %s\n", uc.UsecasePath, uc.Description)
+			for _, uc := range sc.WorkerConfigs {
+				fmt.Fprintf(vzHelper.GetOutputStream(), "WorkerConfig path %s:  Description: %s\n", uc.WorkerConfigPath, uc.Description)
 			}
 		}
 		if len(scenarioID) > 0 && sc.ID == scenarioID {
