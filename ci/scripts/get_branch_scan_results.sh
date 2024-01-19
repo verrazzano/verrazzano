@@ -207,17 +207,12 @@ if [[ "${CLEAN_BRANCH_NAME}" == release-* ]]; then
 
     GIT_COMMIT=$(git rev-list -n 1 ${VERSION})
     echo "Fetching BOM for ${VERSION}"
-
     export SCAN_BOM_FILE=${BOM_DIR}/${VERSION}-bom.json
     get_bom_from_release ${VERSION} ${SCAN_BOM_FILE}
-
-    ls -ltr ${BOM_DIR}
-
     export SCAN_RESULTS_DIR=${SCAN_RESULTS_BASE_DIR}/${VERSION}
     mkdir -p ${SCAN_RESULTS_DIR}
 
     echo "Fetching scan results for BOM: ${SCAN_BOM_FILE}"
-
     ${RELEASE_SCRIPT_DIR}/scan_bom_images.sh  -b ${SCAN_BOM_FILE} -o ${SCAN_RESULTS_DIR} -r ${OCIR_SCAN_REGISTRY} -x ${OCIR_REPOSITORY_BASE}
     ${RELEASE_SCRIPT_DIR}/get_ocir_scan_results.sh ${SCAN_BOM_FILE}
     ${RELEASE_SCRIPT_DIR}/generate_vulnerability_report.sh ${SCAN_RESULTS_DIR} ${GIT_COMMIT} ${CLEAN_BRANCH_NAME} ${VERSION} ${SCAN_DATETIME} ${BUILD_NUMBER}
