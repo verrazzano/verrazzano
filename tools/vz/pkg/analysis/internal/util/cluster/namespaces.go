@@ -56,12 +56,12 @@ func getNamespaceResource(log *zap.SugaredLogger, path string) (namespaceObject 
 	defer file.Close()
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Error("Failed reading Certificates.json file %s", path)
+		log.Error("Failed reading namespace.json file %s", path)
 		return nil, err
 	}
 	err = encjson.Unmarshal(fileBytes, &namespaceResource)
 	if err != nil {
-		log.Error("Failed to unmarshal CertificateList at %s", path)
+		log.Error("Failed to unmarshal namespace resource at %s", path)
 		return nil, err
 	}
 	return namespaceResource, err
