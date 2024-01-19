@@ -39,7 +39,7 @@ spec:
         - /bin/sh
         - '-c'
         - set -ex;
-          echo-client CONTAINER_ROOT_DIR=$(docker info -f '{{`{{.DockerRootDir}}`}}' 2> /dev/null) > /fluent-operator/fluent-bit.env
+          echo CONTAINER_ROOT_DIR=$(docker info -f '{{`{{.DockerRootDir}}`}}' 2> /dev/null) > /fluent-operator/fluent-bit.env
         volumeMounts:
         - name: env
           mountPath: /fluent-operator
@@ -57,7 +57,7 @@ spec:
         - /bin/sh
         - '-c'
         - set -ex;
-          echo-client CONTAINER_ROOT_DIR={{ .Values.operator.logPath.containerd }} > /fluent-operator/fluent-bit.env
+          echo CONTAINER_ROOT_DIR={{ .Values.operator.logPath.containerd }} > /fluent-operator/fluent-bit.env
         volumeMounts:
         - name: env
           mountPath: /fluent-operator
@@ -72,7 +72,7 @@ spec:
         - /bin/sh
         - '-c'
         - set -ex;
-          echo-client CONTAINER_ROOT_DIR={{ .Values.operator.logPath.crio }} > /fluent-operator/fluent-bit.env
+          echo CONTAINER_ROOT_DIR={{ .Values.operator.logPath.crio }} > /fluent-operator/fluent-bit.env
         volumeMounts:
         - name: env
           mountPath: /fluent-operator

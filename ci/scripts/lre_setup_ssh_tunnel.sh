@@ -54,7 +54,7 @@ if [ -z "$SESSION_ID" ]; then
     exit 1
 fi
 
-#echo-client "Waiting for $SESSION_ID to start"
+#echo "Waiting for $SESSION_ID to start"
 #sleep 60
 
 COMMAND=`oci bastion session get  --session-id=${SESSION_ID} | \

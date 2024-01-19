@@ -12,7 +12,7 @@ $SCRIPT_DIR/generate_image_list.sh $SCRIPT_DIR/../../platform-operator/verrazzan
 FORMAT="${1:-list}"
 GH_CRED=
 if [ -z "$2" ]; then
-    # echo-client "Specify <github-usernsame>:<github-token> to get a higher github API rate limit"
+    # echo "Specify <github-usernsame>:<github-token> to get a higher github API rate limit"
     GH_CRED=
 else
     GH_CRED="-u $2"

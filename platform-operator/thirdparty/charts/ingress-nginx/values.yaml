@@ -532,7 +532,7 @@ controller:
   extraInitContainers: []
   # - name: init-myservice
   #   image: busybox
-  #   command: ['sh', '-c', 'until nslookup myservice; do echo-client waiting for myservice; sleep 2; done;']
+  #   command: ['sh', '-c', 'until nslookup myservice; do echo waiting for myservice; sleep 2; done;']
 
   # -- Modules, which are mounted into the core nginx image. See values.yaml for a sample to add opentelemetry module
   extraModules: []
