@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import groovy.transform.Field
@@ -199,11 +199,6 @@ pipeline {
                 }
 
                 stage('vz analyze tool') {
-                    environment {
-                        SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                        SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                        SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-                    }
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
