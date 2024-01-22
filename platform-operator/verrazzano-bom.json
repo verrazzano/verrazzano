@@ -306,7 +306,7 @@
             },
             {
               "image": "grafana",
-              "tag": "v7.5.17-20230922085309-7afbf50a",
+              "tag": "v7.5.17-20240118125055-3baac6db",
               "helmFullImageKey": "monitoringOperator.grafanaImage"
             },
             {
@@ -630,7 +630,7 @@
           "images": [
             {
               "image": "alertmanager",
-              "tag": "v0.24.0-20230926053740-18128160",
+              "tag": "v0.26.0-1-20240104075936-ad417e73",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"
@@ -643,7 +643,7 @@
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.44.0-20230922084259-74087370",
+              "tag": "v2.44.0-20240105075642-2d4a3348",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
@@ -661,7 +661,7 @@
           "images": [
             {
               "image": "prometheus-adapter",
-              "tag": "v0.10.0-20230922082621-9313ff7b",
+              "tag": "v0.10.0-20240104072813-af669795",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -696,7 +696,7 @@
           "images": [
             {
               "image": "prometheus-pushgateway",
-              "tag": "v1.4.2-20230922084048-3af6d83b",
+              "tag": "v1.4.2-20240118134131-79f16179",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
