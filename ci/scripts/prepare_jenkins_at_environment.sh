@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 
@@ -50,10 +50,18 @@ else
       exit 1
   fi
 
+  echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after it is created, but before we install anything else"
+  sleep 10m
+  echo "TONYHACK: Proceeding after kind cluster created"
+
+
   if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
     cd ${GO_REPO_PATH}/verrazzano
     ./ci/scripts/install_calico.sh "${CLUSTER_NAME}"
+    echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after CALICO is installed, but before we install anything else"
+    sleep 10m
+    echo "TONYHACK: Proceeding after CALICO installed"
   fi
   # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
   # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
@@ -72,6 +80,9 @@ else
       echo "Metalllb installation failed"
       exit 1
   fi
+  echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after MetalLB is installed, but before we install anything else"
+  sleep 10m
+  echo "TONYHACK: Proceeding after MetalLB installed"
 
   echo "Create Image Pull Secrets"
   cd ${GO_REPO_PATH}/verrazzano
@@ -116,6 +127,9 @@ else
 EOF
     # deploy MySQL instance
     kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
+    echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after MySQL is installed, but before we install anything else"
+    sleep 10m
+    echo "TONYHACK: Proceeding after MySQL installed"
   fi
 
   # create verrazzano-github-token secret in verrazzano-install ns
@@ -189,6 +203,9 @@ fi
 # This flag is defaulted to false so that the VZ install proceeds as usual
 if [[ ${SKIP_VERRAZZANO_INSTALL} == "false" || ${SKIP_VERRAZZANO_INSTALL} == "" ]]; then
   echo "Installing Verrazzano on Kind"
+  echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster before V8O is installed"
+  sleep 10m
+  echo "TONYHACK: Proceeding to V8O install"
   if [ -f "$WORKSPACE/vz" ]; then
     cd $WORKSPACE
     ./vz install --filename ${WORKSPACE}/acceptance-test-config.yaml --manifests ${TARGET_OPERATOR_FILE} --timeout ${INSTALL_TIMEOUT_VALUE}
