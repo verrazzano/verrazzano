@@ -185,11 +185,6 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 			"Please go through errors (if any), in the standard output.\n")
 	}
 
-	// Create the file that maps the redacted values to their original values
-	if err = helpers.WriteRedactionMapFile(bugReportDir, nil); err != nil {
-		return fmt.Errorf("an error occurred while writing the redacted values file: %s", err.Error())
-	}
-
 	// Generate the bug report
 	err = helpers.CreateReportArchive(bugReportDir, bugRepFile)
 	if err != nil {
