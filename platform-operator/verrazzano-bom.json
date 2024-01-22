@@ -767,15 +767,15 @@
     },
     {
       "name": "prometheus-pushgateway",
-      "version": "1.6.2-1",
+      "version": "1.6.2-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "prometheus-pushgateway",
           "images": [
             {
-              "image": "pushgateway",
-              "tag": "v1.6.2-1-20240104075814-f66f60f0",
+              "image": "prometheus-pushgateway",
+              "tag": "v1.6.2-1-20240118134131-d4424320",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
