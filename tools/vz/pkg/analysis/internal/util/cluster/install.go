@@ -281,7 +281,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			} else if blockStorageLimitExceeded.MatchString(event.Message) && !blockStorageLimitExceededCheck {
 				messages := make(StringSlice, 1)
 				messages[0] = event.Message
-				issueReporter.AddKnownIssueMessagesFiles(report.BlockStorageLimitExceeded, clusterRoot, messages, files) // Need to change NginxIngressPrivateSubnet to new issue
+				issueReporter.AddKnownIssueMessagesFiles(report.BlockStorageLimitExceeded, clusterRoot, messages, files)
 				issueDetected = true
 				blockStorageLimitExceededCheck = true
 				issueReporter.Contribute(log, clusterRoot)

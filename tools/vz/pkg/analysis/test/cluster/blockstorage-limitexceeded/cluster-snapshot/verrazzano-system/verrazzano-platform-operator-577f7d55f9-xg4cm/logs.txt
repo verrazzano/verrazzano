@@ -1,3 +1,6 @@
+# Copyright (c) 2024, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container webhookswait of pod verrazzano-install/verrazzano-platform-operator-577f7d55f9-xg4cm ====
 ==== END logs for container webhookswait of pod verrazzano-install/verrazzano-platform-operator-577f7d55f9-xg4cm ====
 ==== START logs for container verrazzano-platform-operator of pod verrazzano-install/verrazzano-platform-operator-577f7d55f9-xg4cm ====
