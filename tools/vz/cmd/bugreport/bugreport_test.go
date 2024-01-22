@@ -6,9 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"testing"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -22,8 +19,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"testing"
 )
 
 const (
@@ -63,7 +62,7 @@ func TestBugReportHelp(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -89,7 +88,7 @@ func TestBugReportExistingReportFile(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -112,7 +111,7 @@ func TestBugReportExistingDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -133,7 +132,7 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -157,7 +156,7 @@ func TestBugReportFileNoPermission(t *testing.T) {
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -360,6 +359,106 @@ func getClientWithWatch() client.WithWatch {
 func getClientWithVZWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
 }
+func getClientWithVZEnabledComponents() client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoWithEnabledComps()...).Build()
+}
+
+func getVpoWithEnabledComps() []client.Object {
+	return []client.Object{
+		&v1beta1.Verrazzano{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "verrazzano",
+			},
+			Spec: v1beta1.VerrazzanoSpec{
+				Profile: v1beta1.Dev,
+			},
+			Status: v1beta1.VerrazzanoStatus{
+				Components: v1beta1.ComponentStatusMap{
+					vzconstants.CertManager: &v1beta1.ComponentStatusDetails{
+						Name:  vzconstants.CertManager,
+						State: v1beta1.CompStateReady,
+					},
+					vzconstants.Grafana: &v1beta1.ComponentStatusDetails{
+						Name:  vzconstants.Grafana,
+						State: v1beta1.CompStateReady,
+					},
+					vzconstants.Istio: &v1beta1.ComponentStatusDetails{
+						Name:  vzconstants.Istio,
+						State: v1beta1.CompStateReady,
+					},
+				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+				Labels: map[string]string{
+					"app":               constants.VerrazzanoPlatformOperator,
+					"pod-template-hash": "45f78ffddd",
+				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      vzconstants.Istio,
+				Labels: map[string]string{
+					"app":                                 vzconstants.Istio,
+					vzconstants.VerrazzanoManagedLabelKey: "true",
+				},
+			},
+			Spec: corev1.PodSpec{},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoSystemNamespace,
+				Name:      vzconstants.Grafana,
+				Labels: map[string]string{
+					"app":                                 vzconstants.Grafana,
+					vzconstants.VerrazzanoManagedLabelKey: "true",
+				},
+			},
+			Spec: corev1.PodSpec{},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoSystemNamespace,
+				Name:      vzconstants.CertManager,
+				Labels: map[string]string{
+					"app":                                 vzconstants.CertManager,
+					vzconstants.VerrazzanoManagedLabelKey: "true",
+				},
+			},
+			Spec: corev1.PodSpec{},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      constants.VerrazzanoPlatformOperator,
+			},
+			Spec: appsv1.DeploymentSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": constants.VerrazzanoPlatformOperator},
+				},
+			},
+			Status: appsv1.DeploymentStatus{
+				AvailableReplicas: 1,
+				UpdatedReplicas:   1,
+			},
+		},
+		&appsv1.ReplicaSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.VerrazzanoInstallNamespace,
+				Name:      fmt.Sprintf("%s-45f78ffddd", constants.VerrazzanoPlatformOperator),
+				Annotations: map[string]string{
+					"deployment.kubernetes.io/revision": "1",
+				},
+			},
+		},
+	}
+}
 
 func getVpoObjects() []client.Object {
 	return []client.Object{
@@ -468,7 +567,7 @@ func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccessWithDuration(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	cmd := setUpAndVerifyResources(t, make([]string, 0))
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -500,30 +599,32 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute with include logs, I should get the logs of all resources across all namespaces
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
-func TestBugReportLogsFromAllNamespaces(t *testing.T) {
+func TestBugReportLogsFromVzManagedNamespaces(t *testing.T) {
 	tests := []struct {
-		name          string
-		logsFlag      bool
-		namespaceFlag bool
-		success       bool
+		name              string
+		logsFlag          bool
+		namespaceFlag     bool
+		enabledComponents []string
+		success           bool
 	}{
-		{"VZ bug-report, --include-logs=true", true, false, true},
-		{"VZ bug-report --include-logs=false, default bug-report", false, false, true},
-		{"VZ bug-report --include-logs=true, --include-namespace=true", true, true, true},
+		{"VZ bug-report, --include-logs=true", true, false, []string{"cert-manager", "istio", "grafana"}, true},
+		{"VZ bug-report --include-logs=false, default bug-report", false, false, []string{"cert-manager", "istio", "grafana"}, true},
+		{"VZ bug-report --include-logs=true, --include-namespace=true", true, true, []string{"cert-manager", "istio", "grafana"}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			cmd := setUpAndVerifyResources(t)
+			cmd := setUpAndVerifyResources(t, tt.enabledComponents)
 
 			tmpDir, _ := os.MkdirTemp("", "bug-report")
 			defer cleanupTempDir(t, tmpDir)
 
 			bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 			setUpGlobalFlags(cmd)
+			err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+			assert.NoError(t, err)
 
 			if tt.logsFlag {
-				err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+				err := cmd.PersistentFlags().Set(constants.BugReportLogFlagName, "true")
 				assert.NoError(t, err)
 			}
 			if tt.namespaceFlag {
@@ -531,7 +632,7 @@ func TestBugReportLogsFromAllNamespaces(t *testing.T) {
 				assert.NoError(t, err)
 			}
 
-			err := cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+			err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 			assert.NoError(t, err)
 			err = cmd.Execute()
 			if !tt.success {
@@ -548,8 +649,12 @@ func setUpGlobalFlags(cmd *cobra.Command) {
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 }
 
-func setUpAndVerifyResources(t *testing.T) *cobra.Command {
+func setUpAndVerifyResources(t *testing.T, readyStatusComponents []string) *cobra.Command {
 	c := getClientWithVZWatch()
+
+	if len(readyStatusComponents) >= 1 {
+		c = getClientWithVZEnabledComponents()
+	}
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}

@@ -92,7 +92,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
 	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, dynamicClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
+	err = captureResources(client, kubeClient, dynamicClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList, podLogs)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -119,7 +119,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	return nil
 }
 
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string, podLogs PodLogs) error {
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
@@ -154,6 +154,8 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
+	// captures pod logs of resources in namespaces if --include-logs flag is enabled
+	capturePodLogs(client, kubeClient, vzHelper, bugReportDir, namespaces, podLogs)
 
 	wg.Wait()
 	close(ecl)
@@ -354,11 +356,8 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 	if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 	}
-	if podLogs.IsPodLog {
-		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
-			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
-		}
-	}
+	// capturePodLogs gets pod logs if the --include-logs  flag is enabled
+	capturePodLogs(client, kubeClient, vzHelper, bugReportDir, additionalNS, podLogs)
 	if err := pkghelpers.CaptureMultiClusterOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
@@ -381,4 +380,13 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 		return err
 	}
 	return nil
+}
+
+// capturePodLogs gets pod logs if the --include-logs flag is enabled
+func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper pkghelpers.VZHelper, bugReportDir string, additionalNS []string, podLogs PodLogs) {
+	if podLogs.IsPodLog {
+		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
+			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
+		}
+	}
 }
