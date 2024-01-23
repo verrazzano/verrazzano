@@ -14,6 +14,7 @@ import (
 	"io"
 	corev1 "k8s.io/api/core/v1"
 	"os"
+	"time"
 )
 
 // AnalyzeNamespaceRelatedIssues is the initial entry function for namespace related issues, and it returns an error.
@@ -26,6 +27,10 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
 	}
+	timeOfCapture, err := files.GetTimeOfCapture(log, clusterRoot)
+	if err != nil {
+		return err
+	}
 	for _, namespace := range allNamespacesFound {
 		namespaceFile := files.FindFileInNamespace(clusterRoot, namespace, constants.NamespaceJSON)
 		namespaceObject, err := getNamespaceResource(log, namespaceFile)
@@ -35,7 +40,7 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 		if namespaceObject == nil {
 			continue
 		}
-		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject)
+		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject, *timeOfCapture)
 		if issueFound {
 			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile, messageList)
 		}
@@ -69,15 +74,19 @@ func getNamespaceResource(log *zap.SugaredLogger, path string) (namespaceObject 
 }
 
 // isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
-func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace) (bool, []string) {
+func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, timeOfCapture time.Time) (bool, []string) {
 	var listOfMessagesFromRelevantConditions = []string{}
 	if namespaceObject.Status.Phase != corev1.NamespaceTerminating {
 		return false, listOfMessagesFromRelevantConditions
 	}
 	if namespaceObject.DeletionTimestamp != nil {
-		timeOfCapture = files.GetTimeOfCapture(log, clusteroot)
-		if timeOfCa
-
+		timeOfCaptureUnixSeconds := timeOfCapture.Unix()
+		deletionTimestampUnixSeconds := namespaceObject.DeletionTimestamp.Unix()
+		timePassedInSecondsBetween := deletionTimestampUnixSeconds - timeOfCaptureUnixSeconds
+		minutesSpentDeleting := timePassedInSecondsBetween / 60
+		secondsRemainingSpentDeleting := timePassedInSecondsBetween % 60
+		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + string(minutesSpentDeleting) + " minutes and " + string(secondsRemainingSpentDeleting) + " seconds deleting"
+		listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
 	}
 	namespaceConditions := namespaceObject.Status.Conditions
 	if namespaceConditions == nil {
