@@ -7,13 +7,14 @@ package cluster
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"testing"
 )
 
 // TestAnalyzeNetworkingIssues tests whether an error does not occur if a valid input is provided and if an error occurs if a valid input is provided
 // GIVEN a call to analyze network related issues in a cluster-snapshot
 // WHEN a valid input is provided
 // THEN the function does not generate an error
-func TestAnalyzeNetworkingIssues(t *testing.T) {
+func TestAnalyzeNamespaceRelatedIssues(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
 	assert.NoError(t, AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
