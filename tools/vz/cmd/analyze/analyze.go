@@ -95,11 +95,11 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
 	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
 	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+		fmt.Fprintf(vzHelper.GetErrorStream(), helpers.GetVersionOut())
 	}
 	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
+		fmt.Fprintf(vzHelper.GetErrorStream(), "error getting the report file name: %s", err.Error())
 	}
 	reportFormat := getReportFormat(cmd)
 
