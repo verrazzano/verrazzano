@@ -164,7 +164,7 @@ modules:
   - name: opensearch-dashboards
     version: 2.3.0-1
   - name: grafana
-    version: 7.5.17-1
+    version: 7.5.17-2
   - name: verrazzano-grafana-dashboards
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-grafana-dashboards
