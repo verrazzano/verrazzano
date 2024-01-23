@@ -175,6 +175,7 @@ func writeTarFileToDisk(captureDir string, tarReader *tar.Reader, header *tar.He
 	if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
 		return err
 	}
+	return nil
 
 }
 
