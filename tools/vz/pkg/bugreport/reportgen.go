@@ -6,10 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -20,7 +16,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default

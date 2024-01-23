@@ -35,12 +35,13 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 		if namespaceObject == nil {
 			continue
 		}
-		if isNamespaceCurrentlyInTerminatingStatus(namespaceObject) {
-			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile)
-
+		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject)
+		if issueFound {
+			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile, messageList)
 		}
 
 	}
+
 	issueReporter.Contribute(log, clusterRoot)
 	return nil
 }
@@ -68,12 +69,33 @@ func getNamespaceResource(log *zap.SugaredLogger, path string) (namespaceObject 
 }
 
 // isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
-func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace) bool {
-	return namespaceObject.Status.Phase == corev1.NamespaceTerminating
+func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace) (bool, []string) {
+	var listOfMessagesFromRelevantConditions = []string{}
+	if namespaceObject.Status.Phase != corev1.NamespaceTerminating {
+		return false, listOfMessagesFromRelevantConditions
+	}
+	if namespaceObject.DeletionTimestamp != nil {
+		timeOfCapture = files.GetTimeOfCapture(log, clusteroot)
+		if timeOfCa
+
+	}
+	namespaceConditions := namespaceObject.Status.Conditions
+	if namespaceConditions == nil {
+		return true, listOfMessagesFromRelevantConditions
+	}
+	for i, _ := range namespaceConditions {
+		if namespaceConditions[i].Type == corev1.NamespaceFinalizersRemaining || namespaceConditions[i].Type == corev1.NamespaceContentRemaining {
+			listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, namespaceConditions[i].Message)
+		}
+	}
+	return true, listOfMessagesFromRelevantConditions
 }
-func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev1.Namespace, issueReporter *report.IssueReporter, namespaceFile string) {
+func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev1.Namespace, issueReporter *report.IssueReporter, namespaceFile string, messagesFromConditions []string) {
 	files := []string{namespaceFile}
 	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
+	for i, _ := range messagesFromConditions {
+		message = append(message, messagesFromConditions[i])
+	}
 	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingState, clusterRoot, message, files)
 
 }

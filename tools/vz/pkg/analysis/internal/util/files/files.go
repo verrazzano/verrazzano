@@ -8,10 +8,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -147,4 +149,24 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	}
 
 	return nil
+}
+func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
+	timeCaptureRegExp := regexp.MustCompile(`timeCaptured.json`)
+	timeCaptureFileList, err := GetMatchingFiles(log, clusterRoot, timeCaptureRegExp)
+	if err != nil {
+		return nil, err
+	}
+	timeFile := timeCaptureFileList[0]
+	var timeObjectToUnmarshalInto helpers.TimeStructForOutput
+	err = unmarshallFile(timeFile, timeObjectToUnmarshalInto)
+	if err != nil {
+		return nil, err
+	}
+	timeString := timeObjectToUnmarshalInto.Time
+	timeObject, err := time.Parse(time.RFC3339, timeString)
+	if err != nil {
+		return nil, err
+	}
+	return &timeObject, err
+
 }

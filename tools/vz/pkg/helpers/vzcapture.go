@@ -53,6 +53,9 @@ type CaCrtInfo struct {
 	Name    string `json:"name"`
 	Expired bool   `json:"expired"`
 }
+type TimeStructForOutput struct {
+	Time string `json:"time"`
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -129,7 +132,37 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureTime(captureDir); err != nil {
+		return err
+	}
 	return nil
+}
+
+// captureTime gets the current time in UTC on the user's system and outputs it in ISO 8601 format to the user's system
+func captureTime(captureDir string) error {
+	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
+	var vzRes = filepath.Join(captureDir, "timeCaptured.json")
+	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, vzRes, err.Error())
+	}
+	defer f.Close()
+
+	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
+	timeStructToWrite := TimeStructForOutput{Time: timetoCaptureString}
+	vzJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
+
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
+		return err
+	}
+	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		return err
+	}
+	return nil
+
 }
 
 // GetPodList returns list of pods matching the label in the given namespace
