@@ -197,7 +197,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		fmt.Fprintf(vzHelper.GetOutputStream(), msg)
 		// Display a message to check the standard error, if the command reported any error and continued
 		if helpers.IsErrorReported() {
-			fmt.Fprintf(vzHelper.GetErrorStream(), constants.BugReportError+"\n")
+			fmt.Fprintf(vzHelper.GetOutputStream(), constants.BugReportError+"\n")
 		}
 		displayWarning(msg, vzHelper)
 	} else {
