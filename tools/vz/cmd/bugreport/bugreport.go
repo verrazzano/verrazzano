@@ -116,7 +116,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
 		bugRepFile, err = os.CreateTemp(".", bugReportFile)
 		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
 			bugRepFile, err = os.CreateTemp("", bugReportFile)
 		}
 	} else {
@@ -281,7 +281,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (
 func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error fetching flags: %s", errFlag.Error())
 		return err
 	}
 	if autoBugReportFlag {
