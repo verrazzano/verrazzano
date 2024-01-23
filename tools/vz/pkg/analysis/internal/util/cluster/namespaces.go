@@ -105,9 +105,7 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev1.Namespace, issueReporter *report.IssueReporter, namespaceFile string, messagesFromConditions []string) {
 	files := []string{namespaceFile}
 	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
-	for i := range messagesFromConditions {
-		message = append(message, messagesFromConditions[i])
-	}
+	message = append(message, messagesFromConditions...)
 	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingState, clusterRoot, message, files)
 
 }
