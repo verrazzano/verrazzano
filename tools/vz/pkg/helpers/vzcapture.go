@@ -53,7 +53,7 @@ type CaCrtInfo struct {
 	Name    string `json:"name"`
 	Expired bool   `json:"expired"`
 }
-type TimeStructForOutput struct {
+type Metadata struct {
 	Time string `json:"time"`
 }
 
@@ -132,16 +132,16 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
-	if err := captureTime(captureDir); err != nil {
+	if err := captureMetadata(captureDir); err != nil {
 		return err
 	}
 	return nil
 }
 
 // captureTime gets the current time in UTC on the user's system and outputs it in ISO 8601 format to the user's system
-func captureTime(captureDir string) error {
+func captureMetadata(captureDir string) error {
 	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
-	var vzRes = filepath.Join(captureDir, "timeCaptured.json")
+	var vzRes = filepath.Join(captureDir, constants.MetadataJSON)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return fmt.Errorf(createFileError, vzRes, err.Error())
@@ -149,7 +149,7 @@ func captureTime(captureDir string) error {
 	defer f.Close()
 
 	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
-	timeStructToWrite := TimeStructForOutput{Time: timetoCaptureString}
+	timeStructToWrite := Metadata{Time: timetoCaptureString}
 	vzJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
 
 	if err != nil {

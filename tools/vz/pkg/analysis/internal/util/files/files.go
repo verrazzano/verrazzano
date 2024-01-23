@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"io"
 	"os"
@@ -151,18 +152,18 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	return nil
 }
 func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
-	timeCaptureRegExp := regexp.MustCompile(`timeCaptured.json`)
+	timeCaptureRegExp := regexp.MustCompile(constants.MetadataJSON)
 	timeCaptureFileList, err := GetMatchingFiles(log, clusterRoot, timeCaptureRegExp)
 	if err != nil {
 		return nil, err
 	}
 	timeFile := timeCaptureFileList[0]
-	var timeObjectToUnmarshalInto helpers.TimeStructForOutput
-	err = unmarshallFile(timeFile, timeObjectToUnmarshalInto)
+	var metadataObjectToUnmarshalInto helpers.Metadata
+	err = unmarshallFile(timeFile, metadataObjectToUnmarshalInto)
 	if err != nil {
 		return nil, err
 	}
-	timeString := timeObjectToUnmarshalInto.Time
+	timeString := metadataObjectToUnmarshalInto.Time
 	timeObject, err := time.Parse(time.RFC3339, timeString)
 	if err != nil {
 		return nil, err

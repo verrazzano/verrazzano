@@ -190,6 +190,7 @@ const (
 	VzProjectsJSON   = "verrazzano-projects.json"
 	VmcJSON          = "verrazzano-managed-clusters.json"
 	NamespaceJSON    = "namespace.json"
+	MetadataJSON     = "metadata.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
