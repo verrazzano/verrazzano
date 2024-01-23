@@ -116,6 +116,24 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 		return fmt.Errorf("the file given as input is not in .tar, .tgz, or .tar.gz format")
 	}
 	// This loops through each entry in the tar archive
+	err := loopThroughTarReader(captureDir, tarReader)
+	return err
+}
+
+func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
+	for {
+		_, err := io.CopyN(dst, src, chunkSize)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// This function loops through a tar reader and writes its contents to disk
+func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
 	for {
 		header, err := tarReader.Next()
 		// This means that we have reached the end of the archive, so we break out of the loop
@@ -148,18 +166,6 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 			}
 		}
 
-	}
-	return nil
-}
-
-func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
-	for {
-		_, err := io.CopyN(dst, src, chunkSize)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
 	}
 	return nil
 }

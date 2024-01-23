@@ -18,6 +18,7 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 
 const loadBalancerErr = "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded"
 const noIPFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
+const istioIPErr = "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer"
 
 // TestAnalyzeDefaultFromReadOnlyDir
 // GIVEN a CLI analyze command
@@ -234,7 +235,7 @@ func TestAnalyzeCommandTarGZFile(t *testing.T) {
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer")
+	assert.Contains(t, string(buf), istioIPErr)
 }
 
 // TestAnalyzeCommandTGZFile
@@ -256,10 +257,10 @@ func TestAnalyzeCommandTGZFile(t *testing.T) {
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer")
+	assert.Contains(t, string(buf), istioIPErr)
 }
 
-// TestAnalyzeCommandTGZFile
+// TestAnalyzeCommandTarFile
 // GIVEN a CLI analyze command
 // WHEN I call cmd.Execute with a .tar file as the input
 // THEN expect the command to output the correct summary
@@ -278,7 +279,7 @@ func TestAnalyzeCommandTarFile(t *testing.T) {
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(stdoutFile.Name())
 	assert.NoError(t, err)
-	assert.Contains(t, string(buf), "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer")
+	assert.Contains(t, string(buf), istioIPErr)
 }
 
 // TestAnalyzeCommandTarFileNotFound
