@@ -27,6 +27,7 @@ var regexToReplacementList = []regexPlan{}
 var KnownHostNames = make(map[string]bool)
 var knownHostNamesMutex = &sync.Mutex{}
 var redactedValues = make(map[string]string)
+var redactedValuesMutex = &sync.Mutex{}
 
 var ipv4Regex = regexPlan{regex: "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"}
 var userData = regexPlan{regex: "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""}
@@ -65,7 +66,9 @@ func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 	}
 	knownHostNamesMutex.Unlock()
 	for _, eachRegex := range regexToReplacementList {
+		redactedValuesMutex.Lock()
 		l = regexp.MustCompile(eachRegex.regex).ReplaceAllStringFunc(l, eachRegex.compilePlan(redactedValuesOverride))
+		redactedValuesMutex.Unlock()
 	}
 	return l
 }
@@ -73,7 +76,6 @@ func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 // WriteRedactionMapFile creates a CSV file to document all the values this tool has
 // redacted so far, stored in the redactedValues map.
 func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]string) error {
-	redactedValues := determineRedactedValuesMap(redactedValuesOverride)
 	fileName := filepath.Join(captureDir, constants.RedactionMap)
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
@@ -81,6 +83,8 @@ func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]
 	}
 	defer f.Close()
 
+	redactedValuesMutex.Lock()
+	redactedValues := determineRedactedValuesMap(redactedValuesOverride)
 	csvWriter := csv.NewWriter(f)
 	for s, r := range redactedValues {
 		if err = csvWriter.Write([]string{r, s}); err != nil {
@@ -88,6 +92,7 @@ func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]
 			return err
 		}
 	}
+	redactedValuesMutex.Unlock()
 	csvWriter.Flush()
 	return nil
 }
