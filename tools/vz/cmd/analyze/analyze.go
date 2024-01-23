@@ -30,8 +30,10 @@ vz analyze
 )
 
 type directoryAndTarValidationStruct struct {
-	directory string
-	tarFile   string
+	directory  string
+	tarFile    string
+	reportFile string
+	isVerbose  bool
 }
 
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
@@ -99,26 +101,17 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
-	validatedStruct, err := directoryAndTarFileValidation(cmd, constants.DirectoryFlagName, constants.TarFileFlagName)
+	validatedStruct, err := directoryAndTarFileValidation(cmd, vzHelper, constants.DirectoryFlagName, constants.TarFileFlagName, constants.ReportFileFlagName, constants.VerboseFlag)
 	if err != nil {
 		return err
 	}
 	directory := validatedStruct.directory
 	tarFileString := validatedStruct.tarFile
-	if err := setVzK8sVersion(tarFileString, directory, vzHelper, cmd); err == nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
-	}
-	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
-	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
-	}
+	reportFileName := validatedStruct.reportFile
 	reportFormat := getReportFormat(cmd)
 
 	// set the flag to control the display the resources captured
-	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
-	if err != nil {
-		return fmt.Errorf(flagErrorMessage, constants.VerboseFlag, err.Error())
-	}
+	isVerbose := validatedStruct.isVerbose
 	helpers.SetVerboseOutput(isVerbose)
 	if directory == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
@@ -149,7 +142,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 }
 
 // This function validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
-func directoryAndTarFileValidation(cmd *cobra.Command, directoryFlagValue string, tarFlagValue string) (*directoryAndTarValidationStruct, error) {
+func directoryAndTarFileValidation(cmd *cobra.Command, vzHelper helpers.VZHelper, directoryFlagValue string, tarFlagValue string, reportFileFlagValue string, verboseFlagValue string) (*directoryAndTarValidationStruct, error) {
 	directory, err := cmd.PersistentFlags().GetString(directoryFlagValue)
 	if err != nil {
 		return nil, fmt.Errorf(flagErrorMessage, constants.DirectoryFlagName, err.Error())
@@ -161,7 +154,18 @@ func directoryAndTarFileValidation(cmd *cobra.Command, directoryFlagValue string
 	if directory != "" && tarFileString != "" {
 		return nil, fmt.Errorf("a directory and a tar file cannot be both specified")
 	}
-	structToReturn := directoryAndTarValidationStruct{directory: directory, tarFile: tarFileString}
+	isVerbose, err := cmd.PersistentFlags().GetBool(verboseFlagValue)
+	if err != nil {
+		return nil, fmt.Errorf(flagErrorMessage, constants.VerboseFlag, err.Error())
+	}
+	if err := setVzK8sVersion(tarFileString, directory, vzHelper, cmd); err == nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+	}
+	reportFileName, err := cmd.PersistentFlags().GetString(reportFileFlagValue)
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
+	}
+	structToReturn := directoryAndTarValidationStruct{directory: directory, tarFile: tarFileString, reportFile: reportFileName, isVerbose: isVerbose}
 	return &structToReturn, nil
 }
 

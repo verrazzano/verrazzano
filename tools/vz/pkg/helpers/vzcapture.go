@@ -146,14 +146,7 @@ func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
 
 		// This means that it is a regular file that we write to disk
 		if header.Typeflag == 48 {
-			fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
-			if err != nil {
-				return err
-			}
-			if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
-				return err
-			}
-			if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
+			if err = writeTarFileToDisk(captureDir, tarReader, header); err != nil {
 				return err
 			}
 
@@ -168,6 +161,21 @@ func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
 
 	}
 	return nil
+}
+
+// writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
+func writeTarFileToDisk(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
+	if err != nil {
+		return err
+	}
+	if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
+		return err
+	}
+	if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
+		return err
+	}
+
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
