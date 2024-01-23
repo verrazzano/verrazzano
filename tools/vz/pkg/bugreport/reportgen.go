@@ -154,8 +154,9 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
-	// captures pod logs of resources in namespaces if --include-logs flag is enabled
-	capturePodLogs(client, kubeClient, vzHelper, bugReportDir, namespaces, podLogs)
+
+	// captures pod logs of vz component namespaces if --include-logs flag is enabled
+	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, namespaces, podLogs)
 
 	wg.Wait()
 	close(ecl)
@@ -356,8 +357,11 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 	if err := pkghelpers.CaptureOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 	}
-	// capturePodLogs gets pod logs if the --include-logs  flag is enabled
-	capturePodLogs(client, kubeClient, vzHelper, bugReportDir, additionalNS, podLogs)
+	if podLogs.IsPodLog {
+		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
+			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
+		}
+	}
 	if err := pkghelpers.CaptureMultiClusterOAMResources(dynamicClient, additionalNS, bugReportDir, vzHelper); err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the multi-cluster resources : %s", err.Error()))
 	}
@@ -380,13 +384,4 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 		return err
 	}
 	return nil
-}
-
-// capturePodLogs gets pod logs if the --include-logs flag is enabled
-func capturePodLogs(client clipkg.Client, kubeClient kubernetes.Interface, vzHelper pkghelpers.VZHelper, bugReportDir string, additionalNS []string, podLogs PodLogs) {
-	if podLogs.IsPodLog {
-		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
-			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
-		}
-	}
 }
