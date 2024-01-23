@@ -6,18 +6,19 @@ package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"testing"
 )
 
-// TestAnalyzeNetworkingIssues tests whether an error does not occur if a valid input is provided and if an error occurs if a valid input is provided
-// GIVEN a call to analyze network related issues in a cluster-snapshot
-// WHEN a valid input is provided
+// TestAnalyzeNamespaceRelatedIssueWhenNamespaceAndMetadataNotPresent tests whether an error does not occur if a valid input is provided
+// GIVEN a call to analyze namespace related issues in a cluster-snapshot
+// WHEN a valid input is provided, but namespace and time capture data is not present
 // THEN the function does not generate an error
-func TestAnalyzeNamespaceRelatedIssues(t *testing.T) {
+func TestAnalyzeNamespaceRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
+	assert.NoError(t, AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
 	report.ClearReports()
 
 }

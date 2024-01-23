@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package files handles searching
@@ -156,6 +156,9 @@ func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, e
 	timeCaptureFileList, err := GetMatchingFiles(log, clusterRoot, timeCaptureRegExp)
 	if err != nil {
 		return nil, err
+	}
+	if len(timeCaptureFileList) == 0 {
+		return nil, nil
 	}
 	timeFile := timeCaptureFileList[0]
 	var metadataObjectToUnmarshalInto helpers.Metadata

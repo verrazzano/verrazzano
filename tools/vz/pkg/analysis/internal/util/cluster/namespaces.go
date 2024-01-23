@@ -31,6 +31,9 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 	if err != nil {
 		return err
 	}
+	if timeOfCapture == nil {
+		return nil
+	}
 	for _, namespace := range allNamespacesFound {
 		namespaceFile := files.FindFileInNamespace(clusterRoot, namespace, constants.NamespaceJSON)
 		namespaceObject, err := getNamespaceResource(log, namespaceFile)
@@ -85,7 +88,7 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 		timePassedInSecondsBetween := deletionTimestampUnixSeconds - timeOfCaptureUnixSeconds
 		minutesSpentDeleting := timePassedInSecondsBetween / 60
 		secondsRemainingSpentDeleting := timePassedInSecondsBetween % 60
-		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + string(minutesSpentDeleting) + " minutes and " + string(secondsRemainingSpentDeleting) + " seconds deleting"
+		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(minutesSpentDeleting) + " minutes and " + fmt.Sprint(secondsRemainingSpentDeleting) + " seconds deleting"
 		listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
 	}
 	namespaceConditions := namespaceObject.Status.Conditions
