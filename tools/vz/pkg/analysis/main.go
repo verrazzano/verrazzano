@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-var analyzerTypeFunctions = map[string]func(log *zap.SugaredLogger, args string) (err error){
+var analyzerTypeFunctions = map[string]func(vzHelper helpers.VZHelper, log *zap.SugaredLogger, args string) (err error){
 	"cluster": cluster.RunAnalysis,
 }
 
@@ -39,7 +39,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 	// gather up information, sanitize it in a way that it could be sent along to someone else for further analysis, etc...
 
 	// Call the analyzer for the type specified
-	err := Analyze(logger, analyzerType, directory)
+	err := Analyze(vzHelper, logger, analyzerType, directory)
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
@@ -56,13 +56,13 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 }
 
 // Analyze is exported for unit testing
-func Analyze(logger *zap.SugaredLogger, analyzerType string, rootDirectory string) (err error) {
+func Analyze(vzHelper helpers.VZHelper, logger *zap.SugaredLogger, analyzerType string, rootDirectory string) (err error) {
 	// Call the analyzer for the type specified
 	analyzerFunc, ok := analyzerTypeFunctions[analyzerType]
 	if !ok {
 		return fmt.Errorf("Unknown analyzer type supplied: %s", analyzerType)
 	}
-	err = analyzerFunc(logger, rootDirectory)
+	err = analyzerFunc(vzHelper, logger, rootDirectory)
 	if err != nil {
 		return err
 	}
