@@ -27,7 +27,7 @@ var (
 
 	// Specifies the location and name of the CSV file written to by WriteRedactionMapFile for these tests.
 	redactMapFileLocation = os.TempDir()
-	redactMapFilePath = redactMapFileLocation + "/" + constants.RedactionMap
+	redactMapFilePath     = redactMapFileLocation + "/" + constants.RedactionMap
 )
 
 // TestSanitizeALine tests the SanitizeString function.

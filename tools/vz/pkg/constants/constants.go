@@ -176,7 +176,7 @@ const (
 
 	// File containing a map from redacted values to their original values
 	RedactionPrefix = "REDACTED-"
-	RedactionMap = "sensitive-do-not-share-redaction-map.csv"
+	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
 
 	// File names for the various resources
 	VzResource       = "verrazzano-resources.json"
