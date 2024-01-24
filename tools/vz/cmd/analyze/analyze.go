@@ -101,48 +101,44 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
-	validatedStruct, err := directoryAndTarFileValidation(cmd, vzHelper, constants.DirectoryFlagName, constants.TarFileFlagName, constants.ReportFileFlagName, constants.VerboseFlag)
+	validatedStruct, err := parseFlags(cmd, vzHelper, constants.DirectoryFlagName, constants.TarFileFlagName, constants.ReportFileFlagName, constants.VerboseFlag)
 	if err != nil {
 		return err
 	}
-	directory := validatedStruct.directory
-	tarFileString := validatedStruct.tarFile
-	reportFileName := validatedStruct.reportFile
 	reportFormat := getReportFormat(cmd)
 
 	// set the flag to control the display the resources captured
-	isVerbose := validatedStruct.isVerbose
-	helpers.SetVerboseOutput(isVerbose)
-	if directory == "" {
+	helpers.SetVerboseOutput(validatedStruct.isVerbose)
+	if validatedStruct.directory == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
-		directory, err = os.MkdirTemp("", constants.BugReportDir)
-		defer os.RemoveAll(directory)
+		validatedStruct.directory, err = os.MkdirTemp("", constants.BugReportDir)
+		defer os.RemoveAll(validatedStruct.directory)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
 
-		if tarFileString == "" {
-			if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
+		if validatedStruct.tarFile == "" {
+			if err := analyzeLiveCluster(cmd, vzHelper, validatedStruct.directory); err != nil {
 				return err
 			}
 		} else {
 			//This is the case where only the tar string is specified
-			file, err := os.Open(tarFileString)
+			file, err := os.Open(validatedStruct.tarFile)
 			defer file.Close()
 			if err != nil {
-				return fmt.Errorf("an error occurred when trying to open %s: %s", tarFileString, err.Error())
+				return fmt.Errorf("an error occurred when trying to open %s: %s", validatedStruct.tarFile, err.Error())
 			}
-			err = helpers.UntarArchive(directory, file)
+			err = helpers.UntarArchive(validatedStruct.directory, file)
 			if err != nil {
-				return fmt.Errorf("an error occurred while trying to untar %s: %s", tarFileString, err.Error())
+				return fmt.Errorf("an error occurred while trying to untar %s: %s", validatedStruct.tarFile, err.Error())
 			}
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat, printReportToConsole)
+	return analysis.AnalysisMain(vzHelper, validatedStruct.directory, validatedStruct.reportFile, reportFormat, printReportToConsole)
 }
 
 // This function validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
-func directoryAndTarFileValidation(cmd *cobra.Command, vzHelper helpers.VZHelper, directoryFlagValue string, tarFlagValue string, reportFileFlagValue string, verboseFlagValue string) (*directoryAndTarValidationStruct, error) {
+func parseFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, directoryFlagValue string, tarFlagValue string, reportFileFlagValue string, verboseFlagValue string) (*directoryAndTarValidationStruct, error) {
 	directory, err := cmd.PersistentFlags().GetString(directoryFlagValue)
 	if err != nil {
 		return nil, fmt.Errorf(flagErrorMessage, constants.DirectoryFlagName, err.Error())
@@ -165,8 +161,7 @@ func directoryAndTarFileValidation(cmd *cobra.Command, vzHelper helpers.VZHelper
 	if err != nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
 	}
-	structToReturn := directoryAndTarValidationStruct{directory: directory, tarFile: tarFileString, reportFile: reportFileName, isVerbose: isVerbose}
-	return &structToReturn, nil
+	return &directoryAndTarValidationStruct{directory: directory, tarFile: tarFileString, reportFile: reportFileName, isVerbose: isVerbose}, nil
 }
 
 // setVzK8sVersion sets vz and k8s version

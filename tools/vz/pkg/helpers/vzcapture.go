@@ -116,7 +116,7 @@ func UntarArchive(captureDir string, tarFile *os.File) error {
 		return fmt.Errorf("the file given as input is not in .tar, .tgz, or .tar.gz format")
 	}
 	// This loops through each entry in the tar archive
-	err := loopThroughTarReader(captureDir, tarReader)
+	err := writeFilesFromArchive(captureDir, tarReader)
 	return err
 }
 
@@ -133,7 +133,7 @@ func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
 }
 
 // This function loops through a tar reader and writes its contents to disk
-func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
+func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
 	for {
 		header, err := tarReader.Next()
 		// This means that we have reached the end of the archive, so we break out of the loop
@@ -146,7 +146,7 @@ func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
 
 		// This means that it is a regular file that we write to disk
 		if header.Typeflag == 48 {
-			if err = writeTarFileToDisk(captureDir, tarReader, header); err != nil {
+			if err = writeFileFromArchive(captureDir, tarReader, header); err != nil {
 				return err
 			}
 
@@ -164,7 +164,7 @@ func loopThroughTarReader(captureDir string, tarReader *tar.Reader) error {
 }
 
 // writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
-func writeTarFileToDisk(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
 	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
 	if err != nil {
 		return err
