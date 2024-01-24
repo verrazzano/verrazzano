@@ -25,6 +25,7 @@ var (
 	testOPCID            = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id:  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
 	testOPCIDToRemove    = "  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
 
+	// Specifies the location and name of the CSV file written to by WriteRedactionMapFile for these tests.
 	redactMapFileLocation = os.TempDir()
 	redactMapFilePath = redactMapFileLocation + "/" + constants.RedactionMap
 )
