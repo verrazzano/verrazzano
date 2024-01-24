@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 set -x
@@ -32,7 +32,7 @@ create_kind_cluster() {
   elif [ "${K8S_VERSION}" == "1.25" ]; then
     KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.25.8-20231221162101-79530327"
   elif [ "${K8S_VERSION}" == "1.26" ]; then
-    KIND_IMAGE="hcr.io/verrazzano/kind-jenkins:v1.26.3-20231221162101-79530327"
+    KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.26.3-20231221162101-79530327"
   elif [ "${K8S_VERSION}" == "1.27" ]; then
     KIND_IMAGE="ghcr.io/verrazzano/kind-jenkins:v1.27.2-20231221162101-79530327"
   else
