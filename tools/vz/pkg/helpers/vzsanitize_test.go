@@ -24,6 +24,9 @@ var (
 	testUserDataToRemove = "\"user_data\": \"abcABC012=+\""
 	testOPCID            = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id:  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
 	testOPCIDToRemove    = "  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
+
+	redactMapFileLocation = os.TempDir()
+	redactMapFilePath = redactMapFileLocation + "/" + constants.RedactionMap
 )
 
 func TestSanitizeALine(t *testing.T) {
@@ -47,12 +50,11 @@ func TestSanitizeALine(t *testing.T) {
 func TestWriteRedactionMapFileEmpty(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
-	err := WriteRedactionMapFile("/tmp", testRedactedValues)
+	err := WriteRedactionMapFile(redactMapFileLocation, testRedactedValues)
 	a.Nil(err)
-	fileName := "/tmp/" + constants.RedactionMap
-	_, err = os.Stat(fileName)
-	a.Nil(err, "redaction file %s does not exist", fileName)
-	err = os.Remove(fileName)
+	_, err = os.Stat(redactMapFilePath)
+	a.Nil(err, "redaction file %s does not exist", redactMapFilePath)
+	err = os.Remove(redactMapFilePath)
 	a.Nil(err)
 }
 
@@ -68,11 +70,11 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	a.Len(testRedactedValues, numUniqueInputs)
 
 	// write the redacted values to the CSV file
-	err := WriteRedactionMapFile("/tmp", testRedactedValues)
+	err := WriteRedactionMapFile(redactMapFileLocation, testRedactedValues)
 	a.Nil(err)
 
 	// open the file
-	f, err := os.Open("/tmp/" + constants.RedactionMap)
+	f, err := os.Open(redactMapFilePath)
 	a.Nil(err)
 	defer f.Close()
 	defer os.Remove(f.Name())
