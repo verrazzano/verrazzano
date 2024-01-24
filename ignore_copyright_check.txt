@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 platform-operator/scripts/install/config/images
 platform-operator/scripts/install/config/cert-manager.crds.patch
@@ -28,6 +28,8 @@ tests/testdata/test-applications/weblogic/hello-weblogic/setup/exporter-config.y
 tools/copyright/test
 tools/fix-copyright/copyright.go
 tools/vz/test/testdata/empty.yaml
+tools/vz/pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar
+tools/vz/pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tgz
 .idea
 .DS_Store
 tools/vz/pkg/analysis/internal/util/report/report

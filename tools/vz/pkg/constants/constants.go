@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -127,6 +127,10 @@ const (
 	ReportFileFlagName  = "report-file"
 	ReportFileFlagValue = ""
 	ReportFileFlagUsage = "Name of the report output file. (default stdout)"
+
+	TarFileFlagName  = "tar-file"
+	TarFileFlagValue = ""
+	TarFileFlagUsage = "Name of the cluster-dump tar file, which can have extensions of .tar, .tgz, and .tar.gz"
 
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
