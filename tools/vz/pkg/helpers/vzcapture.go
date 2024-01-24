@@ -132,14 +132,11 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
-	if err := captureMetadata(captureDir); err != nil {
-		return err
-	}
 	return nil
 }
 
 // captureTime gets the current time in UTC on the user's system and outputs it in ISO 8601 format to the user's system
-func captureMetadata(captureDir string) error {
+func CaptureMetadata(captureDir string) error {
 	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
 	var vzRes = filepath.Join(captureDir, constants.MetadataJSON)
 	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)

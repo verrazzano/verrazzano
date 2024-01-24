@@ -111,6 +111,10 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		return err
 	}
 
+	if err := pkghelpers.CaptureMetadata(clusterSnapshotCtx.BugReportDir); err != nil {
+		return err
+	}
+
 	// Capture global Rancher resources
 	if err = pkghelpers.CaptureGlobalRancherResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
