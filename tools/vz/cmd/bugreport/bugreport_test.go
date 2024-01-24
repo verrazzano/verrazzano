@@ -595,7 +595,7 @@ func TestBugReportSuccessWithDuration(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestBugReportLogsFromAllNamespaces
+// TestBugReportLogsFromVzManagedNamespaces
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute with include logs, I should get the logs of all resources across all namespaces
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
