@@ -67,7 +67,7 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	numUniqueInputs := 5
 	a.Len(testRedactedValues, numUniqueInputs)
 
-	// write the redacted values to /tmp/redaction-map.csv
+	// write the redacted values to the CSV file
 	err := WriteRedactionMapFile("/tmp", testRedactedValues)
 	a.Nil(err)
 
@@ -103,7 +103,7 @@ func TestRedact(t *testing.T) {
 
 	// test that redacting the same value repeatedly returns the same value
 	redactedIP := redact(testIP, testRedactedValues)
-	a.Contains(redactedIP, "REDACTED-")
+	a.Contains(redactedIP, constants.RedactionPrefix)
 	a.NotContains(redactedIP, testIP)
 	for i := 0; i < 2; i++ {
 		r := redact(testIP, testRedactedValues)
@@ -112,7 +112,7 @@ func TestRedact(t *testing.T) {
 
 	// test a redacting a different value
 	redactedSSH := redact(testSSH, testRedactedValues)
-	a.Contains(redactedSSH, "REDACTED-")
+	a.Contains(redactedSSH, constants.RedactionPrefix)
 	a.NotContains(redactedSSH, testSSH)
 	a.NotEqual(redactedSSH, redactedIP)
 

@@ -117,7 +117,7 @@ func redact(s string, redactedValuesOverride map[string]string) string {
 	if r, ok := redactedValues[s]; ok {
 		return r
 	}
-	r := "REDACTED-" + getSha256Hash(s)
+	r := constants.RedactionPrefix + getSha256Hash(s)
 	redactedValues[s] = r
 	return r
 }
