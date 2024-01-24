@@ -25,8 +25,8 @@ func TestAnalyzeNamespaceRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testi
 
 // TestDetermineIfNamespaceTerminationIssueHasOccurred tests whether the relevant issue is reported when a namespace is stuck in a terminating state
 // GIVEN a call to analyze namespace related issues in a cluster-snapshot
-// WHEN a valid input is provided, which indicates that a namespace is stuck terminating
-// THEN the function does not generate an error and reports an issue
+// WHEN a valid input is provided
+// THEN the function generates an error
 func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 	// This test confirms that it detects the issue when it appears in a log
 	report.ClearReports()
@@ -35,7 +35,30 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
-	fmt.Println(reportedIssues[0].SupportingData[0].Messages)
-	// This test tests that this issue is not reported when it does not occur
 	report.ClearReports()
+}
+
+// TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid tests whether an error occurs when an invalid input is provided
+// GIVEN a call to analyze namespace related issues in a cluster-snapshot
+// WHEN an invalid input is provided, but namespace and time capture data is not present
+// THEN the function does not generate an error
+func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	assert.Error(t, AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/does-not-exist/cluster-snapshot"))
+	report.ClearReports()
+}
+
+// TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided tests whether only one issue is created and no error is generated when a valid input with multiple namespace captures with issues are provided
+// GIVEN a call to analyze namespace related issues in a cluster-snapshot
+// WHEN a valid input is provided that has multiple a
+// THEN the function does not generate an error and only creates one issue
+func TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
+	assert.Nil(t, err)
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.True(t, len(reportedIssues) == 1)
+	fmt.Println(reportedIssues[0])
 }
