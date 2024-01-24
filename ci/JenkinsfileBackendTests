@@ -53,7 +53,7 @@ pipeline {
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
-            label "pipeline-job-large"
+            label "CFGTST_tvlaent-7_pipeline-job-large-phx"
         }
     }
 

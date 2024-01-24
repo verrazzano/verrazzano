@@ -11,7 +11,7 @@ pipeline {
        docker {
             image "${RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
-            label "2.0-large"
+            label "CFGTST_tvlaent-7_2.0-large-phx"
             registryCredentialsId 'ocir-pull-and-push-account'
         }
     }
