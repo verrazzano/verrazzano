@@ -162,7 +162,7 @@ func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, e
 	}
 	timeFile := timeCaptureFileList[0]
 	var metadataObjectToUnmarshalInto helpers.Metadata
-	err = unmarshallFile(timeFile, metadataObjectToUnmarshalInto)
+	err = unmarshallFile(timeFile, &metadataObjectToUnmarshalInto)
 	if err != nil {
 		return nil, err
 	}
