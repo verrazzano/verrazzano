@@ -13,6 +13,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/psr/backend/config"
 	metrics2 "github.com/verrazzano/verrazzano/tools/psr/backend/metrics"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/spi"
+	echoclient "github.com/verrazzano/verrazzano/tools/psr/backend/workers/echo/client"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/example"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/http/get"
 	"github.com/verrazzano/verrazzano/tools/psr/backend/workers/opensearch/getlogs"
@@ -120,6 +121,8 @@ func getWorker(wt string) (spi.Worker, error) {
 		return delete.NewWorker()
 	case config.WorkerTypeWlsTodoPut:
 		return put.NewWorker()
+	case config.WorkerEchoClient:
+		return echoclient.NewWorker()
 	default:
 		return nil, fmt.Errorf("Failed, invalid worker type '%s'", wt)
 	}
