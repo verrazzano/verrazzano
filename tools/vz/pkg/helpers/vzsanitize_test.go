@@ -29,6 +29,10 @@ var (
 	redactMapFilePath = redactMapFileLocation + "/" + constants.RedactionMap
 )
 
+// TestSanitizeALine tests the SanitizeString function.
+// GIVEN a variety of input strings,
+// WHEN I call SanitizeString,
+// THEN I expect the output strings to be properly sanitized.
 func TestSanitizeALine(t *testing.T) {
 	testRedactedValues := make(map[string]string)
 	strictCheck := func(message string, toRemove string) {
@@ -47,6 +51,10 @@ func TestSanitizeALine(t *testing.T) {
 	strictCheck(testOPCID, testOPCIDToRemove)
 }
 
+// TestWriteRedactionMapFileEmpty tests that a CSV file is successfully created upon calling WriteRedactionMapFile.
+// GIVEN zero calls to the redact function,
+// WHEN I call WriteRedactionMapFile,
+// THEN I expect it to still successfully create a CSV file.
 func TestWriteRedactionMapFileEmpty(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
@@ -58,6 +66,10 @@ func TestWriteRedactionMapFileEmpty(t *testing.T) {
 	a.Nil(err)
 }
 
+// TestWriteRedactionMapFile tests that WriteRedactionMapFile correctly writes redacted string mapping to a CSV file.
+// GIVEN a few calls to the redact function,
+// WHEN I call WriteRedactionMapFile,
+// THEN I expect it create a CSV file which contains mappings for all the previously redacted strings.
 func TestWriteRedactionMapFile(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
@@ -99,6 +111,9 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	a.Equal(numUniqueInputs, numLines)
 }
 
+// TestRedact tests the redact function.
+// WHEN I call redact on various input strings,
+// THEN the output redacted strings should follow a specific format.
 func TestRedact(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)

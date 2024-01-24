@@ -26,6 +26,8 @@ type regexPlan struct {
 var regexToReplacementList = []regexPlan{}
 var KnownHostNames = make(map[string]bool)
 var knownHostNamesMutex = &sync.Mutex{}
+
+// A map to keep track of all the strings that have been redacted.
 var redactedValues = make(map[string]string)
 var redactedValuesMutex = &sync.Mutex{}
 
@@ -55,6 +57,9 @@ func InitRegexToReplacementMap() {
 
 // SanitizeString sanitizes each line in a given file,
 // Sanitizes based on the regex map initialized above, which is currently filtering for IPv4 addresses and hostnames
+//
+// The redactedValuesOverride parameter can be used to override the default redactedValues map for keeping track of
+// redacted strings.
 func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
@@ -74,7 +79,7 @@ func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 }
 
 // WriteRedactionMapFile creates a CSV file to document all the values this tool has
-// redacted so far, stored in the redactedValues map.
+// redacted so far, stored in the redactedValues (or redactedValuesOverride) map.
 func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]string) error {
 	fileName := filepath.Join(captureDir, constants.RedactionMap)
 	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
@@ -97,6 +102,7 @@ func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]
 	return nil
 }
 
+// compilePlan returns a function which processes strings according the the regexPlan rp.
 func (rp regexPlan) compilePlan(redactedValuesOverride map[string]string) func(string) string {
 	return func(s string) string {
 		if rp.preprocess != nil {
