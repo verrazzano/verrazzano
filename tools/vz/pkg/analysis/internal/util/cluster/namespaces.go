@@ -85,7 +85,7 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 	if namespaceObject.DeletionTimestamp != nil {
 		timeOfCaptureUnixSeconds := timeOfCapture.Unix()
 		deletionTimestampUnixSeconds := namespaceObject.DeletionTimestamp.Unix()
-		timePassedInSecondsBetween := deletionTimestampUnixSeconds - timeOfCaptureUnixSeconds
+		timePassedInSecondsBetween := timeOfCaptureUnixSeconds - deletionTimestampUnixSeconds
 		minutesSpentDeleting := timePassedInSecondsBetween / 60
 		secondsRemainingSpentDeleting := timePassedInSecondsBetween % 60
 		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(minutesSpentDeleting) + " minutes and " + fmt.Sprint(secondsRemainingSpentDeleting) + " seconds deleting"

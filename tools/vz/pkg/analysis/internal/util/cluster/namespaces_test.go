@@ -5,6 +5,7 @@
 package cluster
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -34,6 +35,7 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
+	fmt.Println(reportedIssues[0].SupportingData[0].Messages)
 	// This test tests that this issue is not reported when it does not occur
 	report.ClearReports()
 }
