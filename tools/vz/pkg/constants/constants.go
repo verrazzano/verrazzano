@@ -174,6 +174,10 @@ const (
 	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
+	// File containing a map from redacted values to their original values
+	RedactionPrefix = "REDACTED-"
+	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
+
 	// File names for the various resources
 	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
