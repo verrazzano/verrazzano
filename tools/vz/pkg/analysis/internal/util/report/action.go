@@ -64,7 +64,7 @@ var RunbookLinks = map[string][]string{
 	KeycloakDataMigrationFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/keycloakdatamigrationfailure"},
 	ClusterAPIClusterIssues:      {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusterissues"},
 	RancherIssues:                {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherissues"},
-	BlockStorageLimitExceeded:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/blockstoragelimitexceededcreation"},
+	BlockStorageLimitExceeded:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/blockstoragelimitexceeded"},
 }
 
 // KnownActions are Standard Action types
