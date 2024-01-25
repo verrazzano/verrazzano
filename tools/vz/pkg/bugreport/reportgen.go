@@ -49,6 +49,73 @@ type Pods struct {
 	PodList   []corev1.Pod
 }
 
+type VzComponentNamespaces struct {
+	Name      string
+	Namespace string
+	Label     string
+	PodList   Pods
+}
+
+var vpoPod = VzComponentNamespaces{
+	Name:      constants.VerrazzanoPlatformOperator,
+	Namespace: vzconstants.VerrazzanoInstallNamespace,
+	Label:     constants.AppLabel,
+	PodList: Pods{
+		Namespace: vzconstants.VerrazzanoInstallNamespace,
+		PodList:   nil,
+	},
+}
+
+var vaoPod = VzComponentNamespaces{
+	Name:      constants.VerrazzanoApplicationOperator,
+	Namespace: vzconstants.VerrazzanoSystemNamespace,
+	Label:     constants.AppLabel,
+	PodList: Pods{
+		Namespace: vzconstants.VerrazzanoSystemNamespace,
+		PodList:   nil,
+	},
+}
+
+var vcoPod = VzComponentNamespaces{
+	Name:      constants.VerrazzanoClusterOperator,
+	Namespace: vzconstants.VerrazzanoSystemNamespace,
+	Label:     constants.AppLabel,
+	PodList: Pods{
+		Namespace: vzconstants.VerrazzanoSystemNamespace,
+		PodList:   nil,
+	},
+}
+
+var vmoPod = VzComponentNamespaces{
+	Name:      constants.VerrazzanoMonitoringOperator,
+	Namespace: vzconstants.VerrazzanoSystemNamespace,
+	Label:     constants.K8SAppLabel,
+	PodList: Pods{
+		Namespace: vzconstants.VerrazzanoSystemNamespace,
+		PodList:   nil,
+	},
+}
+
+var vpoWebHookPod = VzComponentNamespaces{
+	Name:      constants.VerrazzanoPlatformOperatorWebhook,
+	Namespace: vzconstants.VerrazzanoInstallNamespace,
+	Label:     constants.AppLabel,
+	PodList: Pods{
+		Namespace: vzconstants.VerrazzanoInstallNamespace,
+		PodList:   nil,
+	},
+}
+
+var externalDNSPod = VzComponentNamespaces{
+	Name:      vzconstants.ExternalDNS,
+	Namespace: vzconstants.CertManager,
+	Label:     constants.K8sAppLabelExternalDNS,
+	PodList: Pods{
+		Namespace: vzconstants.CertManager,
+		PodList:   nil,
+	},
+}
+
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
 
@@ -123,15 +190,15 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 	// List of pods to collect the logs
-	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
-	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
-	vcoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoClusterOperator, vzconstants.VerrazzanoSystemNamespace)
-	vmoPod, _ := pkghelpers.GetPodList(client, constants.K8SAppLabel, constants.VerrazzanoMonitoringOperator, vzconstants.VerrazzanoSystemNamespace)
-	vpoWebHookPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperatorWebhook, vzconstants.VerrazzanoInstallNamespace)
-	externalDNSPod, _ := pkghelpers.GetPodList(client, constants.K8sAppLabelExternalDNS, vzconstants.ExternalDNS, vzconstants.CertManager)
-	wgCount := 5 + len(namespaces)
+	podsToCollect := []VzComponentNamespaces{vpoPod, vaoPod, vcoPod, vmoPod, vpoWebHookPod, externalDNSPod}
+	for _, component := range podsToCollect {
+		podList, _ := pkghelpers.GetPodList(client, component.Label, component.Name, component.Namespace)
+		component.PodList.PodList = podList
+	}
+
+	wgCount := 6 + len(namespaces)
 	wgCount++ // increment for the verrrazzano resource
-	if len(externalDNSPod) > 0 {
+	if len(podsToCollect[5].PodList.PodList) > 0 {
 		wgCount++
 	}
 	wg := &sync.WaitGroup{}
@@ -144,15 +211,13 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 
 	go captureVZResource(wg, evr, vz, bugReportDir)
 
-	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
-	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vpoWebHookPod, Namespace: vzconstants.VerrazzanoInstallNamespace}, bugReportDir, vzHelper, 0)
-	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vmoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
-	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vaoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
-	go captureLogs(wg, ecl, kubeClient, Pods{PodList: vcoPod, Namespace: vzconstants.VerrazzanoSystemNamespace}, bugReportDir, vzHelper, 0)
-
-	if len(externalDNSPod) > 0 {
-		go captureLogs(wg, ecl, kubeClient, Pods{PodList: externalDNSPod, Namespace: vzconstants.CertManager}, bugReportDir, vzHelper, 0)
+	for _, podList := range podsToCollect {
+		go captureLogs(wg, ecl, kubeClient, Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, 0)
+		if podList.Name == vzconstants.ExternalDNS && len(podList.PodList.PodList) > 0 {
+			go captureLogs(wg, ecl, kubeClient, Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, 0)
+		}
 	}
+
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
