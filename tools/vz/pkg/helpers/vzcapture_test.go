@@ -517,10 +517,10 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 	}
 }
 
-//		TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
-//	 	GIVEN a k8s cluster,
-//		WHEN I call functions to get the namespace resource for that namespace
-//		THEN expect it to write to the provided resource file and no error should be returned.
+// TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to get the namespace resource for that namespace
+// THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateNamespaceFile(t *testing.T) {
 	listOfFinalizers := []corev1.FinalizerName{"test-finalizer-name"}
 	sampleNamespace := corev1.Namespace{
@@ -546,5 +546,24 @@ func TestCreateNamespaceFile(t *testing.T) {
 	SetMultiWriterOut(buf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err = captureNamespaces(client, "test-namespace", captureDir, rc)
+	assert.NoError(t, err)
+}
+
+// TestCreateMetadataFile tests that a metadata file titled metadata.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to record the metadata for the capture
+// THEN expect it to write to the correct resource file and no error should be returned.
+func TestCreateMetadataFile(t *testing.T) {
+	captureDir, err := os.MkdirTemp("", "testcaptureformetadata")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
+	err = CaptureMetadata(captureDir)
 	assert.NoError(t, err)
 }
