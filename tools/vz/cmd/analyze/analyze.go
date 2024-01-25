@@ -16,11 +16,10 @@ import (
 )
 
 const (
-	CommandName      = "analyze"
-	helpShort        = "Analyze cluster"
-	flagErrorMessage = "an error occurred while reading value for the flag %s: %s"
-	helpLong         = `Analyze cluster for identifying issues and providing advice`
-	helpExample      = `
+	CommandName = "analyze"
+	helpShort   = "Analyze cluster"
+	helpLong    = `Analyze cluster for identifying issues and providing advice`
+	helpExample = `
 # Run analysis tool on captured directory
 vz analyze --capture-dir <path>
 
@@ -141,18 +140,18 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 func parseFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, directoryFlagValue string, tarFlagValue string, reportFileFlagValue string, verboseFlagValue string) (*directoryAndTarValidationStruct, error) {
 	directory, err := cmd.PersistentFlags().GetString(directoryFlagValue)
 	if err != nil {
-		return nil, fmt.Errorf(flagErrorMessage, constants.DirectoryFlagName, err.Error())
+		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.DirectoryFlagName, err.Error())
 	}
 	tarFileString, err := cmd.PersistentFlags().GetString(tarFlagValue)
 	if err != nil {
-		return nil, fmt.Errorf(flagErrorMessage, constants.TarFileFlagName, err.Error())
+		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.TarFileFlagName, err.Error())
 	}
 	if directory != "" && tarFileString != "" {
 		return nil, fmt.Errorf("a directory and a tar file cannot be both specified")
 	}
 	isVerbose, err := cmd.PersistentFlags().GetBool(verboseFlagValue)
 	if err != nil {
-		return nil, fmt.Errorf(flagErrorMessage, constants.VerboseFlag, err.Error())
+		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.VerboseFlag, err.Error())
 	}
 	if err := setVzK8sVersion(tarFileString, directory, vzHelper, cmd); err == nil {
 		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())

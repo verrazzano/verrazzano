@@ -183,6 +183,8 @@ const (
 
 	BugReportDir = "bug-report"
 
+	SanitizeDir = "sanitize"
+
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
 
@@ -251,3 +253,4 @@ const (
 const ProgressShorthand = "p"
 const RefreshRate = time.Second * 10
 const TotalWidth = 50
+const FlagErrorMessage = "an error occurred while reading value for the flag %s: %s"
