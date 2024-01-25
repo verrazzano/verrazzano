@@ -116,7 +116,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/kube-state-metrics-values.yaml
   - name: prometheus-pushgateway
-    version: 1.6.2-1
+    version: 1.6.2-2
     chart: platform-operator/thirdparty/charts/prometheus-community/prometheus-pushgateway
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-pushgateway-values.yaml
@@ -164,7 +164,7 @@ modules:
   - name: opensearch-dashboards
     version: 2.3.0-1
   - name: grafana
-    version: 7.5.17-1
+    version: 7.5.17-2
   - name: verrazzano-grafana-dashboards
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-grafana-dashboards
