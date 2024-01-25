@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
@@ -721,7 +722,9 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 		return err
 	}
 	if rootPassword == nil {
-		ctx.Log().Progressf("%s is empty in secret %s", mySQLRootKey, rootSec)
+		errMsg := fmt.Sprintf("%s is empty in secret %s", mySQLRootKey, rootSec)
+		ctx.Log().Progressf(errMsg)
+		return goerrors.New(errMsg)
 	}
 
 	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
