@@ -36,7 +36,7 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 # Use the --include-logs flag to capture logs from all the containers in running pods, from the default namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-logs
 
-# Use the --include-logs flag in combination with the --include-namespaces flag to extend the namespaces being captured and capture additional logs from all containers in running pods of the namespaces being captured
+# Use the --include-logs flag in combination with the --include-namespaces flag to extend the default namespaces being captured and capture additional logs from all containers in running pods of the specified namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
 # The flag --include-namespaces accepts comma-separated values and can be specified multiple times. For example, the following commands create a bug report by including additional namespaces ns1, ns2, and ns3:
