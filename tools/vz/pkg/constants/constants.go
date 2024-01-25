@@ -149,6 +149,25 @@ const (
 	AppNameFlagUsage     = "The name of the OAM application to export"
 )
 
+// Constants for sanitize
+const (
+	InputTarFileFlagName  = "input-tar-file"
+	InputTarFileFlagValue = ""
+	InputTarFileFlagUsage = "Name of the input cluster-dump tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+
+	OutputTarGZFileFlagName  = "output-tar.gz-file"
+	OutputTarGZFileFlagValue = ""
+	OutputTarGZFileFlagUsage = "Name of the .tar.gz file that contains the sanitized output"
+
+	InputDirectoryFlagName  = "input-directory"
+	InputDirectoryFlagValue = ""
+	InputDirectoryFlagUsage = "Name of the directory that contains the un-sanitized cluster-dump"
+
+	OutputDirectoryFlagName  = "output-directory"
+	OutputDirectoryFlagValue = ""
+	OutputDirectoryFlagUsage = "Name of the directory that will contain the sanitized cluster-dump"
+)
+
 // Constants for bug report
 const (
 	BugReportLogFlagDefault   = false
