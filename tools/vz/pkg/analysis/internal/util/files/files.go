@@ -151,6 +151,8 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 
 	return nil
 }
+
+// GetTimeOfCapture parses the metadata.json file and converts the time string into a time.Time object to be used by other functions
 func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
 	timeCaptureRegExp := regexp.MustCompile(constants.MetadataJSON)
 	timeCaptureFileList, err := GetMatchingFiles(log, clusterRoot, timeCaptureRegExp)

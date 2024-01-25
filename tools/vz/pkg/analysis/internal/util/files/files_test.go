@@ -118,3 +118,15 @@ func checkIsRegularFile(logger *zap.SugaredLogger, fileName string) string {
 	}
 	return failText
 }
+
+// TestGetTimeOfCapture tests that a metadata.json file can be successfully parsed and a time.Time object is created without error
+// GIVEN a metadata.json file
+// WHEN I call GetTimeOfCapture and pass in this file
+// THEN expect it to successfully create a time.Time object and no error should be returned.
+func TestGetTimeOfCapture(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	timeObject, err := GetTimeOfCapture(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
+	assert.NotNil(t, timeObject)
+	assert.Nil(t, err)
+
+}
