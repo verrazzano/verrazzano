@@ -38,6 +38,7 @@ import (
 
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
+var writeFileError = "an error occurred while writing the file %s: %s\n"
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -155,7 +156,7 @@ func CaptureMetadata(captureDir string) error {
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
 	}
 	return nil
@@ -222,7 +223,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
 	}
 	return nil
@@ -488,7 +489,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON)))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
 	return nil
 }
