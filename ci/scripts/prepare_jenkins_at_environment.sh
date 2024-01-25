@@ -50,18 +50,10 @@ else
       exit 1
   fi
 
-  echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after it is created, but before we install anything else"
-  sleep 10m
-  echo "TONYHACK: Proceeding after kind cluster created"
-
-
   if [ $INSTALL_CALICO == true ]; then
     echo "Install Calico"
     cd ${GO_REPO_PATH}/verrazzano
     ./ci/scripts/install_calico.sh "${CLUSTER_NAME}"
-    echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after CALICO is installed, but before we install anything else"
-    sleep 10m
-    echo "TONYHACK: Proceeding after CALICO installed"
   fi
   # With the Calico configuration to set disableDefaultCNI to true in the KIND configuration, the control plane node will
   # be ready only after applying calico.yaml. So wait for the KIND control plane node to be ready, before proceeding further,
@@ -80,9 +72,6 @@ else
       echo "Metalllb installation failed"
       exit 1
   fi
-  echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after MetalLB is installed, but before we install anything else"
-  sleep 10m
-  echo "TONYHACK: Proceeding after MetalLB installed"
 
   echo "Create Image Pull Secrets"
   cd ${GO_REPO_PATH}/verrazzano
@@ -127,9 +116,6 @@ else
 EOF
     # deploy MySQL instance
     kubectl apply -f $WORKSPACE/tests/testdata/grafana/grafana-mysql.yaml
-    echo "TONYHACK: Sleep 10 minutes here so we can poke around in the cluster after MySQL is installed, but before we install anything else"
-    sleep 10m
-    echo "TONYHACK: Proceeding after MySQL installed"
   fi
 
   # create verrazzano-github-token secret in verrazzano-install ns
