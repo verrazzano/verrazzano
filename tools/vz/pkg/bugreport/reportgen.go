@@ -92,7 +92,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		fmt.Fprintf(vzHelper.GetOutputStream(), "\n"+msgPrefix+"resources from the cluster ...\n")
 	}
 	// Capture list of resources from verrazzano-install and verrazzano-system namespaces
-	err = captureResources(client, kubeClient, dynamicClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList, podLogs)
+	err = captureResources(client, kubeClient, dynamicClient, clusterSnapshotCtx.BugReportDir, vz, vzHelper, nsList)
 	if err != nil {
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
@@ -119,7 +119,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	return nil
 }
 
-func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string, podLogs PodLogs) error {
+func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 	// List of pods to collect the logs
 	vpoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoPlatformOperator, vzconstants.VerrazzanoInstallNamespace)
 	vaoPod, _ := pkghelpers.GetPodList(client, constants.AppLabel, constants.VerrazzanoApplicationOperator, vzconstants.VerrazzanoSystemNamespace)
@@ -154,9 +154,6 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	for _, ns := range namespaces {
 		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
-
-	// captures pod logs of vz component namespaces if --include-logs flag is enabled
-	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, bugReportDir, namespaces, podLogs)
 
 	wg.Wait()
 	close(ecl)

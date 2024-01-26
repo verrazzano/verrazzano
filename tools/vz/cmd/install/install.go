@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
@@ -378,7 +378,7 @@ func validateCmd(cmd *cobra.Command, client clipkg.Client) error {
 	return nil
 }
 
-// ValidateCR  - validates a Custom Resource before proceeding with an install
+// validateCR - validates a Custom Resource before proceeding with an install
 func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
 	discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
 	if err != nil {
