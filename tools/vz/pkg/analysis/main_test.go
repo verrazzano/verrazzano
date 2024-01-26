@@ -619,6 +619,7 @@ func TestBlockStorageFailure(t *testing.T) {
 		}
 	}
 	assert.True(t, problemsFound > 0)
+}
 
 // createStdTempFiles creates temporary files for stdout and stderr.
 func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
