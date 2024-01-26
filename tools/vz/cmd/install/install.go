@@ -378,7 +378,7 @@ func validateCmd(cmd *cobra.Command, client clipkg.Client) error {
 	return nil
 }
 
-// ValidateCR  - validates a Custom Resource before proceeding with an install
+// validateCR - validates a Custom Resource before proceeding with an install
 func ValidateCR(cmd *cobra.Command, obj *unstructured.Unstructured, vzHelper helpers.VZHelper) []error {
 	discoveryClient, err := vzHelper.GetDiscoveryClient(cmd)
 	if err != nil {
