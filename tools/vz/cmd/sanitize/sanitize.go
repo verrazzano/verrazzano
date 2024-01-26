@@ -12,6 +12,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"regexp"
+	"strings"
 )
 
 const (
@@ -51,27 +52,34 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 	if err != nil {
 		return err
 	}
-	if validatedStruct.inputDirectory != "" {
-		validatedStruct.inputDirectory, err = os.MkdirTemp("", constants.SanitizeDir)
+	if validatedStruct.inputDirectory == "" {
+		//This is the case where only the tar string is specified, so a temporary directory is made to untar it into
+		validatedStruct.inputDirectory, err = os.MkdirTemp("", constants.SanitizeDirInput)
 		if err != nil {
 			return err
 		}
 		defer os.RemoveAll(validatedStruct.inputDirectory)
-		if validatedStruct.inputTarFile != "" {
-			//This is the case where only the tar string is specified
-			file, err := os.Open(validatedStruct.inputTarFile)
-			defer file.Close()
-			if err != nil {
-				return fmt.Errorf("an error occurred when trying to open %s: %s", validatedStruct.inputTarFile, err.Error())
-			}
-			err = helpers.UntarArchive(validatedStruct.inputDirectory, file)
-			if err != nil {
-				return fmt.Errorf("an error occurred while trying to untar %s: %s", validatedStruct.inputTarFile, err.Error())
-			}
+		file, err := os.Open(validatedStruct.inputTarFile)
+		defer file.Close()
+		if err != nil {
+			return fmt.Errorf("an error occurred when trying to open %s: %s", validatedStruct.inputTarFile, err.Error())
+		}
+		err = helpers.UntarArchive(validatedStruct.inputDirectory, file)
+		if err != nil {
+			return fmt.Errorf("an error occurred while trying to untar %s: %s", validatedStruct.inputTarFile, err.Error())
 		}
 
 	}
-	return nil
+	// If an output directory is not specified, create a temporary output directory that can be used to tar the sanitize files
+	if validatedStruct.outputDirectory == "" {
+		validatedStruct.outputDirectory, err = os.MkdirTemp("", constants.SanitizeDirOutput)
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(validatedStruct.outputDirectory)
+	}
+	err = sanitizeDirectory(*validatedStruct)
+	return err
 
 }
 
@@ -120,16 +128,35 @@ func sanitizeDirectory(validation flagValidation) error {
 		return err
 	}
 	for i, _ := range listOfFilesToSanitize {
-		fileToSanitize := listOfFilesToSanitize[i]
-		unsanitizedFileBytes, err := os.ReadFile(fileToSanitize)
+		sanitizeFileAndWriteItToOutput(validation, listOfFilesToSanitize[i])
+
+	}
+	if validation.outputTarGZFile != "" {
+		tarGZFileForOutput, err := os.Create(validation.outputTarGZFile)
+		defer tarGZFileForOutput.Close()
 		if err != nil {
 			return err
 		}
-		notSanitizedFileString := string(unsanitizedFileBytes)
-		// Pick up tomorrow to work on output directory
-		sanitizedFileString := helpers.SanitizeString(notSanitizedFileString, nil)
-		fmt.Println(sanitizedFileString)
-
+		helpers.CreateReportArchive(validation.outputDirectory, tarGZFileForOutput)
 	}
 	return nil
+}
+
+func sanitizeFileAndWriteItToOutput(validation flagValidation, fileToSanitizePath string) error {
+	unsanitizedFileBytes, err := os.ReadFile(fileToSanitizePath)
+	if err != nil {
+		return err
+	}
+	fileInfo, err := os.Stat(fileToSanitizePath)
+	if err != nil {
+		return err
+	}
+	notSanitizedFileString := string(unsanitizedFileBytes)
+	// Pick up tomorrow to work on output directory
+	sanitizedFileString := helpers.SanitizeString(notSanitizedFileString, nil)
+	sanitizedFileStringAsBytes := []byte(sanitizedFileString)
+	pathOfSanitizedFileForOutput := strings.ReplaceAll(fileToSanitizePath, validation.inputDirectory, validation.outputDirectory)
+
+	err = os.WriteFile(pathOfSanitizedFileForOutput, sanitizedFileStringAsBytes, fileInfo.Mode())
+	return err
 }

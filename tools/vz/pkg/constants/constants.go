@@ -183,7 +183,9 @@ const (
 
 	BugReportDir = "bug-report"
 
-	SanitizeDir = "sanitize"
+	SanitizeDirInput = "sanitize-input"
+
+	SanitizeDirOutput = "sanitize-output"
 
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
