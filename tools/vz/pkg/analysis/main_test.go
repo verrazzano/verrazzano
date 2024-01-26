@@ -606,7 +606,7 @@ func TestBlockStorageFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/blockstorage-limitexceeded")
+	err := Analyze(rc, logger, "cluster", "test/cluster/blockstorage-limitexceeded")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
