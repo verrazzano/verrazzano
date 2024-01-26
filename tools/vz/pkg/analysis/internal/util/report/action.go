@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -64,7 +64,6 @@ var RunbookLinks = map[string][]string{
 	KeycloakDataMigrationFailure: {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/keycloakdatamigrationfailure"},
 	ClusterAPIClusterIssues:      {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/clusterapiclusterissues"},
 	RancherIssues:                {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/rancherissues"},
-	BlockStorageLimitExceeded:    {"https://verrazzano.io/" + version.GetEffectiveDocsVersion() + "/docs/troubleshooting/diagnostictools/analysisadvice/blockstoragelimitexceeded"},
 }
 
 // KnownActions are Standard Action types
@@ -91,7 +90,6 @@ var KnownActions = map[string]Action{
 	KeycloakDataMigrationFailure: {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[KeycloakDataMigrationFailure][0])},
 	ClusterAPIClusterIssues:      {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[ClusterAPIClusterIssues][0])},
 	RancherIssues:                {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[RancherIssues][0])},
-	BlockStorageLimitExceeded:    {Summary: getConsultRunbookAction(ConsultRunbook, RunbookLinks[BlockStorageLimitExceeded][0])},
 }
 
 func getConsultRunbookAction(summaryF string, runbookLink string) string {
