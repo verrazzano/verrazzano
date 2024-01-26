@@ -55,7 +55,8 @@ type CaCrtInfo struct {
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
-func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
+// If the addClusterSnapshot value is set to true, a
+func CreateReportArchive(captureDir string, bugRepFile *os.File, addClusterSnapshot bool) error {
 
 	// Create new Writers for gzip and tar
 	gzipWriter := gzip.NewWriter(bugRepFile)
@@ -68,8 +69,13 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 		if fileInfo.Mode().IsDir() {
 			return nil
 		}
+		var filePath string
 		// make cluster-snapshot as the root directory in the archive, to support existing analysis tool
-		filePath := constants.BugReportRoot + path[len(captureDir):]
+		if addClusterSnapshot {
+			filePath = constants.BugReportRoot + path[len(captureDir):]
+		} else {
+			filePath = path[len(captureDir):]
+		}
 		fileReader, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf(errBugReport, err.Error())

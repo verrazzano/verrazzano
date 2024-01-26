@@ -10,8 +10,8 @@ import (
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io/fs"
 	"os"
-	"regexp"
 	"strings"
 )
 
@@ -48,7 +48,7 @@ func NewCmdSanitize(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	validatedStruct, err := parseInputAndOutputFlags(cmd, vzHelper, constants.InputDirectoryFlagName, constants.InputTarFileFlagName, constants.OutputDirectoryFlagName, constants.OutputTarGZFileFlagName)
+	validatedStruct, err := parseInputAndOutputFlags(cmd, vzHelper, constants.InputDirectoryFlagName, constants.OutputDirectoryFlagName, constants.InputTarFileFlagName, constants.OutputTarGZFileFlagName)
 	if err != nil {
 		return err
 	}
@@ -118,17 +118,21 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 
 func sanitizeDirectory(validation flagValidation) error {
 	inputDirectory := validation.inputDirectory
-	// This regular expression will match all filenames and it assumes that file names won't have new line characters
-	regExpForAllFiles, err := regexp.Compile(".*")
-	if err != nil {
-		return err
-	}
-	listOfFilesToSanitize, err := files.GetMatchingFiles(inputDirectory, regExpForAllFiles)
+	listOfFilesToSanitize, err := files.GetAllDirectoriesAndFiles(inputDirectory)
 	if err != nil {
 		return err
 	}
 	for i, _ := range listOfFilesToSanitize {
-		sanitizeFileAndWriteItToOutput(validation, listOfFilesToSanitize[i])
+		fileInfo, err := os.Stat(listOfFilesToSanitize[i])
+		if err != nil {
+			return err
+		}
+		fileMode := fileInfo.Mode()
+		isDir := fileInfo.IsDir()
+		err = sanitizeFileAndWriteItToOutput(validation, isDir, listOfFilesToSanitize[i], fileMode)
+		if err != nil {
+			return err
+		}
 
 	}
 	if validation.outputTarGZFile != "" {
@@ -137,26 +141,27 @@ func sanitizeDirectory(validation flagValidation) error {
 		if err != nil {
 			return err
 		}
-		helpers.CreateReportArchive(validation.outputDirectory, tarGZFileForOutput)
+		if err = helpers.CreateReportArchive(validation.outputDirectory, tarGZFileForOutput, false); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func sanitizeFileAndWriteItToOutput(validation flagValidation, fileToSanitizePath string) error {
+func sanitizeFileAndWriteItToOutput(validation flagValidation, isDirectory bool, fileToSanitizePath string, fileMode fs.FileMode) error {
+	pathOfSanitizedFileOrDirectoryForOutput := strings.ReplaceAll(fileToSanitizePath, validation.inputDirectory, validation.outputDirectory)
+	if isDirectory {
+		err := os.MkdirAll(pathOfSanitizedFileOrDirectoryForOutput, fileMode)
+		return err
+	}
 	unsanitizedFileBytes, err := os.ReadFile(fileToSanitizePath)
 	if err != nil {
 		return err
 	}
-	fileInfo, err := os.Stat(fileToSanitizePath)
-	if err != nil {
-		return err
-	}
 	notSanitizedFileString := string(unsanitizedFileBytes)
-	// Pick up tomorrow to work on output directory
 	sanitizedFileString := helpers.SanitizeString(notSanitizedFileString, nil)
 	sanitizedFileStringAsBytes := []byte(sanitizedFileString)
-	pathOfSanitizedFileForOutput := strings.ReplaceAll(fileToSanitizePath, validation.inputDirectory, validation.outputDirectory)
 
-	err = os.WriteFile(pathOfSanitizedFileForOutput, sanitizedFileStringAsBytes, fileInfo.Mode())
+	err = os.WriteFile(pathOfSanitizedFileOrDirectoryForOutput, sanitizedFileStringAsBytes, fileMode)
 	return err
 }

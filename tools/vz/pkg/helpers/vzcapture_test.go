@@ -69,7 +69,7 @@ func TestCreateReportArchive(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	err = CreateReportArchive(captureDir, bugReportFile)
+	err = CreateReportArchive(captureDir, bugReportFile, true)
 	if err != nil {
 		assert.Error(t, err)
 	}

@@ -4,6 +4,7 @@ package sanitize
 
 import (
 	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
@@ -40,6 +41,64 @@ func TestNoArgsIntoSanitize(t *testing.T) {
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
 	assert.NotNil(t, err)
+}
+
+// TestTwoInputArgsIntoSanitize
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an input tar file specified
+// THEN expect the command to return an error
+func TestTwoInputArgsIntoSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "input-directory")
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "input.tar")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.NotNil(t, err)
+}
+
+// TestTwoOutputArgsIntoSanitize
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an output directory and an output tar.gz file specified
+// THEN expect the command to return an error
+func TestTwoOutputArgsIntoSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "output-directory")
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output.tar.gz")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.NotNil(t, err)
+}
+
+// TestSanitizeCommandWithInputDirectoryAndOutputTarGZFil
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an output tar.gz file specified
+// THEN expect the command to not return an error and to create the specified tar.gz file
+func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output-tar-file.tar.gz")
+	defer os.Remove("output-tar-file.tar.gz")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
