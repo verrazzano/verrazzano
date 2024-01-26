@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package analyze
@@ -18,6 +18,7 @@ const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
 
 const loadBalancerErr = "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded"
 const noIPFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
+const istioIPErr = "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer"
 
 // TestAnalyzeDefaultFromReadOnlyDir
 // GIVEN a CLI analyze command
@@ -213,6 +214,91 @@ func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 	buf, err := os.ReadFile(stderrFile.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(buf), "Cluster Analyzer runAnalysis didn't find any clusters")
+}
+
+// TestAnalyzeCommandTarGZFile
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a .tar.gz file as the input
+// THEN expect the command to output the correct summary
+func TestAnalyzeCommandTarGZFile(t *testing.T) {
+	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar.gz")
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), istioIPErr)
+}
+
+// TestAnalyzeCommandTGZFile
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a .tgz file as the input
+// THEN expect the command to output the correct summary
+func TestAnalyzeCommandTGZFile(t *testing.T) {
+	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tgz")
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), istioIPErr)
+}
+
+// TestAnalyzeCommandTarFile
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a .tar file as the input
+// THEN expect the command to output the correct summary
+func TestAnalyzeCommandTarFile(t *testing.T) {
+	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(buf), istioIPErr)
+}
+
+// TestAnalyzeCommandTarFileNotFound
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a non-existent path to a tar file
+// THEN expect the command to return an error
+func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
+	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
+	err := cmd.Execute()
+	assert.ErrorContains(t, err, "an error occurred when trying to open ../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

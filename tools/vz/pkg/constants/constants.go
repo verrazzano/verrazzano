@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package constants
@@ -128,6 +128,10 @@ const (
 	ReportFileFlagValue = ""
 	ReportFileFlagUsage = "Name of the report output file. (default stdout)"
 
+	TarFileFlagName  = "tar-file"
+	TarFileFlagValue = ""
+	TarFileFlagUsage = "Name of the cluster-dump tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
 
@@ -170,6 +174,10 @@ const (
 	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
+	// File containing a map from redacted values to their original values
+	RedactionPrefix = "REDACTED-"
+	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
+
 	// File names for the various resources
 	VzResource       = "verrazzano-resources.json"
 	DeploymentsJSON  = "deployments.json"
@@ -210,7 +218,7 @@ const (
 	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
+	BugReportLogFlagNameUsage    = "Include logs from all containers in running pods of the namespaces being captured."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
