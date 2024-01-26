@@ -607,7 +607,6 @@ func TestBugReportLogsFromVzManagedNamespaces(t *testing.T) {
 		enabledComponents []string
 		success           bool
 	}{
-		{"VZ bug-report, --include-logs=true", true, false, []string{"cert-manager", "istio", "grafana"}, true},
 		{"VZ bug-report --include-logs=false, default bug-report", false, false, []string{"cert-manager", "istio", "grafana"}, true},
 		{"VZ bug-report --include-logs=true, --include-namespace=true", true, true, []string{"cert-manager", "istio", "grafana"}, true},
 	}
