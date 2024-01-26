@@ -35,7 +35,6 @@ var dbLoadJobCompletedRe = regexp.MustCompile(`.*Keycloak DB successfully migrat
 // I'm going with a more general pattern for limit reached as the supporting details should give the precise message
 // and the advice can be to refer to the supporting details on the limit that was exceeded. We can change it up
 // if we need a more precise match
-var blockStorageLimitExceeded = regexp.MustCompile(`.*failed to provision volume with StorageClass .*New volume creation failed Error returned by Blockstorage Service.*`)
 var ephemeralIPLimitReachedRe = regexp.MustCompile(`.*Limit for non-ephemeral regional public IP per tenant of .* has been already reached`)
 var lbServiceLimitReachedRe = regexp.MustCompile(`.*The following service limits were exceeded: lb-.*`)
 var failedToEnsureLoadBalancer = regexp.MustCompile(`.*failed to ensure load balancer: awaiting load balancer.*`)
@@ -139,7 +138,6 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 	// before verifying that the NGINX service is in good standing
 	analyzeIstioIngressService(log, clusterRoot, issueReporter)
 	analyzeExternalDNS(log, clusterRoot, issueReporter)
-	analyzeKeycloakIssue(log, clusterRoot, issueReporter)
 
 	ingressNGINXNamespace, err := checkIngressNGINXNamespace(clusterRoot)
 	if err != nil {
@@ -529,30 +527,6 @@ func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, i
 			servFiles := make(StringSlice, 1)
 			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, istioSystem)
 			issueReporter.AddKnownIssueMessagesFiles(report.IstioIngressPrivateSubnet, clusterRoot, messages, servFiles)
-		}
-	}
-}
-
-// Analyze error in the Keycloak namespace
-func analyzeKeycloakIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
-	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, "keycloak", eventsJSON))
-	if e != nil {
-		log.Debugf("Failed to get events file %s", eventsJSON)
-		return
-	}
-	log.Debugf("Found %d events in events file", len(eventsList.Items))
-	serviceEvents := make([]corev1.Event, 0, 1)
-	isIssueAlreadyExists := false
-	for _, event := range eventsList.Items {
-		if blockStorageLimitExceeded.MatchString(event.Message) && !isIssueAlreadyExists {
-			isIssueAlreadyExists = true
-			serviceEvents = append(serviceEvents, event)
-			messages := make(StringSlice, 1)
-			messages[0] = event.Message
-			// Create the service message from the object metadata
-			servFiles := make(StringSlice, 1)
-			servFiles[0] = report.GetRelatedServiceMessage(serviceEvents[0].ObjectMeta.Name, "keycloak")
-			issueReporter.AddKnownIssueMessagesFiles(report.BlockStorageLimitExceeded, clusterRoot, messages, servFiles)
 		}
 	}
 }
