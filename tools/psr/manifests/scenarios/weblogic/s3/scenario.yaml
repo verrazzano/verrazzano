@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Oracle and/or its affiliates.
+# Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 name: weblogic-s3
@@ -6,8 +6,8 @@ ID: wls-s3
 description: |
   This is a scenario that scales the WebLogic domain and sends GET requests at the same time
 workers:
-  - workerConfigPath: weblogic/scale.yaml
-    workerOverrideFile: scale.yaml
+  - workerConfigPath: weblogic/echo.yaml
+    workerOverrideFile: echo.yaml
     description: scales WebLogic domain
   - workerConfigPath: http/get.yaml
     workerOverrideFile: get.yaml

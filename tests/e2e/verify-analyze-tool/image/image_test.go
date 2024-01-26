@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This is an e2e test to plant image related issues and validates it
@@ -6,13 +6,15 @@
 package image
 
 import (
+	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	k8util "github.com/verrazzano/verrazzano/pkg/k8sutil"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
 	"k8s.io/client-go/kubernetes"
-	"time"
 )
 
 var (
@@ -32,6 +34,11 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	client, err = k8util.GetKubernetesClientset()
 	if err != nil {
 		Fail(err.Error())
+	}
+
+	err := patch()
+	if err != nil {
+		Fail(fmt.Sprintf("error while patching verrazzano-related resources: %v", err.Error()))
 	}
 })
 
@@ -59,10 +66,6 @@ func patch() error {
 
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-image-issues"), func() {
 	t.Context("During Image Issue Analysis", func() {
-		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			patch()
-		})
-
 		t.It("Should Have ImagePullNotFound Issue Post Bad Image Injection", func() {
 			Eventually(func() bool {
 				return utility.VerifyIssue(utility.ReportAnalysis[utility.ImagePullNotFound][0], utility.ImagePullNotFound)
