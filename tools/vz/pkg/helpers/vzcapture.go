@@ -136,27 +136,21 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	return nil
 }
 
-// captureTime gets the current time in UTC on the user's system and outputs it in ISO 8601 format to the user's system
+// captureMetadata gets the current time in UTC on the user's system and outputs it in RFC 3339 format to the user's system
 func CaptureMetadata(captureDir string) error {
 	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
-	var vzRes = filepath.Join(captureDir, constants.MetadataJSON)
-	f, err := os.OpenFile(vzRes, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf(createFileError, vzRes, err.Error())
-	}
-	defer f.Close()
-
+	metadataFilename := filepath.Join(captureDir, constants.MetadataJSON)
 	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
 	timeStructToWrite := Metadata{Time: timetoCaptureString}
-	vzJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
-
+	metadataJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
 		return err
 	}
-	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON)))
+	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0644)
 	if err != nil {
-		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
 		return err
 	}
 	return nil

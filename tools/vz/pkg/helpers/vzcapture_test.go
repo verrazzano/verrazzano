@@ -5,7 +5,15 @@ package helpers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"regexp"
+	"testing"
+	"time"
+
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
@@ -23,12 +31,8 @@ import (
 	fakedynamic "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
-	"path/filepath"
-	"regexp"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const dummyIP1 = "0.0.0.0"
@@ -520,7 +524,7 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 // TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
 // GIVEN a k8s cluster,
 // WHEN I call functions to get the namespace resource for that namespace
-// THEN expect it to write to the provided resource file and no error should be returned.
+// THEN expect it to write to the provided resource file with the correct information and no error should be returned.
 func TestCreateNamespaceFile(t *testing.T) {
 	listOfFinalizers := []corev1.FinalizerName{"test-finalizer-name"}
 	sampleNamespace := corev1.Namespace{
@@ -547,12 +551,17 @@ func TestCreateNamespaceFile(t *testing.T) {
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err = captureNamespaces(client, "test-namespace", captureDir, rc)
 	assert.NoError(t, err)
+	namespaceLocation := filepath.Join(captureDir, "test-namespace", constants.NamespaceJSON)
+	namespaceObjectToUnmarshalInto := &corev1.Namespace{}
+	err = unmarshallFile(namespaceLocation, namespaceObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	assert.True(t, namespaceObjectToUnmarshalInto.Status.Phase == corev1.NamespaceTerminating)
 }
 
 // TestCreateMetadataFile tests that a metadata file titled metadata.json can be successfully written
 // GIVEN a k8s cluster,
 // WHEN I call functions to record the metadata for the capture
-// THEN expect it to write to the correct resource file and no error should be returned.
+// THEN expect it to write to the correct resource file with the correct information and no error should be returned.
 func TestCreateMetadataFile(t *testing.T) {
 	captureDir, err := os.MkdirTemp("", "testcaptureformetadata")
 	assert.NoError(t, err)
@@ -566,4 +575,39 @@ func TestCreateMetadataFile(t *testing.T) {
 	SetMultiWriterErr(errBuf, tempFile)
 	err = CaptureMetadata(captureDir)
 	assert.NoError(t, err)
+	metadataLocation := filepath.Join(captureDir, constants.MetadataJSON)
+	metadataObjectToUnmarshalInto := &Metadata{}
+	err = unmarshallFile(metadataLocation, metadataObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	timeObject, err := time.Parse(time.RFC3339, metadataObjectToUnmarshalInto.Time)
+	assert.NoError(t, err)
+	assert.True(t, time.Now().UTC().Sub(timeObject).Minutes() < 60)
+
+}
+
+// unmarshallFile is a helper function that is used to place the contents of a file into a defined struct
+func unmarshallFile(clusterPath string, object interface{}) error {
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	// Unmarshall file contents into a struct
+	err = json.Unmarshal(fileBytes, object)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal %s: %s", clusterPath, err.Error())
+	}
+
+	return nil
 }

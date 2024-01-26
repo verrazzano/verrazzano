@@ -7,14 +7,15 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"time"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"time"
 )
 
 // AnalyzeNamespaceRelatedIssues is the initial entry function for namespace related issues, and it returns an error.
@@ -83,12 +84,8 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 		return false, listOfMessagesFromRelevantConditions
 	}
 	if namespaceObject.DeletionTimestamp != nil {
-		timeOfCaptureUnixSeconds := timeOfCapture.Unix()
-		deletionTimestampUnixSeconds := namespaceObject.DeletionTimestamp.Unix()
-		timePassedInSecondsBetween := timeOfCaptureUnixSeconds - deletionTimestampUnixSeconds
-		minutesSpentDeleting := timePassedInSecondsBetween / 60
-		secondsRemainingSpentDeleting := timePassedInSecondsBetween % 60
-		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(minutesSpentDeleting) + " minutes and " + fmt.Sprint(secondsRemainingSpentDeleting) + " seconds deleting"
+		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
+		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
 		listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
 	}
 	namespaceConditions := namespaceObject.Status.Conditions
