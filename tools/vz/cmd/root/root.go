@@ -47,5 +47,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.AddCommand(export.NewCmdExport(vzHelper))
 	cmd.AddCommand(sanitize.NewCmdSanitize(vzHelper))
 
+	cmd.CompletionOptions.HiddenDefaultCmd = true
+
 	return cmd
 }
