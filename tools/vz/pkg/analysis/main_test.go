@@ -604,7 +604,12 @@ func TestCertificateVZClientHangingIssue(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestBlockStorageFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
 	err := Analyze(rc, logger, "cluster", "test/cluster/blockstorage-limitexceeded")
 	assert.Nil(t, err)
