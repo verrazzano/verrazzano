@@ -41,8 +41,9 @@ type ErrorsChannel struct {
 }
 
 type PodLogs struct {
-	IsPodLog bool
-	Duration int64
+	IsPodLog   bool
+	IsPrevious bool
+	Duration   int64
 }
 type Pods struct {
 	Namespace string
