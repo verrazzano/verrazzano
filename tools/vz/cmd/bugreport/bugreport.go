@@ -45,7 +45,10 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include
 
 The values specified for the flag --include-namespaces are case-sensitive.
 
-# Use the --include-logs flag to collect the logs from the pods in one or more namespaces, by specifying the --include-namespaces flag.
+# Use the --include-logs flag to capture logs from all the containers in running pods, from the default namespaces being captured
+vz bug-report --report-file bugreport.tgz --include-logs
+
+# Use the --include-logs flag in combination with the --include-namespaces flag to extend the default namespaces being captured and capture additional logs from all containers in running pods of the specified namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
 # The flag --duration collects logs for a specific period. The default value is 0, which collects the complete pod log. It supports seconds, minutes, and hours.
