@@ -99,9 +99,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Append any additional namespaces from the --include-namespace flag, to the list of namespaces already being captured
 	if len(additionalNS) > 0 {
-		for _, ns := range additionalNS {
-			nsList = append(nsList, ns)
-		}
+		nsList = append(nsList, additionalNS...)
 	}
 
 	// Capture logs from resources when the --include-logs flag is enabled
