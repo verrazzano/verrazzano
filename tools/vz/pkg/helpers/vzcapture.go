@@ -267,7 +267,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
 		return err
 	}
-	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	_, err = f.WriteString(SanitizeString(string(vzJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
 		return err
@@ -492,7 +492,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			reader := bufio.NewScanner(podLog)
 			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
 			for reader.Scan() {
-				f.WriteString(SanitizeString(reader.Text() + "\n"))
+				f.WriteString(SanitizeString(reader.Text()+"\n", nil))
 			}
 			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
 			return nil
@@ -521,7 +521,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
-	_, err = f.WriteString(SanitizeString(string(resJSON)))
+	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
 	}
