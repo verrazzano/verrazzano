@@ -101,6 +101,46 @@ func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an output directory file specified
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputTarAndOutputDirectoryFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputTarAndOutputDirectoryFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
 // createStdTempFiles creates temporary files for stdout and stderr.
 func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 	stdoutFile, err := os.CreateTemp("", "tmpstdout")
