@@ -5,7 +5,6 @@
 package cluster
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -52,7 +51,7 @@ func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
 
 // TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided tests whether only one issue is created and no error is generated when a valid input with multiple namespace captures with issues are provided
 // GIVEN a call to analyze namespace related issues in a cluster-snapshot
-// WHEN a valid input is provided that has multiple a
+// WHEN a valid input is provided that has multiple namespace captures with issues
 // THEN the function does not generate an error and only creates one issue
 func TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided(t *testing.T) {
 	report.ClearReports()
@@ -61,5 +60,17 @@ func TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided(t *testin
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
-	fmt.Println(reportedIssues[0])
+}
+
+// TestAnalyzeNamespaceRelatedIssueWhenMetadataFileIsNotProvided tests whether only one issue is created and no error is generated when a valid input without a metadata.json file and multiple namespace captures with issues are provided
+// GIVEN a call to analyze namespace related issues in a cluster-snapshot
+// WHEN a valid input is provided that has multiple namespace captures with issues and does not have a metadata.json file
+// THEN the function does not generate an error and only creates one issue
+func TestAnalyzeNamespaceRelatedIssueWhenMetadataFileIsNotProvided(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers-no-metadata-file/cluster-snapshot")
+	assert.Nil(t, err)
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
+	assert.True(t, len(reportedIssues) == 1)
 }

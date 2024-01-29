@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
@@ -32,9 +33,6 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 	if err != nil {
 		return err
 	}
-	if timeOfCapture == nil {
-		return nil
-	}
 	for _, namespace := range allNamespacesFound {
 		namespaceFile := files.FindFileInNamespace(clusterRoot, namespace, constants.NamespaceJSON)
 		namespaceObject, err := getNamespaceResource(log, namespaceFile)
@@ -44,7 +42,7 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 		if namespaceObject == nil {
 			continue
 		}
-		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject, *timeOfCapture)
+		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject, timeOfCapture)
 		if issueFound {
 			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile, messageList)
 		}
@@ -78,16 +76,19 @@ func getNamespaceResource(log *zap.SugaredLogger, path string) (namespaceObject 
 }
 
 // isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
-func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, timeOfCapture time.Time) (bool, []string) {
+func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, timeOfCapture *time.Time) (bool, []string) {
 	var listOfMessagesFromRelevantConditions = []string{}
 	if namespaceObject.Status.Phase != corev1.NamespaceTerminating {
 		return false, listOfMessagesFromRelevantConditions
 	}
-	if namespaceObject.DeletionTimestamp != nil {
+	var deletionMessage string
+	if namespaceObject.DeletionTimestamp != nil && timeOfCapture != nil {
 		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
-		deletionMessage := "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
-		listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
+		deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
+	} else {
+		deletionMessage = "The namespace " + namespaceObject.Name + " has spent an undetermined amount of time in a state of deletion"
 	}
+	listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
 	namespaceConditions := namespaceObject.Status.Conditions
 	if namespaceConditions == nil {
 		return true, listOfMessagesFromRelevantConditions
@@ -103,6 +104,12 @@ func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev
 	files := []string{namespaceFile}
 	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
 	message = append(message, messagesFromConditions...)
-	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingState, clusterRoot, message, files)
+	for i, _ := range messagesFromConditions {
+		if strings.Contains(messagesFromConditions[i], "has spent an undetermined amount of time in a state of deletion") {
+			issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateUnknownDuration, clusterRoot, message, files)
+			return
+		}
+	}
+	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateKnownDuration, clusterRoot, message, files)
 
 }
