@@ -77,7 +77,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
-	nsList, additionalNS, err := collectNamespaces(kubeClient, dynamicClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
+	nsList, _, err := collectNamespaces(kubeClient, dynamicClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
 	if err != nil {
 		return err
 	}
