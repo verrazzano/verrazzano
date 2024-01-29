@@ -148,7 +148,7 @@ func CaptureMetadata(captureDir string) error {
 		return err
 	}
 	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON)))
-	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0644)
+	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
 		return err
