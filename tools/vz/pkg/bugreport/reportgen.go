@@ -97,11 +97,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	// Append any additional namespaces from the --include-namespace flag, to the list of namespaces already being captured
-	if len(additionalNS) > 0 {
-		nsList = append(nsList, additionalNS...)
-	}
-
 	// Capture logs from resources when the --include-logs flag is enabled
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
