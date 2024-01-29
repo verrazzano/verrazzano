@@ -66,6 +66,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	cmd.Example = helpExample
+	cmd.PersistentFlags().String(constants.RedactedValuesFlagName, constants.RedactedValuesFlagValue, constants.RedactedValuesFlagUsage)
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
