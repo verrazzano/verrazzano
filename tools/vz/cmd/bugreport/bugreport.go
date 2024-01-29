@@ -74,6 +74,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.BugReportLogFlagName, constants.BugReportLogFlagNameShort, constants.BugReportLogFlagDefault, constants.BugReportLogFlagNameUsage)
 	cmd.PersistentFlags().DurationP(constants.BugReportTimeFlagName, constants.BugReportTimeFlagNameShort, constants.BugReportTimeFlagDefaultTime, constants.BugReportTimeFlagNameUsage)
+	cmd.PersistentFlags().BoolP(constants.BugReportPreviousLogFlagName, constants.BugReportPreviousLogFlagNameShort, constants.BugReportPreviousLogFlagDefault, constants.BugReportPreviousLogFlagNameUsage)
 
 	// Verifies that the CLI args are not set at the creation of a command
 	vzHelper.VerifyCLIArgsNil(cmd)
@@ -142,6 +143,12 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.BugReportLogFlagName, err.Error())
 	}
 
+	isPrevious, err := cmd.PersistentFlags().GetBool(constants.BugReportPreviousLogFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
+
+	}
+
 	// If additional namespaces pods logs needs to be capture using flag with duration --duration
 	durationString, err := cmd.PersistentFlags().GetDuration(constants.BugReportTimeFlagName)
 	if err != nil {
@@ -171,7 +178,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Capture cluster snapshot
 	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: bugReportDir, MoreNS: moreNS, PrintReportToConsole: false}
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, IsPrevious: isPrevious, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
 		os.Remove(bugRepFile.Name())
 		return bugRepFile.Name(), fmt.Errorf(err.Error())

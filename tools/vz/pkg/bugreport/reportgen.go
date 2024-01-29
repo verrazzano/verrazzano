@@ -117,6 +117,12 @@ var externalDNSPod = VzComponentNamespaces{
 	},
 }
 
+var emptyPodLog = PodLogs{
+	IsPodLog:   false,
+	IsPrevious: false,
+	Duration:   0,
+}
+
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
 
@@ -191,15 +197,16 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, bugReportDir string, vz *v1beta1.Verrazzano, vzHelper pkghelpers.VZHelper, namespaces []string) error {
 	// List of pods to collect the logs
-	podsToCollect := []VzComponentNamespaces{vpoPod, vaoPod, vcoPod, vmoPod, vpoWebHookPod, externalDNSPod}
-	for _, component := range podsToCollect {
+	podsToCollect := []VzComponentNamespaces{vpoPod, vaoPod, vcoPod, vmoPod, vpoWebHookPod}
+	for i, component := range podsToCollect {
 		podList, _ := pkghelpers.GetPodList(client, component.Label, component.Name, component.Namespace)
-		component.PodList.PodList = podList
+		podsToCollect[i].PodList.PodList = podList
 	}
+	externalDNSPod.PodList.PodList, _ = pkghelpers.GetPodList(client, externalDNSPod.Label, externalDNSPod.Name, externalDNSPod.Namespace)
 
-	wgCount := 6 + len(namespaces)
+	wgCount := 5 + len(namespaces)
 	wgCount++ // increment for the verrrazzano resource
-	if len(podsToCollect[5].PodList.PodList) > 0 {
+	if len(externalDNSPod.PodList.PodList) > 0 {
 		wgCount++
 	}
 	wg := &sync.WaitGroup{}
@@ -213,10 +220,10 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 	go captureVZResource(wg, evr, vz, bugReportDir)
 
 	for _, podList := range podsToCollect {
-		go captureLogs(wg, ecl, kubeClient, Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, 0)
-		if podList.Name == vzconstants.ExternalDNS && len(podList.PodList.PodList) > 0 {
-			go captureLogs(wg, ecl, kubeClient, Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, 0)
-		}
+		go captureLogs(wg, ecl, kubeClient, Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, emptyPodLog)
+	}
+	if len(externalDNSPod.PodList.PodList) > 0 {
+		go captureLogs(wg, ecl, kubeClient, Pods{Namespace: externalDNSPod.Namespace, PodList: externalDNSPod.PodList.PodList}, bugReportDir, vzHelper, emptyPodLog)
 	}
 
 	for _, ns := range namespaces {
@@ -245,7 +252,7 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 }
 
 // captureAdditionalLogs will be used for capture logs from additional namespace.
-func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, namespaces []string, duration int64) error {
+func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, namespaces []string, podLogs PodLogs) error {
 	wgCount := len(namespaces)
 	wg := &sync.WaitGroup{}
 	wg.Add(wgCount)
@@ -255,7 +262,7 @@ func captureAdditionalLogs(client clipkg.Client, kubeClient kubernetes.Interface
 	ecl := make(chan ErrorsChannelLogs, 1)
 	for _, ns := range namespaces {
 		podList, _ := pkghelpers.GetPodListAll(client, ns)
-		go captureLogsAllPods(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, duration)
+		go captureLogsAllPods(wg, ecl, kubeClient, Pods{PodList: podList, Namespace: ns}, bugReportDir, vzHelper, podLogs)
 	}
 
 	wg.Wait()
@@ -289,14 +296,14 @@ func captureVZResource(wg *sync.WaitGroup, ec chan ErrorsChannel, vz *v1beta1.Ve
 }
 
 // captureLogs collects the logs from platform operator, application operator and monitoring operator in parallel
-func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pod Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+func captureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pod Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, podLog PodLogs) {
 	defer wg.Done()
 	if len(pod.PodList) == 0 {
 		return
 	}
 	// This won't work when there are more than one pods for the same app label
 	pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pod.PodList[0].Name, pod.Namespace))
-	err := pkghelpers.CapturePodLog(kubeClient, pod.PodList[0], pod.Namespace, bugReportDir, vzHelper, duration)
+	err := pkghelpers.CapturePodLog(kubeClient, pod.PodList[0], pod.Namespace, bugReportDir, vzHelper, podLog.Duration, podLog.IsPrevious)
 	if err != nil {
 		ec <- ErrorsChannelLogs{PodName: pod.PodList[0].Name, ErrorMessage: err.Error()}
 	}
@@ -402,7 +409,7 @@ func getRancherNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic
 }
 
 // captureLogsAllPods captures logs from all pods without filtering in given namespace.
-func captureLogsAllPods(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, duration int64) {
+func captureLogsAllPods(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pods Pods, bugReportDir string, vzHelper pkghelpers.VZHelper, podLogs PodLogs) {
 
 	defer wg.Done()
 	if len(pods.PodList) == 0 {
@@ -410,7 +417,7 @@ func captureLogsAllPods(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClien
 	}
 	for index := range pods.PodList {
 		pkghelpers.LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pods.PodList[index].Name, pods.Namespace))
-		err := pkghelpers.CapturePodLog(kubeClient, pods.PodList[index], pods.Namespace, bugReportDir, vzHelper, duration)
+		err := pkghelpers.CapturePodLog(kubeClient, pods.PodList[index], pods.Namespace, bugReportDir, vzHelper, podLogs.Duration, podLogs.IsPrevious)
 		if err != nil {
 			ec <- ErrorsChannelLogs{PodName: pods.PodList[index].Name, ErrorMessage: err.Error()}
 		}
@@ -423,7 +430,7 @@ func captureAdditionalResources(client clipkg.Client, kubeClient kubernetes.Inte
 		pkghelpers.LogError(fmt.Sprintf("There is an error in capturing the resources : %s", err.Error()))
 	}
 	if podLogs.IsPodLog {
-		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs.Duration); err != nil {
+		if err := captureAdditionalLogs(client, kubeClient, bugReportDir, vzHelper, additionalNS, podLogs); err != nil {
 			pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the logs: %s", err.Error()))
 		}
 	}

@@ -550,7 +550,7 @@ func putIntoHostNamesIfNotPresent(inputKey string) {
 }
 
 // CapturePodLog captures the log from the pod in the captureDir
-func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64, previous bool) error {
 	podName := pod.Name
 	if len(podName) == 0 {
 		return nil
@@ -576,6 +576,9 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 	var podLogOptions corev1.PodLogOptions
 	if duration != 0 {
 		podLogOptions.SinceSeconds = &duration
+	}
+	if previous {
+		podLogOptions.Previous = true
 	}
 	cs = append(cs, pod.Spec.InitContainers...)
 	cs = append(cs, pod.Spec.Containers...)
