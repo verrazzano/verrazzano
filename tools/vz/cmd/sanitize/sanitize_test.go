@@ -121,9 +121,9 @@ func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestSanitizeCommandWithInputTarAndOutputDirectoryFile
+// TestSanitizeCommandWithInputTarAndOutputTarGZFile
 // GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
+// WHEN I call cmd.Execute() with both an input tar file and an output .tar.gz file specified
 // THEN expect the command to not return an error and to create the specified directory
 func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
@@ -141,9 +141,9 @@ func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestSanitizeCommandWithInputTarAndOutputTarFile
+// TestSanitizeCommandWithInputTarAndOutputDirectoryFile
 // GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with both an input tar file and an output tar.gz file specified
+// WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
 // THEN expect the command to not return an error and to create the specified directory
 func TestSanitizeCommandWithInputTarAndOutputDirectory(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
@@ -159,6 +159,31 @@ func TestSanitizeCommandWithInputTarAndOutputDirectory(t *testing.T) {
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
 	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandCorrectlyObscuresInput
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with a directory that contains files that meet the criteria to be sanitized
+// THEN expect the command to not return an error and to output a directory with those files correctly sanitized
+func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/sanitization/ip-address-redaction")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	unsanitizedFileBytes, err := os.ReadFile(fileToSanitizePath)
+	if err != nil {
+		return err
+	}
+	notSanitizedFileString := string(unsanitizedFileBytes)
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
