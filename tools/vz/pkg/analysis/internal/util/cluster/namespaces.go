@@ -104,7 +104,7 @@ func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev
 	files := []string{namespaceFile}
 	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
 	message = append(message, messagesFromConditions...)
-	for i, _ := range messagesFromConditions {
+	for i := range messagesFromConditions {
 		if strings.Contains(messagesFromConditions[i], "has spent an undetermined amount of time in a state of deletion") {
 			issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateUnknownDuration, clusterRoot, message, files)
 			return
