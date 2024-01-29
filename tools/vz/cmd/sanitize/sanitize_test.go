@@ -125,7 +125,27 @@ func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
 // GIVEN a Sanitize command
 // WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
 // THEN expect the command to not return an error and to create the specified directory
-func TestSanitizeCommandWithInputTarAndOutputDirectoryFile(t *testing.T) {
+func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output-tar-file.tar.gz")
+	defer os.Remove("output-tar-file.tar.gz")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputTarAndOutputTarFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input tar file and an output tar.gz file specified
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputTarAndOutputDirectory(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())

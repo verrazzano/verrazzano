@@ -129,6 +129,9 @@ func sanitizeDirectory(validation flagValidation) error {
 		}
 		fileMode := fileInfo.Mode()
 		isDir := fileInfo.IsDir()
+		if isMetadataFile(fileInfo.Name(), isDir) {
+			continue
+		}
 		err = sanitizeFileAndWriteItToOutput(validation, isDir, listOfFilesToSanitize[i], fileMode)
 		if err != nil {
 			return err
@@ -164,4 +167,9 @@ func sanitizeFileAndWriteItToOutput(validation flagValidation, isDirectory bool,
 
 	err = os.WriteFile(pathOfSanitizedFileOrDirectoryForOutput, sanitizedFileStringAsBytes, fileMode)
 	return err
+}
+
+// The function isMetadataFile determines if a file in a tar archive fits the format of Mac Metadata
+func isMetadataFile(fileBaseName string, isDir bool) bool {
+	return strings.HasPrefix(fileBaseName, "._") && !isDir
 }
