@@ -205,7 +205,7 @@ func exportResource(client dynamic.Interface, vzHelper helpers.VZHelper, resourc
 			}
 
 			labels := item.GetLabels()
-			isAppResource := isOAMAppLabel(labels, appName) || isOwned(item, ownerRefs) || isFluentdConfigMap(item)
+			isAppResource := isOAMAppLabel(labels, appName) || isOwned(item, ownerRefs) || isFluentdConfigMap(item) || !isWebLogicCreatedLabel(labels)
 			if !isAppResource {
 				continue
 			}
@@ -273,6 +273,10 @@ func getServerCredentialName(server interface{}) *string {
 
 func isOAMAppLabel(labels map[string]string, appName string) bool {
 	return labels != nil && labels["app.oam.dev/name"] == appName
+}
+
+func isWebLogicCreatedLabel(labels map[string]string) bool {
+	return labels != nil && labels["weblogic.createdByOperator"] == "true"
 }
 
 func isOwned(item unstructured.Unstructured, ownerRefs map[string]bool) bool {
