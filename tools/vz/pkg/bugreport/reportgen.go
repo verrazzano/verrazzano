@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
-	
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
