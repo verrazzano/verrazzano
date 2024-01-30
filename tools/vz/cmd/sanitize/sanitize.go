@@ -18,8 +18,8 @@ import (
 
 const (
 	CommandName = "sanitize"
-	helpShort   = "Sanitize information from an existing cluster snapshot"
-	helpLong    = "This command sanitizes information from an existing dire"
+	helpShort   = "Sanitize information from a directory or tar file"
+	helpLong    = "This command sanitizes information from an existing directory or tar file and outputs it into a directory or tar.gz file of your choosing. The results of the sanitization should still be checked by the customer before sending them to support."
 )
 
 type flagValidation struct {
