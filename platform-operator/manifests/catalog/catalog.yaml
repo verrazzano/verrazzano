@@ -86,12 +86,12 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/kiali-server-values.yaml
   - name: mysql
-    version: 8.0.32
+    version: 8.0.36
     chart: platform-operator/thirdparty/charts/mysql
     valuesFiles:
       - platform-operator/helm_config/overrides/mysql-values.yaml
   - name: mysql-operator
-    version: 8.0.32
+    version: 8.0.36
     chart: platform-operator/thirdparty/charts/mysql-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/mysql-operator-values.yaml
