@@ -14,30 +14,30 @@ import (
 )
 
 var (
-	testIP                     = "az0/:127.255.255.255l2/}"
-	testIPToRemove             = "127.255.255.255"
-	testOCID                   = "az0/:ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q/}az"
-	testOCIDToRemove           = "ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q"
-	testSSHToRemove            = "ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z"
-	testSSH_noComment          = "abcd/0: ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=\n xYz123"
-	testSSHToRemove_noComment  = "ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/="
-	testSSH                    = "abcd/0: ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z\n xYz123"
-	testSSHToRemove_RSA        = "ssh-rsa AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z"
-	testSSH_RSA                = "abcd/0: ssh-rsa AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z\n xYz123"
-	testSSHToRemove_sk25519    = "sk-ssh-ed25519@openssh.com AAAAW2XXFA0S2f2tHUFyEb6ktadcbfO2MczKg7z/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/== z@dxy fyz-ru"
-	testSSH_sk25519            = "abcd/0: sk-ssh-ed25519@openssh.com AAAAW2XXFA0S2f2tHUFyEb6ktadcbfO2MczKg7z/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/== z@dxy fyz-ru\n xYz123"
-	testSSHToRemove_sk_ecdsa   = "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/YniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=== z@dxy fyz-ru"
-	testSSH_sk_ecdsa           = "edcsa-abcd/0: sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/YniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=== z@dxy fyz-ru\n xYz123"
-	testSSHToRemove_ecdsa_sha2 = "ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBADz1oA4gh3qZExdiS6krVOHXhh3KAMG9SHj1RqMXskDy2sTmO9mPF0P2HJfkm0OgCSMo3BZfvh2rh23fMfUI67gigAmOm41fGQ8B/K82sWj0LuskUR2TqRGQFwwWOVZYtUVtiboTg+XgL5fcGitxL+biT9LMTSOAiRw39cHmk6+B0kXBw== z@dxy fyz-ru"
-	testSSH_ecdsa_sha2         = "ecdsa-abcd ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBADz1oA4gh3qZExdiS6krVOHXhh3KAMG9SHj1RqMXskDy2sTmO9mPF0P2HJfkm0OgCSMo3BZfvh2rh23fMfUI67gigAmOm41fGQ8B/K82sWj0LuskUR2TqRGQFwwWOVZYtUVtiboTg+XgL5fcGitxL+biT9LMTSOAiRw39cHmk6+B0kXBw== z@dxy fyz-ru\n xYz123"
-	testSSHToRemove_ed25519    = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL/PsfEX91dggIwWL4edgvgVgn4FJdtZd9ZFXXXXXXXX z@dxy fyz-ru"
-	testSSH_ed25519            = "ecdsa-abcd0 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL/PsfEX91dggIwWL4edgvgVgn4FJdtZd9ZFXXXXXXXX z@dxy fyz-ru\n xYz123"
-	testSSHToRemove_dss        = "ssh-dss AAAAB3NzaC1kc3MAAACBAM6RtXQiwMnnreGmgpT9yinlWLFA8tycOT7or/7iXG06cp7BixJg65Xkl2zKXbq9/Sv+PAFfy7uK0ROSlya1IirMTDFWjMCXaOPwyHb+pM6uBA5UFQxQ9/I+KhWcfelqVVaGK36Xz7N8tCf+IwPvlkK4JeOnbmFfF0a3+nmlPsuXAAAAFQDFlq/WHwSVHlQXzBGRw6Kx7fbj6wAAAIAUZSEIPUFW7bKn8zQ7G7OXpIyMjxnWrpoDb38qTKyhcVrlMgH8cLb558SO/itTkLNRyNPLlSVuxM6qngm1jzPK0NzZbnVtxhTQjCbPmIml3nFjpXpJDUo7nXdR/Gzk15ffQTN/44cqkY/90x87ZgwqNLF8x44B1IUDyyG7NvTNcQAAAIEAy18U+7rh21k5pHBzOY0peZu/x/9/Cu7eJMFpmY7Za+XChjGHmuu2lw9xqebP3SQDIFyMQzXnV39bJXggAHPeGD+Rg2028PcF8w8veBh/+8OgQn+AyFinBRSir7huSApU223R+HvSMZsmXY9I9ycmVULOFy7/WLAcOXXXXX3ig1I= z@dxy fyz-ru"
-	testSSH_dss                = "ssh-xyz ssh-dss AAAAB3NzaC1kc3MAAACBAM6RtXQiwMnnreGmgpT9yinlWLFA8tycOT7or/7iXG06cp7BixJg65Xkl2zKXbq9/Sv+PAFfy7uK0ROSlya1IirMTDFWjMCXaOPwyHb+pM6uBA5UFQxQ9/I+KhWcfelqVVaGK36Xz7N8tCf+IwPvlkK4JeOnbmFfF0a3+nmlPsuXAAAAFQDFlq/WHwSVHlQXzBGRw6Kx7fbj6wAAAIAUZSEIPUFW7bKn8zQ7G7OXpIyMjxnWrpoDb38qTKyhcVrlMgH8cLb558SO/itTkLNRyNPLlSVuxM6qngm1jzPK0NzZbnVtxhTQjCbPmIml3nFjpXpJDUo7nXdR/Gzk15ffQTN/44cqkY/90x87ZgwqNLF8x44B1IUDyyG7NvTNcQAAAIEAy18U+7rh21k5pHBzOY0peZu/x/9/Cu7eJMFpmY7Za+XChjGHmuu2lw9xqebP3SQDIFyMQzXnV39bJXggAHPeGD+Rg2028PcF8w8veBh/+8OgQn+AyFinBRSir7huSApU223R+HvSMZsmXY9I9ycmVULOFy7/WLAcOXXXXX3ig1I= z@dxy fyz-ru\n xYz123"
-	testUserData               = "az0:/\"user_data\": \"abcABC012=+\"az0:/"
-	testUserDataToRemove       = "\"user_data\": \"abcABC012=+\""
-	testOPCID                  = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id:  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
-	testOPCIDToRemove          = "  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
+	testIP                   = "az0/:127.255.255.255l2/}"
+	testIPToRemove           = "127.255.255.255"
+	testOCID                 = "az0/:ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q/}az"
+	testOCIDToRemove         = "ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q"
+	testSSHToRemove          = "ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z"
+	testSSHnoComment         = "abcd/0: ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=\n xYz123"
+	testSSHToRemovenoComment = "ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/="
+	testSSH                  = "abcd/0: ssh-NewKey-Format9@. AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z\n xYz123"
+	testSSHToRemoveRSA       = "ssh-rsa AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z"
+	testSSHrsa               = "abcd/0: ssh-rsa AAAAB3NzaCDo798PWwYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=foo @foo-mac z\n xYz123"
+	testSSHToRemoveSk25519   = "sk-ssh-ed25519@openssh.com AAAAW2XXFA0S2f2tHUFyEb6ktadcbfO2MczKg7z/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/== z@dxy fyz-ru"
+	testSSHsk25519           = "abcd/0: sk-ssh-ed25519@openssh.com AAAAW2XXFA0S2f2tHUFyEb6ktadcbfO2MczKg7z/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/== z@dxy fyz-ru\n xYz123"
+	testSSHToRemoveSkEcdsa   = "sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/YniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=== z@dxy fyz-ru"
+	testSSHskEcdsa           = "edcsa-abcd/0: sk-ecdsa-sha2-nistp256@openssh.com AAAAInNrLWVjZHNYniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/YniRpZ/DEKAapLQDfrHeR/OO59T4ZUr4ln/5EoUGYu1HRVWmvQx4wsKZRwl4u8pi9gYOW1pL/IYp3cumJef9Y99+/=== z@dxy fyz-ru\n xYz123"
+	testSSHToRemoveEcdsaSha2 = "ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBADz1oA4gh3qZExdiS6krVOHXhh3KAMG9SHj1RqMXskDy2sTmO9mPF0P2HJfkm0OgCSMo3BZfvh2rh23fMfUI67gigAmOm41fGQ8B/K82sWj0LuskUR2TqRGQFwwWOVZYtUVtiboTg+XgL5fcGitxL+biT9LMTSOAiRw39cHmk6+B0kXBw== z@dxy fyz-ru"
+	testSSHecdsaSha2         = "ecdsa-abcd ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBADz1oA4gh3qZExdiS6krVOHXhh3KAMG9SHj1RqMXskDy2sTmO9mPF0P2HJfkm0OgCSMo3BZfvh2rh23fMfUI67gigAmOm41fGQ8B/K82sWj0LuskUR2TqRGQFwwWOVZYtUVtiboTg+XgL5fcGitxL+biT9LMTSOAiRw39cHmk6+B0kXBw== z@dxy fyz-ru\n xYz123"
+	testSSHToRemoveEd25519   = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL/PsfEX91dggIwWL4edgvgVgn4FJdtZd9ZFXXXXXXXX z@dxy fyz-ru"
+	testSSHed25519           = "ecdsa-abcd0 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIL/PsfEX91dggIwWL4edgvgVgn4FJdtZd9ZFXXXXXXXX z@dxy fyz-ru\n xYz123"
+	testSSHToRemoveDss       = "ssh-dss AAAAB3NzaC1kc3MAAACBAM6RtXQiwMnnreGmgpT9yinlWLFA8tycOT7or/7iXG06cp7BixJg65Xkl2zKXbq9/Sv+PAFfy7uK0ROSlya1IirMTDFWjMCXaOPwyHb+pM6uBA5UFQxQ9/I+KhWcfelqVVaGK36Xz7N8tCf+IwPvlkK4JeOnbmFfF0a3+nmlPsuXAAAAFQDFlq/WHwSVHlQXzBGRw6Kx7fbj6wAAAIAUZSEIPUFW7bKn8zQ7G7OXpIyMjxnWrpoDb38qTKyhcVrlMgH8cLb558SO/itTkLNRyNPLlSVuxM6qngm1jzPK0NzZbnVtxhTQjCbPmIml3nFjpXpJDUo7nXdR/Gzk15ffQTN/44cqkY/90x87ZgwqNLF8x44B1IUDyyG7NvTNcQAAAIEAy18U+7rh21k5pHBzOY0peZu/x/9/Cu7eJMFpmY7Za+XChjGHmuu2lw9xqebP3SQDIFyMQzXnV39bJXggAHPeGD+Rg2028PcF8w8veBh/+8OgQn+AyFinBRSir7huSApU223R+HvSMZsmXY9I9ycmVULOFy7/WLAcOXXXXX3ig1I= z@dxy fyz-ru"
+	testSSHdss               = "ssh-xyz ssh-dss AAAAB3NzaC1kc3MAAACBAM6RtXQiwMnnreGmgpT9yinlWLFA8tycOT7or/7iXG06cp7BixJg65Xkl2zKXbq9/Sv+PAFfy7uK0ROSlya1IirMTDFWjMCXaOPwyHb+pM6uBA5UFQxQ9/I+KhWcfelqVVaGK36Xz7N8tCf+IwPvlkK4JeOnbmFfF0a3+nmlPsuXAAAAFQDFlq/WHwSVHlQXzBGRw6Kx7fbj6wAAAIAUZSEIPUFW7bKn8zQ7G7OXpIyMjxnWrpoDb38qTKyhcVrlMgH8cLb558SO/itTkLNRyNPLlSVuxM6qngm1jzPK0NzZbnVtxhTQjCbPmIml3nFjpXpJDUo7nXdR/Gzk15ffQTN/44cqkY/90x87ZgwqNLF8x44B1IUDyyG7NvTNcQAAAIEAy18U+7rh21k5pHBzOY0peZu/x/9/Cu7eJMFpmY7Za+XChjGHmuu2lw9xqebP3SQDIFyMQzXnV39bJXggAHPeGD+Rg2028PcF8w8veBh/+8OgQn+AyFinBRSir7huSApU223R+HvSMZsmXY9I9ycmVULOFy7/WLAcOXXXXX3ig1I= z@dxy fyz-ru\n xYz123"
+	testUserData             = "az0:/\"user_data\": \"abcABC012=+\"az0:/"
+	testUserDataToRemove     = "\"user_data\": \"abcABC012=+\""
+	testOPCID                = "\"message\": \"Request a service limit increase from the service limits page in the console. . http status code: 400. Opc request id:  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478\", xyz123"
+	testOPCIDToRemove        = "  a634bbc217b8188f263d98bc0b3d5c05/9AG80960E22B0EDFEFE506BA8D73DF3C/814906C375D7F4651B8A47987CCB4478"
 
 	// Specifies the location and name of the CSV file written to by WriteRedactionMapFile for these tests.
 	redactMapFileLocation = os.TempDir()
@@ -62,13 +62,13 @@ func TestSanitizeALine(t *testing.T) {
 	strictCheck(testIP, testIPToRemove)
 	strictCheck(testOCID, testOCIDToRemove)
 	strictCheck(testSSH, testSSHToRemove)
-	strictCheck(testSSH_noComment, testSSHToRemove_noComment)
-	strictCheck(testSSH_RSA, testSSHToRemove_RSA)
-	strictCheck(testSSH_sk25519, testSSHToRemove_sk25519)
-	strictCheck(testSSH_sk_ecdsa, testSSHToRemove_sk_ecdsa)
-	strictCheck(testSSH_ecdsa_sha2, testSSHToRemove_ecdsa_sha2)
-	strictCheck(testSSH_ed25519, testSSHToRemove_ed25519)
-	strictCheck(testSSH_dss, testSSHToRemove_dss)
+	strictCheck(testSSHnoComment, testSSHToRemovenoComment)
+	strictCheck(testSSHrsa, testSSHToRemoveRSA)
+	strictCheck(testSSHsk25519, testSSHToRemoveSk25519)
+	strictCheck(testSSHskEcdsa, testSSHToRemoveSkEcdsa)
+	strictCheck(testSSHecdsaSha2, testSSHToRemoveEcdsaSha2)
+	strictCheck(testSSHed25519, testSSHToRemoveEd25519)
+	strictCheck(testSSHdss, testSSHToRemoveDss)
 	strictCheck(testUserData, testUserDataToRemove)
 	strictCheck(testOPCID, testOPCIDToRemove)
 }
