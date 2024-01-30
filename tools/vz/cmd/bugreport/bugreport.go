@@ -189,6 +189,18 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 			"Please go through errors (if any), in the standard output.\n")
 	}
 
+	// Create the redaction mapping file.
+	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.RedactedValuesFlagName, err.Error())
+	}
+	if redactionFilePath != "" {
+		// Create the redaction map file if the user provides a non-empty file path.
+		if err := helpers.WriteRedactionMapFile(bugReportDir, nil); err != nil {
+			return fmt.Errorf("an error occurred while creating the redacted values map at %s: %s", redactionFilePath, err.Error())
+		}
+	}
+
 	// Generate the bug report
 	err = helpers.CreateReportArchive(bugReportDir, bugRepFile)
 	if err != nil {
