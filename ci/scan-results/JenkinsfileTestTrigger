@@ -27,7 +27,7 @@ pipeline {
         stage('Scan Images') {
             steps {
                 script {
-                    build job: "/pabhat-scanning-job/pabhat%252Fdaily-scan-job-changes",
+                    build job: "/pabhat-scanning-job/pabhat%252Fvz-9209-1",
                         parameters: [
                             string(name: 'VERRAZZANO_BRANCH_NAME', value: env.BRANCH_NAME)
                         ], wait: false
