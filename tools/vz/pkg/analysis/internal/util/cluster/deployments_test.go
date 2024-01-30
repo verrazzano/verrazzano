@@ -12,7 +12,7 @@ import (
 // no error is expected from GetDeploymentList of a test dump cluster
 // not empty deployments are expected in FindProblematicDeployments
 func TestGetDeploymentList(t *testing.T) {
-	deploymentList, err := GetDeploymentList(log.GetDebugEnabledLogger(), files.FindFileInNamespace("../../../test/cluster/problem-pods-install/cluster-snapshot", "verrazzano-install", "deployments.json"))
+	deploymentList, err := GetDeploymentList(log.GetDebugEnabledLogger(), files.FormFilePathInNamespace("../../../test/cluster/problem-pods-install/cluster-snapshot", "verrazzano-install", "deployments.json"))
 	assert.NoError(t, err)
 	assert.NotEmpty(t, FindProblematicDeployments(deploymentList))
 }
