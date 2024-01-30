@@ -221,7 +221,6 @@ func TestAnalyzeCommandInvalidCapturedDir(t *testing.T) {
 // WHEN I call cmd.Execute with a .tar.gz file as the input
 // THEN expect the command to output the correct summary
 func TestAnalyzeCommandTarGZFile(t *testing.T) {
-	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -243,7 +242,6 @@ func TestAnalyzeCommandTarGZFile(t *testing.T) {
 // WHEN I call cmd.Execute with a .tgz file as the input
 // THEN expect the command to output the correct summary
 func TestAnalyzeCommandTGZFile(t *testing.T) {
-	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -265,7 +263,6 @@ func TestAnalyzeCommandTGZFile(t *testing.T) {
 // WHEN I call cmd.Execute with a .tar file as the input
 // THEN expect the command to output the correct summary
 func TestAnalyzeCommandTarFile(t *testing.T) {
-	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -287,7 +284,6 @@ func TestAnalyzeCommandTarFile(t *testing.T) {
 // WHEN I call cmd.Execute with a non-existent path to a tar file
 // THEN expect the command to return an error
 func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
-	//Idea is to have the path to be a .tar.gz cluster dump and see if things get accurately analyzed/processed without any errors
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -305,7 +301,19 @@ func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
 // GIVEN a CLI analyze command
 // WHEN I call cmd.Execute with a tar.gz file that has been tarred using the CLI tool archive cuntion
 // THEN expect the command to not raise an error and output the correct summary
-func TestAnalyzeCommandVZTarGZFile()
+func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/tar-file-in-vz-format.tar.gz")
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
 
 // createStdTempFiles creates temporary files for stdout and stderr.
 func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
