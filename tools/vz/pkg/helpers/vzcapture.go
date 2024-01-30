@@ -193,7 +193,7 @@ func createParentsIfNecessary(captureDir string, header *tar.Header) error {
 	filePathSplitByPathSeperatorList := strings.Split(header.Name, string(os.PathSeparator))
 	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
 	directoryString := ""
-	for i, _ := range listOfDirectories {
+	for i := range listOfDirectories {
 		directoryString = directoryString + listOfDirectories[i] + string(os.PathSeparator)
 	}
 	if _, err := os.Stat(captureDir + string(os.PathSeparator) + directoryString); errors2.Is(err, os.ErrNotExist) {

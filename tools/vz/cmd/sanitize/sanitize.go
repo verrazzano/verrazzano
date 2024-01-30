@@ -125,7 +125,7 @@ func sanitizeDirectory(validation flagValidation) error {
 	if err != nil {
 		return err
 	}
-	for i, _ := range listOfFilesToSanitize {
+	for i := range listOfFilesToSanitize {
 		fileInfo, err := os.Stat(listOfFilesToSanitize[i])
 		if err != nil {
 			return err
