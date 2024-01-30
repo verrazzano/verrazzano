@@ -103,6 +103,86 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 	return nil
 }
 
+// UntarArchive untars the specified file and puts it in the capture directory
+func UntarArchive(captureDir string, tarFile *os.File) error {
+	var tarReader *tar.Reader
+	// If it is compressed, we need to decompress it
+	if strings.HasSuffix(tarFile.Name(), ".tgz") || strings.HasSuffix(tarFile.Name(), ".tar.gz") {
+		uncompressedTarFile, err := gzip.NewReader(tarFile)
+		if err != nil {
+			return err
+		}
+		defer uncompressedTarFile.Close()
+		tarReader = tar.NewReader(uncompressedTarFile)
+	} else if strings.HasSuffix(tarFile.Name(), ".tar") {
+		tarReader = tar.NewReader(tarFile)
+	} else {
+		return fmt.Errorf("the file given as input is not in .tar, .tgz, or .tar.gz format")
+	}
+	// This loops through each entry in the tar archive
+	err := writeFilesFromArchive(captureDir, tarReader)
+	return err
+}
+
+func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
+	for {
+		_, err := io.CopyN(dst, src, chunkSize)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// This function loops through a tar reader and writes its contents to disk
+func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
+	for {
+		header, err := tarReader.Next()
+		// This means that we have reached the end of the archive, so we break out of the loop
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// This means that it is a regular file that we write to disk
+		if header.Typeflag == 48 {
+			if err = writeFileFromArchive(captureDir, tarReader, header); err != nil {
+				return err
+			}
+
+		}
+		// This means that is a directory that is written
+		if header.Typeflag == 53 {
+			err = os.Mkdir(captureDir+string(os.PathSeparator)+header.Name, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+// writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
+func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
+	if err != nil {
+		return err
+	}
+	if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
+		return err
+	}
+	if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
+		return err
+	}
+	return nil
+
+}
+
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // services, and cert-manager certificates from the specified namespace, as JSON files
 func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
@@ -215,7 +295,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
 		return err
 	}
-	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	_, err = f.WriteString(SanitizeString(string(vzJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
@@ -452,7 +532,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			reader := bufio.NewScanner(podLog)
 			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
 			for reader.Scan() {
-				f.WriteString(SanitizeString(reader.Text() + "\n"))
+				f.WriteString(SanitizeString(reader.Text()+"\n", nil))
 			}
 			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
 			return nil
@@ -481,7 +561,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
-	_, err = f.WriteString(SanitizeString(string(resJSON)))
+	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}

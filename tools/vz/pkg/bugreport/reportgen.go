@@ -77,7 +77,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	}
 
 	// Get the list of namespaces based on the failed components and value specified by flag --include-namespaces
-	nsList, additionalNS, err := collectNamespaces(kubeClient, dynamicClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
+	nsList, _, err := collectNamespaces(kubeClient, dynamicClient, clusterSnapshotCtx.MoreNS, vz, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -97,10 +97,8 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	// Capture OAM resources from the namespaces specified using --include-namespaces
-	if len(additionalNS) > 0 {
-		captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, additionalNS, podLogs)
-	}
+	// Capture logs from resources when the --include-logs flag is enabled
+	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
 	if err = captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {

@@ -6,6 +6,7 @@ package cluster
 
 import (
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"regexp"
 
@@ -63,7 +64,7 @@ var WideErrorSearchRe = regexp.MustCompile(`(?i).*error.*|.*failed.*`)
 var EventReasonFailedRe = regexp.MustCompile(`.*Failed.*`)
 
 // RunAnalysis is the main entry analysis function
-func RunAnalysis(log *zap.SugaredLogger, rootDirectory string) (err error) {
+func RunAnalysis(vzHelper helpers.VZHelper, log *zap.SugaredLogger, rootDirectory string) (err error) {
 	log.Debugf("Cluster Analyzer runAnalysis on %s", rootDirectory)
 
 	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ClusterDumpDirectoriesRe)
@@ -85,13 +86,13 @@ func RunAnalysis(log *zap.SugaredLogger, rootDirectory string) (err error) {
 			log.Debugf("Verrazzano resource file %s is either empty or not there", vzResourcesPath)
 			continue
 		}
-		analyzeCluster(log, clusterRoot)
+		analyzeCluster(vzHelper, log, clusterRoot)
 	}
 
 	return nil
 }
 
-func analyzeCluster(log *zap.SugaredLogger, clusterRoot string) (err error) {
+func analyzeCluster(vzHelper helpers.VZHelper, log *zap.SugaredLogger, clusterRoot string) (err error) {
 	log.Debugf("analyzeCluster called for %s", clusterRoot)
 	report.AddSourceAnalyzed(clusterRoot)
 
@@ -99,7 +100,7 @@ func analyzeCluster(log *zap.SugaredLogger, clusterRoot string) (err error) {
 		err := function(log, clusterRoot)
 		if err != nil {
 			// Log the error and continue on
-			log.Errorf("Error processing analysis function %s", functionName, err)
+			fmt.Fprintf(vzHelper.GetErrorStream(), fmt.Sprintf("Error processing analysis function %s\n", functionName), err)
 		}
 	}
 

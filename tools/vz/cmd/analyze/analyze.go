@@ -6,7 +6,6 @@ package analyze
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
@@ -17,10 +16,11 @@ import (
 )
 
 const (
-	CommandName = "analyze"
-	helpShort   = "Analyze cluster"
-	helpLong    = `Analyze cluster for identifying issues and providing advice`
-	helpExample = `
+	CommandName      = "analyze"
+	helpShort        = "Analyze cluster"
+	flagErrorMessage = "an error occurred while reading value for the flag %s: %s"
+	helpLong         = `Analyze cluster for identifying issues and providing advice`
+	helpExample      = `
 # Run analysis tool on captured directory
 vz analyze --capture-dir <path>
 
@@ -28,6 +28,13 @@ vz analyze --capture-dir <path>
 vz analyze
 `
 )
+
+type directoryAndTarValidationStruct struct {
+	directory  string
+	tarFile    string
+	reportFile string
+	isVerbose  bool
+}
 
 func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
@@ -41,6 +48,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.Example = helpExample
 	cmd.PersistentFlags().String(constants.DirectoryFlagName, constants.DirectoryFlagValue, constants.DirectoryFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFileFlagName, constants.ReportFileFlagValue, constants.ReportFileFlagUsage)
+	cmd.PersistentFlags().String(constants.TarFileFlagName, constants.TarFileFlagValue, constants.TarFileFlagUsage)
 	cmd.PersistentFlags().String(constants.ReportFormatFlagName, constants.SummaryReport, constants.ReportFormatFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
 
@@ -93,45 +101,72 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 }
 
 func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
-	directoryFlag := cmd.PersistentFlags().Lookup(constants.DirectoryFlagName)
-	if err := setVzK8sVersion(directoryFlag, vzHelper, cmd); err == nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
-	}
-	reportFileName, err := cmd.PersistentFlags().GetString(constants.ReportFileFlagName)
+	validatedStruct, err := parseFlags(cmd, vzHelper, constants.DirectoryFlagName, constants.TarFileFlagName, constants.ReportFileFlagName, constants.VerboseFlag)
 	if err != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
+		return err
 	}
 	reportFormat := getReportFormat(cmd)
 
 	// set the flag to control the display the resources captured
-	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
-	if err != nil {
-		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
-	}
-	helpers.SetVerboseOutput(isVerbose)
-	directory := ""
-	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+	helpers.SetVerboseOutput(validatedStruct.isVerbose)
+	if validatedStruct.directory == "" {
 		// Create a temporary directory to place the generated files, which will also be the input for analyze command
-		directory, err = os.MkdirTemp("", constants.BugReportDir)
+		validatedStruct.directory, err = os.MkdirTemp("", constants.BugReportDir)
+		defer os.RemoveAll(validatedStruct.directory)
 		if err != nil {
 			return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 		}
-		defer os.RemoveAll(directory)
-		if err := analyzeLiveCluster(cmd, vzHelper, directory); err != nil {
-			return err
-		}
-	} else {
-		directory, err = cmd.PersistentFlags().GetString(constants.DirectoryFlagName)
-		if err != nil {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "error fetching flags: %s", err.Error())
+
+		if validatedStruct.tarFile == "" {
+			if err := analyzeLiveCluster(cmd, vzHelper, validatedStruct.directory); err != nil {
+				return err
+			}
+		} else {
+			//This is the case where only the tar string is specified
+			file, err := os.Open(validatedStruct.tarFile)
+			defer file.Close()
+			if err != nil {
+				return fmt.Errorf("an error occurred when trying to open %s: %s", validatedStruct.tarFile, err.Error())
+			}
+			err = helpers.UntarArchive(validatedStruct.directory, file)
+			if err != nil {
+				return fmt.Errorf("an error occurred while trying to untar %s: %s", validatedStruct.tarFile, err.Error())
+			}
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, directory, reportFileName, reportFormat, printReportToConsole)
+	return analysis.AnalysisMain(vzHelper, validatedStruct.directory, validatedStruct.reportFile, reportFormat, printReportToConsole)
+}
+
+// This function validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
+func parseFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, directoryFlagValue string, tarFlagValue string, reportFileFlagValue string, verboseFlagValue string) (*directoryAndTarValidationStruct, error) {
+	directory, err := cmd.PersistentFlags().GetString(directoryFlagValue)
+	if err != nil {
+		return nil, fmt.Errorf(flagErrorMessage, constants.DirectoryFlagName, err.Error())
+	}
+	tarFileString, err := cmd.PersistentFlags().GetString(tarFlagValue)
+	if err != nil {
+		return nil, fmt.Errorf(flagErrorMessage, constants.TarFileFlagName, err.Error())
+	}
+	if directory != "" && tarFileString != "" {
+		return nil, fmt.Errorf("a directory and a tar file cannot be both specified")
+	}
+	isVerbose, err := cmd.PersistentFlags().GetBool(verboseFlagValue)
+	if err != nil {
+		return nil, fmt.Errorf(flagErrorMessage, constants.VerboseFlag, err.Error())
+	}
+	if err := setVzK8sVersion(tarFileString, directory, vzHelper, cmd); err == nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), helpers.GetVersionOut())
+	}
+	reportFileName, err := cmd.PersistentFlags().GetString(reportFileFlagValue)
+	if err != nil {
+		fmt.Fprintf(vzHelper.GetOutputStream(), "error getting the report file name: %s", err.Error())
+	}
+	return &directoryAndTarValidationStruct{directory: directory, tarFile: tarFileString, reportFile: reportFileName, isVerbose: isVerbose}, nil
 }
 
 // setVzK8sVersion sets vz and k8s version
-func setVzK8sVersion(directoryFlag *pflag.Flag, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
-	if directoryFlag == nil || directoryFlag.Value.String() == "" {
+func setVzK8sVersion(tarFileString string, directory string, vzHelper helpers.VZHelper, cmd *cobra.Command) error {
+	if directory == "" && tarFileString == "" {
 		// Get the controller runtime client
 		client, err := vzHelper.GetClient(cmd)
 		if err != nil {

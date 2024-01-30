@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // This is an e2e test to plant node related issues and validates it
@@ -6,11 +6,13 @@
 package node
 
 import (
+	"fmt"
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/verrazzano/verrazzano/tests/e2e/pkg/test/framework"
 	utility "github.com/verrazzano/verrazzano/tests/e2e/verify-analyze-tool"
-	"time"
 )
 
 var (
@@ -44,11 +46,16 @@ func patch() error {
 	return nil
 }
 
+var _ = BeforeSuite(beforeSuite)
+var beforeSuite = t.BeforeSuiteFunc(func() {
+	err := patch()
+	if err != nil {
+		Fail(fmt.Sprintf("error while patching verrazzano-related resources: %v", err.Error()))
+	}
+})
+
 var _ = t.Describe("VZ Tools", Label("f:vz-tools-node-issues"), func() {
 	t.Context("During Node Issue Analysis", func() {
-		t.It("First Inject/ Revert Issue and Feed Analysis Report", func() {
-			patch()
-		})
 		t.It("Should Have InsufficientMemory Issue Post Bad Memory Request", func() {
 			Eventually(func() bool {
 				return utility.VerifyIssue(utility.ReportAnalysis[utility.InsufficientMemory][0], utility.InsufficientMemory)

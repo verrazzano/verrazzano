@@ -39,7 +39,10 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 
 The values specified for the flag --include-namespaces are case-sensitive.
 
-# Use the --include-logs flag to collect the logs from the pods in one or more namespaces, by specifying the --include-namespaces flag.
+# Use the --include-logs flag to capture logs from all the containers in running pods, from the default namespaces being captured
+vz bug-report --report-file bugreport.tgz --include-logs
+
+# Use the --include-logs flag in combination with the --include-namespaces flag to extend the default namespaces being captured and capture additional logs from all containers in running pods of the specified namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
 # The flag --duration collects logs for a specific period. The default value is 0, which collects the complete pod log. It supports seconds, minutes, and hours.
@@ -120,7 +123,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
 		bugRepFile, err = os.CreateTemp(".", bugReportFile)
 		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
 			bugRepFile, err = os.CreateTemp("", bugReportFile)
 		}
 	} else {
@@ -255,7 +258,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) e
 func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error fetching flags: %s", errFlag.Error())
 		return err
 	}
 	if autoBugReportFlag {
