@@ -29,7 +29,8 @@ pipeline {
                 script {
                     build job: "/pabhat-scanning-job/pabhat%252Fvz-9209-1",
                         parameters: [
-                            string(name: 'VERRAZZANO_BRANCH_NAME', value: env.BRANCH_NAME)
+                            string(name: 'VERRAZZANO_BRANCH_NAME', value: 'master'),
+                            booleanParam(name: 'TEST_RUN', value: params.TEST_RUN)
                         ], wait: false
                 }
             }
