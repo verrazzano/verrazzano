@@ -6,6 +6,9 @@ package bugreport
 import (
 	"errors"
 	"fmt"
+
+	"github.com/verrazzano/verrazzano/pkg/log"
+
 	"io/fs"
 	"os"
 	"strings"
@@ -146,7 +149,6 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	isPrevious, err := cmd.PersistentFlags().GetBool(constants.BugReportPreviousLogFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
-
 	}
 
 	// If additional namespaces pods logs needs to be capture using flag with duration --duration
@@ -325,4 +327,13 @@ func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	newCmd.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 	newCmd.Flags().Set(constants.GlobalFlagContext, contextFlag)
 	return nil
+}
+
+func findProblematicPods(bugReportDir string) (errorPodFiles []string, err error) {
+	logger := log.GetDebugEnabledLogger()
+	errorPodFiles, _ = vzbugreport.FindProblematicPodFiles(logger, bugReportDir)
+	if len(errorPodFiles) == 0 {
+		return nil, fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
+	}
+	return errorPodFiles, nil
 }
