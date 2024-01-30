@@ -97,30 +97,32 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 
 // Known Issue Types.
 const (
-	ImagePullBackOff             = "ImagePullBackOff"
-	ImagePullRateLimit           = "ImagePullRateLimit"
-	ImagePullNotFound            = "ImagePullNotFound"
-	ImagePullService             = "ImagePullService"
-	InsufficientMemory           = "InsufficientMemory"
-	InsufficientCPU              = "InsufficientCPU"
-	IngressInstallFailure        = "IngressInstallFailure"
-	IngressLBLimitExceeded       = "IngressLBLimitExceeded"
-	IngressNoLoadBalancerIP      = "IngressNoLoadBalancerIP"
-	IngressOciIPLimitExceeded    = "IngressOciIPLimitExceeded"
-	InstallFailure               = "InstallFailure"
-	PendingPods                  = "PendingPods"
-	PodProblemsNotReported       = "PodProblemsNotReported"
-	ComponentsNotReady           = "ComponentsNotReady"
-	IngressNoIPFound             = "IngressNoIPFound"
-	IstioIngressNoIP             = "IstioIngressNoIP"
-	IngressShapeInvalid          = "IngressShapeInvalid"
-	IstioIngressPrivateSubnet    = "IstioIngressPrivateSubnet"
-	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
-	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
-	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
-	RancherIssues                = "RancherIssues"
-	ClusterAPIClusterIssues      = "ClusterAPIClusterIssues"
-	TCPKeepIdleIssues            = "TCPKeepIdleIssues"
+	ImagePullBackOff                                    = "ImagePullBackOff"
+	ImagePullRateLimit                                  = "ImagePullRateLimit"
+	ImagePullNotFound                                   = "ImagePullNotFound"
+	ImagePullService                                    = "ImagePullService"
+	InsufficientMemory                                  = "InsufficientMemory"
+	InsufficientCPU                                     = "InsufficientCPU"
+	IngressInstallFailure                               = "IngressInstallFailure"
+	IngressLBLimitExceeded                              = "IngressLBLimitExceeded"
+	IngressNoLoadBalancerIP                             = "IngressNoLoadBalancerIP"
+	IngressOciIPLimitExceeded                           = "IngressOciIPLimitExceeded"
+	InstallFailure                                      = "InstallFailure"
+	PendingPods                                         = "PendingPods"
+	PodProblemsNotReported                              = "PodProblemsNotReported"
+	ComponentsNotReady                                  = "ComponentsNotReady"
+	IngressNoIPFound                                    = "IngressNoIPFound"
+	IstioIngressNoIP                                    = "IstioIngressNoIP"
+	IngressShapeInvalid                                 = "IngressShapeInvalid"
+	IstioIngressPrivateSubnet                           = "IstioIngressPrivateSubnet"
+	NginxIngressPrivateSubnet                           = "NginxIngressPrivateSubnet"
+	ExternalDNSConfigureIssue                           = "ExternalDNSConfigureIssue"
+	KeycloakDataMigrationFailure                        = "KeycloakDataMigrationFailure"
+	RancherIssues                                       = "RancherIssues"
+	ClusterAPIClusterIssues                             = "ClusterAPIClusterIssues"
+	TCPKeepIdleIssues                                   = "TCPKeepIdleIssues"
+	NamespaceCurrentlyInTerminatingStateKnownDuration   = "NamespaceCurrentlyInTerminatingStateKnownDuration"
+	NamespaceCurrentlyInTerminatingStateUnknownDuration = "NamespaceCurrentlyInTerminatingStateUnknownDuration"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -153,6 +155,8 @@ var knownIssues = map[string]Issue{
 	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
 	ClusterAPIClusterIssues:      {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
 	TCPKeepIdleIssues:            {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
+	NamespaceCurrentlyInTerminatingStateKnownDuration:   {Type: NamespaceCurrentlyInTerminatingStateKnownDuration, Summary: "A namespace within the cluster has been in a terminating state for a known duration of time", Informational: true, Impact: 5, Confidence: 10},
+	NamespaceCurrentlyInTerminatingStateUnknownDuration: {Type: NamespaceCurrentlyInTerminatingStateUnknownDuration, Summary: "A namespace within the cluster has been in a terminating state for an unknown duration of time", Informational: true, Impact: 5, Confidence: 10},
 }
 
 // NewKnownIssueSupportingData adds a known issue
