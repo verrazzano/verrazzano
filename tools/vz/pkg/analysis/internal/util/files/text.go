@@ -156,7 +156,7 @@ func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchR
 	}
 
 	// Get the list of files that match
-	filesToSearch, err := GetMatchingFiles(log, rootDirectory, fileMatchRe)
+	filesToSearch, err := GetMatchingFileNames(log, rootDirectory, fileMatchRe)
 	if err != nil {
 		log.Debugf("FindFilesAndSearch failed", err)
 		return nil, err

@@ -17,8 +17,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
-// GetMatchingFiles returns the filenames for files that match a regular expression.
-func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+// GetMatchingFileNames returns the filenames for files that match a regular expression.
+func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
 	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
 		log.Debugf("GetMatchingFiles requires a rootDirectory")
@@ -48,8 +48,8 @@ func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatchRe 
 	return fileMatches, err
 }
 
-// GetMatchingDirectories returns the filenames for directories that match a regular expression.
-func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+// GetMatchingDirectoryNames returns the filenames for directories that match a regular expression.
+func GetMatchingDirectoryNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
 	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
 		log.Debugf("GetMatchingDirectories requires a root directory")
@@ -96,13 +96,13 @@ func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []st
 	return namespaces, nil
 }
 
-// FindFileInClusterRoot will find filename in the cluster root
-func FindFileInClusterRoot(clusterRoot string, filename string) string {
+// FormFilePathInClusterRoot will find filename in the cluster root
+func FormFilePathInClusterRoot(clusterRoot string, filename string) string {
 	return fmt.Sprintf("%s/%s", clusterRoot, filename)
 }
 
-// FindFileInNamespace will find filename in the namespace
-func FindFileInNamespace(clusterRoot string, namespace string, filename string) string {
+// FormFilePathInNamespace will find filename in the namespace
+func FormFilePathInNamespace(clusterRoot string, namespace string, filename string) string {
 	return fmt.Sprintf("%s/%s/%s", clusterRoot, namespace, filename)
 }
 
@@ -113,13 +113,13 @@ func FindPodLogFileName(clusterRoot string, pod corev1.Pod) string {
 
 // UnmarshallFileInClusterRoot - unmarshall a file into a struct
 func UnmarshallFileInClusterRoot(clusterRoot string, filename string, object interface{}) error {
-	clusterPath := FindFileInClusterRoot(clusterRoot, filename)
+	clusterPath := FormFilePathInClusterRoot(clusterRoot, filename)
 	return unmarshallFile(clusterPath, object)
 }
 
 // UnmarshallFileInNamespace - unmarshall a file from a namespace into a struct
 func UnmarshallFileInNamespace(clusterRoot string, namespace string, filename string, object interface{}) error {
-	clusterPath := FindFileInNamespace(clusterRoot, namespace, filename)
+	clusterPath := FormFilePathInNamespace(clusterRoot, namespace, filename)
 	return unmarshallFile(clusterPath, object)
 }
 

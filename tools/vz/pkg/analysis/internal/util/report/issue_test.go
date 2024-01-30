@@ -82,7 +82,7 @@ func TestMiscHelpers(t *testing.T) {
 
 func TestDeduplicateSupportingData(t *testing.T) {
 	var duplicateData = []SupportData{{Messages: []string{"data", "data"}}, {Messages: []string{"data", "data"}}}
-	assert.NotEmpty(t, DeduplicateSupportingData(duplicateData))
+	assert.NotEmpty(t, DeduplicateSupportingDataList(duplicateData))
 }
 
 func TestEventPodRelatedUtilities(t *testing.T) {

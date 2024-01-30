@@ -343,7 +343,7 @@ func IsPodPending(pod corev1.Pod) bool {
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, PodFilesMatchRe)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
 	if err != nil {
 		return podFiles, err
 	}

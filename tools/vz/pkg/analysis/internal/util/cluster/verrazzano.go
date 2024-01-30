@@ -75,7 +75,7 @@ func installationStatus(log *zap.SugaredLogger, clusterRoot string, issueReporte
 		// These are Verrazzano owned namespaces
 		if strings.Contains(namespace, "verrazzano") {
 			verrazzanoNamespacesFound = append(verrazzanoNamespacesFound, namespace)
-			deploymentList, err := GetDeploymentList(log, files.FindFileInNamespace(clusterRoot, namespace, constants.DeploymentsJSON))
+			deploymentList, err := GetDeploymentList(log, files.FormFilePathInNamespace(clusterRoot, namespace, constants.DeploymentsJSON))
 			if err != nil {
 				// Log the error and continue on
 				log.Debugf("Error getting deployments in %s", namespace, err)

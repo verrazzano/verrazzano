@@ -40,7 +40,7 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 		PendingIssues: make(map[string]report.Issue),
 	}
 	for _, namespace := range allNamespacesFound {
-		certificateFile := files.FindFileInNamespace(clusterRoot, namespace, constants.CertificatesJSON)
+		certificateFile := files.FormFilePathInNamespace(clusterRoot, namespace, constants.CertificatesJSON)
 		certificateListForNamespace, err := getCertificateList(log, certificateFile)
 		if err != nil {
 			return err
@@ -67,7 +67,7 @@ func AnalyzeCertificateRelatedIssues(log *zap.SugaredLogger, clusterRoot string)
 			}
 
 		}
-		caCrtFile := files.FindFileInNamespace(clusterRoot, namespace, "caCrtInfo.json")
+		caCrtFile := files.FormFilePathInNamespace(clusterRoot, namespace, "caCrtInfo.json")
 		caCrtListForNamespace, err := getCaCertInfoFromFile(log, caCrtFile)
 		if err != nil {
 			return err
@@ -204,7 +204,7 @@ func reportCaCrtExpirationIssue(log *zap.SugaredLogger, clusterRoot string, caCr
 func determineIfVZClientIsHangingDueToCerts(log *zap.SugaredLogger, clusterRoot string) (map[string]string, error) {
 	listOfCertificatesThatVZClientIsHangingOn := make(map[string]string)
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
-	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, vpologRegExp)
 	if err != nil {
 		return listOfCertificatesThatVZClientIsHangingOn, err
 	}

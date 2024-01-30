@@ -253,8 +253,8 @@ func (issueReporter *IssueReporter) AddKnownIssueMessagesMatches(issueType strin
 	}
 }
 
-// DeduplicateSupportingData
-func DeduplicateSupportingData(dataIn []SupportData) (dataOut []SupportData) {
+// DeduplicateSupportingDataList
+func DeduplicateSupportingDataList(dataIn []SupportData) (dataOut []SupportData) {
 	// First deduplicate each individual SupportData element, get a minimal set of file and messages at least in
 	// each one.
 	dataOut = make([]SupportData, len(dataIn))

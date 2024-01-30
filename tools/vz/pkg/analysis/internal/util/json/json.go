@@ -55,7 +55,7 @@ func GetJSONDataFromBuffer(log *zap.SugaredLogger, buffer []byte) (jsonData inte
 func GetJSONDataFromFile(log *zap.SugaredLogger, path string) (jsonData interface{}, err error) {
 
 	// Check the cache first
-	jsonData = getIfPresent(path)
+	jsonData = getJsonDataIfPresent(path)
 	if jsonData != nil {
 		log.Debugf("Returning cached jsonData for %s", path)
 		return jsonData, nil
@@ -83,7 +83,7 @@ func GetJSONDataFromFile(log *zap.SugaredLogger, path string) (jsonData interfac
 	log.Debugf("Successfully unmarshaled Json file %s", path)
 
 	// Cache it
-	putIfNotPresent(path, jsonData)
+	putJsonDataIfNotPresent(path, jsonData)
 	return jsonData, err
 }
 
@@ -278,7 +278,7 @@ func getNodeInfo(log *zap.SugaredLogger, nodeString string) (info nodeInfo, err 
 //	return nil, nil
 //}
 
-func getIfPresent(path string) (jsonData interface{}) {
+func getJsonDataIfPresent(path string) (jsonData interface{}) {
 	cacheMutex.Lock()
 	jsonDataTest := jsonDataMap[path]
 	if jsonDataTest != nil {
@@ -289,7 +289,7 @@ func getIfPresent(path string) (jsonData interface{}) {
 	return jsonData
 }
 
-func putIfNotPresent(path string, jsonData interface{}) {
+func putJsonDataIfNotPresent(path string, jsonData interface{}) {
 	cacheMutex.Lock()
 	jsonDataInMap := jsonDataMap[path]
 	if jsonDataInMap == nil {
