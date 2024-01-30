@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/pkg/log"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
@@ -121,6 +122,15 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 			if err := analyzeLiveCluster(cmd, vzHelper, validatedStruct.directory); err != nil {
 				return err
 			}
+
+			problematicPods, err := findProblematicPodFiles(validatedStruct.directory, cmd)
+			if err != nil {
+				return err
+			}
+			if len(problematicPods) != 0 {
+				fmt.Printf("Problematic pods found, run bug-report with --include-logs flag and --previous flag to capture pod logs")
+			}
+
 		} else {
 			//This is the case where only the tar string is specified
 			file, err := os.Open(validatedStruct.tarFile)
@@ -204,4 +214,13 @@ func getReportFormat(cmd *cobra.Command) string {
 		return constants.SummaryReport
 	}
 	return reportFormat.Value.String()
+}
+
+func findProblematicPodFiles(bugReportDir string, cmd *cobra.Command) (problematicPods []string, err error) {
+	logger := log.GetDebugEnabledLogger()
+	errorPodFiles, _ := analysis.FindProblematicPodFiles(logger, bugReportDir)
+	if len(errorPodFiles) == 0 {
+		return nil, fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
+	}
+	return errorPodFiles, nil
 }

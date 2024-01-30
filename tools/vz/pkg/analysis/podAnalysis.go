@@ -1,4 +1,4 @@
-package bugreport
+package analysis
 
 import (
 	encjson "encoding/json"
@@ -28,7 +28,6 @@ func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 	}
 	podFiles = make([]string, 0, len(allPodFiles))
 	for _, podFile := range allPodFiles {
-		log.Debugf("Looking at pod file for problematic pods: %s", podFile)
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
 			log.Debugf("Failed to get the PodList for %s, skipping", podFile, err)
