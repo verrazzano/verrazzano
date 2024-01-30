@@ -1,0 +1,38 @@
+// Copyright (c) 2024, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
+pipeline {
+    options {
+        timeout(time: 5, unit: 'HOURS')
+        skipDefaultCheckout true
+    }
+
+    agent {
+       docker {
+            image "${RUNNER_DOCKER_IMAGE}"
+            args "${RUNNER_DOCKER_ARGS}"
+            registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
+            registryCredentialsId 'ocir-pull-and-push-account'
+            label "pipeline-job-large"
+        }
+    }
+
+    parameters {
+        booleanParam (name: 'TEST_RUN',
+            description: 'Indicate whether this is a TEST run, which will do some stuff but will not try uploading anything, ignored for master/release-* runs',
+            defaultValue: true)
+    }
+
+    stages {
+        stage('Scan Images') {
+            steps {
+                script {
+                    build job: "/pabhat-scanning-job/pabhat%252Fdaily-scan-job-changes",
+                        parameters: [
+                            string(name: 'VERRAZZANO_BRANCH_NAME', value: env.BRANCH_NAME)
+                        ], wait: false
+                }
+            }
+        }
+    }
+}
