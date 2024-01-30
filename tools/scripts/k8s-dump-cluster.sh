@@ -179,6 +179,11 @@ function dump_configmaps() {
       fi
     done <$CAPTURE_DIR/cluster-snapshot/configmap_list.out
 }
+function generate_metadata_json_file(){
+  DATE_ARG=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  jq -n --arg DATE_FOR_JSON ${DATE_ARG} '{"time": $DATE_FOR_JSON}' > $CAPTURE_DIR/cluster-snapshot/metadata.json || true
+
+}
 
 function capture_extra_details_from_namespace() {
   local NAMESPACE=$1
@@ -283,6 +288,9 @@ function full_k8s_cluster_snapshot() {
 
   # Get the installed Verrazzano modules, in the verrazzano-install namespace
   kubectl --insecure-skip-tls-verify get modules.platform.verrazzano.io --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-modules.json || true
+
+  # Generate the metadata.json file
+  generate_metadata_json_file
 
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kubectl-version.json || true

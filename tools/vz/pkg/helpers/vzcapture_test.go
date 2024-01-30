@@ -1,16 +1,18 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
@@ -20,6 +22,7 @@ import (
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -122,9 +125,15 @@ func TestCaptureK8SResources(t *testing.T) {
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp("", "testfile")
+	defer cleanupFile(t, tempFile)
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err = CaptureK8SResources(client, k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
+	isError = false
 }
 
 // TestCaptureMultiClusterResources tests the functionality to capture the multi cluster related resources
@@ -510,4 +519,95 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.NoError(t, err, "Error while regex matching")
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
+}
+
+// TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to get the namespace resource for that namespace
+// THEN expect it to write to the provided resource file with the correct information and no error should be returned.
+func TestCreateNamespaceFile(t *testing.T) {
+	listOfFinalizers := []corev1.FinalizerName{"test-finalizer-name"}
+	sampleNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-namespace",
+		},
+		Spec: corev1.NamespaceSpec{
+			Finalizers: listOfFinalizers,
+		},
+		Status: corev1.NamespaceStatus{
+			Phase: corev1.NamespaceTerminating,
+		},
+	}
+	client := k8sfake.NewSimpleClientset(&sampleNamespace)
+	captureDir, err := os.MkdirTemp("", "testcapturefornamespaces")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureNamespaces(client, "test-namespace", captureDir, rc)
+	assert.NoError(t, err)
+	namespaceLocation := filepath.Join(captureDir, "test-namespace", constants.NamespaceJSON)
+	namespaceObjectToUnmarshalInto := &corev1.Namespace{}
+	err = unmarshallFile(namespaceLocation, namespaceObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	assert.True(t, namespaceObjectToUnmarshalInto.Status.Phase == corev1.NamespaceTerminating)
+}
+
+// TestCreateMetadataFile tests that a metadata file titled metadata.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to record the metadata for the capture
+// THEN expect it to write to the correct resource file with the correct information and no error should be returned.
+func TestCreateMetadataFile(t *testing.T) {
+	captureDir, err := os.MkdirTemp("", "testcaptureformetadata")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
+	err = CaptureMetadata(captureDir)
+	assert.NoError(t, err)
+	metadataLocation := filepath.Join(captureDir, constants.MetadataJSON)
+	metadataObjectToUnmarshalInto := &Metadata{}
+	err = unmarshallFile(metadataLocation, metadataObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	timeObject, err := time.Parse(time.RFC3339, metadataObjectToUnmarshalInto.Time)
+	assert.NoError(t, err)
+	assert.True(t, time.Now().UTC().Sub(timeObject).Minutes() < 60)
+
+}
+
+// unmarshallFile is a helper function that is used to place the contents of a file into a defined struct
+func unmarshallFile(clusterPath string, object interface{}) error {
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	// Unmarshall file contents into a struct
+	err = json.Unmarshal(fileBytes, object)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal %s: %s", clusterPath, err.Error())
+	}
+
+	return nil
 }
