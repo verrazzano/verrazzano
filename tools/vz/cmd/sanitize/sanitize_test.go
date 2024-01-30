@@ -5,7 +5,8 @@ package sanitize
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	testHelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"testing"
@@ -21,7 +22,7 @@ func TestNewCmdSanitize(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	assert.NotNil(t, cmd)
 }
@@ -36,7 +37,7 @@ func TestNoArgsIntoSanitize(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
@@ -53,7 +54,7 @@ func TestTwoInputArgsIntoSanitize(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "input-directory")
 	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "input.tar")
@@ -72,7 +73,7 @@ func TestTwoOutputArgsIntoSanitize(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "output-directory")
 	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output.tar.gz")
@@ -91,7 +92,7 @@ func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
 	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output-tar-file.tar.gz")
@@ -111,7 +112,7 @@ func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
@@ -131,7 +132,7 @@ func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
 	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output-tar-file.tar.gz")
@@ -151,7 +152,7 @@ func TestSanitizeCommandWithInputTarAndOutputDirectory(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
@@ -171,7 +172,7 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 		os.Remove(stdoutFile.Name())
 		os.Remove(stderrFile.Name())
 	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/sanitization/ip-address-redaction")
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
@@ -179,11 +180,54 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	unsanitizedFileBytes, err := os.ReadFile(fileToSanitizePath)
-	if err != nil {
-		return err
-	}
-	notSanitizedFileString := string(unsanitizedFileBytes)
+	sanitizedFileBytes, err := os.ReadFile("test-directory" + string(os.PathSeparator) + "ip-address-not-sanitized.txt")
+	assert.Nil(t, err)
+	sanitizedFileString := string(sanitizedFileBytes)
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("1.1.1.1", nil))
+}
+
+// TestIsMetadataFile
+// GIVEN a call to isMetadataFile
+// WHEN I call isMetadataFile with an input that meets the criteria for a Mac metadata file in a tar file and inputs that do not
+// THEN expect the function to correctly return whether the inputs meet the criteria or do not meet the criteria
+func TestIsMetadataFile(t *testing.T) {
+	assert.True(t, isMetadataFile("._cluster-snapshot", false))
+	assert.False(t, isMetadataFile("cluster-snapshot", true))
+	assert.False(t, isMetadataFile("cluster-snapshot", false))
+}
+
+// TestSanitizeDirectory
+// GIVEN a call to sanitizeDirectory
+// WHEN I call sanitizeDirectory with a structure that contains an input directory that contains files that need to be sanitized
+// THEN expect the function to correctly create the expected output directory containing the properly sanitized file
+func TestSanitizeDirectory(t *testing.T) {
+	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/ocid-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: "test-directory"}
+	defer os.RemoveAll("test-directory")
+	err := sanitizeDirectory(validationForTest)
+	assert.Nil(t, err)
+	sanitizedFileBytes, err := os.ReadFile("test-directory" + string(os.PathSeparator) + "ocid-redaction-not-sanitized.txt")
+	assert.Nil(t, err)
+	sanitizedFileString := string(sanitizedFileBytes)
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q", nil))
+
+}
+
+// TestSanitizeFileAndWriteItToOutput
+// GIVEN a call to SanitizeFileAndWriteItToOutput
+// WHEN I call sanitizeFileAndWriteItToOutput with the appropriate arguments that references a file that does not need to be altered
+// THEN expect the function to create the new file, which should be identical to the old file
+func TestSanitizeFileAndWriteItToOutput(t *testing.T) {
+	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/no-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: "test-directory"}
+	os.Mkdir("test-directory", 0700)
+	defer os.RemoveAll("test-directory")
+	err := sanitizeFileAndWriteItToOutput(validationForTest, false, "../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt", 0600)
+	assert.Nil(t, err)
+	sanitizedFileBytes, err := os.ReadFile("test-directory" + string(os.PathSeparator) + "no-redaction-needed.txt")
+	assert.Nil(t, err)
+	unsanitizedFileBytes, err := os.ReadFile("../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt")
+	assert.Nil(t, err)
+	assert.Equal(t, sanitizedFileBytes, unsanitizedFileBytes)
+
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

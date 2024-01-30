@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	errors2 "errors"
 	"fmt"
 	"io"
 	"os"
@@ -171,6 +172,9 @@ func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
 
 // writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
 func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	if err := createParentsIfNecessary(captureDir, header); err != nil {
+		return err
+	}
 	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
 	if err != nil {
 		return err
@@ -183,6 +187,21 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 	}
 	return nil
 
+}
+
+func createParentsIfNecessary(captureDir string, header *tar.Header) error {
+	filePathSplitByPathSeperatorList := strings.Split(header.Name, string(os.PathSeparator))
+	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
+	directoryString := ""
+	for i, _ := range listOfDirectories {
+		directoryString = directoryString + listOfDirectories[i] + string(os.PathSeparator)
+	}
+	if _, err := os.Stat(captureDir + string(os.PathSeparator) + directoryString); errors2.Is(err, os.ErrNotExist) {
+		if err = os.MkdirAll(captureDir+string(os.PathSeparator)+directoryString, 0700); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress

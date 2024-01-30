@@ -301,6 +301,12 @@ func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
 	assert.ErrorContains(t, err, "an error occurred when trying to open ../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 }
 
+// TestAnalyzeCommandVZTarFile
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a tar.gz file that has been tarred using the CLI tool archive cuntion
+// THEN expect the command to not raise an error and output the correct summary
+func TestAnalyzeCommandVZTarGZFile()
+
 // createStdTempFiles creates temporary files for stdout and stderr.
 func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
 	stdoutFile, err := os.CreateTemp("", "tmpstdout")

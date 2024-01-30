@@ -4,6 +4,7 @@ package sanitize
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/files"
@@ -16,10 +17,9 @@ import (
 )
 
 const (
-	flagErrorStr = "error fetching flag: %s"
-	CommandName  = "sanitize"
-	helpShort    = "Sanitize information from an existing cluster snapshot"
-	helpLong     = "sanitize function"
+	CommandName = "sanitize"
+	helpShort   = "Sanitize information from an existing cluster snapshot"
+	helpLong    = "This command sanitizes information from an existing dire"
 )
 
 type flagValidation struct {
@@ -119,6 +119,9 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 func sanitizeDirectory(validation flagValidation) error {
 	inputDirectory := validation.inputDirectory
 	listOfFilesToSanitize, err := files.GetAllDirectoriesAndFiles(inputDirectory)
+	if _, err := os.Stat(validation.outputDirectory); errors.Is(err, os.ErrNotExist) {
+		os.Mkdir(validation.outputDirectory, 0700)
+	}
 	if err != nil {
 		return err
 	}
