@@ -227,7 +227,7 @@ func CaptureMetadata(captureDir string) error {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
 		return err
 	}
-	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON)))
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON), nil))
 	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
