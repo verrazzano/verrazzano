@@ -625,7 +625,7 @@
           "name": "mysql-operator",
           "images": [
             {
-              "image": "mysql-operator",
+              "image": "community-operator",
               "tag": "8.0.36-2.0.13",
               "helmRegKey": "image.registry",
               "helmRepoKey": "image.repository",
