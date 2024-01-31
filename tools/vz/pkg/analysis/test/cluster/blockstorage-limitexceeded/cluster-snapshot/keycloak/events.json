@@ -1,0 +1,57 @@
+{
+  "metadata": {
+    "resourceVersion": "58347"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "datadir-mysql-0.174cc64cb008eb6b",
+        "namespace": "keycloak",
+        "uid": "c546d26a-3315-42bc-888b-a0e85ee910ff",
+        "resourceVersion": "28192",
+        "creationTimestamp": "2023-03-16T02:46:33Z",
+        "managedFields": [
+          {
+            "manager": "cloud-provider-oci",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2023-03-16T02:46:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "PersistentVolumeClaim",
+        "namespace": "keycloak",
+        "name": "datadir-mysql-0",
+        "uid": "eb1bfe64-87e5-485f-a7cc-ddc6442d1445",
+        "apiVersion": "v1",
+        "resourceVersion": "9734"
+      },
+      "reason": "ProvisioningFailed",
+      "message": "(combined from similar events): failed to provision volume with StorageClass \"oci-bv\": rpc error: code = Internal desc = New volume creation failed Error returned by Blockstorage Service. Http Status Code: 400. Error Code: LimitExceeded. Opc request id: d8822ba4314f5710ce56a89f42829165/903FFB9EB0409FB2DFDC0C2072BFBB4B/54287A67C0EEB803DE7D0968C0382110. Message: You have reached your service limit in this Availability Domain for volumes. Please try creating the volume in a different Availability Domain or Region, or try using a smaller volume size. If you have reached all Service limits, please contact Oracle support to request a limit increase. Quota evaluation failed..\nOperation Name: CreateVolume\nTimestamp: 2023-03-16 03:05:46 +0000 GMT\nClient Version: Oracle-GoSDK/65.18.1\nRequest Endpoint: POST https://iaas.ca-toronto-1.oraclecloud.com/20160918/volumes\nTroubleshooting Tips: See https://docs.oracle.com/iaas/Content/API/References/apierrors.htm#apierrors_400__400_limitexceeded for more information about resolving this error.\nAlso see https://docs.oracle.com/iaas/api/#/en/iaas/20160918/Volume/CreateVolume for details on this operation's requirements.\nTo get more info on the failing request, you can set OCI_GO_SDK_DEBUG env var to info or higher level to log the request/response details.\nIf you are unable to resolve this Blockstorage issue, please contact Oracle support and provide them this full error message.",
+      "source": {
+        "component": "blockvolume.csi.oraclecloud.com_control-plane-host-10-64-249-221_f0fec3c4-7d1a-4c4d-850a-9d5382a512ed"
+      },
+      "firstTimestamp": "2023-03-16T02:46:33Z",
+      "lastTimestamp": "2023-03-16T03:05:46Z",
+      "count": 6,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}
