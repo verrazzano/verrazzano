@@ -4,7 +4,6 @@ package analysis
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -530,12 +529,12 @@ func TestBlockStorageFailure(t *testing.T) {
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
-func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-
-	return stdoutFile, stderrFile
-}
+//func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
+//	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+//	assert.NoError(t, err)
+//
+//	stderrFile, err := os.CreateTemp("", "tmpstderr")
+//	assert.NoError(t, err)
+//
+//	return stdoutFile, stderrFile
+//}
