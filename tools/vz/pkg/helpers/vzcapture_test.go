@@ -191,7 +191,7 @@ func TestCapturePodLog(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc, 0)
+	err = CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc, 0, false)
 	assert.NoError(t, err)
 
 	//  GIVENT and empty k8s cluster,
@@ -200,7 +200,7 @@ func TestCapturePodLog(t *testing.T) {
 	err = CapturePodLog(k8sClient, corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 		Name:      constants.VerrazzanoPlatformOperator,
 		Namespace: constants.VerrazzanoInstall,
-	}}, constants.VerrazzanoInstall, captureDir, rc, 0)
+	}}, constants.VerrazzanoInstall, captureDir, rc, 0, false)
 	assert.NoError(t, err)
 
 	//  GIVENT a k8s cluster with a VPO pod,
@@ -227,7 +227,7 @@ func TestCapturePodLog(t *testing.T) {
 				Image: "dummimage:notag",
 			},
 		},
-	}}, constants.VerrazzanoInstall, captureDir, rc, 300)
+	}}, constants.VerrazzanoInstall, captureDir, rc, 300, false)
 	assert.NoError(t, err)
 }
 
