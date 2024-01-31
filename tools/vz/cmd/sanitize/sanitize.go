@@ -29,6 +29,7 @@ type flagValidation struct {
 	outputTarGZFile string
 }
 
+// NewCmdSanitize creates a sanitize command with the appropriate arguments and makes the command hidden
 func NewCmdSanitize(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 	cmd.Hidden = true
@@ -47,6 +48,8 @@ func NewCmdSanitize(vzHelper helpers.VZHelper) *cobra.Command {
 
 	return cmd
 }
+
+// runCmdSanitize runs a sanitize command which takes an input directory or tar file to sanitize and an output directory or tar.gz file to place the sanitized files
 func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
 	validatedStruct, err := parseInputAndOutputFlags(cmd, vzHelper, constants.InputDirectoryFlagName, constants.OutputDirectoryFlagName, constants.InputTarFileFlagName, constants.OutputTarGZFileFlagName)
 	if err != nil {
@@ -83,7 +86,7 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 
 }
 
-// This function validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
+// parseInputAndOutputFlags validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
 func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inputDirectoryFlagValue string, outputDirectoryFlagValue string, inputTarFileFlagValue string, outputTarGZFileFlagValue string) (*flagValidation, error) {
 	inputDirectory, err := cmd.PersistentFlags().GetString(inputDirectoryFlagValue)
 	if err != nil {
@@ -99,9 +102,6 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 	if inputDirectory == "" && inputTarFileString == "" {
 		return nil, fmt.Errorf("an input directory or an input tar file must be specified")
 	}
-	if !(strings.HasSuffix(inputDirectory, "/")) {
-		inputDirectory = inputDirectory + "/"
-	}
 	outputDirectory, err := cmd.PersistentFlags().GetString(outputDirectoryFlagValue)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputDirectoryFlagName, err.Error())
@@ -116,15 +116,18 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 	if outputDirectory == "" && outputTarGZFileString == "" {
 		return nil, fmt.Errorf("an output directory or an output tar.gz file must be specified")
 	}
-	if !(strings.HasSuffix(outputDirectory, "/")) {
-		outputDirectory = outputDirectory + "/"
-	}
 	return &flagValidation{inputDirectory: inputDirectory, inputTarFile: inputTarFileString, outputDirectory: outputDirectory, outputTarGZFile: outputTarGZFileString}, nil
 }
 
+// sanitizeDirectory sanitizes all the files in a directory, outputs the sanitized files to a separate directory, and tars the sanitized directory if necessary
 func sanitizeDirectory(validation flagValidation) error {
-	inputDirectory := validation.inputDirectory
-	listOfFilesToSanitize, err := files.GetAllDirectoriesAndFiles(inputDirectory)
+	listOfFilesToSanitize, err := files.GetAllDirectoriesAndFiles(validation.inputDirectory)
+	if !(strings.HasSuffix(validation.inputDirectory, string(os.PathSeparator))) {
+		validation.inputDirectory = validation.inputDirectory + string(os.PathSeparator)
+	}
+	if !(strings.HasSuffix(validation.outputDirectory, string(os.PathSeparator))) {
+		validation.outputDirectory = validation.outputDirectory + string(os.PathSeparator)
+	}
 	if _, err := os.Stat(validation.outputDirectory); errors.Is(err, os.ErrNotExist) {
 		os.Mkdir(validation.outputDirectory, 0700)
 	}
@@ -160,6 +163,7 @@ func sanitizeDirectory(validation flagValidation) error {
 	return nil
 }
 
+// sanitizeFileAndWriteItToOutput sanitizes a file and writes the sanitized file to its corresponding path in a separate directory
 func sanitizeFileAndWriteItToOutput(validation flagValidation, isDirectory bool, fileToSanitizePath string, fileMode fs.FileMode) error {
 	pathOfSanitizedFileOrDirectoryForOutput := strings.ReplaceAll(fileToSanitizePath, validation.inputDirectory, validation.outputDirectory)
 	if isDirectory {
@@ -178,7 +182,7 @@ func sanitizeFileAndWriteItToOutput(validation flagValidation, isDirectory bool,
 	return err
 }
 
-// The function isMetadataFile determines if a file in a tar archive fits the format of Mac Metadata
+// isMetadataFile determines if a file in a tar archive fits the format of Mac Metadata
 func isMetadataFile(fileBaseName string, isDir bool) bool {
 	return strings.HasPrefix(fileBaseName, "._") && !isDir
 }

@@ -102,11 +102,11 @@ func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile
+// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothHaveSlashes
 // GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with both an input directory and an output directory file specified
+// WHEN I call cmd.Execute() with both an input directory and an output directory file specified, whose paths both end with a "/"
 // THEN expect the command to not return an error and to create the specified directory
-func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
+func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothHaveSlashes(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -114,12 +114,79 @@ func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFile(t *testing.T) {
 	}()
 	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
-	// Come back to this, the bug is in how the / is parsed by the command, do pre-processing to make it consistent
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods/")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory/")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	_, err = os.Stat("test-directory/cluster-snapshot")
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothDoNotHaveSlashes
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an output directory file specified, whose paths both do not end with a "/"
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothDoNotHaveSlashes(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	_, err = os.Stat("test-directory/cluster-snapshot")
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWithPathMismatchWhereInputPathHasSlashAndOutputSlashDoesNotHaveSlash
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with an input directory that ends in a "/" and a output directory that does not end in a "/"
+// THEN expect the command to not return an error and to populate the specified directory correctly
+func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWhereInputPathHasSlashAndOutputSlashDoesNotHaveSlash(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods/")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
+	defer os.RemoveAll("test-directory")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	_, err = os.Stat("test-directory/cluster-snapshot")
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWithPathMismatchWhereInputPathDoesNotHaveSlashAndOutputPathHasSlas
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with an input directory that does not end in a "/" and a output directory that does end in a "/"
+// THEN expect the command to not return an error and to populate the specified directory correctly
+func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWhereInputPathDoesNotHaveSlashAndOutputPathHasSlash(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
 	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory/")
 	defer os.RemoveAll("test-directory")
 	assert.NotNil(t, cmd)
 	err := cmd.Execute()
+	assert.Nil(t, err)
+	_, err = os.Stat("test-directory/cluster-snapshot")
 	assert.Nil(t, err)
 }
 
@@ -147,7 +214,7 @@ func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
 // GIVEN a Sanitize command
 // WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
 // THEN expect the command to not return an error and to create the specified directory
-func TestSanitizeCommandWithInputTarAndOutputDirectory(t *testing.T) {
+func TestSanitizeCommandWithInputTarAndOutputDirectoryFile(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer func() {
 		os.Remove(stdoutFile.Name())
@@ -184,7 +251,7 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 	sanitizedFileBytes, err := os.ReadFile("test-directory" + string(os.PathSeparator) + "ip-address-not-sanitized.txt")
 	assert.Nil(t, err)
 	sanitizedFileString := string(sanitizedFileBytes)
-	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("1.1.1.1", nil))
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("127.0.0.0", nil))
 }
 
 // TestIsMetadataFile

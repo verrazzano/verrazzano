@@ -56,7 +56,7 @@ type CaCrtInfo struct {
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
-// If the addClusterSnapshot value is set to true, a
+// If the addClusterSnapshot value is set to true, a value of "cluster-snapshot" prefixes every file path that is put into the archive
 func CreateReportArchive(captureDir string, bugRepFile *os.File, addClusterSnapshot bool) error {
 
 	// Create new Writers for gzip and tar
@@ -172,7 +172,7 @@ func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
 
 // writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
 func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
-	if err := createParentsIfNecessary(captureDir, header); err != nil {
+	if err := createParentsIfNecessary(captureDir, header.Name); err != nil {
 		return err
 	}
 	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
@@ -189,8 +189,12 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 
 }
 
-func createParentsIfNecessary(captureDir string, header *tar.Header) error {
-	filePathSplitByPathSeperatorList := strings.Split(header.Name, string(os.PathSeparator))
+// createParentsIfNecessary determines if a path of a file references directories that have not been created and then creates those directories
+func createParentsIfNecessary(captureDir string, filePath string) error {
+	filePathSplitByPathSeperatorList := strings.Split(filePath, string(os.PathSeparator))
+	//	if len(filePathSplitByPathSeperatorList) == 1 {
+	//		return nil
+	//	}
 	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
 	directoryString := ""
 	for i := range listOfDirectories {

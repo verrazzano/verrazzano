@@ -299,7 +299,7 @@ func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
 
 // TestAnalyzeCommandVZTarFile
 // GIVEN a CLI analyze command
-// WHEN I call cmd.Execute with a tar.gz file that has been tarred using the CLI tool archive cuntion
+// WHEN I call cmd.Execute with a tar.gz file that has been tarred using the CLI tool archive function
 // THEN expect the command to not raise an error and output the correct summary
 func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 	stdoutFile, stderrFile := createStdTempFiles(t)
