@@ -99,6 +99,9 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 	if inputDirectory == "" && inputTarFileString == "" {
 		return nil, fmt.Errorf("an input directory or an input tar file must be specified")
 	}
+	if !(strings.HasSuffix(inputDirectory, "/")) {
+		inputDirectory = inputDirectory + "/"
+	}
 	outputDirectory, err := cmd.PersistentFlags().GetString(outputDirectoryFlagValue)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputDirectoryFlagName, err.Error())
@@ -112,6 +115,9 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 	}
 	if outputDirectory == "" && outputTarGZFileString == "" {
 		return nil, fmt.Errorf("an output directory or an output tar.gz file must be specified")
+	}
+	if !(strings.HasSuffix(outputDirectory, "/")) {
+		outputDirectory = outputDirectory + "/"
 	}
 	return &flagValidation{inputDirectory: inputDirectory, inputTarFile: inputTarFileString, outputDirectory: outputDirectory, outputTarGZFile: outputTarGZFileString}, nil
 }
