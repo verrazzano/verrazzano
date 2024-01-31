@@ -4,6 +4,7 @@ package analysis
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -485,14 +486,9 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 // This test also tests for detecting a separate expired certificate in the certificates.json
 func TestCertificateVZClientHangingIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+
 	report.ClearReports()
-	err := Analyze(rc, logger, "cluster", "test/cluster/testCLIHangingIssue")
+	err := Analyze(logger, "cluster", "test/cluster/testCLIHangingIssue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -516,14 +512,9 @@ func TestCertificateVZClientHangingIssue(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestBlockStorageFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+
 	report.ClearReports()
-	err := Analyze(rc, logger, "cluster", "test/cluster/blockstorage-limitexceeded")
+	err := Analyze(logger, "cluster", "test/cluster/blockstorage-limitexceeded")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
