@@ -39,6 +39,7 @@ import (
 
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
+var writeFileError = "an error occurred while writing the file %s: %s\n"
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -53,6 +54,9 @@ var multiWriterErr io.Writer
 type CaCrtInfo struct {
 	Name    string `json:"name"`
 	Expired bool   `json:"expired"`
+}
+type Metadata struct {
+	Time string `json:"time"`
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
@@ -235,7 +239,31 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
+}
+
+// captureMetadata gets the current time in UTC on the user's system and outputs it in RFC 3339 format to the user's system
+func CaptureMetadata(captureDir string) error {
+	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
+	metadataFilename := filepath.Join(captureDir, constants.MetadataJSON)
+	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
+	timeStructToWrite := Metadata{Time: timetoCaptureString}
+	metadataJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
+		return err
+	}
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON), nil))
+	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
+	if err != nil {
+		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
+		return err
+	}
+	return nil
+
 }
 
 // GetPodList returns list of pods matching the label in the given namespace
@@ -298,7 +326,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON), nil))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
 	}
 	return nil
@@ -330,6 +358,18 @@ func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, 
 		if err = createFile(pods, namespace, constants.PodsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// captureNamespaces captures the namespace resource for a given namespace, as a JSON file
+func captureNamespaces(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	namespaceResource, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the namespace resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if err = createFile(namespaceResource, namespace, constants.NamespaceJSON, captureDir, vzHelper); err != nil {
+		return err
 	}
 	return nil
 }
@@ -552,7 +592,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
 	return nil
 }

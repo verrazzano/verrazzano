@@ -220,6 +220,8 @@ const (
 	McComponentJSON  = "multicluster-components.json"
 	VzProjectsJSON   = "verrazzano-projects.json"
 	VmcJSON          = "verrazzano-managed-clusters.json"
+	NamespaceJSON    = "namespace.json"
+	MetadataJSON     = "metadata.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
@@ -241,7 +243,7 @@ const (
 	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
+	BugReportLogFlagNameUsage    = "Include logs from all containers in running pods of the namespaces being captured."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0

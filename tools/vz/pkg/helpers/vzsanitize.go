@@ -33,7 +33,7 @@ var redactedValuesMutex = &sync.Mutex{}
 
 var ipv4Regex = regexPlan{regex: "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"}
 var userData = regexPlan{regex: "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""}
-var sshAuthKeys = regexPlan{regex: "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"}
+var sshAuthKeys = regexPlan{regex: "(sk-)?(ssh|ecdsa)-[a-zA-Z0-9\\-\\.@]+\\s+AAAA[A-Za-z0-9\\-\\/\\+]+[=]{0,3}( .*)*"}
 var ocid = regexPlan{regex: "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"}
 var opcid = regexPlan{
 	preprocess: func(s string) string {
