@@ -34,7 +34,7 @@ func AnalyzeNamespaceRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (
 		return err
 	}
 	for _, namespace := range allNamespacesFound {
-		namespaceFile := files.FindFileInNamespace(clusterRoot, namespace, constants.NamespaceJSON)
+		namespaceFile := files.FormFilePathInNamespace(clusterRoot, namespace, constants.NamespaceJSON)
 		namespaceObject, err := getNamespaceResource(log, namespaceFile)
 		if err != nil {
 			return err
