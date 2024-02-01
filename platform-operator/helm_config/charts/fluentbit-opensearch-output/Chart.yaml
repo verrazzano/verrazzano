@@ -1,4 +1,4 @@
-# Copyright (c) 2023, Oracle and/or its affiliates.
+# Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 apiVersion: v2
 name: fluentbit-opensearch-output
@@ -17,10 +17,10 @@ type: application
 # This is the chart version. This version number should be incremented each time you make changes
 # to the chart and its templates, including the app version.
 # Versions are expected to follow Semantic Versioning (https://semver.org/)
-version: 1.6.10
+version: 1.6.10-1
 
 # This is the version number of the application being deployed. This version number should be
 # incremented each time you make changes to the application. Versions are not expected to
 # follow Semantic Versioning. They should reflect the version the application is using.
 # It is recommended to use it with quotes.
-appVersion: 1.6.10
+appVersion: 1.6.10-1
