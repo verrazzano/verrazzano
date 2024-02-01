@@ -38,7 +38,7 @@ func GetMatchingFiles(rootDirectory string, fileMatchRe *regexp.Regexp) (fileMat
 	return fileMatches, err
 }
 
-// GetAllDirectoriesAndFiles returns the directories and filenames for all directories and files within a root directory
+// GetAllDirectoriesAndFiles requires a root directory and returns the directories and filenames for all directories and files within a root directory
 func GetAllDirectoriesAndFiles(rootDirectory string) (fileMatches []string, err error) {
 	if len(rootDirectory) == 0 {
 		return nil, errors.New("GetMatchingFiles requires a rootDirectory")
