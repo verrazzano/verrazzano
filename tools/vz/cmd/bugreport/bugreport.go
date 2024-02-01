@@ -189,7 +189,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 			"Please go through errors (if any), in the standard output.\n")
 	}
 
-	// Create the redaction mapping file.
+	// Process the redacted values file flag.
 	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
 	if err != nil {
 		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.RedactedValuesFlagName, err.Error())
