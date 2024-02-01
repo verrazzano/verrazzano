@@ -154,7 +154,7 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 
 // GetTimeOfCapture parses the metadata.json file and converts the time string into a time.Time object to be used by other functions
 func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
-	metadataFile := FindFileInClusterRoot(clusterRoot, constants.MetadataJSON)
+	metadataFile := FormFilePathInClusterRoot(clusterRoot, constants.MetadataJSON)
 	if _, err := os.Stat(metadataFile); errors.Is(err, os.ErrNotExist) {
 		return nil, nil
 	}
