@@ -196,9 +196,9 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 // createParentsIfNecessary determines if a path of a file references directories that have not been created and then creates those directories
 func createParentsIfNecessary(captureDir string, filePath string) error {
 	filePathSplitByPathSeperatorList := strings.Split(filePath, string(os.PathSeparator))
-	//	if len(filePathSplitByPathSeperatorList) == 1 {
-	//		return nil
-	//	}
+	if len(filePathSplitByPathSeperatorList) == 1 {
+		return nil
+	}
 	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
 	directoryString := ""
 	for i := range listOfDirectories {
@@ -208,6 +208,8 @@ func createParentsIfNecessary(captureDir string, filePath string) error {
 		if err = os.MkdirAll(captureDir+string(os.PathSeparator)+directoryString, 0700); err != nil {
 			return err
 		}
+	} else if err != nil {
+		return err
 	}
 	return nil
 }
