@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package files handles searching
@@ -156,7 +156,7 @@ func FindFilesAndSearch(log *zap.SugaredLogger, rootDirectory string, fileMatchR
 	}
 
 	// Get the list of files that match
-	filesToSearch, err := GetMatchingFileNames(log, rootDirectory, fileMatchRe)
+	filesToSearch, err := GetMatchingFiles(log, rootDirectory, fileMatchRe)
 	if err != nil {
 		log.Debugf("FindFilesAndSearch failed", err)
 		return nil, err
