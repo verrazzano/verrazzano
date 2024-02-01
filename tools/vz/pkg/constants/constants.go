@@ -239,3 +239,6 @@ const (
 const ProgressShorthand = "p"
 const RefreshRate = time.Second * 10
 const TotalWidth = 50
+
+// Error message for failing to parse a flag
+const FlagErrorMessage = "an error occurred while reading value for the flag %s: %s"
