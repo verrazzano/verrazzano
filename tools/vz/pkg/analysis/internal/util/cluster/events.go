@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -56,7 +56,7 @@ func GetEventList(log *zap.SugaredLogger, path string) (eventList *corev1.EventL
 
 // GetEventsRelatedToPod gets events related to a pod
 func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev1.Pod, timeRange *files.TimeRange) (podEvents []corev1.Event, err error) {
-	allEvents, err := GetEventList(log, files.FormFilePathInNamespace(clusterRoot, pod.ObjectMeta.Namespace, constants.EventsJSON))
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, pod.ObjectMeta.Namespace, constants.EventsJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func GetEventsRelatedToPod(log *zap.SugaredLogger, clusterRoot string, pod corev
 // GetEventsRelatedToService gets events related to a service
 func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, service corev1.Service, timeRange *files.TimeRange) (serviceEvents []corev1.Event, err error) {
 	log.Debugf("GetEventsRelatedToService called for %s in namespace %s", service.ObjectMeta.Name, service.ObjectMeta.Namespace)
-	allEvents, err := GetEventList(log, files.FormFilePathInNamespace(clusterRoot, service.ObjectMeta.Namespace, constants.EventsJSON))
+	allEvents, err := GetEventList(log, files.FindFileInNamespace(clusterRoot, service.ObjectMeta.Namespace, constants.EventsJSON))
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +102,7 @@ func GetEventsRelatedToService(log *zap.SugaredLogger, clusterRoot string, servi
 func GetEventsRelatedToComponentNamespace(log *zap.SugaredLogger, clusterRoot string, componentNamespace string, timeRange *files.TimeRange) (componentEvents []corev1.Event, err error) {
 	log.Debugf("GetEventsRelatedToComponentNs called for component in namespace %s", componentNamespace)
 
-	podFile := files.FormFilePathInNamespace(clusterRoot, componentNamespace, podsJSON)
+	podFile := files.FindFileInNamespace(clusterRoot, componentNamespace, podsJSON)
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
 		log.Debugf("Failed to get the list of pods for the given pod file %s, skipping", podFile)
