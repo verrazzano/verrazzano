@@ -6,6 +6,7 @@ package helpers
 import (
 	"encoding/csv"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -27,7 +28,6 @@ var (
 
 	// Specifies the location and name of the CSV file written to by WriteRedactionMapFile for these tests.
 	redactMapFileLocation = os.TempDir()
-	redactMapFilePath     = redactMapFileLocation + "/" + constants.RedactionMap
 )
 
 // TestSanitizeALine tests the SanitizeString function.
@@ -59,12 +59,23 @@ func TestSanitizeALine(t *testing.T) {
 func TestWriteRedactionMapFileEmpty(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
-	err := WriteRedactionMapFile(redactMapFileLocation, testRedactedValues)
+	redactMapFilePath := filepath.Join(redactMapFileLocation, "empty-redaction-map.csv")
+
+	// Should create the CSV file
+	err := WriteRedactionMapFile(redactMapFilePath, testRedactedValues)
 	a.Nil(err)
-	_, err = os.Stat(redactMapFilePath)
-	a.Nil(err, "redaction file %s does not exist", redactMapFilePath)
-	err = os.Remove(redactMapFilePath)
+
+	// Open the file
+	f, err := os.Open(redactMapFilePath)
 	a.Nil(err)
+	defer f.Close()
+	defer os.Remove(f.Name())
+
+	// Check the file is empty
+	reader := csv.NewReader(f)
+	data, err := reader.ReadAll()
+	a.Nil(err)
+	a.Zero(len(data))
 }
 
 // TestWriteRedactionMapFile tests that WriteRedactionMapFile correctly writes redacted string mapping to a CSV file.
@@ -74,6 +85,8 @@ func TestWriteRedactionMapFileEmpty(t *testing.T) {
 func TestWriteRedactionMapFile(t *testing.T) {
 	a := assert.New(t)
 	testRedactedValues := make(map[string]string)
+	redactMapFilePath := filepath.Join(redactMapFileLocation, "test-redaction-map.csv")
+
 	// redact a variety of inputs, as well as inputting a value more than once.
 	testInputs := []string{testIP, testOCID, testSSH, testUserData, testOPCID, testIP}
 	for _, input := range testInputs {
@@ -83,7 +96,7 @@ func TestWriteRedactionMapFile(t *testing.T) {
 	a.Len(testRedactedValues, numUniqueInputs)
 
 	// write the redacted values to the CSV file
-	err := WriteRedactionMapFile(redactMapFileLocation, testRedactedValues)
+	err := WriteRedactionMapFile(redactMapFilePath, testRedactedValues)
 	a.Nil(err)
 
 	// open the file
