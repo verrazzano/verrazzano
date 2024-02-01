@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package bugreport
@@ -109,6 +109,10 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture global CAPI resources
 	if err = pkghelpers.CaptureGlobalCapiResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
+		return err
+	}
+
+	if err := pkghelpers.CaptureMetadata(clusterSnapshotCtx.BugReportDir); err != nil {
 		return err
 	}
 
