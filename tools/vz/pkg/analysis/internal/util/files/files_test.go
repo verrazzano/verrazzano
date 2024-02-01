@@ -14,7 +14,7 @@ import (
 )
 
 // TestGetMatchingFileNamesGood Tests that we can find the expected set of files with a matching expression
-// GIVEN a call to GetMatchingDirectories
+// GIVEN a call to GetMatchingFileNamesGood
 // WHEN with a valid rootDirectory and regular expression
 // THEN files that matched will be returned
 func TestGetMatchingFileNamesGood(t *testing.T) {
@@ -35,7 +35,7 @@ func TestGetMatchingFileNamesGood(t *testing.T) {
 // GIVEN a call to GetMatchingDirectoryNames
 // WHEN with a valid rootDirectory and regular expression
 // THEN files that matched will be returned
-func TestGetMatchingDirectoriesGood(t *testing.T) {
+func TestGetMatchingDirectoriesNamesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
 	myFiles, err := GetMatchingDirectoryNames(logger, "../../../test", regexp.MustCompile(".*son$"))
@@ -50,7 +50,7 @@ func TestGetMatchingDirectoriesGood(t *testing.T) {
 	assert.Nil(t, myFiles)
 }
 
-// TestGetMatchingBad Tests that we can find the expected set of files with a matching expression
+// TestGetMatchingInvalidInputs Tests that we can find the expected set of files with a matching expression
 // GIVEN a call to GetMatching* utilities
 // WHEN with invalid inputs
 // THEN we get failures as expected
