@@ -17,10 +17,10 @@ import (
 )
 
 const (
-	CommandName      = "analyze"
-	helpShort        = "Analyze cluster"
-	helpLong         = `Analyze cluster for identifying issues and providing advice`
-	helpExample      = `
+	CommandName = "analyze"
+	helpShort   = "Analyze cluster"
+	helpLong    = `Analyze cluster for identifying issues and providing advice`
+	helpExample = `
 # Run analysis tool on captured directory
 vz analyze --capture-dir <path>
 
