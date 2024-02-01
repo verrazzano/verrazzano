@@ -165,7 +165,7 @@ const (
 	// Flag for generating the redacted values mappping file
 	RedactedValuesFlagName  = "redacted-values-file"
 	RedactedValuesFlagValue = ""
-	RedactedValuesFlagUsage = "Creates a CSV file at the file path provided, containing a mapping between values redacted by the VZ sanitation tool and their original values. Do not share this file as it contains sensitive data."
+	RedactedValuesFlagUsage = "Creates a CSV file at the file path provided, containing a mapping between values redacted by the VZ analysis tool and their original values. Do not share this file as it contains sensitive data."
 
 	BugReportDir = "bug-report"
 
