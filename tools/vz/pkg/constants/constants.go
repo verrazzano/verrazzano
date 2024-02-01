@@ -163,7 +163,7 @@ const (
 	BugReportIncludeNSFlagUsage = "A comma-separated list of namespaces, in addition to the ones collected by default (system namespaces), for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
 	// Flag for generating the redacted values mappping file
-	RedactedValuesFlagName = "redacted-values-file"
+	RedactedValuesFlagName  = "redacted-values-file"
 	RedactedValuesFlagValue = ""
 	RedactedValuesFlagUsage = "Creates a CSV file at the file path provided, containing a mapping between values redacted by the VZ sanitation tool and their original values. Do not share this file as it contains sensitive data."
 
