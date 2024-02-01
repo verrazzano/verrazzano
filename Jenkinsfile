@@ -397,12 +397,6 @@ pipeline {
                 }
             }
 
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
-            }
-
             steps {
                 retry(count: JOB_PROMOTION_RETRIES) {
                     script {
