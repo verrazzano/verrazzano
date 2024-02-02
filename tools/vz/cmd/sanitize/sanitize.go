@@ -51,7 +51,7 @@ func NewCmdSanitize(vzHelper helpers.VZHelper) *cobra.Command {
 
 // runCmdSanitize runs a sanitize command which takes an input directory or tar file to sanitize and an output directory or tar.gz file to place the sanitized files
 func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	validatedStruct, err := parseInputAndOutputFlags(cmd, vzHelper, constants.InputDirectoryFlagName, constants.OutputDirectoryFlagName, constants.InputTarFileFlagName, constants.OutputTarGZFileFlagName)
+	validatedStruct, err := parseInputAndOutputFlags(cmd, vzHelper)
 	if err != nil {
 		return err
 	}
@@ -87,12 +87,12 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 }
 
 // parseInputAndOutputFlags validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
-func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inputDirectoryFlagValue string, outputDirectoryFlagValue string, inputTarFileFlagValue string, outputTarGZFileFlagValue string) (*flagValidation, error) {
-	inputDirectory, err := cmd.PersistentFlags().GetString(inputDirectoryFlagValue)
+func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper) (*flagValidation, error) {
+	inputDirectory, err := cmd.PersistentFlags().GetString(constants.InputDirectoryFlagName)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.InputDirectoryFlagName, err.Error())
 	}
-	inputTarFileString, err := cmd.PersistentFlags().GetString(inputTarFileFlagValue)
+	inputTarFileString, err := cmd.PersistentFlags().GetString(constants.InputTarFileFlagName)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.InputTarFileFlagName, err.Error())
 	}
@@ -102,11 +102,11 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper, inp
 	if inputDirectory == "" && inputTarFileString == "" {
 		return nil, fmt.Errorf("an input directory or an input tar file must be specified")
 	}
-	outputDirectory, err := cmd.PersistentFlags().GetString(outputDirectoryFlagValue)
+	outputDirectory, err := cmd.PersistentFlags().GetString(constants.OutputDirectoryFlagName)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputDirectoryFlagName, err.Error())
 	}
-	outputTarGZFileString, err := cmd.PersistentFlags().GetString(outputTarGZFileFlagValue)
+	outputTarGZFileString, err := cmd.PersistentFlags().GetString(constants.OutputTarGZFile)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputTarGZFileFlagName, err.Error())
 	}

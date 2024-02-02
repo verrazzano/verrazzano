@@ -153,7 +153,7 @@ const (
 const (
 	InputTarFileFlagName  = "input-tar-file"
 	InputTarFileFlagValue = ""
-	InputTarFileFlagUsage = "Name of the input cluster-dump tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+	InputTarFileFlagUsage = "Name of the input bug-report tar file, which can have extensions of .tar, .tgz, and .tar.gz"
 
 	OutputTarGZFileFlagName  = "output-tar.gz-file"
 	OutputTarGZFileFlagValue = ""
@@ -161,11 +161,11 @@ const (
 
 	InputDirectoryFlagName  = "input-directory"
 	InputDirectoryFlagValue = ""
-	InputDirectoryFlagUsage = "Name of the directory that contains the un-sanitized cluster-dump"
+	InputDirectoryFlagUsage = "Name of the directory that contains the un-sanitized bug-report"
 
 	OutputDirectoryFlagName  = "output-directory"
 	OutputDirectoryFlagValue = ""
-	OutputDirectoryFlagUsage = "Name of the directory that will contain the sanitized cluster-dump"
+	OutputDirectoryFlagUsage = "Name of the directory that will contain the sanitized bug-report"
 )
 
 // Constants for bug report
