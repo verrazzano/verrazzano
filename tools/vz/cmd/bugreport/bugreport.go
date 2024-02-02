@@ -20,11 +20,10 @@ import (
 )
 
 const (
-	flagErrorStr = "error fetching flag: %s"
-	CommandName  = "bug-report"
-	helpShort    = "Collect information from the cluster to report an issue"
-	helpLong     = `Verrazzano command line utility to collect data from the cluster, to report an issue`
-	helpExample  = `
+	CommandName = "bug-report"
+	helpShort   = "Collect information from the cluster to report an issue"
+	helpLong    = `Verrazzano command line utility to collect data from the cluster, to report an issue`
+	helpExample = `
 # Create a bug report file, bugreport.tar.gz, by collecting data from the cluster:
 vz bug-report --report-file bugreport.tar.gz
 
@@ -39,7 +38,10 @@ vz bug-report --report-file bugreport.tgz --include-namespaces ns1
 
 The values specified for the flag --include-namespaces are case-sensitive.
 
-# Use the --include-logs flag to collect the logs from the pods in one or more namespaces, by specifying the --include-namespaces flag.
+# Use the --include-logs flag to capture logs from all the containers in running pods, from the default namespaces being captured
+vz bug-report --report-file bugreport.tgz --include-logs
+
+# Use the --include-logs flag in combination with the --include-namespaces flag to extend the default namespaces being captured and capture additional logs from all containers in running pods of the specified namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
 # The flag --duration collects logs for a specific period. The default value is 0, which collects the complete pod log. It supports seconds, minutes, and hours.
@@ -63,6 +65,7 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	}
 
 	cmd.Example = helpExample
+	cmd.PersistentFlags().String(constants.RedactedValuesFlagName, constants.RedactedValuesFlagValue, constants.RedactedValuesFlagUsage)
 	cmd.PersistentFlags().StringP(constants.BugReportFileFlagName, constants.BugReportFileFlagShort, constants.BugReportFileFlagValue, constants.BugReportFileFlagUsage)
 	cmd.PersistentFlags().StringSliceP(constants.BugReportIncludeNSFlagName, constants.BugReportIncludeNSFlagShort, []string{}, constants.BugReportIncludeNSFlagUsage)
 	cmd.PersistentFlags().BoolP(constants.VerboseFlag, constants.VerboseFlagShorthand, constants.VerboseFlagDefault, constants.VerboseFlagUsage)
@@ -79,7 +82,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	newCmd := analyze.NewCmdAnalyze(vzHelper)
 	err := setUpFlags(cmd, newCmd)
 	if err != nil {
-		return fmt.Errorf(flagErrorStr, err.Error())
+		return err
 	}
 	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
 	if analyzeErr != nil {
@@ -90,7 +93,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
-		return fmt.Errorf(flagErrorStr, err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportFileFlagName, err.Error())
 	}
 	if bugReportFile == "" {
 		bugReportFile = constants.BugReportFileDefaultValue
@@ -135,18 +138,18 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Read the additional namespaces provided using flag --include-namespaces
 	moreNS, err := cmd.PersistentFlags().GetStringSlice(constants.BugReportIncludeNSFlagName)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading values for the flag --include-namespaces: %s", err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportIncludeNSFlagName, err.Error())
 	}
 	// If additional namespaces pods logs needs to be capture using flag --include-logs
 	isPodLog, err := cmd.PersistentFlags().GetBool(constants.BugReportLogFlagName)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading values for the flag --include-logs: %s", err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportLogFlagName, err.Error())
 	}
 
 	// If additional namespaces pods logs needs to be capture using flag with duration --duration
 	durationString, err := cmd.PersistentFlags().GetDuration(constants.BugReportTimeFlagName)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading values for the flag --duration: %s", err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportTimeFlagName, err.Error())
 	}
 	durationValue := int64(durationString.Seconds())
 	if err != nil {
@@ -166,7 +169,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// set the flag to control the display the resources captured
 	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.VerboseFlag, err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
 
@@ -183,6 +186,18 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	if isDirEmpty(bugReportDir, 2) {
 		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
 			"Please go through errors (if any), in the standard output.\n")
+	}
+
+	// Process the redacted values file flag.
+	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
+	if err != nil {
+		return fmt.Errorf(constants.FlagErrorMessage, constants.RedactedValuesFlagName, err.Error())
+	}
+	if redactionFilePath != "" {
+		// Create the redaction map file if the user provides a non-empty file path.
+		if err := helpers.WriteRedactionMapFile(redactionFilePath, nil); err != nil {
+			return fmt.Errorf("an error occurred while creating the redacted values map at %s: %s", redactionFilePath, err.Error())
+		}
 	}
 
 	// Generate the bug report
@@ -268,11 +283,11 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	kubeconfigFlag, errFlag := cmd.Flags().GetString(constants.GlobalFlagKubeConfig)
 	if errFlag != nil {
-		return fmt.Errorf(flagErrorStr, errFlag.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.GlobalFlagKubeConfig, errFlag.Error())
 	}
 	contextFlag, errFlag2 := cmd.Flags().GetString(constants.GlobalFlagContext)
 	if errFlag2 != nil {
-		return fmt.Errorf(flagErrorStr, errFlag2.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.GlobalFlagContext, errFlag2.Error())
 	}
 	newCmd.Flags().StringVar(&kubeconfigFlagValPointer, constants.GlobalFlagKubeConfig, "", constants.GlobalFlagKubeConfigHelp)
 	newCmd.Flags().StringVar(&contextFlagValPointer, constants.GlobalFlagContext, "", constants.GlobalFlagContextHelp)

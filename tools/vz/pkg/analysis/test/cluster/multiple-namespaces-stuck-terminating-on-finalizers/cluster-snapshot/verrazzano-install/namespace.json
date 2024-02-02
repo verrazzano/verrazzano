@@ -1,0 +1,46 @@
+{
+  "metadata": {
+    "name": "verrazzano-install",
+    "deletionTimestamp": "2024-01-23T21:16:58Z"
+  },
+  "status": {
+    "phase": "Terminating",
+    "conditions": [
+      {
+        "type": "NamespaceDeletionDiscoveryFailure",
+        "status": "False",
+        "lastTransitionTime": "2024-01-23T21:17:04Z",
+        "reason": "ResourcesDiscovered",
+        "message": "All resources successfully discovered"
+      },
+      {
+        "type": "NamespaceDeletionGroupVersionParsingFailure",
+        "status": "False",
+        "lastTransitionTime": "2024-01-23T21:17:04Z",
+        "reason": "ParsedGroupVersions",
+        "message": "All legacy kube types successfully parsed"
+      },
+      {
+        "type": "NamespaceDeletionContentFailure",
+        "status": "False",
+        "lastTransitionTime": "2024-01-23T21:17:04Z",
+        "reason": "ContentDeleted",
+        "message": "All content successfully deleted, may be waiting on finalization"
+      },
+      {
+        "type": "NamespaceContentRemaining",
+        "status": "True",
+        "lastTransitionTime": "2024-01-23T21:17:04Z",
+        "reason": "SomeResourcesRemain",
+        "message": "Some resources are remaining: pods. has 1 resource instances"
+      },
+      {
+        "type": "NamespaceFinalizersRemaining",
+        "status": "True",
+        "lastTransitionTime": "2024-01-23T21:17:04Z",
+        "reason": "SomeFinalizersRemain",
+        "message": "Some content in the namespace has finalizers remaining: kubernetes in 1 resource instances"
+      }
+    ]
+  }
+}

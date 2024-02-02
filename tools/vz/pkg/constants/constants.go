@@ -162,6 +162,11 @@ const (
 	BugReportIncludeNSFlagShort = "i"
 	BugReportIncludeNSFlagUsage = "A comma-separated list of namespaces, in addition to the ones collected by default (system namespaces), for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
+	// Flag for generating the redacted values mappping file
+	RedactedValuesFlagName  = "redacted-values-file"
+	RedactedValuesFlagValue = ""
+	RedactedValuesFlagUsage = "Creates a CSV file at the file path provided, containing a mapping between values redacted by the VZ analysis tool and their original values. Do not share this file as it contains sensitive data."
+
 	BugReportDir = "bug-report"
 
 	// File name for the log captured from the pod
@@ -173,6 +178,10 @@ const (
 
 	BugReportError   = "ERROR: The bug report noticed one or more issues while capturing the resources. Please go through error(s) in the standard error."
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
+
+	// File containing a map from redacted values to their original values
+	RedactionPrefix = "REDACTED-"
+	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
 
 	// File names for the various resources
 	VzResource       = "verrazzano-resources.json"
@@ -193,6 +202,8 @@ const (
 	McComponentJSON  = "multicluster-components.json"
 	VzProjectsJSON   = "verrazzano-projects.json"
 	VmcJSON          = "verrazzano-managed-clusters.json"
+	NamespaceJSON    = "namespace.json"
+	MetadataJSON     = "metadata.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
@@ -214,7 +225,7 @@ const (
 	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
+	BugReportLogFlagNameUsage    = "Include logs from all containers in running pods of the namespaces being captured."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
@@ -228,3 +239,6 @@ const (
 const ProgressShorthand = "p"
 const RefreshRate = time.Second * 10
 const TotalWidth = 50
+
+// Error message for failing to parse a flag
+const FlagErrorMessage = "an error occurred while reading value for the flag --%s: %s"
