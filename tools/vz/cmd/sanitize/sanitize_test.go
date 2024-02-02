@@ -3,6 +3,7 @@
 package sanitize
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -82,7 +83,7 @@ func TestTwoOutputArgsIntoSanitize(t *testing.T) {
 	assert.NotNil(t, err)
 }
 
-// TestSanitizeCommandWithInputDirectoryAndOutputTarGZFil
+// TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile
 // GIVEN a Sanitize command
 // WHEN I call cmd.Execute() with both an input directory and an output tar.gz file specified
 // THEN expect the command to not return an error and to create the specified tar.gz file
@@ -102,92 +103,39 @@ func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothHaveSlashes
+// TestInputDirectoryAndOutputDirectorySlashCombinations
 // GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with both an input directory and an output directory file specified, whose paths both end with a "/"
-// THEN expect the command to not return an error and to create the specified directory
-func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothHaveSlashes(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods/")
-	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory/")
-	defer os.RemoveAll("test-directory")
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Nil(t, err)
-	_, err = os.Stat("test-directory/cluster-snapshot")
-	assert.Nil(t, err)
-}
-
-// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothDoNotHaveSlashes
-// GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with both an input directory and an output directory file specified, whose paths both do not end with a "/"
-// THEN expect the command to not return an error and to create the specified directory
-func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileBothDoNotHaveSlashes(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
-	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
-	defer os.RemoveAll("test-directory")
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Nil(t, err)
-	_, err = os.Stat("test-directory/cluster-snapshot")
-	assert.Nil(t, err)
-}
-
-// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWithPathMismatchWhereInputPathHasSlashAndOutputSlashDoesNotHaveSlash
-// GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with an input directory that ends in a "/" and a output directory that does not end in a "/"
-// THEN expect the command to not return an error and to populate the specified directory correctly
-func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWhereInputPathHasSlashAndOutputSlashDoesNotHaveSlash(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods/")
-	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory")
-	defer os.RemoveAll("test-directory")
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Nil(t, err)
-	_, err = os.Stat("test-directory/cluster-snapshot")
-	assert.Nil(t, err)
-}
-
-// TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWithPathMismatchWhereInputPathDoesNotHaveSlashAndOutputPathHasSlas
-// GIVEN a Sanitize command
-// WHEN I call cmd.Execute() with an input directory that does not end in a "/" and a output directory that does end in a "/"
-// THEN expect the command to not return an error and to populate the specified directory correctly
-func TestSanitizeCommandWithInputDirectoryAndOutputDirectoryFileWhereInputPathDoesNotHaveSlashAndOutputPathHasSlash(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/cluster/testCattleSystempods")
-	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, "test-directory/")
-	defer os.RemoveAll("test-directory")
-	assert.NotNil(t, cmd)
-	err := cmd.Execute()
-	assert.Nil(t, err)
-	_, err = os.Stat("test-directory/cluster-snapshot")
-	assert.Nil(t, err)
+// When I call cmd.Execute() with all possible combinations of the input directory and output directory containing or not containing a slash at the end of its path
+// Then I expect the commands to not return an error and create the specified directory in the correct format
+func TestInputDirectoryAndOutputDirectorySlashCombinations(t *testing.T) {
+	tests := []struct {
+		inputDirectory  string
+		outputDirectory string
+	}{
+		{inputDirectory: "../../pkg/analysis/test/cluster/testCattleSystempods/", outputDirectory: "test-directory/"},
+		{inputDirectory: "../../pkg/analysis/test/cluster/testCattleSystempods/", outputDirectory: "test-directory"},
+		{inputDirectory: "../../pkg/analysis/test/cluster/testCattleSystempods", outputDirectory: "test-directory/"},
+		{inputDirectory: "../../pkg/analysis/test/cluster/testCattleSystempods", outputDirectory: "test-directory"},
+	}
+	for i, tt := range tests {
+		t.Run("Test "+fmt.Sprint(i+1), func(t *testing.T) {
+			stdoutFile, stderrFile := createStdTempFiles(t)
+			defer func() {
+				os.Remove(stdoutFile.Name())
+				os.Remove(stderrFile.Name())
+			}()
+			rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+			cmd := NewCmdSanitize(rc)
+			cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, tt.inputDirectory)
+			cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, tt.outputDirectory)
+			defer os.RemoveAll("test-directory")
+			assert.NotNil(t, cmd)
+			err := cmd.Execute()
+			assert.Nil(t, err)
+			_, err = os.Stat("test-directory/cluster-snapshot")
+			assert.Nil(t, err)
+		})
+	}
 }
 
 // TestSanitizeCommandWithInputTarAndOutputTarGZFile
