@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package k8sutil
@@ -415,7 +415,7 @@ func ExecPodNoTty(client kubernetes.Interface, cfg *rest.Config, pod *v1.Pod, co
 		Stderr: stderr,
 	})
 	if err != nil {
-		return "", "", fmt.Errorf("error running command %s on %v/%v: %v", command, pod.Namespace, pod.Name, err)
+		return "", stderr.String(), fmt.Errorf("error running command %s on %v/%v: %v", command, pod.Namespace, pod.Name, err)
 	}
 
 	return stdout.String(), stderr.String(), nil
