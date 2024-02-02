@@ -67,7 +67,7 @@ var EventReasonFailedRe = regexp.MustCompile(`.*Failed.*`)
 func RunAnalysis(vzHelper helpers.VZHelper, log *zap.SugaredLogger, rootDirectory string) (err error) {
 	log.Debugf("Cluster Analyzer runAnalysis on %s", rootDirectory)
 
-	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ClusterDumpDirectoriesRe)
+	clusterRoots, err := files.GetMatchingDirectoryNames(log, rootDirectory, ClusterDumpDirectoriesRe)
 	if err != nil {
 		log.Debugf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory, err)
 		return fmt.Errorf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory)
@@ -80,7 +80,7 @@ func RunAnalysis(vzHelper helpers.VZHelper, log *zap.SugaredLogger, rootDirector
 	for _, clusterRoot := range clusterRoots {
 		// Ignore directories if they don't contain snapshots. Checking if verrazzano-resources.json exists in the dir
 		// that implies the directory has the required snapshots.
-		vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
+		vzResourcesPath := files.FormFilePathInClusterRoot(clusterRoot, verrazzanoResource)
 		fileInfo, e := os.Stat(vzResourcesPath)
 		if e != nil || fileInfo.Size() == 0 {
 			log.Debugf("Verrazzano resource file %s is either empty or not there", vzResourcesPath)

@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package files
 
@@ -19,7 +19,7 @@ import (
 func TestSearchFilesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	rootDirectory := "../../../test"
-	myFiles, err := GetMatchingFiles(logger, rootDirectory, regexp.MustCompile(".*"))
+	myFiles, err := GetMatchingFileNames(logger, rootDirectory, regexp.MustCompile(".*"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
@@ -57,7 +57,7 @@ func TestBadExpressions(t *testing.T) {
 	assert.NotNil(t, err)
 	_, err = FindFilesAndSearch(logger, "../../../test", regexp.MustCompile(".*"), nil, nil)
 	assert.NotNil(t, err)
-	_, err = GetMatchingFiles(logger, "../../../test", nil)
+	_, err = GetMatchingFileNames(logger, "../../../test", nil)
 	assert.NotNil(t, err)
 	myFiles := []string{"test file"}
 	_, err = SearchFiles(logger, "../../../test", myFiles, nil, nil)
