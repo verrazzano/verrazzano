@@ -645,6 +645,7 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
 	}
 
+	fmt.Println(object)
 	// Unmarshall file contents into a struct
 	err = json.Unmarshal(fileBytes, object)
 	if err != nil {
