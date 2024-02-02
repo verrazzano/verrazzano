@@ -426,6 +426,25 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	innoDBCluster.SetName("my-sql")
 	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
 	_ = unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+	cli := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&innoDBCluster).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforinnodbclusters")
+	assert.Nil(t, err)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureInnoDBClusterResources(cli, "keycloak", captureDir, rc)
+	assert.NoError(t, err)
+	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
+	innoDBClusterListToUnmarshalInto := &unstructured.UnstructuredList{}
+	err = unmarshallFile(innoDBClusterLocation, innoDBClusterListToUnmarshalInto)
+	assert.NoError(t, err)
+	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
+	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
+	assert.NoError(t, err)
+	assert.Equal(t, statusOfCluster, "ONLINE")
 
 }
 
