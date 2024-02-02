@@ -526,14 +526,14 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 // WHEN I call a function to create a parent directory
 // THEN expect it to only create the parent directories if it does not exist and if the file path contains a "/"
 func TestCreateParentsIfNecessary(t *testing.T) {
-	err := os.Mkdir("test-directory", 0700)
-	defer os.RemoveAll("test-directory")
+	err := os.Mkdir(constants.TestDirectory, 0700)
+	defer os.RemoveAll(constants.TestDirectory)
 	assert.Nil(t, err)
-	createParentsIfNecessary("test-directory", "files.txt")
-	createParentsIfNecessary("test-directory", "cluster-snapshot/files.txt")
-	_, err = os.Stat("test-directory/files.txt")
+	createParentsIfNecessary(constants.TestDirectory, "files.txt")
+	createParentsIfNecessary(constants.TestDirectory, "cluster-snapshot/files.txt")
+	_, err = os.Stat(constants.TestDirectory + "/files.txt")
 	assert.NotNil(t, err)
-	_, err = os.Stat("test-directory/cluster-snapshot")
+	_, err = os.Stat(constants.TestDirectory + "/cluster-snapshot")
 	assert.Nil(t, err)
 
 }

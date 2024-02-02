@@ -192,6 +192,9 @@ const (
 
 	SanitizeDirOutput = "sanitize-output"
 
+	TestDirectory   = "test-directory"
+	OutputTarGZFile = "output-tar-file.tar.gz"
+
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
 
