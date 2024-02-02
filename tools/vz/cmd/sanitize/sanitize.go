@@ -106,7 +106,7 @@ func parseInputAndOutputFlags(cmd *cobra.Command, vzHelper helpers.VZHelper) (*f
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputDirectoryFlagName, err.Error())
 	}
-	outputTarGZFileString, err := cmd.PersistentFlags().GetString(constants.OutputTarGZFile)
+	outputTarGZFileString, err := cmd.PersistentFlags().GetString(constants.OutputTarGZFileFlagName)
 	if err != nil {
 		return nil, fmt.Errorf(constants.FlagErrorMessage, constants.OutputTarGZFileFlagName, err.Error())
 	}
