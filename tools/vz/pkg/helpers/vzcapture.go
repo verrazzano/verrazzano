@@ -13,6 +13,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
@@ -211,6 +212,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 		return err
 	}
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureInnoDBClusterResources(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -417,6 +421,28 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	if len(statefulSets.Items) > 0 {
 		LogMessage(fmt.Sprintf("StatefulSets in namespace: %s ...\n", namespace))
 		if err = createFile(statefulSets, namespace, constants.StatefulSetsJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureInnoDBClusterResources finds the InnoDBCluster resource from the client for the current namespace, returns an error, and outputs the objects to a inno_db_cluster.json file, if InnoDBCluster resources are present in that namespace.
+func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	innoDBClusterList := unstructured.UnstructuredList{}
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+	innoDBClusterList.SetGroupVersionKind(innoDBClusterGVK)
+	err := client.List(context.TODO(), &innoDBClusterList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the InnoDBCluster resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if len(innoDBClusterList.Items) > 0 {
+		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
+		if err = createFile(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}

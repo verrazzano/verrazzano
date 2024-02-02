@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -406,8 +409,28 @@ func TestGetPodListAll(t *testing.T) {
 	assert.Equal(t, podLength, len(pods))
 }
 
+// TestCreateInnoDBClusterFile tests that a InnoDBCluster file titled inno-db-cluster.json can be successfully written
+// GIVEN a k8s cluster with a inno-db-cluster resources present in a namespace,
+// WHEN I call functions to create a list of inno-db-cluster resources for the namespace
+// THEN expect it to write to the provided resource file and no error should be returned
+func TestCreateInnoDBClusterFile(t *testing.T) {
+	schemeForClient := runtime.NewScheme()
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+	innoDBCluster.SetNamespace("keycloak")
+	innoDBCluster.SetName("my-sql")
+	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
+	_ = unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+
+}
+
 //		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
-//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//	 	GIVEN a k8s cluster with certificates present in a namespace,
 //		WHEN I call functions to create a list of certificates for the namespace,
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
