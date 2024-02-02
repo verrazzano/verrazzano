@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -137,4 +137,16 @@ func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.
 		return nil, fmt.Errorf("DiscoveryClient was not successfully created")
 	}
 	return discoveryClient, nil
+}
+
+func (rc *FakeRootCmdContext) VerifyCLIArgsNil(cmd *cobra.Command) error {
+	cmd.Args = func(cmd *cobra.Command, args []string) error {
+		// In unit-tests the TestName is an arg. So to avoid tests failing because of the TestName
+		// we're now checking that the arg list is greater than 1.
+		if len(args) > 1 {
+			return fmt.Errorf("invalid arguments specified: %s", args)
+		}
+		return nil
+	}
+	return nil
 }

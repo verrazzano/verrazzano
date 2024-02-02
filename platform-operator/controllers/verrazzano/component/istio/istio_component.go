@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package istio
@@ -588,9 +588,8 @@ func getImageOverrides() ([]bom.KeyValue, error) {
 		if err != nil {
 			return nil, err
 		}
-		for i := range scKvs {
-			kvs = append(kvs, scKvs[i])
-		}
+
+		kvs = append(kvs, scKvs...)
 	}
 	return kvs, nil
 }

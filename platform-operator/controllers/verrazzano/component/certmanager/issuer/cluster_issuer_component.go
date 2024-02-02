@@ -1,4 +1,4 @@
-// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package issuer
@@ -85,7 +85,7 @@ func (c clusterIssuerComponent) Upgrade(compContext spi.ComponentContext) error 
 	return c.Install(compContext)
 }
 
-func (c clusterIssuerComponent) PreUpgrade(compContext spi.ComponentContext) error {
+func (c clusterIssuerComponent) PreUpgrade(_ spi.ComponentContext) error {
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (c clusterIssuerComponent) GetMinVerrazzanoVersion() string {
 	return constants.VerrazzanoVersion1_0_0
 }
 
-func (c clusterIssuerComponent) GetIngressNames(context spi.ComponentContext) []types.NamespacedName {
+func (c clusterIssuerComponent) GetIngressNames(_ spi.ComponentContext) []types.NamespacedName {
 	return []types.NamespacedName{}
 }
 

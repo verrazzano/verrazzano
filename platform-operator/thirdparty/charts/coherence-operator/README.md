@@ -1,5 +1,5 @@
 <!--
-  Copyright 2020, Oracle Corporation and/or its affiliates.
+  Copyright 2020, 2023, Oracle Corporation and/or its affiliates.
   Licensed under the Universal Permissive License v 1.0 as shown at
   http://oss.oracle.com/licenses/upl.
 -->
@@ -14,7 +14,7 @@ This chart install a coherence-operator deployment on a
 package manager.
 
 ## Prerequisites
-* Kubernetes 1.13 or above
+* Kubernetes 1.19 or above
 * Helm 3 or above
 
 ## Installing the Chart
@@ -35,6 +35,3 @@ To uninstall the `sample-coherence-operator` deployment:
 $ helm delete sample-coherence-operator
 ```
 
-### Modifications by the Verrazzano team
-
-1. The deployment pod template in deployment.yaml has been changed to add a new label, `sidecar.istio.io/inject: "false"`.
