@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package analysis
 
@@ -15,7 +15,7 @@ import (
 // GIVEN a call to handleMain
 // WHEN with valid/invalid inputs
 // THEN exit codes returned are as expected
-func TestHandleMain(t *testing.T) {
+func TestHandleMain(_ *testing.T) {
 	// This is setting up the main.logger, do NOT set it as a var here (or you will get a nil reference running
 	// the test)
 	logger = log.GetDebugEnabledLogger()

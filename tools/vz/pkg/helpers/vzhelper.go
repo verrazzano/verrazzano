@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -6,6 +6,12 @@ package helpers
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -16,7 +22,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
-	"io"
+	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
 	adminv1 "k8s.io/api/admissionregistration/v1"
 	appv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -33,12 +39,8 @@ import (
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"net/http"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
-	"strings"
 )
 
 type VZHelper interface {
@@ -50,6 +52,7 @@ type VZHelper interface {
 	GetHTTPClient() *http.Client
 	GetDynamicClient(cmd *cobra.Command) (dynamic.Interface, error)
 	GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error)
+	VerifyCLIArgsNil(cmd *cobra.Command) error
 }
 
 type ReportCtx struct {
@@ -209,6 +212,7 @@ func NewScheme() *runtime.Scheme {
 	_ = networkingv1.AddToScheme(scheme)
 	_ = oam.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
+	_ = istioclient.AddToScheme(scheme)
 	return scheme
 }
 

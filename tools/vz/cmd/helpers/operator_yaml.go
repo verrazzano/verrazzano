@@ -1,4 +1,4 @@
-// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
+// Copyright (c) 2023, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -34,11 +34,11 @@ func updateOperatorYAMLPrivateRegistry(operatorFilename string, imageRegistry st
 	vpoDeploy := &objectsInYAML[vpoDeployIdx]
 	vpoWebhookDeploy := &objectsInYAML[vpoWebhookDeployIdx]
 
-	vpoDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoDeploy, imageRegistry, imagePrefix, true)
+	vpoDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoDeploy, imageRegistry, imagePrefix)
 	if err != nil {
 		return "", err
 	}
-	vpoWebhookDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoWebhookDeploy, imageRegistry, imagePrefix, false)
+	vpoWebhookDeployUpdated, err := updatePrivateRegistryVPODeploy(vpoWebhookDeploy, imageRegistry, imagePrefix)
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +80,7 @@ func findVPODeploymentIndices(objectsInYAML []unstructured.Unstructured) (int, i
 
 // updatePrivateRegistryVPODeploy updates the private registry information in the
 // given verrazzano-platform-operator (or webhook) deployment YAML. Returns true if vpoDeploy was modified
-func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageRegistry string, imagePrefix string, addRegistryEnvVars bool) (bool, error) {
+func updatePrivateRegistryVPODeploy(vpoDeploy *unstructured.Unstructured, imageRegistry string, imagePrefix string) (bool, error) {
 	vpoDeployObj := vpoDeploy.Object
 	containersFields := containersFields()
 	initContainersFields := initContainersFields()
