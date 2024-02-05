@@ -33,7 +33,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 
 	// Verify the expected commands are defined
-	assert.Len(t, rootCmd.Commands(), 8)
+	assert.Len(t, rootCmd.Commands(), 9)
 	foundCount := 0
 	for _, cmd := range rootCmd.Commands() {
 		switch cmd.Name() {

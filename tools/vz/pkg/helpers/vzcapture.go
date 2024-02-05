@@ -9,6 +9,7 @@ import (
 	"compress/gzip"
 	"context"
 	"encoding/json"
+	errors2 "errors"
 	"fmt"
 	"io"
 	"os"
@@ -46,7 +47,8 @@ var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
-func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
+// If the addClusterSnapshot value is set to true, a value of "cluster-snapshot" prefixes every file path that is put into the archive
+func CreateReportArchive(captureDir string, bugRepFile *os.File, addClusterSnapshot bool) error {
 
 	// Create new Writers for gzip and tar
 	gzipWriter := gzip.NewWriter(bugRepFile)
@@ -59,8 +61,13 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 		if fileInfo.Mode().IsDir() {
 			return nil
 		}
+		var filePath string
 		// make cluster-snapshot as the root directory in the archive, to support existing analysis tool
-		filePath := constants.BugReportRoot + path[len(captureDir):]
+		if addClusterSnapshot {
+			filePath = constants.BugReportRoot + path[len(captureDir):]
+		} else {
+			filePath = path[len(captureDir):]
+		}
 		fileReader, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf(errBugReport, err.Error())
@@ -156,6 +163,9 @@ func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
 
 // writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
 func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	if err := createParentsIfNecessary(captureDir, header.Name); err != nil {
+		return err
+	}
 	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
 	if err != nil {
 		return err
@@ -168,6 +178,27 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 	}
 	return nil
 
+}
+
+// createParentsIfNecessary determines if a path of a file references directories that have not been created and then creates those directories
+func createParentsIfNecessary(captureDir string, filePath string) error {
+	filePathSplitByPathSeperatorList := strings.Split(filePath, string(os.PathSeparator))
+	if len(filePathSplitByPathSeperatorList) == 1 {
+		return nil
+	}
+	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
+	directoryString := ""
+	for i := range listOfDirectories {
+		directoryString = directoryString + listOfDirectories[i] + string(os.PathSeparator)
+	}
+	if _, err := os.Stat(captureDir + string(os.PathSeparator) + directoryString); errors2.Is(err, os.ErrNotExist) {
+		if err = os.MkdirAll(captureDir+string(os.PathSeparator)+directoryString, 0700); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
