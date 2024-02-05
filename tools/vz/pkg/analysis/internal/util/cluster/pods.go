@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -343,7 +343,7 @@ func IsPodPending(pod corev1.Pod) bool {
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, PodFilesMatchRe)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
 	if err != nil {
 		return podFiles, err
 	}
