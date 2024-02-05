@@ -6,14 +6,15 @@ package sanitize
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/files"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io/fs"
-	"os"
-	"strings"
 )
 
 const (
@@ -42,6 +43,7 @@ func NewCmdSanitize(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.PersistentFlags().String(constants.OutputDirectoryFlagName, constants.OutputDirectoryFlagValue, constants.OutputDirectoryFlagUsage)
 	cmd.PersistentFlags().String(constants.InputTarFileFlagName, constants.InputTarFileFlagValue, constants.InputTarFileFlagUsage)
 	cmd.PersistentFlags().String(constants.OutputTarGZFileFlagName, constants.OutputTarGZFileFlagValue, constants.OutputTarGZFileFlagUsage)
+	cmd.PersistentFlags().String(constants.RedactedValuesFlagName, constants.RedactedValuesFlagValue, constants.RedactedValuesFlagUsage)
 
 	// Verifies that the CLI args are not set at the creation of a command
 	vzHelper.VerifyCLIArgsNil(cmd)
@@ -81,9 +83,22 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 		}
 		defer os.RemoveAll(validatedStruct.outputDirectory)
 	}
-	err = sanitizeDirectory(*validatedStruct)
-	return err
+	if err = sanitizeDirectory(*validatedStruct); err != nil {
+		return err
+	}
 
+	// Process the redacted values file flag.
+	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
+	if err != nil {
+		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.RedactedValuesFlagName, err.Error())
+	}
+	if redactionFilePath != "" {
+		// Create the redaction map file if the user provides a non-empty file path.
+		if err := helpers.WriteRedactionMapFile(redactionFilePath, nil); err != nil {
+			return fmt.Errorf("an error occurred while creating the redacted values map at %s: %s", redactionFilePath, err.Error())
+		}
+	}
+	return nil
 }
 
 // parseInputAndOutputFlags validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
