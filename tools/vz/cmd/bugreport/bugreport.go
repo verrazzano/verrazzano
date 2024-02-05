@@ -198,7 +198,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	// Generate the bug report
-	err = helpers.CreateReportArchive(bugReportDir, bugRepFile)
+	err = helpers.CreateReportArchive(bugReportDir, bugRepFile, true)
 	if err != nil {
 		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package root
@@ -10,6 +10,7 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/export"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/install"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/sanitize"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/status"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/uninstall"
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/upgrade"
@@ -44,6 +45,7 @@ func NewRootCmd(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd.AddCommand(analyze.NewCmdAnalyze(vzHelper))
 	cmd.AddCommand(bugreport.NewCmdBugReport(vzHelper))
 	cmd.AddCommand(export.NewCmdExport(vzHelper))
+	cmd.AddCommand(sanitize.NewCmdSanitize(vzHelper))
 
 	return cmd
 }
