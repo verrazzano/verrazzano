@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -20,6 +19,7 @@ import (
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -405,7 +405,6 @@ func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
 	err := v1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-<<<<<<< HEAD
 	sampleCert := v1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
 		Spec: v1.CertificateSpec{
@@ -413,9 +412,6 @@ func TestCreateCertificateFile(t *testing.T) {
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
-=======
-	sampleCert := v1.Certificate{ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"}}
->>>>>>> e88ba3958... VZ-9336 (#6389)
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
 	assert.NoError(t, err)
@@ -430,7 +426,6 @@ func TestCreateCertificateFile(t *testing.T) {
 	err = captureCertificates(client, "cattle-system", captureDir, rc)
 	assert.NoError(t, err)
 }
-<<<<<<< HEAD
 
 // TestCreateCaCrtInfoFile tests that a caCrtInfo file titled caCrtInfo.json can be successfully written
 // GIVEN a k8s cluster with secrets containing caCrtInfo present in a namespace  ,
@@ -516,5 +511,3 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
 }
-=======
->>>>>>> e88ba3958... VZ-9336 (#6389)
