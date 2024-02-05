@@ -477,3 +477,53 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 	}
 	assert.True(t, problemsFound > 0)
 }
+
+// TestCertificateVZClientHangingIssue tests analysis of a cluster dump when the VZ Client is hanging
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the VZ Client is hanging on a certificate, but the certificate is not expired
+// THEN a report is generated with issues identified
+// This test also tests for detecting a separate expired certificate in the certificates.json
+func TestCertificateVZClientHangingIssue(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/testCLIHangingIssue")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.VZClientHangingIssueDueToLongCertificateApproval {
+			problemsFound++
+		}
+		if issue.Type == report.CertificateExpired {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound == 2)
+}
+
+// TestBlockStorageFailure Tests that analysis of a cluster dump when Block Storage limit is exceeded
+// GIVEN a call to analyze a cluster-snapshot
+// WHEN the cluster-snapshot shows private subnet not allowed in public LB.
+// THEN a report is generated with issues identified
+func TestBlockStorageFailure(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+
+	report.ClearReports()
+	err := Analyze(logger, "cluster", "test/cluster/blockstorage-limitexceeded")
+	assert.Nil(t, err)
+
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.NotNil(t, reportedIssues)
+	assert.True(t, len(reportedIssues) > 0)
+	problemsFound := 0
+	for _, issue := range reportedIssues {
+		if issue.Type == report.BlockStorageLimitExceeded {
+			problemsFound++
+		}
+	}
+	assert.True(t, problemsFound > 0)
+}

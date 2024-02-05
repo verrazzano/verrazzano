@@ -97,30 +97,35 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 
 // Known Issue Types.
 const (
-	ImagePullBackOff             = "ImagePullBackOff"
-	ImagePullRateLimit           = "ImagePullRateLimit"
-	ImagePullNotFound            = "ImagePullNotFound"
-	ImagePullService             = "ImagePullService"
-	InsufficientMemory           = "InsufficientMemory"
-	InsufficientCPU              = "InsufficientCPU"
-	IngressInstallFailure        = "IngressInstallFailure"
-	IngressLBLimitExceeded       = "IngressLBLimitExceeded"
-	IngressNoLoadBalancerIP      = "IngressNoLoadBalancerIP"
-	IngressOciIPLimitExceeded    = "IngressOciIPLimitExceeded"
-	InstallFailure               = "InstallFailure"
-	PendingPods                  = "PendingPods"
-	PodProblemsNotReported       = "PodProblemsNotReported"
-	ComponentsNotReady           = "ComponentsNotReady"
-	IngressNoIPFound             = "IngressNoIPFound"
-	IstioIngressNoIP             = "IstioIngressNoIP"
-	IngressShapeInvalid          = "IngressShapeInvalid"
-	IstioIngressPrivateSubnet    = "IstioIngressPrivateSubnet"
-	NginxIngressPrivateSubnet    = "NginxIngressPrivateSubnet"
-	ExternalDNSConfigureIssue    = "ExternalDNSConfigureIssue"
-	KeycloakDataMigrationFailure = "KeycloakDataMigrationFailure"
-	RancherIssues                = "RancherIssues"
-	ClusterAPIClusterIssues      = "ClusterAPIClusterIssues"
-	TCPKeepIdleIssues            = "TCPKeepIdleIssues"
+	ImagePullBackOff                                 = "ImagePullBackOff"
+	ImagePullRateLimit                               = "ImagePullRateLimit"
+	ImagePullNotFound                                = "ImagePullNotFound"
+	ImagePullService                                 = "ImagePullService"
+	InsufficientMemory                               = "InsufficientMemory"
+	InsufficientCPU                                  = "InsufficientCPU"
+	IngressInstallFailure                            = "IngressInstallFailure"
+	IngressLBLimitExceeded                           = "IngressLBLimitExceeded"
+	IngressNoLoadBalancerIP                          = "IngressNoLoadBalancerIP"
+	IngressOciIPLimitExceeded                        = "IngressOciIPLimitExceeded"
+	InstallFailure                                   = "InstallFailure"
+	PendingPods                                      = "PendingPods"
+	PodProblemsNotReported                           = "PodProblemsNotReported"
+	ComponentsNotReady                               = "ComponentsNotReady"
+	IngressNoIPFound                                 = "IngressNoIPFound"
+	IstioIngressNoIP                                 = "IstioIngressNoIP"
+	IngressShapeInvalid                              = "IngressShapeInvalid"
+	IstioIngressPrivateSubnet                        = "IstioIngressPrivateSubnet"
+	NginxIngressPrivateSubnet                        = "NginxIngressPrivateSubnet"
+	ExternalDNSConfigureIssue                        = "ExternalDNSConfigureIssue"
+	KeycloakDataMigrationFailure                     = "KeycloakDataMigrationFailure"
+	RancherIssues                                    = "RancherIssues"
+	VZClientHangingIssueDueToLongCertificateApproval = "VZClientHangingIssueDueToLongCertificateApproval"
+	CertificateExpired                               = "CertificateExpired"
+	CertificateExperiencingIssuesInCluster           = "CertificateExperiencingIssuesInCluster"
+	ClusterAPIClusterIssues                          = "ClusterAPIClusterIssues"
+	CaCrtExpiredInCluster                            = "CaCrtExpiredInCluster"
+	BlockStorageLimitExceeded                        = "BlockStorageLimitExceeded"
+	TCPKeepIdleIssues                                = "TCPKeepIdleIssues"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -151,8 +156,13 @@ var knownIssues = map[string]Issue{
 	ExternalDNSConfigureIssue:    {Type: ExternalDNSConfigureIssue, Summary: "Failed to setup DNS configuration", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ExternalDNSConfigureIssue]}},
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
 	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
-	ClusterAPIClusterIssues:      {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
-	TCPKeepIdleIssues:            {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
+	VZClientHangingIssueDueToLongCertificateApproval: {Type: VZClientHangingIssueDueToLongCertificateApproval, Summary: " Verrazzano Client is hanging due to the long time that it takes to approve and provision certificates", Informational: true, Impact: 10, Confidence: 10},
+	CertificateExpired:                     {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
+	CertificateExperiencingIssuesInCluster: {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
+	ClusterAPIClusterIssues:                {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
+	CaCrtExpiredInCluster:                  {Type: CaCrtExpiredInCluster, Summary: "A ca.crt value in the cluster is expired", Informational: true, Impact: 10, Confidence: 10},
+	BlockStorageLimitExceeded:              {Type: BlockStorageLimitExceeded, Summary: "You have reached your service limit in this Availability Domain for volumes. Please try creating the volume in a different Availability Domain or Region, or try using a smaller volume size.", Informational: true, Impact: 10, Confidence: 10},
+	TCPKeepIdleIssues:                      {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
 }
 
 // NewKnownIssueSupportingData adds a known issue
