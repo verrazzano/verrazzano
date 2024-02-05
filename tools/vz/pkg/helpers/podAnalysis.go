@@ -1,7 +1,7 @@
 // Copyright (c) 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
-package analysis
+package helpers
 
 import (
 	encjson "encoding/json"
@@ -20,18 +20,18 @@ var podCacheMutex = &sync.Mutex{}
 
 // FindProblematicPodFiles looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
-func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
+func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (namespaces []string, podFiles []string, err error) {
 	allPodFiles, err := files.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
 	if err != nil {
-		return podFiles, err
+		return nil, podFiles, err
 	}
 
 	if len(allPodFiles) == 0 {
-		return podFiles, nil
+		return nil, podFiles, nil
 	}
 	podFiles = make([]string, 0, len(allPodFiles))
 	for _, podFile := range allPodFiles {
-		podList, err := GetPodList(log, podFile)
+		podList, err := PodAnylsisGetPodList(log, podFile)
 		if err != nil {
 			log.Debugf("Failed to get the PodList for %s, skipping", podFile, err)
 			continue
@@ -41,22 +41,23 @@ func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 			continue
 		}
 
-		// If we find any we flag the file as havin problematic pods and move to the next file
+		// If we find any we flag the file as having problematic pods and move to the next file
 		// this is just a quick scan to identify which files to drill into
 		for _, pod := range podList.Items {
 			if !IsPodProblematic(pod) {
 				continue
 			}
 			log.Debugf("Problematic pods detected: %s", podFile)
+			namespaces = append(namespaces, pod.Namespace)
 			podFiles = append(podFiles, podFile)
 			break
 		}
 	}
-	return podFiles, nil
+	return namespaces, podFiles, nil
 }
 
-// GetPodList gets a pod list
-func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
+// PodAnylsisGetPodList gets a pod list
+func PodAnylsisGetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
 	// Check the cache first
 	podList = getPodListIfPresent(path)
 	if podList != nil {
@@ -108,7 +109,6 @@ func IsPodProblematic(pod corev1.Pod) bool {
 }
 
 // IsPodReadyOrCompleted will return true if the Pod has containers that are neither Ready nor Completed
-// TODO: Extend for transition time correlation (ie: change from bool to struct)
 func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
 	for _, containerStatus := range podStatus.ContainerStatuses {
 		state := containerStatus.State
