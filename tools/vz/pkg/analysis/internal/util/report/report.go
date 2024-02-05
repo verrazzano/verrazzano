@@ -70,7 +70,7 @@ func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[strin
 		reportIssues = make([]Issue, 0, 10)
 	}
 	for _, issue := range issues {
-		issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
+		issue.SupportingData = DeduplicateSupportingDataList(issue.SupportingData)
 		reportIssues = append(reportIssues, issue)
 	}
 	reports[source] = reportIssues
@@ -91,7 +91,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 	if len(reportIssues) == 0 {
 		reportIssues = make([]Issue, 0, 10)
 	}
-	issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
+	issue.SupportingData = DeduplicateSupportingDataList(issue.SupportingData)
 	reportIssues = append(reportIssues, issue)
 	reports[issue.Source] = reportIssues
 	reportMutex.Unlock()

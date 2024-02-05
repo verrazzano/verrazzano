@@ -14,57 +14,57 @@ import (
 	"go.uber.org/zap"
 )
 
-// TestGetMatchingFilesGood Tests that we can find the expected set of files with a matching expression
-// GIVEN a call to GetMatchingDirectories
+// TestGetMatchingFileNamesGood Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetMatchingFileNamesGood
 // WHEN with a valid rootDirectory and regular expression
 // THEN files that matched will be returned
-func TestGetMatchingFilesGood(t *testing.T) {
+func TestGetMatchingFileNamesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myFiles, err := GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.json$`))
+	myFiles, err := GetMatchingFileNames(logger, "../../../test/json", regexp.MustCompile(`node.*\.json$`))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsRegularFile(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingFiles(logger, "../../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
+	myFiles, err = GetMatchingFileNames(logger, "../../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
 
-// TestGetMatchingDirectoriesGood Tests that we can find the expected set of files with a matching expression
-// GIVEN a call to GetMatchingDirectories
+// TestGetMatchingDirectoryNamesGood Tests that we can find the expected set of files with a matching expression
+// GIVEN a call to GetMatchingDirectoryNames
 // WHEN with a valid rootDirectory and regular expression
 // THEN files that matched will be returned
-func TestGetMatchingDirectoriesGood(t *testing.T) {
+func TestGetMatchingDirectoriesNamesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
-	myFiles, err := GetMatchingDirectories(logger, "../../../test", regexp.MustCompile(".*son$"))
+	myFiles, err := GetMatchingDirectoryNames(logger, "../../../test", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsDirectory(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingDirectories(logger, "../../../test", regexp.MustCompile("none_shall_match"))
+	myFiles, err = GetMatchingDirectoryNames(logger, "../../../test", regexp.MustCompile("none_shall_match"))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
 
-// TestGetMatchingBad Tests that we can find the expected set of files with a matching expression
+// TestGetMatchingInvalidInputs Tests that we can find the expected set of files with a matching expression
 // GIVEN a call to GetMatching* utilities
 // WHEN with invalid inputs
 // THEN we get failures as expected
 func TestGetMatchingInvalidInputs(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	_, err := GetMatchingDirectories(logger, "../../../test", nil)
+	_, err := GetMatchingDirectoryNames(logger, "../../../test", nil)
 	assert.NotNil(t, err)
-	filesFound, err := GetMatchingDirectories(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err := GetMatchingDirectoryNames(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
-	_, err = GetMatchingFiles(logger, "../../../test", nil)
+	_, err = GetMatchingFileNames(logger, "../../../test", nil)
 	assert.NotNil(t, err)
-	filesFound, err = GetMatchingFiles(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err = GetMatchingFileNames(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
 
@@ -76,7 +76,7 @@ func TestGetMatchingInvalidInputs(t *testing.T) {
 // THEN utility functions behave as expected
 func TestMiscUtils(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	filename := FindFileInClusterRoot("../../../test/cluster/problem-pods/cluster-snapshot/problem-pods", "default")
+	filename := FormFilePathInClusterRoot("../../../test/cluster/problem-pods/cluster-snapshot/problem-pods", "default")
 	assert.NotNil(t, filename)
 	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-snapshot")
 	assert.Nil(t, err)
