@@ -149,6 +149,25 @@ const (
 	AppNameFlagUsage     = "The name of the OAM application to export"
 )
 
+// Constants for sanitize
+const (
+	InputTarFileFlagName  = "input-tar-file"
+	InputTarFileFlagValue = ""
+	InputTarFileFlagUsage = "Name of the input bug-report tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+
+	OutputTarGZFileFlagName  = "output-tar.gz-file"
+	OutputTarGZFileFlagValue = ""
+	OutputTarGZFileFlagUsage = "Name of the .tar.gz file that contains the sanitized output"
+
+	InputDirectoryFlagName  = "input-directory"
+	InputDirectoryFlagValue = ""
+	InputDirectoryFlagUsage = "Name of the directory that contains the un-sanitized bug-report"
+
+	OutputDirectoryFlagName  = "output-directory"
+	OutputDirectoryFlagValue = ""
+	OutputDirectoryFlagUsage = "Name of the directory that will contain the sanitized bug-report"
+)
+
 // Constants for bug report
 const (
 	BugReportLogFlagDefault   = false
@@ -168,6 +187,13 @@ const (
 	RedactedValuesFlagUsage = "Creates a CSV file at the file path provided, containing a mapping between values redacted by the VZ analysis tool and their original values. Do not share this file as it contains sensitive data."
 
 	BugReportDir = "bug-report"
+
+	SanitizeDirInput = "sanitize-input"
+
+	SanitizeDirOutput = "sanitize-output"
+
+	TestDirectory   = "test-directory"
+	OutputTarGZFile = "output-tar-file.tar.gz"
 
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
