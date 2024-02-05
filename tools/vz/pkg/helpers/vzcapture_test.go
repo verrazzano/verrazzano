@@ -438,8 +438,10 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	err = captureInnoDBClusterResources(cli, "keycloak", captureDir, rc)
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
-	innoDBClusterListToUnmarshalInto := &unstructured.UnstructuredList{}
-	err = unmarshallFile(innoDBClusterLocation, innoDBClusterListToUnmarshalInto)
+	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
+	bytesFromUnstructuredJson, err := returnBytesFromAFile(innoDBClusterLocation)
+	assert.NoError(t, err)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJson)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
@@ -653,4 +655,26 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	}
 
 	return nil
+}
+
+// returnBytesFromAFile is a helper function that returns the bytes of a file
+func returnBytesFromAFile(clusterPath string) ([]byte, error) {
+	var byteArray = []byte{}
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return byteArray, nil
+	}
+	if err != nil {
+		return byteArray, fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	byteArray, err = io.ReadAll(file)
+	if err != nil {
+		return byteArray, fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	return byteArray, nil
 }
