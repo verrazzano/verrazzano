@@ -250,17 +250,13 @@ const (
 	AnalysisMsgPrefix  = "Analyzing "
 
 	// Flag for capture pods logs( both additional and system namespaces)
-	BugReportLogFlagName              = "include-logs"
-	BugReportLogFlagNameShort         = "l"
-	BugReportLogFlagNameUsage         = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
-	BugReportTimeFlagName             = "duration"
-	BugReportTimeFlagNameShort        = "d"
-	BugReportTimeFlagDefaultTime      = 0
-	BugReportTimeFlagNameUsage        = "The time period during which the logs are collected in seconds, minutes, and hours."
-	BugReportPreviousLogFlagName      = "previous"
-	BugReportPreviousLogFlagNameShort = "p"
-	BugReportPreviousLogFlagDefault   = false
-	BugReportPreviousLogFlagNameUsage = "Get logs from the previous instance of the container if the pod exists"
+	BugReportLogFlagName         = "include-logs"
+	BugReportLogFlagNameShort    = "l"
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
+	BugReportTimeFlagName        = "duration"
+	BugReportTimeFlagNameShort   = "d"
+	BugReportTimeFlagDefaultTime = 0
+	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
 const (
 	ProgressFlag        = "progress"
