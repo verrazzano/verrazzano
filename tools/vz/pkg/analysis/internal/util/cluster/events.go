@@ -14,10 +14,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
-
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
 
