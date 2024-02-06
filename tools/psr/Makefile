@@ -114,7 +114,7 @@ run-cli:
 # install the CLI
 #
 .PHONY: install-cli
-install-cli: docker-build
+install-cli:
 	$(GO) install -ldflags "${CLI_GO_LDFLAGS}" ./psrctl/...
 
 .PHONY: unit-test
