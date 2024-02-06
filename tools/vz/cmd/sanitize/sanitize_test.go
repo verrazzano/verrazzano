@@ -18,8 +18,8 @@ import (
 
 const (
 	testCattleSystemPodsDirectory = "../../pkg/analysis/test/cluster/testCattleSystempods"
-	ipAddressRedactionDirectory = "../../pkg/analysis/test/sanitization/ip-address-redaction"
-	ipToSanitize = "127.0.0.0"
+	ipAddressRedactionDirectory   = "../../pkg/analysis/test/sanitization/ip-address-redaction"
+	ipToSanitize                  = "127.0.0.0"
 )
 
 // TestNewCmdSanitize
