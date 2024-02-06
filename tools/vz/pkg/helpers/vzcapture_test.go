@@ -441,7 +441,7 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
 	bytesFromUnstructuredJSON, err := returnBytesFromAFile(innoDBClusterLocation)
 	assert.NoError(t, err)
-	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJson)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJSON)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
