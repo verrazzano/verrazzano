@@ -210,7 +210,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 // TestBugReportRedactedValuesFile
 // GIVEN a CLI bug-report command with the --redacted-values-file flag
 // WHEN I call cmd.Execute
-// THEN expect the command to create the redacted values flag in at the specified file path
+// THEN expect the command to create the redacted values flag at the specified file path
 func TestBugReportRedactedValuesFile(t *testing.T) {
 	redactedValuesTestFile := filepath.Join(os.TempDir(), "test-map.csv")
 
