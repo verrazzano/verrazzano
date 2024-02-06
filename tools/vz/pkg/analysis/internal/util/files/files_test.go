@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
@@ -117,4 +118,17 @@ func checkIsRegularFile(logger *zap.SugaredLogger, fileName string) string {
 		logger.Error(failText)
 	}
 	return failText
+}
+
+// TestGetTimeOfCapture tests that a metadata.json file can be successfully parsed and a time.Time object is created without error
+// GIVEN a metadata.json file
+// WHEN I call GetTimeOfCapture and pass in this file
+// THEN expect it to successfully create a time.Time object with the correct information and no error should be returned.
+func TestGetTimeOfCapture(t *testing.T) {
+	logger := log.GetDebugEnabledLogger()
+	timeObject, err := GetTimeOfCapture(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
+	assert.NotNil(t, timeObject)
+	assert.Nil(t, err)
+	assert.True(t, timeObject.UTC().Format(time.RFC3339) == "2024-01-24T13:44:11Z")
+
 }

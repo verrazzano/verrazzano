@@ -11,6 +11,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	errors2 "errors"
 	"fmt"
 	"io"
 	"os"
@@ -38,6 +39,7 @@ import (
 
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
+var writeFileError = "an error occurred while writing the file %s: %s\n"
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -53,9 +55,13 @@ type CaCrtInfo struct {
 	Name    string `json:"name"`
 	Expired bool   `json:"expired"`
 }
+type Metadata struct {
+	Time string `json:"time"`
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
-func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
+// If the addClusterSnapshot value is set to true, a value of "cluster-snapshot" prefixes every file path that is put into the archive
+func CreateReportArchive(captureDir string, bugRepFile *os.File, addClusterSnapshot bool) error {
 
 	// Create new Writers for gzip and tar
 	gzipWriter := gzip.NewWriter(bugRepFile)
@@ -68,8 +74,13 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 		if fileInfo.Mode().IsDir() {
 			return nil
 		}
+		var filePath string
 		// make cluster-snapshot as the root directory in the archive, to support existing analysis tool
-		filePath := constants.BugReportRoot + path[len(captureDir):]
+		if addClusterSnapshot {
+			filePath = constants.BugReportRoot + path[len(captureDir):]
+		} else {
+			filePath = path[len(captureDir):]
+		}
 		fileReader, err := os.Open(path)
 		if err != nil {
 			return fmt.Errorf(errBugReport, err.Error())
@@ -165,6 +176,9 @@ func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
 
 // writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
 func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	if err := createParentsIfNecessary(captureDir, header.Name); err != nil {
+		return err
+	}
 	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
 	if err != nil {
 		return err
@@ -177,6 +191,27 @@ func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.
 	}
 	return nil
 
+}
+
+// createParentsIfNecessary determines if a path of a file references directories that have not been created and then creates those directories
+func createParentsIfNecessary(captureDir string, filePath string) error {
+	filePathSplitByPathSeperatorList := strings.Split(filePath, string(os.PathSeparator))
+	if len(filePathSplitByPathSeperatorList) == 1 {
+		return nil
+	}
+	listOfDirectories := filePathSplitByPathSeperatorList[:len(filePathSplitByPathSeperatorList)-1]
+	directoryString := ""
+	for i := range listOfDirectories {
+		directoryString = directoryString + listOfDirectories[i] + string(os.PathSeparator)
+	}
+	if _, err := os.Stat(captureDir + string(os.PathSeparator) + directoryString); errors2.Is(err, os.ErrNotExist) {
+		if err = os.MkdirAll(captureDir+string(os.PathSeparator)+directoryString, 0700); err != nil {
+			return err
+		}
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
@@ -206,7 +241,31 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
+}
+
+// captureMetadata gets the current time in UTC on the user's system and outputs it in RFC 3339 format to the user's system
+func CaptureMetadata(captureDir string) error {
+	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
+	metadataFilename := filepath.Join(captureDir, constants.MetadataJSON)
+	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
+	timeStructToWrite := Metadata{Time: timetoCaptureString}
+	metadataJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
+		return err
+	}
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON), nil))
+	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
+	if err != nil {
+		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
+		return err
+	}
+	return nil
+
 }
 
 // GetPodList returns list of pods matching the label in the given namespace
@@ -269,7 +328,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON), nil))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
 	}
 	return nil
@@ -301,6 +360,18 @@ func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, 
 		if err = createFile(pods, namespace, constants.PodsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// captureNamespaces captures the namespace resource for a given namespace, as a JSON file
+func captureNamespaces(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	namespaceResource, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the namespace resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if err = createFile(namespaceResource, namespace, constants.NamespaceJSON, captureDir, vzHelper); err != nil {
+		return err
 	}
 	return nil
 }
@@ -523,7 +594,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
 	return nil
 }
