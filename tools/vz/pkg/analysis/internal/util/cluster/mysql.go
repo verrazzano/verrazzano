@@ -3,11 +3,13 @@
 package cluster
 
 import (
+	"fmt"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
 	"io"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 )
@@ -30,12 +32,12 @@ func AnalyzeMySQLRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err 
 		if namespace != "keycloak" {
 			continue
 		}
-		namespaceFile := files.FormFilePathInNamespace(clusterRoot, namespace, constants.InnoDBClusterJSON)
-		namespaceObject, err := getInnoDBClusterResources(log, namespaceFile)
+		innoDBClusterFile := files.FormFilePathInNamespace(clusterRoot, namespace, constants.InnoDBClusterJSON)
+		innoDBResourceList, err := getInnoDBClusterResources(log, innoDBClusterFile)
 		if err != nil {
 			return err
 		}
-		if namespaceObject == nil {
+		if innoDBResourceList == nil {
 			continue
 		}
 		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject, timeOfCapture)
@@ -69,4 +71,33 @@ func getInnoDBClusterResources(log *zap.SugaredLogger, path string) (innoDBClust
 		return nil, err
 	}
 	return &resourceToReturn, err
+}
+
+// isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
+func isInnoDBClusterCurrentlyInTerminatingStatus(innoDBClusterList *unstructured.UnstructuredList, timeOfCapture *time.Time) (bool, []string) {
+	var listOfMessagesFromRelevantConditions = []string{}
+	for _, item := range innoDBClusterList.Items {
+		deletionTimestamp := item.GetDeletionTimestamp()
+		if deletionTimestamp == nil {
+			return false, listOfMessagesFromRelevantConditions
+		}
+	}
+	var deletionMessage string
+	if namespaceObject.DeletionTimestamp != nil && timeOfCapture != nil {
+		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
+		deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
+	} else {
+		deletionMessage = "The namespace " + namespaceObject.Name + " has spent an undetermined amount of time in a state of deletion"
+	}
+	listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
+	namespaceConditions := namespaceObject.Status.Conditions
+	if namespaceConditions == nil {
+		return true, listOfMessagesFromRelevantConditions
+	}
+	for i := range namespaceConditions {
+		if namespaceConditions[i].Type == corev1.NamespaceFinalizersRemaining || namespaceConditions[i].Type == corev1.NamespaceContentRemaining {
+			listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, namespaceConditions[i].Message)
+		}
+	}
+	return true, listOfMessagesFromRelevantConditions
 }
