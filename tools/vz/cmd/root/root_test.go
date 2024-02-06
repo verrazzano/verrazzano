@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package root
@@ -33,7 +33,7 @@ func TestNewRootCmd(t *testing.T) {
 	assert.NotNil(t, rootCmd)
 
 	// Verify the expected commands are defined
-	assert.Len(t, rootCmd.Commands(), 8)
+	assert.Len(t, rootCmd.Commands(), 9)
 	foundCount := 0
 	for _, cmd := range rootCmd.Commands() {
 		switch cmd.Name() {

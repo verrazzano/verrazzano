@@ -1,0 +1,262 @@
+// Copyright (c) 2024, Oracle and/or its affiliates.
+// Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+package sanitize
+
+import (
+	"fmt"
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	testHelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"os"
+	"testing"
+)
+
+const (
+	testCattleSystemPodsDirectory = "../../pkg/analysis/test/cluster/testCattleSystempods"
+)
+
+// TestNewCmdSanitize
+// GIVEN a VZ Helper
+// WHEN I call NewCmdSanitize
+// THEN expect the command to successfully create a new Sanitize command
+func TestNewCmdSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	assert.NotNil(t, cmd)
+}
+
+// TestNoArgsIntoSanitize
+// GIVEN an Sanitize command
+// WHEN I call cmd.Execute() with no flags passed in
+// THEN expect the command to return an error
+func TestNoArgsIntoSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.NotNil(t, err)
+}
+
+// TestTwoInputArgsIntoSanitize
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an input tar file specified
+// THEN expect the command to return an error
+func TestTwoInputArgsIntoSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "input-directory")
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "input.tar")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.NotNil(t, err)
+}
+
+// TestTwoOutputArgsIntoSanitize
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an output directory and an output tar.gz file specified
+// THEN expect the command to return an error
+func TestTwoOutputArgsIntoSanitize(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, "output.tar.gz")
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.NotNil(t, err)
+}
+
+// TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input directory and an output tar.gz file specified
+// THEN expect the command to not return an error and to create the specified tar.gz file
+func TestSanitizeCommandWithInputDirectoryAndOutputTarGZFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, testCattleSystemPodsDirectory)
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, constants.OutputTarGZFile)
+	defer os.Remove(constants.OutputTarGZFile)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
+// TestInputDirectoryAndOutputDirectorySlashCombinations
+// GIVEN a Sanitize command
+// When I call cmd.Execute() with all possible combinations of the input directory and output directory containing or not containing a slash at the end of its path
+// Then I expect the commands to not return an error and create the specified directory in the correct format
+func TestInputDirectoryAndOutputDirectorySlashCombinations(t *testing.T) {
+	tests := []struct {
+		inputDirectory  string
+		outputDirectory string
+	}{
+		{inputDirectory: testCattleSystemPodsDirectory + "/", outputDirectory: constants.TestDirectory + "/"},
+		{inputDirectory: testCattleSystemPodsDirectory + "/", outputDirectory: constants.TestDirectory},
+		{inputDirectory: testCattleSystemPodsDirectory, outputDirectory: constants.TestDirectory + "/"},
+		{inputDirectory: testCattleSystemPodsDirectory, outputDirectory: constants.TestDirectory},
+	}
+	for i, tt := range tests {
+		t.Run("Test "+fmt.Sprint(i+1), func(t *testing.T) {
+			stdoutFile, stderrFile := createStdTempFiles(t)
+			defer func() {
+				os.Remove(stdoutFile.Name())
+				os.Remove(stderrFile.Name())
+			}()
+			rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+			cmd := NewCmdSanitize(rc)
+			cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, tt.inputDirectory)
+			cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, tt.outputDirectory)
+			defer os.RemoveAll(constants.TestDirectory)
+			assert.NotNil(t, cmd)
+			err := cmd.Execute()
+			assert.Nil(t, err)
+			_, err = os.Stat(constants.TestDirectory + "/cluster-snapshot")
+			assert.Nil(t, err)
+		})
+	}
+}
+
+// TestSanitizeCommandWithInputTarAndOutputTarGZFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input tar file and an output .tar.gz file specified
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, constants.OutputTarGZFile)
+	defer os.Remove(constants.OutputTarGZFile)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandWithInputTarAndOutputDirectoryFile
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with both an input tar file and an output directory file specified
+// THEN expect the command to not return an error and to create the specified directory
+func TestSanitizeCommandWithInputTarAndOutputDirectoryFile(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
+	defer os.RemoveAll(constants.TestDirectory)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+}
+
+// TestSanitizeCommandCorrectlyObscuresInput
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with a directory that contains files that meet the criteria to be sanitized
+// THEN expect the command to not return an error and to output a directory with those files correctly sanitized
+func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/sanitization/ip-address-redaction")
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
+	defer os.RemoveAll(constants.TestDirectory)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "ip-address-not-sanitized.txt")
+	assert.Nil(t, err)
+	sanitizedFileString := string(sanitizedFileBytes)
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("127.0.0.0", nil))
+}
+
+// TestIsMetadataFile
+// GIVEN a call to isMetadataFile
+// WHEN I call isMetadataFile with an input that meets the criteria for a Mac metadata file in a tar file and inputs that do not
+// THEN expect the function to correctly return whether the inputs meet the criteria or do not meet the criteria
+func TestIsMetadataFile(t *testing.T) {
+	assert.True(t, isMetadataFile("._cluster-snapshot", false))
+	assert.False(t, isMetadataFile("cluster-snapshot", true))
+	assert.False(t, isMetadataFile("cluster-snapshot", false))
+}
+
+// TestSanitizeDirectory
+// GIVEN a call to sanitizeDirectory
+// WHEN I call sanitizeDirectory with a structure that contains an input directory that contains files that need to be sanitized
+// THEN expect the function to correctly create the expected output directory containing the properly sanitized file
+func TestSanitizeDirectory(t *testing.T) {
+	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/ocid-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
+	defer os.RemoveAll(constants.TestDirectory)
+	err := sanitizeDirectory(validationForTest)
+	assert.Nil(t, err)
+	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "ocid-redaction-not-sanitized.txt")
+	assert.Nil(t, err)
+	sanitizedFileString := string(sanitizedFileBytes)
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q", nil))
+
+}
+
+// TestSanitizeFileAndWriteItToOutput
+// GIVEN a call to SanitizeFileAndWriteItToOutput
+// WHEN I call sanitizeFileAndWriteItToOutput with the appropriate arguments that references a file that does not need to be altered
+// THEN expect the function to create the new file, which should be identical to the old file
+func TestSanitizeFileAndWriteItToOutput(t *testing.T) {
+	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/no-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
+	os.Mkdir("test-directory", 0700)
+	defer os.RemoveAll(constants.TestDirectory)
+	err := sanitizeFileAndWriteItToOutput(validationForTest, false, "../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt", 0600)
+	assert.Nil(t, err)
+	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "no-redaction-needed.txt")
+	assert.Nil(t, err)
+	unsanitizedFileBytes, err := os.ReadFile("../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt")
+	assert.Nil(t, err)
+	assert.Equal(t, sanitizedFileBytes, unsanitizedFileBytes)
+
+}
+
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	assert.NoError(t, err)
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	assert.NoError(t, err)
+
+	return stdoutFile, stderrFile
+}
