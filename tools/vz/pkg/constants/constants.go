@@ -145,6 +145,25 @@ const (
 	AppNameFlagUsage     = "The name of the OAM application to export"
 )
 
+// Constants for sanitize
+const (
+	InputTarFileFlagName  = "input-tar-file"
+	InputTarFileFlagValue = ""
+	InputTarFileFlagUsage = "Name of the input bug-report tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+
+	OutputTarGZFileFlagName  = "output-tar.gz-file"
+	OutputTarGZFileFlagValue = ""
+	OutputTarGZFileFlagUsage = "Name of the .tar.gz file that contains the sanitized output"
+
+	InputDirectoryFlagName  = "input-directory"
+	InputDirectoryFlagValue = ""
+	InputDirectoryFlagUsage = "Name of the directory that contains the un-sanitized bug-report"
+
+	OutputDirectoryFlagName  = "output-directory"
+	OutputDirectoryFlagValue = ""
+	OutputDirectoryFlagUsage = "Name of the directory that will contain the sanitized bug-report"
+)
+
 // Constants for bug report
 const (
 	BugReportLogFlagDefault   = false
@@ -159,6 +178,13 @@ const (
 	BugReportIncludeNSFlagUsage = "A comma-separated list of namespaces, in addition to the ones collected by default (system namespaces), for collecting cluster information. This flag can be specified multiple times, such as --include-namespaces ns1 --include-namespaces ns..."
 
 	BugReportDir = "bug-report"
+
+	SanitizeDirInput = "sanitize-input"
+
+	SanitizeDirOutput = "sanitize-output"
+
+	TestDirectory   = "test-directory"
+	OutputTarGZFile = "output-tar-file.tar.gz"
 
 	// File name for the log captured from the pod
 	LogFile = "logs.txt"
@@ -217,3 +243,6 @@ const (
 	BugReportTimeFlagDefaultTime = 0
 	BugReportTimeFlagNameUsage   = "The time period during which the logs are collected in seconds, minutes, and hours."
 )
+
+// Error message for failing to parse a flag
+const FlagErrorMessage = "an error occurred while reading value for the flag --%s: %s"
