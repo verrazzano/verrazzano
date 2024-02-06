@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package report handles reporting
@@ -7,6 +7,7 @@ package report
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
@@ -69,7 +70,7 @@ func ContributeIssuesMap(log *zap.SugaredLogger, source string, issues map[strin
 		reportIssues = make([]Issue, 0, 10)
 	}
 	for _, issue := range issues {
-		issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
+		issue.SupportingData = DeduplicateSupportingDataList(issue.SupportingData)
 		reportIssues = append(reportIssues, issue)
 	}
 	reports[source] = reportIssues
@@ -90,7 +91,7 @@ func ContributeIssue(log *zap.SugaredLogger, issue Issue) (err error) {
 	if len(reportIssues) == 0 {
 		reportIssues = make([]Issue, 0, 10)
 	}
-	issue.SupportingData = DeduplicateSupportingData(issue.SupportingData)
+	issue.SupportingData = DeduplicateSupportingDataList(issue.SupportingData)
 	reportIssues = append(reportIssues, issue)
 	reports[issue.Source] = reportIssues
 	reportMutex.Unlock()
@@ -213,9 +214,9 @@ func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, repo
 	// printReport std outs reports to console
 	printReport := func() {
 		if reportCtx.ReportFormat == constants.DetailedReport {
-			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut)
+			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeOut+version.GetVZCLIVersionMessageString())
 		} else if reportCtx.ReportFormat == constants.SummaryReport {
-			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeSummaryOut)
+			fmt.Fprintf(vzHelper.GetOutputStream(), sepOut+writeSummaryOut+version.GetVZCLIVersionMessageString())
 		}
 	}
 
@@ -241,7 +242,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, repo
 			return err
 		}
 		// writes vz & k8s version, a separator and detected issues to report file
-		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut))
+		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut + version.GetVZCLIVersionMessageString()))
 		if reportCtx.PrintReportToConsole {
 			printReport()
 		}
@@ -263,6 +264,7 @@ func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, repo
 					writeOut += fmt.Sprintf("Verrazzano analysis CLI did not detect any issue in %s\n", source)
 				}
 			}
+			writeOut += version.GetVZCLIVersionMessageString()
 			fmt.Fprintf(vzHelper.GetOutputStream(), writeOut)
 		}
 	}

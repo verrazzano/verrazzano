@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -34,6 +35,7 @@ import (
 
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
+var writeFileError = "an error occurred while writing the file %s: %s\n"
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -44,6 +46,10 @@ var isVerbose bool
 
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
+
+type Metadata struct {
+	Time string `json:"time"`
+}
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
 func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
@@ -90,6 +96,86 @@ func CreateReportArchive(captureDir string, bugRepFile *os.File) error {
 	return nil
 }
 
+// UntarArchive untars the specified file and puts it in the capture directory
+func UntarArchive(captureDir string, tarFile *os.File) error {
+	var tarReader *tar.Reader
+	// If it is compressed, we need to decompress it
+	if strings.HasSuffix(tarFile.Name(), ".tgz") || strings.HasSuffix(tarFile.Name(), ".tar.gz") {
+		uncompressedTarFile, err := gzip.NewReader(tarFile)
+		if err != nil {
+			return err
+		}
+		defer uncompressedTarFile.Close()
+		tarReader = tar.NewReader(uncompressedTarFile)
+	} else if strings.HasSuffix(tarFile.Name(), ".tar") {
+		tarReader = tar.NewReader(tarFile)
+	} else {
+		return fmt.Errorf("the file given as input is not in .tar, .tgz, or .tar.gz format")
+	}
+	// This loops through each entry in the tar archive
+	err := writeFilesFromArchive(captureDir, tarReader)
+	return err
+}
+
+func copyDataInByteChunks(dst io.Writer, src io.Reader, chunkSize int64) error {
+	for {
+		_, err := io.CopyN(dst, src, chunkSize)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// This function loops through a tar reader and writes its contents to disk
+func writeFilesFromArchive(captureDir string, tarReader *tar.Reader) error {
+	for {
+		header, err := tarReader.Next()
+		// This means that we have reached the end of the archive, so we break out of the loop
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+
+		// This means that it is a regular file that we write to disk
+		if header.Typeflag == 48 {
+			if err = writeFileFromArchive(captureDir, tarReader, header); err != nil {
+				return err
+			}
+
+		}
+		// This means that is a directory that is written
+		if header.Typeflag == 53 {
+			err = os.Mkdir(captureDir+string(os.PathSeparator)+header.Name, os.FileMode(header.Mode))
+			if err != nil {
+				return err
+			}
+		}
+
+	}
+	return nil
+}
+
+// writeTarFileToDisk writes a tar file at a specified captureDir using a tar Reader and a tar Header for that file
+func writeFileFromArchive(captureDir string, tarReader *tar.Reader, header *tar.Header) error {
+	fileToWrite, err := os.Create(captureDir + string(os.PathSeparator) + header.Name)
+	if err != nil {
+		return err
+	}
+	if err = fileToWrite.Chmod(os.FileMode(header.Mode)); err != nil {
+		return err
+	}
+	if err = copyDataInByteChunks(fileToWrite, tarReader, int64(2048)); err != nil {
+		return err
+	}
+	return nil
+
+}
+
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
 // and services from the specified namespace, as JSON files
 func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
@@ -114,7 +200,31 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	if err := captureRancherNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	return nil
+}
+
+// captureMetadata gets the current time in UTC on the user's system and outputs it in RFC 3339 format to the user's system
+func CaptureMetadata(captureDir string) error {
+	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
+	metadataFilename := filepath.Join(captureDir, constants.MetadataJSON)
+	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
+	timeStructToWrite := Metadata{Time: timetoCaptureString}
+	metadataJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
+		return err
+	}
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON)))
+	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
+	if err != nil {
+		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
+		return err
+	}
+	return nil
+
 }
 
 // GetPodList returns list of pods matching the label in the given namespace
@@ -177,7 +287,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 	}
 	_, err = f.WriteString(SanitizeString(string(vzJSON)))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", vzRes, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
 	}
 	return nil
@@ -209,6 +319,18 @@ func capturePods(kubeClient kubernetes.Interface, namespace, captureDir string, 
 		if err = createFile(pods, namespace, constants.PodsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// captureNamespaces captures the namespace resource for a given namespace, as a JSON file
+func captureNamespaces(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	namespaceResource, err := kubeClient.CoreV1().Namespaces().Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the namespace resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if err = createFile(namespaceResource, namespace, constants.NamespaceJSON, captureDir, vzHelper); err != nil {
+		return err
 	}
 	return nil
 }
@@ -367,7 +489,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON)))
 	if err != nil {
-		LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", res, err.Error()))
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
 	return nil
 }

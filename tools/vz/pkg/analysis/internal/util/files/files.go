@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package files handles searching
@@ -8,17 +8,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
 
-// GetMatchingFiles returns the filenames for files that match a regular expression.
-func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+// GetMatchingFileNames returns the filenames for files that match a regular expression.
+func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
 	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
 		log.Debugf("GetMatchingFiles requires a rootDirectory")
@@ -48,8 +51,8 @@ func GetMatchingFiles(log *zap.SugaredLogger, rootDirectory string, fileMatchRe 
 	return fileMatches, err
 }
 
-// GetMatchingDirectories returns the filenames for directories that match a regular expression.
-func GetMatchingDirectories(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
+// GetMatchingDirectoryNames returns the filenames for directories that match a regular expression.
+func GetMatchingDirectoryNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
 	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
 		log.Debugf("GetMatchingDirectories requires a root directory")
@@ -96,13 +99,13 @@ func FindNamespaces(log *zap.SugaredLogger, clusterRoot string) (namespaces []st
 	return namespaces, nil
 }
 
-// FindFileInClusterRoot will find filename in the cluster root
-func FindFileInClusterRoot(clusterRoot string, filename string) string {
+// FormFilePathInClusterRoot will find filename in the cluster root
+func FormFilePathInClusterRoot(clusterRoot string, filename string) string {
 	return fmt.Sprintf("%s/%s", clusterRoot, filename)
 }
 
-// FindFileInNamespace will find filename in the namespace
-func FindFileInNamespace(clusterRoot string, namespace string, filename string) string {
+// FormFilePathInNamespace will find filename in the namespace
+func FormFilePathInNamespace(clusterRoot string, namespace string, filename string) string {
 	return fmt.Sprintf("%s/%s/%s", clusterRoot, namespace, filename)
 }
 
@@ -113,13 +116,13 @@ func FindPodLogFileName(clusterRoot string, pod corev1.Pod) string {
 
 // UnmarshallFileInClusterRoot - unmarshall a file into a struct
 func UnmarshallFileInClusterRoot(clusterRoot string, filename string, object interface{}) error {
-	clusterPath := FindFileInClusterRoot(clusterRoot, filename)
+	clusterPath := FormFilePathInClusterRoot(clusterRoot, filename)
 	return unmarshallFile(clusterPath, object)
 }
 
 // UnmarshallFileInNamespace - unmarshall a file from a namespace into a struct
 func UnmarshallFileInNamespace(clusterRoot string, namespace string, filename string, object interface{}) error {
-	clusterPath := FindFileInNamespace(clusterRoot, namespace, filename)
+	clusterPath := FormFilePathInNamespace(clusterRoot, namespace, filename)
 	return unmarshallFile(clusterPath, object)
 }
 
@@ -147,4 +150,24 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	}
 
 	return nil
+}
+
+// GetTimeOfCapture parses the metadata.json file and converts the time string into a time.Time object to be used by other functions
+func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
+	metadataFile := FormFilePathInClusterRoot(clusterRoot, constants.MetadataJSON)
+	if _, err := os.Stat(metadataFile); errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	metadataObjectToUnmarshalInto := &helpers.Metadata{}
+	err := unmarshallFile(metadataFile, &metadataObjectToUnmarshalInto)
+	if err != nil {
+		return nil, err
+	}
+	timeString := metadataObjectToUnmarshalInto.Time
+	timeObject, err := time.Parse(time.RFC3339, timeString)
+	if err != nil {
+		return nil, err
+	}
+	return &timeObject, err
+
 }

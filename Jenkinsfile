@@ -24,7 +24,7 @@ pipeline {
 
     agent {
        docker {
-            image "${RUNNER_DOCKER_IMAGE}"
+            image "${GOLANG20_RUNNER_DOCKER_IMAGE}"
             args "${RUNNER_DOCKER_ARGS}"
             registryUrl "${RUNNER_DOCKER_REGISTRY_URL}"
             registryCredentialsId 'ocir-pull-and-push-account'
@@ -395,12 +395,6 @@ pipeline {
                         expression {SKIP_ACCEPTANCE_TESTS == false};
                     }
                 }
-            }
-
-            environment {
-                SEARCH_HTTP_ENDPOINT = credentials('search-gw-url')
-                SEARCH_PASSWORD = "${PROMETHEUS_CREDENTIALS_PSW}"
-                SEARCH_USERNAME = "${PROMETHEUS_CREDENTIALS_USR}"
             }
 
             steps {

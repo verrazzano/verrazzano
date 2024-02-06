@@ -124,11 +124,25 @@ const (
 	ReportFileFlagValue = ""
 	ReportFileFlagUsage = "Name of the report output file. (default stdout)"
 
+	TarFileFlagName  = "tar-file"
+	TarFileFlagValue = ""
+	TarFileFlagUsage = "Name of the cluster-dump tar file, which can have extensions of .tar, .tgz, and .tar.gz"
+
 	ReportFormatFlagName  = "report-format"
 	ReportFormatFlagUsage = "The format of the report output. Valid report formats are \"summary\" and \"detailed\"."
 
 	SummaryReport  = "summary"
 	DetailedReport = "detailed"
+)
+
+// Constants for export
+const (
+	NamespaceFlag        = "namespace"
+	NamespaceFlagDefault = "default"
+	NamespaceFlagUsage   = "The namespace containing the OAM application to export"
+	AppNameFlag          = "name"
+	AppNameFlagDefault   = ""
+	AppNameFlagUsage     = "The name of the OAM application to export"
 )
 
 // Constants for bug report
@@ -174,6 +188,8 @@ const (
 	McComponentJSON  = "multicluster-components.json"
 	VzProjectsJSON   = "verrazzano-projects.json"
 	VmcJSON          = "verrazzano-managed-clusters.json"
+	NamespaceJSON    = "namespace.json"
+	MetadataJSON     = "metadata.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "

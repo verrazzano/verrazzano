@@ -179,6 +179,11 @@ function dump_configmaps() {
       fi
     done <$CAPTURE_DIR/cluster-snapshot/configmap_list.out
 }
+function generate_metadata_json_file(){
+  DATE_ARG=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  jq -n --arg DATE_FOR_JSON ${DATE_ARG} '{"time": $DATE_FOR_JSON}' > $CAPTURE_DIR/cluster-snapshot/metadata.json || true
+
+}
 
 function capture_extra_details_from_namespace() {
   local NAMESPACE=$1
@@ -280,6 +285,9 @@ function full_k8s_cluster_snapshot() {
 
   # Get the Verrazzano resource at the root level. The Verrazzano custom resource can define the namespace, so use all the namespaces in the command
   kubectl --insecure-skip-tls-verify get verrazzano --all-namespaces -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/verrazzano-resources.json || true
+
+  # Generate the metadata.json file
+  generate_metadata_json_file
 
   if [ $? -eq 0 ]; then
     kubectl --insecure-skip-tls-verify version -o json 2>/dev/null > $CAPTURE_DIR/cluster-snapshot/kubectl-version.json || true

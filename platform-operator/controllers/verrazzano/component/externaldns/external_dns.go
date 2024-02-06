@@ -111,7 +111,7 @@ func ResolveExernalDNSNamespace() string {
 func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	log.Progressf("Checking for leftover ingresses in Verrazzano component namespaces before uninstalling %s", ComponentName)
 
-	namespaceList, err := listVerrazzanoNamespaces(log, cli)
+	namespaceList, err := listVerrazzanoNamespaces(cli)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 	}
 
 	vmoUninstalled := verifyVMOUninstalled(log, cli)
-	ingressNginxUninstalled := verifyIngressNginxUninstalled(log, cli)
+	ingressNginxUninstalled := verifyIngressNginxUninstalled(cli)
 	if !vmoUninstalled {
 		log.Progressf("Component %s pre-uninstall is waiting for %s to be uninstalled", ComponentName, common.VMOComponentName)
 		return ctrlerrors.RetryableError{Source: ComponentName}
@@ -143,7 +143,7 @@ func preUninstall(log vzlog.VerrazzanoLogger, cli client.Client) error {
 }
 
 // listVerrazzanoNamespaces lists all Verrazzano labeled namespaces
-func listVerrazzanoNamespaces(log vzlog.VerrazzanoLogger, cli client.Client) (*corev1.NamespaceList, error) {
+func listVerrazzanoNamespaces(cli client.Client) (*corev1.NamespaceList, error) {
 	// []string{constants.VerrazzanoSystemNamespace, constants.KeycloakNamespace, vzconst.RancherSystemNamespace, vzconst.VerrazzanoMonitoringNamespace}
 	nsList := corev1.NamespaceList{}
 	if err := cli.List(context.TODO(), &nsList, client.HasLabels{vzconst.LabelVerrazzanoNamespace}); client.IgnoreNotFound(err) != nil {
@@ -152,7 +152,7 @@ func listVerrazzanoNamespaces(log vzlog.VerrazzanoLogger, cli client.Client) (*c
 	return &nsList, nil
 }
 
-func verifyIngressNginxUninstalled(log vzlog.VerrazzanoLogger, cli client.Client) bool {
+func verifyIngressNginxUninstalled(cli client.Client) bool {
 	ns := corev1.Namespace{}
 	// The ingress nginx namespace would be deleted if the ingress nginx component has been uninstalled.
 	err := cli.Get(context.TODO(), types.NamespacedName{Name: constants.IngressNginxNamespace}, &ns)
