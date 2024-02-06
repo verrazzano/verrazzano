@@ -90,7 +90,7 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 	// Process the redacted values file flag.
 	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
 	if err != nil {
-		return fmt.Errorf("an error occurred while reading value for the flag %s: %s", constants.RedactedValuesFlagName, err.Error())
+		return fmt.Errorf(constants.FlagErrorMessage, constants.RedactedValuesFlagName, err.Error())
 	}
 	if redactionFilePath != "" {
 		// Create the redaction map file if the user provides a non-empty file path.
