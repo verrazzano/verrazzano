@@ -5,12 +5,13 @@
 package cluster
 
 import (
+	"strings"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	"strings"
 )
 
 // TODO: Helpers to access this info as needed

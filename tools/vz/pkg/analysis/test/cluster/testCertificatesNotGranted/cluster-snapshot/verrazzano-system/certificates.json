@@ -1,0 +1,1039 @@
+{
+  "metadata": {
+    "resourceVersion": "27383"
+  },
+  "items": [
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "cert-manager-webhook-oci-ca",
+        "namespace": "verrazzano-system",
+        "uid": "cbd2457a-f57f-4114-b030-8aa0ce284e17",
+        "resourceVersion": "9325",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:25:51Z",
+        "labels": {
+          "app": "cert-manager-webhook-oci",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": "Helm",
+          "chart": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+          "heritage": "Helm",
+          "release": "cert-manager-webhook-oci"
+        },
+        "annotations": {
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-name": "cert-manager-webhook-oci",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-name": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": {},
+                  "f:chart": {},
+                  "f:heritage": {},
+                  "f:release": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:duration": {},
+                "f:isCA": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:name": {}
+                },
+                "f:secretName": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-issuing",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:52Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:revision": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:52Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {},
+                "f:notAfter": {},
+                "f:notBefore": {},
+                "f:renewalTime": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "duration": "43800h0m0s",
+        "secretName": "cert-manager-webhook-oci-ca",
+        "issuerRef": {
+          "name": "cert-manager-webhook-oci-selfsign"
+        },
+        "isCA": true
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:25:52Z",
+            "reason": "Ready",
+            "message": "Certificate is up to date and has not expired",
+            "observedGeneration": 1
+          }
+        ],
+        "notBefore": "2023-07-07T22:25:52Z",
+        "notAfter": "2028-07-05T22:25:52Z",
+        "renewalTime": "2026-11-05T14:25:52Z",
+        "revision": 1
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "cert-manager-webhook-oci-webhook-tls",
+        "namespace": "verrazzano-system",
+        "uid": "66b04f13-a8e3-4b45-b0aa-d12b6d7e3de9",
+        "resourceVersion": "9416",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:25:51Z",
+        "labels": {
+          "app": "cert-manager-webhook-oci",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": "Helm",
+          "chart": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+          "heritage": "Helm",
+          "release": "cert-manager-webhook-oci"
+        },
+        "annotations": {
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-name": "cert-manager-webhook-oci",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-name": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": {},
+                  "f:chart": {},
+                  "f:heritage": {},
+                  "f:release": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:dnsNames": {},
+                "f:duration": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:name": {}
+                },
+                "f:secretName": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-issuing",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:57Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {},
+                "f:revision": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:25:57Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                ".": {},
+                "f:notAfter": {},
+                "f:notBefore": {},
+                "f:renewalTime": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "duration": "8760h0m0s",
+        "dnsNames": [
+          "cert-manager-webhook-oci",
+          "cert-manager-webhook-oci.verrazzano-system",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "cert-manager-webhook-oci-webhook-tls",
+        "issuerRef": {
+          "name": "cert-manager-webhook-oci-ca"
+        }
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:25:57Z",
+            "reason": "Ready",
+            "message": "Certificate is up to date and has not expired",
+            "observedGeneration": 1
+          }
+        ],
+        "notBefore": "2023-07-07T22:25:57Z",
+        "notAfter": "2024-07-06T22:25:57Z",
+        "renewalTime": "2024-03-07T06:25:57Z",
+        "revision": 1
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "system-tls-grafana",
+        "namespace": "verrazzano-system",
+        "uid": "ef1532d6-9ce1-4d8e-9620-401a3456d046",
+        "resourceVersion": "12793",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:29:32Z",
+        "labels": {
+          "k8s-app": "verrazzano.io",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": "system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "vmi-system-grafana",
+            "uid": "967d7f50-fa90-4a30-9bb4-09215b5a1120",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:k8s-app": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"967d7f50-fa90-4a30-9bb4-09215b5a1120\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:34Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "system-tls-grafana",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:29:33Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:29:33Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "system-tls-grafana-xpdrn"
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "system-tls-kiali",
+        "namespace": "verrazzano-system",
+        "uid": "30433b91-b34e-4242-8b75-73caae6b5fdd",
+        "resourceVersion": "12694",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:29:31Z",
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "vmi-system-kiali",
+            "uid": "8630224a-5961-4936-80b1-469c6d495235",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"8630224a-5961-4936-80b1-469c6d495235\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "system-tls-kiali",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:29:31Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:29:31Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "system-tls-kiali-phkc6"
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "system-tls-os-ingest",
+        "namespace": "verrazzano-system",
+        "uid": "d62a7f62-e1fc-400f-bbc9-e90fa0b15271",
+        "resourceVersion": "12706",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:29:31Z",
+        "labels": {
+          "k8s-app": "verrazzano.io",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": "system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "vmi-system-os-ingest",
+            "uid": "203b3b5e-3eef-42d6-ae55-fb25bde80e39",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:k8s-app": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"203b3b5e-3eef-42d6-ae55-fb25bde80e39\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "system-tls-os-ingest",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:29:31Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:29:32Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "system-tls-os-ingest-r78j8"
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "system-tls-osd",
+        "namespace": "verrazzano-system",
+        "uid": "ea0bb8be-f532-44a7-8f0f-514c964fa741",
+        "resourceVersion": "12773",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:29:32Z",
+        "labels": {
+          "k8s-app": "verrazzano.io",
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": "system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "vmi-system-osd",
+            "uid": "97051513-e4e3-452e-9844-42e37e5394cb",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:k8s-app": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"97051513-e4e3-452e-9844-42e37e5394cb\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "system-tls-osd",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:29:32Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:29:33Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "system-tls-osd-lxvrw"
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "system-tls-prometheus",
+        "namespace": "verrazzano-system",
+        "uid": "77285fd5-5f6f-45f2-aa2b-a474afa9d3c8",
+        "resourceVersion": "12972",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:29:40Z",
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "vmi-system-prometheus",
+            "uid": "05ffa5f5-25dd-4ca0-893a-3a1cda37eaf0",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:40Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:40Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"05ffa5f5-25dd-4ca0-893a-3a1cda37eaf0\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:29:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "system-tls-prometheus",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:29:40Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:29:41Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "system-tls-prometheus-6t6fd"
+      }
+    },
+    {
+      "kind": "Certificate",
+      "apiVersion": "cert-manager.io/v1",
+      "metadata": {
+        "name": "verrazzano-tls",
+        "namespace": "verrazzano-system",
+        "uid": "f70ad52f-9f7a-4c76-a15b-a0d427cb025e",
+        "resourceVersion": "11865",
+        "generation": 1,
+        "creationTimestamp": "2023-07-07T22:28:46Z",
+        "labels": {
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": "Helm"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/v1",
+            "kind": "Ingress",
+            "name": "verrazzano-ingress",
+            "uid": "7545a7de-f216-4a89-939a-63c5b7777169",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "cert-manager-ingress-shim",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:28:46Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a/managed-by": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"7545a7de-f216-4a89-939a-63c5b7777169\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:commonName": {},
+                "f:dnsNames": {},
+                "f:issuerRef": {
+                  ".": {},
+                  "f:group": {},
+                  "f:kind": {},
+                  "f:name": {}
+                },
+                "f:secretName": {},
+                "f:usages": {}
+              }
+            }
+          },
+          {
+            "manager": "cert-manager-certificates-key-manager",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:nextPrivateKeySecretName": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-readiness",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {}
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "cert-manager-certificates-trigger",
+            "operation": "Update",
+            "apiVersion": "cert-manager.io/v1",
+            "time": "2023-07-07T22:28:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {}
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "commonName": "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a",
+        "dnsNames": [
+          "5103e6a71de6947ab4440df52fdb3ffb09e12a4fcd52ddfa464a756bfb563f9a"
+        ],
+        "secretName": "verrazzano-tls",
+        "issuerRef": {
+          "name": "verrazzano-cluster-issuer",
+          "kind": "ClusterIssuer",
+          "group": "cert-manager.io"
+        },
+        "usages": [
+          "digital signature",
+          "key encipherment"
+        ]
+      },
+      "status": {
+        "conditions": [
+          {
+            "type": "Issuing",
+            "status": "True",
+            "lastTransitionTime": "2023-07-07T22:28:47Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          },
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastTransitionTime": "2023-07-07T22:28:47Z",
+            "reason": "DoesNotExist",
+            "message": "Issuing certificate as Secret does not exist",
+            "observedGeneration": 1
+          }
+        ],
+        "nextPrivateKeySecretName": "verrazzano-tls-cdzpx"
+      }
+    }
+  ]
+}

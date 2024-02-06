@@ -1,0 +1,1076 @@
+{
+    "kind": "Verrazzano",
+    "apiVersion": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/v1beta1",
+    "metadata": {
+      "name": "letsencrypt-certs-example",
+      "namespace": "default",
+      "uid": "249c3bf8-e7c6-47ec-a66a-07086cfe611d",
+      "resourceVersion": "25070",
+      "generation": 1,
+      "creationTimestamp": "2023-07-07T22:25:18Z",
+      "annotations": {
+        "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/last-applied-configuration": "{\"apiVersion\":\"6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/v1beta1\",\"kind\":\"Verrazzano\",\"metadata\":{\"annotations\":{},\"name\":\"letsencrypt-certs-example\",\"namespace\":\"default\"},\"spec\":{\"components\":{\"certManager\":{\"certificate\":{\"acme\":{\"emailAddress\":\"6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0@oracle.com\",\"environment\":\"staging\",\"provider\":\"letsEncrypt\"}}},\"dns\":{\"oci\":{\"dnsZoneCompartmentOCID\":\"839u38925u235hit3\",\"dnsZoneName\":\"disjaifiosfa\",\"dnsZoneOCID\":\"eigioewiowehgwegio\",\"ociConfigSecret\":\"afijfoeif\"}}},\"environmentName\":\"aifjofioeoi\",\"profile\":\"dev\"}}\n"
+      },
+      "finalizers": [
+        "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+      ],
+      "managedFields": [
+        {
+          "manager": "verrazzano-platform-operator",
+          "operation": "Update",
+          "apiVersion": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/v1alpha1",
+          "time": "2023-07-07T22:25:18Z",
+          "fieldsType": "FieldsV1",
+          "fieldsV1": {
+            "f:metadata": {
+              "f:finalizers": {
+                ".": {},
+                "v:\"6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0\"": {}
+              }
+            }
+          }
+        },
+        {
+          "manager": "vz",
+          "operation": "Update",
+          "apiVersion": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/v1beta1",
+          "time": "2023-07-07T22:25:18Z",
+          "fieldsType": "FieldsV1",
+          "fieldsV1": {
+            "f:metadata": {
+              "f:annotations": {
+                ".": {},
+                "f:6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/last-applied-configuration": {}
+              }
+            },
+            "f:spec": {
+              ".": {},
+              "f:components": {
+                ".": {},
+                "f:certManager": {
+                  ".": {},
+                  "f:certificate": {
+                    ".": {},
+                    "f:acme": {
+                      ".": {},
+                      "f:emailAddress": {},
+                      "f:environment": {},
+                      "f:provider": {}
+                    }
+                  }
+                },
+                "f:dns": {
+                  ".": {},
+                  "f:oci": {
+                    ".": {},
+                    "f:dnsZoneCompartmentOCID": {},
+                    "f:dnsZoneName": {},
+                    "f:dnsZoneOCID": {},
+                    "f:ociConfigSecret": {}
+                  }
+                }
+              },
+              "f:environmentName": {},
+              "f:profile": {}
+            }
+          }
+        },
+        {
+          "manager": "verrazzano-platform-operator",
+          "operation": "Update",
+          "apiVersion": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0/v1alpha1",
+          "time": "2023-07-07T22:42:59Z",
+          "fieldsType": "FieldsV1",
+          "fieldsV1": {
+            "f:status": {
+              "f:available": {},
+              "f:components": {
+                ".": {},
+                "f:argocd": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:cert-manager": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:cert-manager-webhook-oci": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:cluster-api": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:cluster-issuer": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:coherence-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:external-dns": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:fluent-operator": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:fluentbit-opensearch-output": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:fluentd": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:grafana": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:ingress-controller": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:istio": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:jaeger-operator": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:keycloak": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:kiali-server": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:kube-state-metrics": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:mysql": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:mysql-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:oam-kubernetes-runtime": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:opensearch": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:opensearch-dashboards": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:prometheus-adapter": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:prometheus-node-exporter": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:prometheus-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:prometheus-pushgateway": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:rancher": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:rancher-backup": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:thanos": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:velero": {
+                  ".": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:verrazzano": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:verrazzano-application-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:verrazzano-authproxy": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:verrazzano-cluster-agent": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:verrazzano-cluster-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:name": {},
+                  "f:reconcilingGeneration": {},
+                  "f:state": {}
+                },
+                "f:verrazzano-console": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:verrazzano-grafana-dashboards": {
+                  ".": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:verrazzano-monitoring-operator": {
+                  ".": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                },
+                "f:verrazzano-network-policies": {
+                  ".": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {}
+                },
+                "f:weblogic-operator": {
+                  ".": {},
+                  "f:available": {},
+                  "f:conditions": {},
+                  "f:lastReconciledGeneration": {},
+                  "f:name": {},
+                  "f:state": {},
+                  "f:version": {}
+                }
+              },
+              "f:conditions": {},
+              "f:instance": {
+                ".": {},
+                "f:consoleUrl": {},
+                "f:elasticUrl": {},
+                "f:grafanaUrl": {},
+                "f:keyCloakUrl": {},
+                "f:kialiUrl": {},
+                "f:kibanaUrl": {},
+                "f:prometheusUrl": {},
+                "f:rancherUrl": {}
+              },
+              "f:state": {},
+              "f:version": {}
+            }
+          },
+          "subresource": "status"
+        }
+      ]
+    },
+    "spec": {
+      "components": {
+        "certManager": {
+          "certificate": {
+            "acme": {
+              "emailAddress": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0@oracle.com",
+              "environment": "staging",
+              "provider": "letsEncrypt"
+            },
+            "ca": {
+              "clusterResourceNamespace": "",
+              "secretName": ""
+            }
+          }
+        },
+        "dns": {
+          "oci": {
+            "dnsZoneCompartmentOCID": "afiejhgeiogoieoi",
+            "dnsZoneOCID": "aifheioghoieoiejoi",
+            "dnsZoneName": "sifsfjsoifs",
+            "ociConfigSecret": "siofsiofjsifjois"
+          }
+        }
+      },
+      "environmentName": "sifisfsfsoo",
+      "profile": "dev",
+      "security": {}
+    },
+    "status": {
+      "available": "19/28",
+      "components": {
+        "argocd": {
+          "name": "argocd",
+          "state": "Disabled"
+        },
+        "cert-manager": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:26Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:25:48Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "cert-manager",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "cert-manager-webhook-oci": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:31Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:26:33Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "cert-manager-webhook-oci",
+          "state": "Ready"
+        },
+        "cluster-api": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:26:41Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "cluster-api",
+          "state": "Ready"
+        },
+        "cluster-issuer": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:31Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:26:33Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "cluster-issuer",
+          "state": "Ready"
+        },
+        "coherence-operator": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:38Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:26:24Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "coherence-operator",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "external-dns": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:31Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:25:54Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "external-dns",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "fluent-operator": {
+          "name": "fluent-operator",
+          "state": "Disabled"
+        },
+        "fluentbit-opensearch-output": {
+          "name": "fluentbit-opensearch-output",
+          "state": "Disabled"
+        },
+        "fluentd": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:40Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:42:59Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "fluentd",
+          "state": "Ready"
+        },
+        "grafana": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "grafana",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "ingress-controller": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:26Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:28:38Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "ingress-controller",
+          "state": "Ready"
+        },
+        "istio": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:24Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:27:30Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "istio",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "jaeger-operator": {
+          "name": "jaeger-operator",
+          "state": "Disabled"
+        },
+        "keycloak": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "keycloak",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "kiali-server": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "kiali-server",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "kube-state-metrics": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:29:58Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "kube-state-metrics",
+          "state": "Ready"
+        },
+        "mysql": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:30:39Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "mysql",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "mysql-operator": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:27:57Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "mysql-operator",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "oam-kubernetes-runtime": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:21Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:25:40Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "oam-kubernetes-runtime",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "opensearch": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "opensearch",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "opensearch-dashboards": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "opensearch-dashboards",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "prometheus-adapter": {
+          "name": "prometheus-adapter",
+          "state": "Disabled"
+        },
+        "prometheus-node-exporter": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:30:01Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "prometheus-node-exporter",
+          "state": "Ready"
+        },
+        "prometheus-operator": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "prometheus-operator",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "prometheus-pushgateway": {
+          "name": "prometheus-pushgateway",
+          "state": "Disabled"
+        },
+        "rancher": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "rancher",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "rancher-backup": {
+          "name": "rancher-backup",
+          "state": "Disabled"
+        },
+        "thanos": {
+          "name": "thanos",
+          "state": "Disabled"
+        },
+        "velero": {
+          "name": "velero",
+          "state": "Disabled"
+        },
+        "verrazzano": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:29:30Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "verrazzano-application-operator": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:24Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:28:04Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-application-operator",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "verrazzano-authproxy": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:38Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "verrazzano-authproxy",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "verrazzano-cluster-agent": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:40Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:28:04Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-cluster-agent",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "verrazzano-cluster-operator": {
+          "available": "Unavailable",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:40Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            }
+          ],
+          "name": "verrazzano-cluster-operator",
+          "reconcilingGeneration": 1,
+          "state": "Installing"
+        },
+        "verrazzano-console": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:39Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:29:49Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-console",
+          "state": "Ready"
+        },
+        "verrazzano-grafana-dashboards": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:25:38Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-grafana-dashboards",
+          "state": "Ready"
+        },
+        "verrazzano-monitoring-operator": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:34Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:29:30Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-monitoring-operator",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        },
+        "verrazzano-network-policies": {
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:20Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:25:21Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "verrazzano-network-policies",
+          "state": "Ready"
+        },
+        "weblogic-operator": {
+          "available": "Available",
+          "conditions": [
+            {
+              "lastTransitionTime": "2023-07-07T22:25:26Z",
+              "message": "Install started",
+              "status": "True",
+              "type": "InstallStarted"
+            },
+            {
+              "lastTransitionTime": "2023-07-07T22:28:05Z",
+              "message": "Install complete",
+              "status": "True",
+              "type": "InstallComplete"
+            }
+          ],
+          "lastReconciledGeneration": 1,
+          "name": "weblogic-operator",
+          "state": "Ready",
+          "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+        }
+      },
+      "conditions": [
+        {
+          "lastTransitionTime": "2023-07-07T22:25:20Z",
+          "message": "Verrazzano install in progress",
+          "status": "True",
+          "type": "InstallStarted"
+        }
+      ],
+      "state": "Reconciling",
+      "instance": {
+        "consoleUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "grafanaUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "keyCloakUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "kialiUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "openSearchDashboardsUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "openSearchUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "prometheusUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0",
+        "rancherUrl": "https://6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0"
+      },
+      "version": "6f3dcd3980919c5fb17034a430658f940d4a871458a211720233e31c0a6ef7f0+cafac393"
+    }
+  }

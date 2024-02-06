@@ -10,9 +10,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"testing"
 	"time"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -20,6 +22,7 @@ import (
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -31,6 +34,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+const dummyIP1 = "0.0.0.0"
+const dummyIP2 = "5.6.x.x"
 
 // TestCreateReportArchive
 // GIVEN a directory containing some files
@@ -106,10 +112,14 @@ func TestGroupVersionResource(t *testing.T) {
 //	WHEN I call functions to capture k8s resource
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
 	AddCapiToScheme(scheme)
 	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme)
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).Build()
 	captureDir, err := os.MkdirTemp("", "testcapture")
 	defer cleanupTempDir(t, captureDir)
 	assert.NoError(t, err)
@@ -121,7 +131,7 @@ func TestCaptureK8SResources(t *testing.T) {
 	SetMultiWriterOut(buf, tempFile)
 	SetMultiWriterErr(errBuf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CaptureK8SResources(k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
+	err = CaptureK8SResources(client, k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
 	isError = false
 }
@@ -394,6 +404,121 @@ func TestGetPodListAll(t *testing.T) {
 	pods, err = GetPodListAll(fake.NewClientBuilder().WithObjects(podList...).Build(), nsName)
 	assert.NoError(t, err)
 	assert.Equal(t, podLength, len(pods))
+}
+
+//		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
+//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//		WHEN I call functions to create a list of certificates for the namespace,
+//		THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateCertificateFile(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	sampleCert := v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureCertificates(client, "cattle-system", captureDir, rc)
+	assert.NoError(t, err)
+}
+
+// TestCreateCaCrtInfoFile tests that a caCrtInfo file titled caCrtInfo.json can be successfully written
+// GIVEN a k8s cluster with secrets containing caCrtInfo present in a namespace  ,
+// WHEN I call functions to create a list of caCrt for the namespace,
+// THEN expect it to write to the provided resource file and no error should be returned.
+func TestCreateCaCrtJsonFile(t *testing.T) {
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	certificateListForTest := v1.CertificateList{}
+	sampleCert := v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-certificate-caCrt.json", Namespace: "cattle-system"},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+			SecretName:  "test-secret-name",
+		},
+	}
+	certificateListForTest.Items = append(certificateListForTest.Items, sampleCert)
+	sampleSecret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-secret-name", Namespace: "cattle-system"},
+		Data: map[string][]byte{
+			"ca.crt": []byte("-----BEGIN CERTIFICATE-----\nMIIDvTCCAqWgAwIBAgIUJUr+YG3UuQJh6g4MKuRpZPnTVO0wDQYJKoZIhvcNAQEL\nBQAwbTELMAkGA1UEBhMCUEExDTALBgNVBAgMBFRlc3QxDTALBgNVBAcMBFRlc3Qx\nDTALBgNVBAoMBFRlc3QxDTALBgNVBAsMBFRlc3QxDTALBgNVBAMMBFRlc3QxEzAR\nBgkqhkiG9w0BCQEWBFRlc3QwIBcNMjMwODMwMTkxMjE4WhgPMzAyMjEyMzExOTEy\nMThaMG0xCzAJBgNVBAYTAlBBMQ0wCwYDVQQIDARUZXN0MQ0wCwYDVQQHDARUZXN0\nMQ0wCwYDVQQKDARUZXN0MQ0wCwYDVQQLDARUZXN0MQ0wCwYDVQQDDARUZXN0MRMw\nEQYJKoZIhvcNAQkBFgRUZXN0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKC\nAQEA5R5EAPbPhrfRnpGtC49OX9q4XDVP11C/nHZ13z4QMPQn3eD+S5DODjo95wVD\nbZlmOUdGhas037W/G4rsEr+fg2DF3tNV3bNtDU5NG+PjRDcmFDKup0q7Lh7Yf2FP\naNxi6wlIgmm8Yi4lQmaBSN5LZalIbTO+tk7PRa1FY2LCIKDzzY9ipc0h9nDQWXIz\nEUtjQdQuZsdcv+br2L6b891Pu/fiZgJg1Vzx8N9bBbxMl3usI/CT8qmJy4E9fh4q\n0LQMFcOXeVSR4dhGLpctXP82AH2wgz0mLmgXlYe3koX+TlOxGIG3tUKBndvII8wm\nO03wILuk63XhXg30EFjpj0qZiQIDAQABo1MwUTAdBgNVHQ4EFgQUxkWW0nvivNEy\nLAPMJYgNwpSHQ5IwHwYDVR0jBBgwFoAUxkWW0nvivNEyLAPMJYgNwpSHQ5IwDwYD\nVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAtUjYhkDzJoFNx84Y9KXJ\nVM5BRtiI7YuvrKujwFmct1uCDEDXxZivwDf7khbUlI/GDg13LXsHQbxRaZNotcju\nibG9DNwInlBDpJ/grjlz/KG/LCmYrQE5RAnuqxVe812pc2ndSkTOGvcds7n7Gir/\n1S6zn2d5g2KeYtaMEYV1jArjzsFIdZ4M2R0ZTAsArcJy2ZGZ655j54Df7yzviNpD\nTz6nQQv1DHEpdogys+rOUTXrVhSpnsTacwztp/lvQsZl231THlCJcsySHRgMKmB+\nRKLLMfDfIaGeiZWRvEPEdurMWYkwWdYz9d+iEo3YTpWKy2QeCOEFZKMX5B2MXkdd\nNA==\n-----END CERTIFICATE-----\n"),
+		},
+	}
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&sampleCert, &sampleSecret).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcaCrt.json")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-ca-crt-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureCaCrtExpirationInfo(client, certificateListForTest, "cattle-system", captureDir, rc)
+	assert.NoError(t, err)
+}
+
+// TestRedactHostNamesForCertificates tests the captureCertificates function
+// GIVEN when sample cert with DNSNames and IPAddresses which are sensitive information
+// WHEN captureCertificates is called on certain namespace
+// THEN it should obfuscate the known hostnames with hashed value
+// AND the output certificates.json file should NOT contain any of the sensitive information from KnownHostNames
+func TestRedactHostNamesForCertificates(t *testing.T) {
+	sampleCert := &v1.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-certificate",
+			Namespace: "cattle-system",
+		},
+		Spec: v1.CertificateSpec{
+			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
+			IPAddresses: []string{dummyIP1, dummyIP2},
+		},
+	}
+
+	schemeForClient := k8scheme.Scheme
+	err := v1.AddToScheme(schemeForClient)
+	assert.NoError(t, err)
+	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(sampleCert).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+
+	err = captureCertificates(client, common.CattleSystem, captureDir, rc)
+	assert.NoError(t, err)
+
+	// Check if the file is Sanitized as expected
+	certLocation := filepath.Join(captureDir, common.CattleSystem, constants.CertificatesJSON)
+	f, err := os.ReadFile(certLocation)
+	assert.NoError(t, err, "Should not error reading certificates.json file")
+	for k := range KnownHostNames {
+		keyMatch, err := regexp.Match(k, f)
+		assert.NoError(t, err, "Error while regex matching")
+		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
+	}
 }
 
 // TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written

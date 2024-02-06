@@ -6,14 +6,15 @@ package sanitize
 import (
 	"errors"
 	"fmt"
+	"io/fs"
+	"os"
+	"strings"
+
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/files"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-	"io/fs"
-	"os"
-	"strings"
 )
 
 const (
@@ -175,7 +176,7 @@ func sanitizeFileAndWriteItToOutput(validation flagValidation, isDirectory bool,
 		return err
 	}
 	notSanitizedFileString := string(unsanitizedFileBytes)
-	sanitizedFileString := helpers.SanitizeString(notSanitizedFileString)
+	sanitizedFileString := helpers.SanitizeString(notSanitizedFileString, nil)
 	sanitizedFileStringAsBytes := []byte(sanitizedFileString)
 
 	err = os.WriteFile(pathOfSanitizedFileOrDirectoryForOutput, sanitizedFileStringAsBytes, fileMode)

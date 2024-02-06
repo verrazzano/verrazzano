@@ -8,7 +8,9 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	errors2 "errors"
 	"fmt"
 	"io"
@@ -17,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
@@ -48,6 +51,10 @@ var isVerbose bool
 var multiWriterOut io.Writer
 var multiWriterErr io.Writer
 
+type CaCrtInfo struct {
+	Name    string `json:"name"`
+	Expired bool   `json:"expired"`
+}
 type Metadata struct {
 	Time string `json:"time"`
 }
@@ -208,8 +215,8 @@ func createParentsIfNecessary(captureDir string, filePath string) error {
 }
 
 // CaptureK8SResources collects the Workloads (Deployment and ReplicaSet, StatefulSet, Daemonset), pods, events, ingress
-// and services from the specified namespace, as JSON files
-func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+// services, and cert-manager certificates from the specified namespace, as JSON files
+func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, namespace, captureDir string, vzHelper VZHelper) error {
 	if err := captureWorkLoads(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -231,6 +238,9 @@ func CaptureK8SResources(kubeClient kubernetes.Interface, dynamicClient dynamic.
 	if err := captureRancherNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := captureCertificates(client, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -248,7 +258,7 @@ func CaptureMetadata(captureDir string) error {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", metadataFilename, err.Error()))
 		return err
 	}
-	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON)))
+	sanitizedDataInBytes := []byte(SanitizeString(string(metadataJSON), nil))
 	err = os.WriteFile(metadataFilename, sanitizedDataInBytes, 0600)
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, metadataFilename, err.Error()))
@@ -316,7 +326,7 @@ func CaptureVZResource(captureDir string, vz *v1beta1.Verrazzano) error {
 		LogError(fmt.Sprintf("An error occurred while creating JSON encoding of %s: %s\n", vzRes, err.Error()))
 		return err
 	}
-	_, err = f.WriteString(SanitizeString(string(vzJSON)))
+	_, err = f.WriteString(SanitizeString(string(vzJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, vzRes, err.Error()))
 		return err
@@ -444,6 +454,70 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	return nil
 }
 
+// captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
+func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	certificateList := v1.CertificateList{}
+	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
+	}
+	collectHostNames(certificateList)
+	if len(certificateList.Items) > 0 {
+		LogMessage(fmt.Sprintf("Certificates in namespace: %s ...\n", namespace))
+		if err = createFile(certificateList, namespace, constants.CertificatesJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+		captureCaCrtExpirationInfo(client, certificateList, namespace, captureDir, vzHelper)
+	}
+	return nil
+}
+
+// captureCaCrtExpirationInfo is a helper function of the captureCertificates function that loops through the certificates in a particular namespace and outputs a file containing information about the ca.crt of each certificate
+func captureCaCrtExpirationInfo(client clipkg.Client, certificateList v1.CertificateList, namespace string, captureDir string, vzHelper VZHelper) error {
+	caCrtList := []CaCrtInfo{}
+	for _, cert := range certificateList.Items {
+		caCrtInfoForCert, isFound, err := isCaExpired(client, cert, namespace)
+
+		if err != nil {
+			return err
+		}
+		if isFound {
+			caCrtList = append(caCrtList, *caCrtInfoForCert)
+		}
+
+	}
+	if len(caCrtList) > 0 {
+		LogMessage(fmt.Sprintf("ca.crts in namespace: %s ...\n", namespace))
+		if err := createFile(caCrtList, namespace, "caCrtInfo.json", captureDir, vzHelper); err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func collectHostNames(certificateList v1.CertificateList) {
+	for _, cert := range certificateList.Items {
+		for _, hostname := range cert.Spec.DNSNames {
+			putIntoHostNamesIfNotPresent(hostname)
+		}
+	}
+	for _, cert := range certificateList.Items {
+		for _, ipAddress := range cert.Spec.IPAddresses {
+			putIntoHostNamesIfNotPresent(ipAddress)
+		}
+	}
+}
+
+func putIntoHostNamesIfNotPresent(inputKey string) {
+	knownHostNamesMutex.Lock()
+	keyInMap := KnownHostNames[inputKey]
+	if !keyInMap {
+		KnownHostNames[inputKey] = true
+	}
+	knownHostNamesMutex.Unlock()
+}
+
 // CapturePodLog captures the log from the pod in the captureDir
 func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
 	podName := pod.Name
@@ -489,7 +563,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			reader := bufio.NewScanner(podLog)
 			f.WriteString(fmt.Sprintf(containerStartLog, contName, namespace, podName))
 			for reader.Scan() {
-				f.WriteString(SanitizeString(reader.Text() + "\n"))
+				f.WriteString(SanitizeString(reader.Text()+"\n", nil))
 			}
 			f.WriteString(fmt.Sprintf(containerEndLog, contName, namespace, podName))
 			return nil
@@ -518,7 +592,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
-	_, err = f.WriteString(SanitizeString(string(resJSON)))
+	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
@@ -913,4 +987,36 @@ func removePods(podList []corev1.Pod, pods []string) []corev1.Pod {
 		podList = removePod(podList, p)
 	}
 	return podList
+}
+
+func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*CaCrtInfo, bool, error) {
+	correspondingSecretName := cert.Spec.SecretName
+	secretForCertificate := &corev1.Secret{}
+	err := client.Get(context.Background(), clipkg.ObjectKey{
+		Namespace: namespace,
+		Name:      correspondingSecretName,
+	}, secretForCertificate)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtData, ok := secretForCertificate.Data["ca.crt"]
+	if !ok {
+		return nil, false, nil
+	}
+	caCrtDataPemDecoded, _ := pem.Decode(caCrtData)
+	if caCrtDataPemDecoded == nil {
+		return nil, false, fmt.Errorf("Failure to PEM Decode Certificate")
+	}
+	certificate, err := x509.ParseCertificate(caCrtDataPemDecoded.Bytes)
+	if err != nil {
+		return nil, false, err
+	}
+	caCrtInfoForCert := CaCrtInfo{Name: correspondingSecretName, Expired: false}
+	expirationDateOfCert := certificate.NotAfter
+
+	if time.Now().Unix() > expirationDateOfCert.Unix() {
+		caCrtInfoForCert.Expired = true
+
+	}
+	return &caCrtInfoForCert, true, nil
 }

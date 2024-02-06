@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oam "github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/spf13/cobra"
 	"github.com/verrazzano/verrazzano/pkg/k8sutil"
@@ -212,6 +213,7 @@ func NewScheme() *runtime.Scheme {
 	_ = networkingv1.AddToScheme(scheme)
 	_ = oam.AddToScheme(scheme)
 	_ = batchv1.AddToScheme(scheme)
+	_ = certv1.AddToScheme(scheme)
 	_ = istioclient.AddToScheme(scheme)
 	return scheme
 }

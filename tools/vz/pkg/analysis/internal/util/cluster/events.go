@@ -7,13 +7,14 @@ package cluster
 import (
 	encjson "encoding/json"
 	"fmt"
+	"io"
+	"os"
+	"sync"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
-	"io"
 	corev1 "k8s.io/api/core/v1"
-	"os"
-	"sync"
 )
 
 var eventListMap = make(map[string]*corev1.EventList)
