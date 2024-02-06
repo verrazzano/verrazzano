@@ -4,14 +4,16 @@ package cluster
 
 import (
 	"fmt"
+	"io"
+	"os"
+	"strings"
+	"time"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"go.uber.org/zap"
-	"io"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"os"
 )
 
 // AnalyzeMySQLRelatedIssues is the initial entry function for mySQL related issues, and it returns an error.
@@ -40,9 +42,12 @@ func AnalyzeMySQLRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err 
 		if innoDBResourceList == nil {
 			continue
 		}
-		issueFound, messageList := isNamespaceCurrentlyInTerminatingStatus(namespaceObject, timeOfCapture)
-		if issueFound {
-			reportNamespaceInTerminatingStatusIssue(clusterRoot, *namespaceObject, &issueReporter, namespaceFile, messageList)
+		for _, item := range innoDBResourceList.Items {
+			isTerminating, message := isInnoDBClusterCurrentlyInTerminatingStatus(&item, timeOfCapture)
+			if isTerminating {
+				reportInnoDBClustersInTerminatingStatusIssue(clusterRoot, &issueReporter, innoDBClusterFile, message)
+
+			}
 		}
 
 	}
@@ -74,36 +79,27 @@ func getInnoDBClusterResources(log *zap.SugaredLogger, path string) (innoDBClust
 }
 
 // isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
-func isInnoDBClusterCurrentlyInTerminatingStatus(innoDBClusterList *unstructured.UnstructuredList, timeOfCapture *time.Time) (bool, []string) {
-	var listOfMessagesFromRelevantConditions = []string{}
-	for _, item := range innoDBClusterList.Items {
-		deletionTimestamp := item.GetDeletionTimestamp()
-		if deletionTimestamp == nil {
-			return false, listOfMessagesFromRelevantConditions
-		}
-		var deletionMessage string
-		if deletionTimestamp != nil && timeOfCapture != nil {
-			diff := timeOfCapture.Sub(deletionTimestamp.Time)
-			deletionMessage = "The namespace " + item.GetName() + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
-		} else {
-			deletionMessage = "The namespace " + item.GetName() + " has spent an undetermined amount of time in a state of deletion"
-		}
+func isInnoDBClusterCurrentlyInTerminatingStatus(innoDBClusterResource *unstructured.Unstructured, timeOfCapture *time.Time) (bool, string) {
+	var deletionMessage string
+	deletionTimestamp := innoDBClusterResource.GetDeletionTimestamp()
+	if deletionTimestamp == nil {
+		return false, deletionMessage
 	}
-	if namespaceObject.DeletionTimestamp != nil && timeOfCapture != nil {
-		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
-		deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
+	if deletionTimestamp != nil && timeOfCapture != nil {
+		diff := timeOfCapture.Sub(deletionTimestamp.Time)
+		deletionMessage = "The InnoDBCluster " + innoDBClusterResource.GetName() + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
 	} else {
-		deletionMessage = "The namespace " + namespaceObject.Name + " has spent an undetermined amount of time in a state of deletion"
+		deletionMessage = "The InnoDBCluster " + innoDBClusterResource.GetName() + " has spent an undetermined amount of time in a state of deletion"
 	}
-	listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
-	namespaceConditions := namespaceObject.Status.Conditions
-	if namespaceConditions == nil {
-		return true, listOfMessagesFromRelevantConditions
+	return true, deletionMessage
+}
+func reportInnoDBClustersInTerminatingStatusIssue(clusterRoot string, issueReporter *report.IssueReporter, InnoDBClusterFile string, message string) {
+	files := []string{InnoDBClusterFile}
+	messageList := []string{message}
+	if strings.Contains(message, "unknown") {
+		issueReporter.AddKnownIssueMessagesFiles(report.InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration, clusterRoot, messageList, files)
+	} else {
+		issueReporter.AddKnownIssueMessagesFiles(report.InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration, clusterRoot, messageList, files)
 	}
-	for i := range namespaceConditions {
-		if namespaceConditions[i].Type == corev1.NamespaceFinalizersRemaining || namespaceConditions[i].Type == corev1.NamespaceContentRemaining {
-			listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, namespaceConditions[i].Message)
-		}
-	}
-	return true, listOfMessagesFromRelevantConditions
+
 }

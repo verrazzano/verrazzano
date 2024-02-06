@@ -34,6 +34,8 @@ var dockerServiceUnavailableRe = regexp.MustCompile(`.*Service Unavailable.*`)
 var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error){
 	"Pod Container Related Issues":        podContainerIssues,
 	"Pod Status Condition Related Issues": podStatusConditionIssues,
+	"Pod Deletion Issues":                 podDeletionIssues,
+	"Pod Readiness Gates Issues":          podReadinessGateIssues,
 }
 
 // AnalyzePodIssues analyzes pod issues. It starts by scanning for problem pod phases
@@ -102,7 +104,8 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 
 // IsPodReadyOrCompleted will return true if the Pod has containers that are neither Ready nor Completed
 // TODO: Extend for transition time correlation (ie: change from bool to struct)
-func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
+func IsPodReadyOrCompleted(pod corev1.Pod) bool {
+	podStatus := pod.Status
 	for _, containerStatus := range podStatus.ContainerStatuses {
 		state := containerStatus.State
 		if state.Terminated != nil && state.Terminated.Reason != "Completed" {
@@ -115,7 +118,28 @@ func IsPodReadyOrCompleted(podStatus corev1.PodStatus) bool {
 			return false
 		}
 	}
-	return true
+	if pod.DeletionTimestamp != nil {
+		return true
+	}
+	return !waitingOnReadinessGates(pod)
+}
+
+func waitingOnReadinessGates(pod corev1.Pod) bool {
+	conditions := pod.Status.Conditions
+	if len(conditions) == 0 {
+		return false
+	}
+	readyCount := 0
+	for _, condition := range conditions {
+		for _, gate := range pod.Spec.ReadinessGates {
+			if condition.Type == gate.ConditionType && condition.Status == corev1.ConditionTrue {
+				readyCount++
+				continue
+			}
+		}
+	}
+	// All readiness gates must be true
+	return len(pod.Spec.ReadinessGates) == readyCount
 }
 
 // This is evolving as we add more cases in podContainerIssues
@@ -251,6 +275,36 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 	return nil
 }
 
+func podDeletionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) error {
+	if pod.DeletionTimestamp == nil {
+		return nil
+	}
+	timeOfCapture, err := files.GetTimeOfCapture(log, clusterRoot)
+	if err != nil {
+		return err
+	}
+	if timeOfCapture == nil {
+		return nil
+	}
+	diff := timeOfCapture.Sub(pod.DeletionTimestamp.Time)
+	if int(diff.Minutes()) < 10 {
+		return nil
+	}
+	deletionMessage := "The pod " + pod.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
+	issueReporter.AddKnownIssueMessagesFiles(report.PodHangingOnDeletion, clusterRoot, []string{deletionMessage}, []string{podFile})
+
+	return nil
+}
+
+func podReadinessGateIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) error {
+	if !waitingOnReadinessGates(pod) {
+		return nil
+	}
+	message := "The pod " + pod.Name + "is currently waiting for its readiness gates"
+	issueReporter.AddKnownIssueMessagesFiles(report.PodWaitingOnReadinessGates, clusterRoot, []string{message}, []string{podFile})
+	return nil
+}
+
 // StringSlice is a string slice
 type StringSlice []string
 
@@ -330,7 +384,7 @@ func IsPodProblematic(pod corev1.Pod) bool {
 	if pod.Status.Phase == corev1.PodRunning ||
 		pod.Status.Phase == corev1.PodSucceeded {
 		// The Pod indicates it is Running/Succeeded, check if there are containers that are not ready
-		return !IsPodReadyOrCompleted(pod.Status)
+		return !IsPodReadyOrCompleted(pod)
 	}
 	return true
 }

@@ -97,37 +97,41 @@ func (issue *Issue) Validate(log *zap.SugaredLogger, mapSource string) (err erro
 
 // Known Issue Types.
 const (
-	ImagePullBackOff                                    = "ImagePullBackOff"
-	ImagePullRateLimit                                  = "ImagePullRateLimit"
-	ImagePullNotFound                                   = "ImagePullNotFound"
-	ImagePullService                                    = "ImagePullService"
-	InsufficientMemory                                  = "InsufficientMemory"
-	InsufficientCPU                                     = "InsufficientCPU"
-	IngressInstallFailure                               = "IngressInstallFailure"
-	IngressLBLimitExceeded                              = "IngressLBLimitExceeded"
-	IngressNoLoadBalancerIP                             = "IngressNoLoadBalancerIP"
-	IngressOciIPLimitExceeded                           = "IngressOciIPLimitExceeded"
-	InstallFailure                                      = "InstallFailure"
-	PendingPods                                         = "PendingPods"
-	PodProblemsNotReported                              = "PodProblemsNotReported"
-	ComponentsNotReady                                  = "ComponentsNotReady"
-	IngressNoIPFound                                    = "IngressNoIPFound"
-	IstioIngressNoIP                                    = "IstioIngressNoIP"
-	IngressShapeInvalid                                 = "IngressShapeInvalid"
-	IstioIngressPrivateSubnet                           = "IstioIngressPrivateSubnet"
-	NginxIngressPrivateSubnet                           = "NginxIngressPrivateSubnet"
-	ExternalDNSConfigureIssue                           = "ExternalDNSConfigureIssue"
-	KeycloakDataMigrationFailure                        = "KeycloakDataMigrationFailure"
-	RancherIssues                                       = "RancherIssues"
-	VZClientHangingIssueDueToLongCertificateApproval    = "VZClientHangingIssueDueToLongCertificateApproval"
-	CertificateExpired                                  = "CertificateExpired"
-	CertificateExperiencingIssuesInCluster              = "CertificateExperiencingIssuesInCluster"
-	ClusterAPIClusterIssues                             = "ClusterAPIClusterIssues"
-	CaCrtExpiredInCluster                               = "CaCrtExpiredInCluster"
-	BlockStorageLimitExceeded                           = "BlockStorageLimitExceeded"
-	TCPKeepIdleIssues                                   = "TCPKeepIdleIssues"
-	NamespaceCurrentlyInTerminatingStateKnownDuration   = "NamespaceCurrentlyInTerminatingStateKnownDuration"
-	NamespaceCurrentlyInTerminatingStateUnknownDuration = "NamespaceCurrentlyInTerminatingStateUnknownDuration"
+	ImagePullBackOff                                                 = "ImagePullBackOff"
+	ImagePullRateLimit                                               = "ImagePullRateLimit"
+	ImagePullNotFound                                                = "ImagePullNotFound"
+	ImagePullService                                                 = "ImagePullService"
+	InsufficientMemory                                               = "InsufficientMemory"
+	InsufficientCPU                                                  = "InsufficientCPU"
+	IngressInstallFailure                                            = "IngressInstallFailure"
+	IngressLBLimitExceeded                                           = "IngressLBLimitExceeded"
+	IngressNoLoadBalancerIP                                          = "IngressNoLoadBalancerIP"
+	IngressOciIPLimitExceeded                                        = "IngressOciIPLimitExceeded"
+	InstallFailure                                                   = "InstallFailure"
+	PendingPods                                                      = "PendingPods"
+	PodProblemsNotReported                                           = "PodProblemsNotReported"
+	ComponentsNotReady                                               = "ComponentsNotReady"
+	IngressNoIPFound                                                 = "IngressNoIPFound"
+	IstioIngressNoIP                                                 = "IstioIngressNoIP"
+	IngressShapeInvalid                                              = "IngressShapeInvalid"
+	IstioIngressPrivateSubnet                                        = "IstioIngressPrivateSubnet"
+	NginxIngressPrivateSubnet                                        = "NginxIngressPrivateSubnet"
+	ExternalDNSConfigureIssue                                        = "ExternalDNSConfigureIssue"
+	KeycloakDataMigrationFailure                                     = "KeycloakDataMigrationFailure"
+	RancherIssues                                                    = "RancherIssues"
+	VZClientHangingIssueDueToLongCertificateApproval                 = "VZClientHangingIssueDueToLongCertificateApproval"
+	CertificateExpired                                               = "CertificateExpired"
+	CertificateExperiencingIssuesInCluster                           = "CertificateExperiencingIssuesInCluster"
+	ClusterAPIClusterIssues                                          = "ClusterAPIClusterIssues"
+	CaCrtExpiredInCluster                                            = "CaCrtExpiredInCluster"
+	BlockStorageLimitExceeded                                        = "BlockStorageLimitExceeded"
+	TCPKeepIdleIssues                                                = "TCPKeepIdleIssues"
+	NamespaceCurrentlyInTerminatingStateKnownDuration                = "NamespaceCurrentlyInTerminatingStateKnownDuration"
+	NamespaceCurrentlyInTerminatingStateUnknownDuration              = "NamespaceCurrentlyInTerminatingStateUnknownDuration"
+	InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration   = "InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration"
+	InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration = "InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration"
+	PodHangingOnDeletion                                             = "PodHangingOnDeletion"
+	PodWaitingOnReadinessGates                                       = "PodWaitingOnReadiness"
 )
 
 // NOTE: How we are handling the issues/actions/reporting is still very much evolving here. Currently supplying some
@@ -159,14 +163,18 @@ var knownIssues = map[string]Issue{
 	KeycloakDataMigrationFailure: {Type: KeycloakDataMigrationFailure, Summary: "Failure(s) migrating Keycloak data during MySQL upgrade", Informational: true, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[KeycloakDataMigrationFailure]}},
 	RancherIssues:                {Type: RancherIssues, Summary: "Rancher resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[RancherIssues]}},
 	VZClientHangingIssueDueToLongCertificateApproval: {Type: VZClientHangingIssueDueToLongCertificateApproval, Summary: " Verrazzano Client is hanging due to the long time that it takes to approve and provision certificates", Informational: true, Impact: 10, Confidence: 10},
-	CertificateExpired:                                  {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
-	CertificateExperiencingIssuesInCluster:              {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
-	ClusterAPIClusterIssues:                             {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
-	CaCrtExpiredInCluster:                               {Type: CaCrtExpiredInCluster, Summary: "A ca.crt value in the cluster is expired", Informational: true, Impact: 10, Confidence: 10},
-	BlockStorageLimitExceeded:                           {Type: BlockStorageLimitExceeded, Summary: "You have reached your service limit in this Availability Domain for volumes. Please try creating the volume in a different Availability Domain or Region, or try using a smaller volume size.", Informational: true, Impact: 10, Confidence: 10},
-	TCPKeepIdleIssues:                                   {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
-	NamespaceCurrentlyInTerminatingStateKnownDuration:   {Type: NamespaceCurrentlyInTerminatingStateKnownDuration, Summary: "A namespace within the cluster has been in a terminating state for a known duration of time", Informational: true, Impact: 5, Confidence: 10},
-	NamespaceCurrentlyInTerminatingStateUnknownDuration: {Type: NamespaceCurrentlyInTerminatingStateUnknownDuration, Summary: "A namespace within the cluster has been in a terminating state for an unknown duration of time", Informational: true, Impact: 5, Confidence: 10},
+	CertificateExpired:                                               {Type: CertificateExpired, Summary: "A certificate in the cluster is currently expired", Informational: true, Impact: 10, Confidence: 10},
+	CertificateExperiencingIssuesInCluster:                           {Type: CertificateExperiencingIssuesInCluster, Summary: "A certificate in the cluster is experiencing issues, but it is not expired", Informational: true, Impact: 10, Confidence: 10},
+	ClusterAPIClusterIssues:                                          {Type: ClusterAPIClusterIssues, Summary: "Cluster API cluster resources are not in the expected state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[ClusterAPIClusterIssues]}},
+	CaCrtExpiredInCluster:                                            {Type: CaCrtExpiredInCluster, Summary: "A ca.crt value in the cluster is expired", Informational: true, Impact: 10, Confidence: 10},
+	BlockStorageLimitExceeded:                                        {Type: BlockStorageLimitExceeded, Summary: "You have reached your service limit in this Availability Domain for volumes. Please try creating the volume in a different Availability Domain or Region, or try using a smaller volume size.", Informational: true, Impact: 10, Confidence: 10},
+	TCPKeepIdleIssues:                                                {Type: TCPKeepIdleIssues, Summary: "Issues setting the TCP_KEEPIDLE socket option have been detected in the cluster", Informational: true, Impact: 10, Confidence: 10},
+	NamespaceCurrentlyInTerminatingStateKnownDuration:                {Type: NamespaceCurrentlyInTerminatingStateKnownDuration, Summary: "A namespace within the cluster has been in a terminating state for a known duration of time", Informational: true, Impact: 5, Confidence: 10},
+	NamespaceCurrentlyInTerminatingStateUnknownDuration:              {Type: NamespaceCurrentlyInTerminatingStateUnknownDuration, Summary: "A namespace within the cluster has been in a terminating state for an unknown duration of time", Informational: true, Impact: 5, Confidence: 10},
+	InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration: {Type: InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration, Summary: "An InnoDBCluster resource within the cluster has been in a terminating state for an unknown duration of time", Informational: true, Impact: 5, Confidence: 5},
+	InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration:   {Type: InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration, Summary: "An InnoDBCluster resource within the cluster has been in a terminating state for an known duration of time", Informational: true, Impact: 5, Confidence: 10},
+	PodHangingOnDeletion:                                             {Type: PodHangingOnDeletion, Summary: "A pod has been stuck terminating for 10 minutes or greater", Informational: true, Impact: 5, Confidence: 10},
+	PodWaitingOnReadinessGates:                                       {Type: PodWaitingOnReadinessGates, Summary: "A pod in the cluster is waiting on its readiness gates", Informational: true, Impact: 8, Confidence: 10},
 }
 
 // NewKnownIssueSupportingData adds a known issue

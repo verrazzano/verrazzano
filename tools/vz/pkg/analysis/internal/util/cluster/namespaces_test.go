@@ -40,8 +40,8 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 
 // TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid tests whether an error occurs when an invalid input is provided
 // GIVEN a call to analyze namespace related issues in a cluster-snapshot
-// WHEN an invalid input is provided, but namespace and time capture data is not present
-// THEN the function does not generate an error
+// WHEN an invalid input is provided
+// THEN the function does generate an error
 func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
