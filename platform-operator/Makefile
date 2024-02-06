@@ -1,4 +1,4 @@
-# Copyright (C) 2020, 2023, Oracle and/or its affiliates.
+# Copyright (C) 2020, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 include ../make/quality.mk
@@ -55,7 +55,7 @@ endif
 
 VZ_BASE_IMAGE ?= ghcr.io/verrazzano/verrazzano-base:v1.0.0-20230327155846-4653b27
 
-ISTIO_ISTIOCTL_IMAGE ?= ghcr.io/verrazzano/istio-istioctl:1.19.3-20231116210157-e7d1556c
+ISTIO_ISTIOCTL_IMAGE ?= ghcr.io/verrazzano/istio-istioctl:1.19.0-1-20240102223345-96c3a993
 
 DIST_DIR:=dist
 GO ?= GO111MODULE=on GOPRIVATE=github.com/verrazzano go

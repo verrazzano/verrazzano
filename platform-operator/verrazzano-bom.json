@@ -123,12 +123,12 @@
           "images": [
             {
               "image": "pilot",
-              "tag": "1.19.3-20231116210157-e7d1556c",
+              "tag": "1.19.0-1-20240102223345-96c3a993",
               "helmFullImageKey": "values.pilot.image"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.3-20231116210157-e7d1556c",
+              "tag": "1.19.0-1-20240102223345-96c3a993",
               "helmImageKey": "values.global.proxy.image",
               "helmTagKey": "values.global.tag",
               "helmRegistryAndRepoKey": "values.global.hub"
@@ -247,7 +247,7 @@
     },
     {
       "name": "verrazzano",
-      "version": "1.6.10",
+      "version": "1.6.11",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -255,7 +255,7 @@
           "images": [
             {
               "image": "proxyv2",
-              "tag": "1.19.0-20231002202943-1a85d369",
+              "tag": "1.19.0-1-20240102223345-96c3a993",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -265,7 +265,7 @@
             },
             {
               "image": "console",
-              "tag": "v1.6.10-20231125002735-0ce0a35",
+              "tag": "v1.6.11-20240104181437-bd83d77",
               "helmFullImageKey": "console.imageName",
               "helmTagKey": "console.imageVersion"
             },
@@ -287,7 +287,7 @@
     },
     {
       "name": "verrazzano-monitoring-operator",
-      "version": "1.6.10",
+      "version": "1.6.11",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -295,13 +295,13 @@
           "images": [
             {
               "image": "verrazzano-monitoring-operator",
-              "tag": "v1.6.10-20231125002614-6c29afc",
+              "tag": "v1.6.11-20240104181324-026e1e3",
               "helmFullImageKey": "monitoringOperator.imageName",
               "helmTagKey": "monitoringOperator.imageVersion"
             },
             {
               "image": "proxyv2",
-              "tag": "1.19.0-20231002202943-1a85d369",
+              "tag": "1.19.0-1-20240102223345-96c3a993",
               "helmFullImageKey": "monitoringOperator.istioProxyImage"
             },
             {
@@ -369,7 +369,7 @@
     },
     {
       "name": "verrazzano-cluster-operator",
-      "version": "1.6.10",
+      "version": "1.6.11",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -386,7 +386,7 @@
     },
     {
       "name": "verrazzano-cluster-agent",
-      "version": "1.6.10",
+      "version": "1.6.11",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -403,7 +403,7 @@
     },
     {
       "name": "verrazzano-application-operator",
-      "version": "1.6.10",
+      "version": "1.6.11",
       "subcomponents": [
         {
           "repository": "verrazzano",

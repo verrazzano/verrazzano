@@ -1,11 +1,10 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package version
 
 import (
 	"fmt"
-
 	"github.com/spf13/cobra"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
@@ -46,7 +45,6 @@ func NewCmdVersion(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdVersion(vzHelper helpers.VZHelper) error {
-
 	templateValues := map[string]string{
 		"cli_version": cliVersion,
 		"build_date":  buildDate,
@@ -73,4 +71,8 @@ func GetEffectiveDocsVersion() string {
 
 func GetCLIVersion() string {
 	return cliVersion
+}
+
+func GetVZCLIVersionMessageString() string {
+	return "\nThis command was run with vz CLI Version " + GetCLIVersion() + "\n"
 }
