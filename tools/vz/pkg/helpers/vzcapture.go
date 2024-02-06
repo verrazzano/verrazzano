@@ -19,7 +19,6 @@ import (
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	vzoamapi "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
-	"github.com/verrazzano/verrazzano/pkg/log"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
@@ -1123,10 +1122,14 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 }
 
 func FindProblematicPods(bugReportDir string) (namespaces []string, problematicPods []string, err error) {
-	logger := log.GetDebugEnabledLogger()
-	namespaces, pods, err := FindProblematicPodFiles(logger, bugReportDir)
+	namespaces, pods, err := FindProblematicPodFiles(bugReportDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
+	}
+	if len(pods) != 0 {
+		for _, pod := range pods {
+			LogMessage(fmt.Sprintf("Problematic pods detected: %s", pod))
+		}
 	}
 	return namespaces, pods, nil
 }

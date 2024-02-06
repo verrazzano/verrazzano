@@ -5,8 +5,8 @@ package helpers
 
 import (
 	encjson "encoding/json"
+	"fmt"
 	"github.com/verrazzano/verrazzano/pkg/files"
-	"go.uber.org/zap"
 	"io"
 	corev1 "k8s.io/api/core/v1"
 	"os"
@@ -20,7 +20,7 @@ var podCacheMutex = &sync.Mutex{}
 
 // FindProblematicPodFiles looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
-func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (namespaces []string, podFiles []string, err error) {
+func FindProblematicPodFiles(clusterRoot string) (namespaces []string, podFiles []string, err error) {
 	allPodFiles, err := files.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
 	if err != nil {
 		return nil, podFiles, err
@@ -31,13 +31,12 @@ func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (namesp
 	}
 	podFiles = make([]string, 0, len(allPodFiles))
 	for _, podFile := range allPodFiles {
-		podList, err := PodAnylsisGetPodList(log, podFile)
+		podList, err := PodAnalysisGetPodList(podFile)
 		if err != nil {
-			log.Debugf("Failed to get the PodList for %s, skipping", podFile, err)
+			_ = fmt.Errorf("%s, failed to get the PodList for %s, skipping", err.Error(), podFile)
 			continue
 		}
 		if podList == nil {
-			log.Debugf("No PodList was returned, skipping")
 			continue
 		}
 
@@ -47,7 +46,6 @@ func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (namesp
 			if !IsPodProblematic(pod) {
 				continue
 			}
-			log.Debugf("Problematic pods detected: %s", podFile)
 			namespaces = append(namespaces, pod.Namespace)
 			podFiles = append(podFiles, podFile)
 			break
@@ -56,31 +54,27 @@ func FindProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (namesp
 	return namespaces, podFiles, nil
 }
 
-// PodAnylsisGetPodList gets a pod list
-func PodAnylsisGetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
+// PodAnalysisGetPodList gets a pod list
+func PodAnalysisGetPodList(path string) (podList *corev1.PodList, err error) {
 	// Check the cache first
 	podList = getPodListIfPresent(path)
 	if podList != nil {
-		log.Debugf("Returning cached podList for %s", path)
 		return podList, nil
 	}
 
 	// Not found in the cache, get it from the file
 	file, err := os.Open(path)
 	if err != nil {
-		log.Debugf("file %s not found", path)
 		return nil, err
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Debugf("Failed reading Json file %s", path)
 		return nil, err
 	}
 	err = encjson.Unmarshal(fileBytes, &podList)
 	if err != nil {
-		log.Debugf("Failed to unmarshal podList at %s", path)
 		return nil, err
 	}
 	putPodListIfNotPresent(path, podList)

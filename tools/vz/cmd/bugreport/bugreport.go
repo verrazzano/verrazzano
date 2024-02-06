@@ -6,18 +6,16 @@ package bugreport
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io/fs"
+	"os"
+	"strings"
+	"time"
 )
 
 const (
