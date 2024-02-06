@@ -184,6 +184,9 @@ func TestBugReportSuccess(t *testing.T) {
 }
 
 // TestBugReportFailedPods
+// GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
+// WHEN I call cmd.Execute
+// THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
 func TestBugReportFailedPods(t *testing.T) {
 	cmd := setUpAndVerifyResources(t)
 
@@ -426,7 +429,7 @@ func getClientWithVZWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
 }
 
-// getKubeClient returns a
+// getKubeClient returns a kubeClient containing runtime objects: namespace and a pod
 func getKubeClient() *k8sfake.Clientset {
 	return k8sfake.NewSimpleClientset(kubeClientObjets()...)
 }
