@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package report
 
@@ -82,7 +82,7 @@ func TestMiscHelpers(t *testing.T) {
 
 func TestDeduplicateSupportingData(t *testing.T) {
 	var duplicateData = []SupportData{{Messages: []string{"data", "data"}}, {Messages: []string{"data", "data"}}}
-	assert.NotEmpty(t, DeduplicateSupportingData(duplicateData))
+	assert.NotEmpty(t, DeduplicateSupportingDataList(duplicateData))
 }
 
 func TestEventPodRelatedUtilities(t *testing.T) {

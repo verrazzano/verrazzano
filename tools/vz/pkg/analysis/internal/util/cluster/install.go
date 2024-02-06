@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -145,7 +145,7 @@ func analyzeVerrazzanoInstallIssue(log *zap.SugaredLogger, clusterRoot string, i
 		return err
 	}
 
-	podFile := files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, podsJSON)
+	podFile := files.FormFilePathInNamespace(clusterRoot, ingressNGINXNamespace, podsJSON)
 
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
@@ -188,7 +188,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		return err
 	}
 
-	services, err := GetServiceList(log, files.FindFileInNamespace(clusterRoot, ingressNGINXNamespace, servicesJSON))
+	services, err := GetServiceList(log, files.FormFilePathInNamespace(clusterRoot, ingressNGINXNamespace, servicesJSON))
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 			reportEvent = report.GetRelatedEventMessage(pod.ObjectMeta.Namespace)
 		} else {
 			reportPodIssue = podFile
-			eventFile := files.FindFileInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
+			eventFile := files.FormFilePathInNamespace(clusterRoot, controllerService.ObjectMeta.Namespace, eventsJSON)
 			reportEvent = eventFile
 		}
 
@@ -303,7 +303,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 		messages[0] = fmt.Sprintf("Namespace %s, Pod %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 		// TODO: Time correlation on error search here
 
-		fileName := files.FindFileInClusterRoot(clusterRoot, ingressNGINXNamespace)
+		fileName := files.FormFilePathInClusterRoot(clusterRoot, ingressNGINXNamespace)
 		nginxPodErrors, err := files.FindFilesAndSearch(log, fileName, LogFilesMatchRe, WideErrorSearchRe, nil)
 		if err != nil {
 			log.Debugf("Failed searching NGINX Ingress namespace log files for supporting error log data", err)
@@ -330,7 +330,7 @@ func analyzeNGINXIngressController(log *zap.SugaredLogger, clusterRoot string, p
 
 // analyseIstioIngressService generates an issue report if the Istio Ingress Service lacks an external IP
 func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
-	istioServicesFile := files.FindFileInNamespace(clusterRoot, istioSystem, servicesJSON)
+	istioServicesFile := files.FormFilePathInNamespace(clusterRoot, istioSystem, servicesJSON)
 	serviceList, err := GetServiceList(log, istioServicesFile)
 	if err != nil || serviceList == nil {
 		log.Debugf("Failed to get the list of services for the given service file %s, or no service was returned, skipping", serviceList)
@@ -365,7 +365,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
 func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
 	var compsNotReady = make([]string, 0)
-	vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
+	vzResourcesPath := files.FormFilePathInClusterRoot(clusterRoot, verrazzanoResource)
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
@@ -428,7 +428,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 // Read the platform operator log, report the errors found for the list of components which fail to reach Ready state
 func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
-	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, vpologRegExp)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, vpologRegExp)
 	if err != nil {
 		return err
 	}
@@ -509,7 +509,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 }
 
 func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) {
-	eventsList, e := GetEventList(log, files.FindFileInNamespace(clusterRoot, istioSystem, eventsJSON))
+	eventsList, e := GetEventList(log, files.FormFilePathInNamespace(clusterRoot, istioSystem, eventsJSON))
 	if e != nil {
 		log.Debugf("Failed to get events file %s", eventsJSON)
 		return
@@ -530,7 +530,6 @@ func analyzeIstioLoadBalancerIssue(log *zap.SugaredLogger, clusterRoot string, i
 		}
 	}
 }
-
 func getUniqueNamespaces(log *zap.SugaredLogger, compsNoMessages []string) []string {
 	var uniqueNamespaces []string
 
@@ -552,7 +551,7 @@ func analyzeExternalDNS(log *zap.SugaredLogger, clusterRoot string, issueReporte
 	// External DNS will be in the cert-manager ns prior to 1.6, afterwards in verrazzano-system, but we must account for both
 	pattern := fmt.Sprintf("(%s|%s)", vzconst.ExternalDNSNamespace, vzconst.CertManagerNamespace) + `/external-dns-.*/logs.txt`
 	externalDnslogRegExp := regexp.MustCompile(pattern)
-	allPodFiles, err := files.GetMatchingFiles(log, clusterRoot, externalDnslogRegExp)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, externalDnslogRegExp)
 	if err != nil {
 		return
 	}
