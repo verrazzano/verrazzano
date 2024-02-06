@@ -439,7 +439,7 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
-	bytesFromUnstructuredJson, err := returnBytesFromAFile(innoDBClusterLocation)
+	bytesFromUnstructuredJSON, err := returnBytesFromAFile(innoDBClusterLocation)
 	assert.NoError(t, err)
 	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJson)
 	assert.NoError(t, err)
