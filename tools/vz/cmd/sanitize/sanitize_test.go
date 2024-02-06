@@ -4,13 +4,14 @@ package sanitize
 
 import (
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testHelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
-	"testing"
 )
 
 const (
@@ -203,7 +204,7 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "ip-address-not-sanitized.txt")
 	assert.Nil(t, err)
 	sanitizedFileString := string(sanitizedFileBytes)
-	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("127.0.0.0"))
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("127.0.0.0", nil))
 }
 
 // TestIsMetadataFile
@@ -228,7 +229,7 @@ func TestSanitizeDirectory(t *testing.T) {
 	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "ocid-redaction-not-sanitized.txt")
 	assert.Nil(t, err)
 	sanitizedFileString := string(sanitizedFileBytes)
-	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q"))
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q", nil))
 
 }
 
