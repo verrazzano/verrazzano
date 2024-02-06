@@ -3,18 +3,23 @@
 package sanitize
 
 import (
+	"encoding/csv"
 	"fmt"
+	"os"
+	"path/filepath"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	testHelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
-	"os"
-	"testing"
 )
 
 const (
 	testCattleSystemPodsDirectory = "../../pkg/analysis/test/cluster/testCattleSystempods"
+	ipAddressRedactionDirectory = "../../pkg/analysis/test/sanitization/ip-address-redaction"
+	ipToSanitize = "127.0.0.0"
 )
 
 // TestNewCmdSanitize
@@ -194,7 +199,7 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 	}()
 	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, "../../pkg/analysis/test/sanitization/ip-address-redaction")
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, ipAddressRedactionDirectory)
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
 	defer os.RemoveAll(constants.TestDirectory)
 	assert.NotNil(t, cmd)
@@ -203,7 +208,41 @@ func TestSanitizeCommandCorrectlyObscuresInput(t *testing.T) {
 	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "ip-address-not-sanitized.txt")
 	assert.Nil(t, err)
 	sanitizedFileString := string(sanitizedFileBytes)
-	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("127.0.0.0", nil))
+	assert.Contains(t, sanitizedFileString, helpers.SanitizeString(ipToSanitize, nil))
+}
+
+// TestSanitizeRedactedValuesMap
+// GIVEN a Sanitize command
+// WHEN I call cmd.Execute() with the --redacted-values-file flag set
+// THEN expect the command to not return an error and create a redacted values file
+func TestSanitizeRedactedValuesFile(t *testing.T) {
+	redactedValuesTestFile := filepath.Join(os.TempDir(), "test-map.csv")
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdSanitize(rc)
+	cmd.PersistentFlags().Set(constants.InputDirectoryFlagName, ipAddressRedactionDirectory)
+	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
+	cmd.PersistentFlags().Set(constants.RedactedValuesFlagName, redactedValuesTestFile)
+	defer os.RemoveAll(constants.TestDirectory)
+	defer os.Remove(redactedValuesTestFile)
+	assert.NotNil(t, cmd)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+
+	// read the redacted values CSV file
+	f, err := os.Open(redactedValuesTestFile)
+	assert.Nil(t, err)
+	reader := csv.NewReader(f)
+	mapContents, err := reader.ReadAll()
+	assert.Nil(t, err)
+	assert.Len(t, mapContents, 1)
+	redactedPair := mapContents[0]
+	assert.Equal(t, redactedPair[0], helpers.SanitizeString(ipToSanitize, nil))
+	assert.Equal(t, redactedPair[1], ipToSanitize)
 }
 
 // TestIsMetadataFile
@@ -229,7 +268,6 @@ func TestSanitizeDirectory(t *testing.T) {
 	assert.Nil(t, err)
 	sanitizedFileString := string(sanitizedFileBytes)
 	assert.Contains(t, sanitizedFileString, helpers.SanitizeString("ocid1.tenancy.oc1..a763cu5f3m7qpzwnvr2so2655cpzgxmglgtui3v7q", nil))
-
 }
 
 // TestSanitizeFileAndWriteItToOutput
@@ -247,7 +285,6 @@ func TestSanitizeFileAndWriteItToOutput(t *testing.T) {
 	unsanitizedFileBytes, err := os.ReadFile("../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt")
 	assert.Nil(t, err)
 	assert.Equal(t, sanitizedFileBytes, unsanitizedFileBytes)
-
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
