@@ -153,11 +153,12 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	// Capture logs from resources when problematic pods are detected in a given namespace
+	// set podLogs to capture previous pod logs
 	if len(problematicPodList) != 0 {
 		podLogs.IsPodLog = true
 		podLogs.IsPrevious = true
 	}
+
 	// Capture logs from resources when the --include-logs flag
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
@@ -288,6 +289,7 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan pkghelpers.ErrorsChannel, c
 	if err := pkghelpers.CaptureK8SResources(client, kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- pkghelpers.ErrorsChannel{ErrorMessage: err.Error()}
 	}
+	// find problematic pods from captured resources
 	problematicPodsNamespaces, pods, _ := pkghelpers.FindProblematicPods(bugReportDir)
 	if len(pods) != 0 {
 		problematicPodList = problematicPodsNamespaces
