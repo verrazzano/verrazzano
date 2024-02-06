@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -204,6 +205,45 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
+}
+
+// TestBugReportRedactedValuesFile
+// GIVEN a CLI bug-report command with the --redacted-values-file flag
+// WHEN I call cmd.Execute
+// THEN expect the command to create the redacted values flag in at the specified file path
+func TestBugReportRedactedValuesFile(t *testing.T) {
+	redactedValuesTestFile := filepath.Join(os.TempDir(), "test-map.csv")
+
+	c := getClientWithVZWatch()
+	vz := v1beta1.Verrazzano{}
+	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+	assert.NoError(t, err)
+
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer os.Remove(stdoutFile.Name())
+	defer os.Remove(stderrFile.Name())
+
+	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc.SetClient(c)
+	cmd := NewCmdBugReport(rc)
+	assert.NotNil(t, cmd)
+	setUpGlobalFlags(cmd)
+
+	// set the --redacted-values-file flag
+	err = cmd.PersistentFlags().Set(constants.RedactedValuesFlagName, redactedValuesTestFile)
+	defer os.Remove(redactedValuesTestFile)
+	assert.NoError(t, err)
+
+	// execute the bug-report command
+	err = cmd.Execute()
+	assert.NoError(t, err)
+	if !pkghelper.CheckAndRemoveBugReportExistsInDir("") {
+		t.Fatal("cannot find bug report file in current directory")
+	}
+
+	// Verify the redacted values file exists
+	_, err = os.Stat(redactedValuesTestFile)
+	assert.NoError(t, err)
 }
 
 // TestDefaultBugReportSuccess
