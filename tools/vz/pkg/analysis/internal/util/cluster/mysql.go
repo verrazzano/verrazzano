@@ -81,8 +81,14 @@ func isInnoDBClusterCurrentlyInTerminatingStatus(innoDBClusterList *unstructured
 		if deletionTimestamp == nil {
 			return false, listOfMessagesFromRelevantConditions
 		}
+		var deletionMessage string
+		if deletionTimestamp != nil && timeOfCapture != nil {
+			diff := timeOfCapture.Sub(deletionTimestamp.Time)
+			deletionMessage = "The namespace " + item.GetName() + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
+		} else {
+			deletionMessage = "The namespace " + item.GetName() + " has spent an undetermined amount of time in a state of deletion"
+		}
 	}
-	var deletionMessage string
 	if namespaceObject.DeletionTimestamp != nil && timeOfCapture != nil {
 		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
 		deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
