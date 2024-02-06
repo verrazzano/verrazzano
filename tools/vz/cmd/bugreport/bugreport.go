@@ -45,9 +45,6 @@ vz bug-report --report-file bugreport.tgz --include-logs
 # Use the --include-logs flag in combination with the --include-namespaces flag to extend the default namespaces being captured and capture additional logs from all containers in running pods of the specified namespaces being captured
 vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs
 
-# Use the --previous flag in combination with the --include-logs flag to capture logs previous instances of running pods 
-vz bug-report --include-logs --previous
-
 # The flag --duration collects logs for a specific period. The default value is 0, which collects the complete pod log. It supports seconds, minutes, and hours.
    a. vz bug-report --report-file bugreport.tgz --include-namespaces ns1 --include-logs --duration 3h
    b. vz bug-report --report-file bugreport.tgz --include-namespaces ns1,ns2 --include-logs --duration 5m
