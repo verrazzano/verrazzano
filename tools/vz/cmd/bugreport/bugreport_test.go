@@ -40,8 +40,6 @@ const (
 	// dummyNamespaceErrMsg    = "Namespace dummy not found in the cluster"
 )
 
-var problemPodClusterSnapshot = "../../pkg/analysis/test/cluster/problem-pods/cluster-snapshot"
-
 // TestBugReportHelp
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Help for bug-report
