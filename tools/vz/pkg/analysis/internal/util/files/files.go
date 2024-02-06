@@ -8,11 +8,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
+	"time"
 
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
@@ -147,4 +150,24 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	}
 
 	return nil
+}
+
+// GetTimeOfCapture parses the metadata.json file and converts the time string into a time.Time object to be used by other functions
+func GetTimeOfCapture(log *zap.SugaredLogger, clusterRoot string) (*time.Time, error) {
+	metadataFile := FormFilePathInClusterRoot(clusterRoot, constants.MetadataJSON)
+	if _, err := os.Stat(metadataFile); errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	metadataObjectToUnmarshalInto := &helpers.Metadata{}
+	err := unmarshallFile(metadataFile, &metadataObjectToUnmarshalInto)
+	if err != nil {
+		return nil, err
+	}
+	timeString := metadataObjectToUnmarshalInto.Time
+	timeObject, err := time.Parse(time.RFC3339, timeString)
+	if err != nil {
+		return nil, err
+	}
+	return &timeObject, err
+
 }
