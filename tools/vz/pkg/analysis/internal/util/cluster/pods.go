@@ -119,12 +119,12 @@ func IsPodReadyOrCompleted(pod corev1.Pod) bool {
 		}
 	}
 	if pod.DeletionTimestamp != nil {
-		return true
+		return false
 	}
-	return !waitingOnReadinessGates(pod)
+	return arePodReadinessGatesReady(pod)
 }
 
-func waitingOnReadinessGates(pod corev1.Pod) bool {
+func arePodReadinessGatesReady(pod corev1.Pod) bool {
 	conditions := pod.Status.Conditions
 	if len(conditions) == 0 {
 		return false
@@ -297,10 +297,10 @@ func podDeletionIssues(log *zap.SugaredLogger, clusterRoot string, podFile strin
 }
 
 func podReadinessGateIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) error {
-	if !waitingOnReadinessGates(pod) {
+	if arePodReadinessGatesReady(pod) {
 		return nil
 	}
-	message := "The pod " + pod.Name + "is currently waiting for its readiness gates"
+	message := "The pod " + pod.Name + " is currently waiting for its readiness gates"
 	issueReporter.AddKnownIssueMessagesFiles(report.PodWaitingOnReadinessGates, clusterRoot, []string{message}, []string{podFile})
 	return nil
 }

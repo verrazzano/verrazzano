@@ -26,7 +26,7 @@ func TestAnalyzeNamespaceRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testi
 // TestDetermineIfNamespaceTerminationIssueHasOccurred tests whether the relevant issue is reported when a namespace is stuck in a terminating state
 // GIVEN a call to analyze namespace related issues in a cluster-snapshot
 // WHEN a valid input is provided
-// THEN the function generates an error
+// THEN the function does not generate an error and reports an issue
 func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 	// This test confirms that it detects the issue when it appears in a log
 	report.ClearReports()
@@ -40,7 +40,7 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 
 // TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid tests whether an error occurs when an invalid input is provided
 // GIVEN a call to analyze namespace related issues in a cluster-snapshot
-// WHEN an invalid input is provided
+// WHEN an invalid input is provided, but namespace and time capture data is not present
 // THEN the function does generate an error
 func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
 	report.ClearReports()
