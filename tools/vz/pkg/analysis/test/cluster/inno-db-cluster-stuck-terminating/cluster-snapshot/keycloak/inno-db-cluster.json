@@ -1,0 +1,47 @@
+{
+  "Object": {
+    "apiVersion": "mysql.oracle.com/v2",
+    "kind": "InnoDBClusterList",
+    "metadata": {
+      "continue": "",
+      "resourceVersion": "183722"
+    }
+  },
+  "items": [
+    {
+      "apiVersion": "mysql.oracle.com/v2",
+      "kind": "InnoDBCluster",
+      "metadata": {
+        "annotations": {
+          "meta.helm.sh/release-namespace": "keycloak",
+          "mysql.oracle.com/mysql-operator-version": "8.0.32-2.0.8"
+        },
+        "creationTimestamp": "2024-02-06T15:48:42Z",
+        "deletionGracePeriodSeconds": 0,
+        "deletionTimestamp": "2024-02-06T16:00:18Z",
+        "finalizers": [
+          "kubernetes"
+        ],
+        "generation": 2,
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "name": "mysql",
+        "namespace": "keycloak",
+        "resourceVersion": "13482",
+        "uid": "f04b9461-f2f1-4931-a5a3-791d285e7f52"
+      },
+      "status": {
+        "cluster": {
+          "lastProbeTime": "2024-02-06T15:51:22Z",
+          "onlineInstances": 1,
+          "status": "ONLINE"
+        },
+        "createTime": "2024-02-06T15:51:20Z",
+        "kopf": {
+          "progress": {}
+        }
+      }
+    }
+  ]
+}

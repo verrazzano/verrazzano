@@ -275,6 +275,7 @@ func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFil
 	return nil
 }
 
+// podDeletionIssues reports an issue if a pod has been stuck deleting for 10 minutes or longer
 func podDeletionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) error {
 	if pod.DeletionTimestamp == nil {
 		return nil
