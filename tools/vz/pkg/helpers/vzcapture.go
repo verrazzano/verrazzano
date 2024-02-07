@@ -442,7 +442,7 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 	}
 	if len(innoDBClusterList.Items) > 0 {
 		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
-		if err = createFile(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
+		if err = createFileFromUnstructured(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
@@ -587,6 +587,32 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	defer f.Close()
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
+	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
+	if err != nil {
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
+	}
+	return nil
+}
+
+// createFile creates file from a workload, as a JSON file
+func createFileFromUnstructured(v unstructured.UnstructuredList, namespace, resourceFile, captureDir string, vzHelper VZHelper) error {
+	var folderPath = filepath.Join(captureDir, namespace)
+
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		err := os.MkdirAll(folderPath, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+		}
+	}
+
+	var res = filepath.Join(folderPath, resourceFile)
+	f, err := os.OpenFile(res, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, res, err.Error())
+	}
+	defer f.Close()
+
+	resJSON, _ := v.MarshalJSON()
 	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
