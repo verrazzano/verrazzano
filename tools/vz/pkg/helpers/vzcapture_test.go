@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -428,8 +427,8 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
 	err := unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
 	assert.NoError(t, err)
-	metav1Time := v1.Time{
-		time.Now().UTC(),
+	metav1Time := metav1.Time{
+		Time: time.Now().UTC(),
 	}
 	innoDBCluster.SetDeletionTimestamp(&metav1Time)
 	cli := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&innoDBCluster).Build()
@@ -445,9 +444,9 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
-	bytesFromUnstructuredJson, err := returnBytesFromAFile(innoDBClusterLocation)
+	bytesFromUnstructuredJSON, err := returnBytesFromAFile(innoDBClusterLocation)
 	assert.NoError(t, err)
-	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJson)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJSON)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
