@@ -49,10 +49,10 @@ func TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided(t *testing.T) {
 // WHEN a valid input is provided that has an innoDBCluster resource with issues and does not have a metadata.json file
 // THEN the function does not generate an error and only creates one issue
 //func TestAnalyzeMySQLRelatedIssues(t *testing.T) {
-	//report.ClearReports()
-	//logger := log.GetDebugEnabledLogger()
-	//err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating/cluster-snapshot")
-	//assert.Nil(t, err)
+//report.ClearReports()
+//logger := log.GetDebugEnabledLogger()
+//err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating/cluster-snapshot")
+//assert.Nil(t, err)
 //	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
 //	assert.True(t, len(reportedIssues) == 1)
-}
+//}
