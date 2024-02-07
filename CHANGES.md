@@ -1,3 +1,8 @@
+### 1.6.11
+Component version updates:
+
+- Redis v7.0.15
+
 ### 1.6.10
 
 Fixes:
