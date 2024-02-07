@@ -433,7 +433,7 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 	innoDBClusterGVK := schema.GroupVersionKind{
 		Group:   "mysql.oracle.com",
 		Version: "v2",
-		Kind:    "InnoDBCluster",
+		Kind:    "InnoDBClusterList",
 	}
 	innoDBClusterList.SetGroupVersionKind(innoDBClusterGVK)
 	err := client.List(context.TODO(), &innoDBClusterList, &clipkg.ListOptions{Namespace: namespace})
@@ -442,7 +442,7 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 	}
 	if len(innoDBClusterList.Items) > 0 {
 		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
-		if err = createFileFromUnstructuredList(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
+		if err = createFile(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}

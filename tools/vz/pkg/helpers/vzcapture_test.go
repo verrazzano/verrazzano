@@ -444,9 +444,7 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
-	bytesFromUnstructuredJSON, err := returnBytesFromAFile(innoDBClusterLocation)
-	assert.NoError(t, err)
-	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJSON)
+	err = unmarshallFile(innoDBClusterLocation, &innoDBClusterListToUnmarshalInto)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
@@ -651,8 +649,6 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
 	}
-
-	fmt.Println(object)
 	// Unmarshall file contents into a struct
 	err = json.Unmarshal(fileBytes, object)
 	if err != nil {
