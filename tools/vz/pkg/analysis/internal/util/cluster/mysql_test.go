@@ -34,25 +34,26 @@ func TestAnalyzeMySQLRelatedIssueWhenInputIsNotValid(t *testing.T) {
 // TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided tests whether only one issue is created and no error is generated when a valid input without a metadata.json file and an innoDbCluster resource is provided
 // GIVEN a call to analyze MySQL related issues in a cluster-snapshot
 // WHEN a valid input is provided that has an innoDBCluster resource with issues and does not have a metadata.json file
-// THEN the function does not generate an error and only creates one issue
+// THEN the function does not generate an error and does not create an issue
 func TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers-no-metadata-file/cluster-snapshot")
+	err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating-no-metadata-file/cluster-snapshot")
+	assert.Nil(t, err)
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
+	assert.True(t, len(reportedIssues) == 0)
+}
+
+// TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided tests whether only one issue is created and no error is generated when a valid input when a metadata.json file and an inno-db-cluster.json file is provided
+// GIVEN a call to analyze MySQL related issues in a cluster-snapshot
+// WHEN a valid input is provided that has an innoDBCluster resource with issues and has a metadata.json file
+// THEN the function does not generate an error and only creates one issue
+func TestAnalyzeMySQLRelatedIssues(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating-with-metadata-file/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
 	assert.True(t, len(reportedIssues) == 1)
+	assert.True(t, reportedIssues[0].Type == report.InnoDBClusterResourceCurrentlyInTerminatingStateForLongDuration)
 }
-
-// TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided tests whether only one issue is created and no error is generated when a valid input without a metadata.json file and an innoDbCluster resource is provided
-// GIVEN a call to analyze MySQL related issues in a cluster-snapshot
-// WHEN a valid input is provided that has an innoDBCluster resource with issues and does not have a metadata.json file
-// THEN the function does not generate an error and only creates one issue
-//func TestAnalyzeMySQLRelatedIssues(t *testing.T) {
-//report.ClearReports()
-//logger := log.GetDebugEnabledLogger()
-//err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating/cluster-snapshot")
-//assert.Nil(t, err)
-//	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
-//	assert.True(t, len(reportedIssues) == 1)
-//}

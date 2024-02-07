@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -17,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -116,7 +117,7 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
@@ -425,7 +426,12 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	innoDBCluster.SetNamespace("keycloak")
 	innoDBCluster.SetName("my-sql")
 	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
-	_ = unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+	err := unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+	assert.NoError(t, err)
+	metav1Time := v1.Time{
+		time.Now().UTC(),
+	}
+	innoDBCluster.SetDeletionTimestamp(&metav1Time)
 	cli := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&innoDBCluster).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforinnodbclusters")
 	assert.Nil(t, err)
@@ -439,9 +445,9 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
-	bytesFromUnstructuredJSON, err := returnBytesFromAFile(innoDBClusterLocation)
+	bytesFromUnstructuredJson, err := returnBytesFromAFile(innoDBClusterLocation)
 	assert.NoError(t, err)
-	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJSON)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesFromUnstructuredJson)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
@@ -456,11 +462,11 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	sampleCert := v1.Certificate{
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
@@ -486,12 +492,12 @@ func TestCreateCertificateFile(t *testing.T) {
 // THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCaCrtJsonFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	certificateListForTest := v1.CertificateList{}
-	sampleCert := v1.Certificate{
+	certificateListForTest := certmanagerv1.CertificateList{}
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-certificate-caCrt.json", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 			SecretName:  "test-secret-name",
@@ -525,19 +531,19 @@ func TestCreateCaCrtJsonFile(t *testing.T) {
 // THEN it should obfuscate the known hostnames with hashed value
 // AND the output certificates.json file should NOT contain any of the sensitive information from KnownHostNames
 func TestRedactHostNamesForCertificates(t *testing.T) {
-	sampleCert := &v1.Certificate{
+	sampleCert := &certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-certificate",
 			Namespace: "cattle-system",
 		},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
 
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")

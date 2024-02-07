@@ -72,5 +72,5 @@ func TestAnalyzeNamespaceRelatedIssueWhenMetadataFileIsNotProvided(t *testing.T)
 	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers-no-metadata-file/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
-	assert.True(t, len(reportedIssues) == 1)
+	assert.True(t, len(reportedIssues) == 0)
 }

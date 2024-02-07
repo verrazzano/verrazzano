@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
@@ -19,7 +18,7 @@ import (
 // AnalyzeMySQLRelatedIssues is the initial entry function for mySQL related issues, and it returns an error.
 // It checks to see whether an innoDBCluster is in a state of terminating, and reports an issue based on the length of its termination
 func AnalyzeMySQLRelatedIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
-	allNamespacesFound, err = files.FindNamespaces(log, clusterRoot)
+	allNamespacesFound, err := files.FindNamespaces(log, clusterRoot)
 	if err != nil {
 		return err
 	}
@@ -78,28 +77,25 @@ func getInnoDBClusterResources(log *zap.SugaredLogger, path string) (innoDBClust
 	return &resourceToReturn, err
 }
 
-// isNamespaceCurrentlyInTerminatingStatus checks to see if that is the namespace currently has a status of terminating
+// isInnoDBClusterCurrentlyInTerminatingStatus checks if an innoDBCluster resource has been in a state of deletion for 10 minutes or greater
 func isInnoDBClusterCurrentlyInTerminatingStatus(innoDBClusterResource *unstructured.Unstructured, timeOfCapture *time.Time) (bool, string) {
 	var deletionMessage string
 	deletionTimestamp := innoDBClusterResource.GetDeletionTimestamp()
-	if deletionTimestamp == nil {
+	if deletionTimestamp == nil || timeOfCapture == nil {
 		return false, deletionMessage
 	}
-	if deletionTimestamp != nil && timeOfCapture != nil {
-		diff := timeOfCapture.Sub(deletionTimestamp.Time)
-		deletionMessage = "The InnoDBCluster " + innoDBClusterResource.GetName() + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
-	} else {
-		deletionMessage = "The InnoDBCluster " + innoDBClusterResource.GetName() + " has spent an undetermined amount of time in a state of deletion"
+	diff := timeOfCapture.Sub(deletionTimestamp.Time)
+	if int(diff.Minutes()) < 10 {
+		return false, deletionMessage
 	}
+	deletionMessage = "The innoDBClusterResource " + innoDBClusterResource.GetName() + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
 	return true, deletionMessage
 }
+
+// reportInnoDBClustersInTerminatingStatusIssue is a helper function that reports an issue if a innoDBCluster resource has been in a state of deletion for more than 10 minutes
 func reportInnoDBClustersInTerminatingStatusIssue(clusterRoot string, issueReporter *report.IssueReporter, InnoDBClusterFile string, message string) {
 	files := []string{InnoDBClusterFile}
 	messageList := []string{message}
-	if strings.Contains(message, "unknown") {
-		issueReporter.AddKnownIssueMessagesFiles(report.InnoDBClusterResourceCurrentlyInTerminatingStatusUnknownDuration, clusterRoot, messageList, files)
-	} else {
-		issueReporter.AddKnownIssueMessagesFiles(report.InnoDBClusterResourceCurrentlyInTerminatingStatusKnownDuration, clusterRoot, messageList, files)
-	}
+	issueReporter.AddKnownIssueMessagesFiles(report.InnoDBClusterResourceCurrentlyInTerminatingStateForLongDuration, clusterRoot, messageList, files)
 
 }

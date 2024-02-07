@@ -59,7 +59,7 @@ func TestAnalyzePodIssues(t *testing.T) {
 	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
 }
 
-// TestPodReadinessGateIssue tests that whether the relevant issue is reported when a pod does not have its readiness gates ready
+// TestPodReadinessGateIssue tests whether the relevant issue is reported when a pod does not have its readiness gates ready
 // GIVEN a call to analyze pod related issues in a cluster-snapshot
 // WHEN a valid input is provided that contains a pod whose readiness gates are not ready
 // THEN the function does not generate an error and adds the correct issue
@@ -73,16 +73,16 @@ func TestPodReadinessGatesIssue(t *testing.T) {
 	report.ClearReports()
 }
 
-// TestPodHangingOnDeletionIssue tests that whether the relevant issue is reported when a pod has been in a state of deletion for an extended period of time
+// TestPodHangingOnDeletionIssue tests whether the relevant issue is reported when a pod has been in a state of deletion for an extended period of time
 // GIVEN a call to analyze pod related issues in a cluster-snapshot
 // WHEN a valid input is provided that has a pod has been terminating for a long time
 // THEN the function does not generate an error and adds the correct issue
-func TestPodHangingOnDeletionIssueIssue(t *testing.T) {
+func TestPodHangingOnDeletionIssue(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-hanging-on-deletion/cluster-snapshot"))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
-	assert.True(t, reportedIssues[0].Type == report.PodWaitingOnReadinessGates)
+	assert.True(t, reportedIssues[0].Type == report.PodHangingOnDeletion)
 	report.ClearReports()
 }

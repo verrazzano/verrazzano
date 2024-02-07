@@ -1,0 +1,84 @@
+{
+  "metadata": {
+    "resourceVersion": "131799"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql-1",
+        "generateName": "mysql-",
+        "namespace": "keycloak",
+        "uid": "0f1486d1-8431-42f8-8d89-621c8247e601",
+        "resourceVersion": "131753",
+        "creationTimestamp": "2024-01-30T02:11:12Z",
+        "deletionTimestamp": "2024-02-06T02:11:12Z",
+        "labels": {
+          "app.kubernetes.io/component": "database",
+          "app.kubernetes.io/created-by": "mysql-operator",
+          "app.kubernetes.io/instance": "mysql-innodbcluster-mysql-mysql-server",
+          "app.kubernetes.io/managed-by": "mysql-operator",
+          "app.kubernetes.io/name": "mysql-innodbcluster-mysql-server",
+          "component": "mysqld",
+          "controller-revision-hash": "mysql-7c647df574",
+          "mysql.oracle.com/cluster": "mysql",
+          "security.istio.io/tlsMode": "istio",
+          "service.istio.io/canonical-name": "mysql-innodbcluster-mysql-server",
+          "service.istio.io/canonical-revision": "latest",
+          "statefulset.kubernetes.io/pod-name": "mysql-1",
+          "tier": "mysql"
+        }
+      },
+      "spec": {
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 120,
+        "dnsPolicy": "ClusterFirst",
+        "nodeName": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "mysql.oracle.com/configured",
+            "status": "True",
+            "lastProbeTime": "2024-01-30T02:15:03Z",
+            "lastTransitionTime": "2024-01-30T02:15:03Z"
+          },
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:14:36Z"
+          },
+          {
+            "type": "Ready",
+            "status": "False",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:11:13Z",
+            "reason": "ReadinessGatesNotReady",
+            "message": "corresponding condition of pod readiness gate \"mysql.oracle.com/ready\" does not exist."
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:15:03Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:11:13Z"
+          }
+        ],
+        "hostIP": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+        "podIP": "REDACTED-9316c8209d5d61fe5d181c55ede2ba6ec1ab5ff14bbe73ec33d63bd119eb83de",
+        "podIPs": [
+          {
+            "ip": "REDACTED-9316c8209d5d61fe5d181c55ede2ba6ec1ab5ff14bbe73ec33d63bd119eb83de"
+          }
+        ],
+        "startTime": "2024-01-30T02:11:13Z"
+      }
+    }
+  ]
+}
