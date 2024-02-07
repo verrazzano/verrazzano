@@ -130,6 +130,16 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 	}
 }
 
+// NewFakeRootCmdContextWithBuffers creates a newFakeRootCmdContext with the out stream and the error stream set to two seperate buffers
+func NewFakeRootCmdContextWithBuffers() *FakeRootCmdContext {
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	return &FakeRootCmdContext{
+		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf},
+		kubeClient: fake.NewSimpleClientset(),
+	}
+}
+
 func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
 	client := rc.kubeClient
 	discoveryClient, ok := client.Discovery().(*discoveryFake.FakeDiscovery)
