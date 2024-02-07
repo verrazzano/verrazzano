@@ -442,7 +442,7 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 	}
 	if len(innoDBClusterList.Items) > 0 {
 		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
-		if err = createFileFromUnstructured(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
+		if err = createFileFromUnstructuredList(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
@@ -594,8 +594,8 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	return nil
 }
 
-// createFile creates file from a workload, as a JSON file
-func createFileFromUnstructured(v unstructured.UnstructuredList, namespace, resourceFile, captureDir string, vzHelper VZHelper) error {
+// createFileFromUnstructured creates a file from an unstructured list
+func createFileFromUnstructuredList(v unstructured.UnstructuredList, namespace, resourceFile, captureDir string, vzHelper VZHelper) error {
 	var folderPath = filepath.Join(captureDir, namespace)
 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
