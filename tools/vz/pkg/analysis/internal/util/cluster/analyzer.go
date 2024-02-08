@@ -40,6 +40,7 @@ var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory
 	"Cluster API Issues":                        AnalyzeClusterAPI,
 	"Networking Issues":                         AnalyzeNetworkingIssues,
 	"Finalizer and Resource Termination Issues": AnalyzeNamespaceRelatedIssues,
+	"MySQL Issues":                              AnalyzeMySQLRelatedIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches

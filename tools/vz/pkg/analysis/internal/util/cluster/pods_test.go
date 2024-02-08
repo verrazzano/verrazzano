@@ -1,10 +1,11 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 package cluster
 
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
 	corev1 "k8s.io/api/core/v1"
 	"testing"
 )
@@ -55,4 +56,33 @@ func TestAnalyzePodIssues(t *testing.T) {
 	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pending-pods/cluster-snapshot"))
 	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/problem-pods-install/cluster-snapshot"))
 	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/insufficient-mem/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
+}
+
+// TestPodReadinessGateIssue tests whether the relevant issue is reported when a pod does not have its readiness gates ready
+// GIVEN a call to analyze pod related issues in a cluster-snapshot
+// WHEN a valid input is provided that contains a pod whose readiness gates are not ready
+// THEN the function does not generate an error and adds the correct issue
+func TestPodReadinessGatesIssue(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.True(t, len(reportedIssues) == 1)
+	assert.True(t, reportedIssues[0].Type == report.PodWaitingOnReadinessGates)
+	report.ClearReports()
+}
+
+// TestPodHangingOnDeletionIssue tests whether the relevant issue is reported when a pod has been in a state of deletion for an extended period of time
+// GIVEN a call to analyze pod related issues in a cluster-snapshot
+// WHEN a valid input is provided that has a pod has been terminating for a long time
+// THEN the function does not generate an error and adds the correct issue
+func TestPodHangingOnDeletionIssue(t *testing.T) {
+	report.ClearReports()
+	logger := log.GetDebugEnabledLogger()
+	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-hanging-on-deletion/cluster-snapshot"))
+	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
+	assert.True(t, len(reportedIssues) == 1)
+	assert.True(t, reportedIssues[0].Type == report.PodHangingOnDeletion)
+	report.ClearReports()
 }
