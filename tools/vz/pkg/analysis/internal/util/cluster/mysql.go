@@ -61,17 +61,17 @@ func getInnoDBClusterResources(log *zap.SugaredLogger, path string) (innoDBClust
 	file, err := os.Open(path)
 	defer file.Close()
 	if err != nil {
-		log.Debug("file %s not found", path)
+		log.Debugf("file %s not found", path)
 		return nil, nil
 	}
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Error("Failed reading namespace.json file %s", path)
+		log.Errorf("Failed reading namespace.json file %s", path)
 		return nil, err
 	}
 	err = resourceToReturn.UnmarshalJSON(fileBytes)
 	if err != nil {
-		log.Error("Failed to unmarshal namespace resource at %s", path)
+		log.Errorf("Failed to unmarshal namespace resource at %s", path)
 		return nil, err
 	}
 	return &resourceToReturn, err
