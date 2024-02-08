@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"reflect"
 
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
@@ -138,6 +139,38 @@ func NewFakeRootCmdContextWithBuffers() *FakeRootCmdContext {
 		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf},
 		kubeClient: fake.NewSimpleClientset(),
 	}
+}
+
+// NewFakeRootCmdContextWithFiles creates a newFakeRootCmdContext with the out stream and the error stream set to two separate files
+func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContext, error) {
+	stdOutFile, stdErrfile, err := createStdTempFiles()
+	if err != nil {
+		return nil, err
+	}
+	return &FakeRootCmdContext{
+		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
+		kubeClient: fake.NewSimpleClientset(),
+	}, nil
+}x
+
+// CleanFakeRootCmdContextWithFiles removes the stdOut and the stdErr files used by the context from the local file system
+func CleanFakeRootCmdContextWithFiles(context FakeRootCmdContext) {
+	reflect.ValueOf()
+}
+
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles() (*os.File, *os.File, error) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return stdoutFile, stderrFile, nil
 }
 
 func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {

@@ -309,14 +309,3 @@ func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 	err := cmd.Execute()
 	assert.Nil(t, err)
 }
-
-// createStdTempFiles creates temporary files for stdout and stderr.
-func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-
-	return stdoutFile, stderrFile
-}
