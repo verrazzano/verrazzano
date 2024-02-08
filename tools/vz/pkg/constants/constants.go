@@ -268,6 +268,6 @@ const TotalWidth = 50
 
 // Common error strings
 const (
-	FlagErrorMessage = "an error occurred while reading value for the flag --%s: %s"
+	FlagErrorMessage          = "an error occurred while reading value for the flag --%s: %s"
 	RedactionMapCreationError = "an error occurred while creating the redacted values map at %s: %s"
 )
