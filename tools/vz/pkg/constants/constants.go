@@ -206,7 +206,8 @@ const (
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
 	// File containing a map from redacted values to their original values
-	RedactionPrefix = "REDACTED-"
+	RedactionPrefix     = "REDACTED-"
+	RedactionFileSuffix = "-sensitive-do-not-share-redaction-map.csv"
 
 	// File names for the various resources
 	VzResource        = "verrazzano-resources.json"

@@ -306,8 +306,10 @@ func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	return nil
 }
 
-// generateRedactionFileNameFromBugReportName returns a name for the redacted values file such that it matches the
-// filled-in values of the bugReportFileName, which should have a format of vz-bug-report-datetime-xxxx.tar.gz
+// generateRedactionFileNameFromBugReportName returns a name for the redacted values file
+// to match the bugReportFileName.
+// For example, for a bugReportFileName of vz-bug-report-datetime-xxxx.tar.gz,
+// this function returns vz-bug-report-datetime-xxxx-sensitive-do-not-share-redaction-map.csv.
 func generateRedactionFileNameFromBugReportName(bugReportFileName string) string {
-	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + "-sensitive-do-not-share-redaction-map.csv"
+	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + constants.RedactionFileSuffix
 }
