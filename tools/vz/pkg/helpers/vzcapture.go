@@ -38,6 +38,10 @@ import (
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	failureToCreateDirectoryMessage = "an error occurred while creating the directory %s: %s"
+)
+
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
 var writeFileError = "an error occurred while writing the file %s: %s\n"
@@ -525,7 +529,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 	var folderPath = filepath.Join(captureDir, namespace, podName)
 	err := os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+		return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 	}
 
 	// Create logs.txt under the directory for the namespace
@@ -576,7 +580,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		err := os.MkdirAll(folderPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+			return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 		}
 	}
 
@@ -602,7 +606,7 @@ func createFileFromUnstructuredList(v unstructured.UnstructuredList, namespace, 
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		err := os.MkdirAll(folderPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+			return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 		}
 	}
 
