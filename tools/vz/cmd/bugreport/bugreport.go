@@ -61,7 +61,8 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	cmd := cmdhelpers.NewCommand(vzHelper, CommandName, helpShort, helpLong)
 
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return runCmdBugReport(cmd, args, vzHelper)
+		_, err := runCmdBugReport(cmd, args, vzHelper)
+		return err
 	}
 
 	cmd.Example = helpExample
@@ -78,11 +79,14 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 	return cmd
 }
 
-func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
+// runCmdBugReport runs the vz bug-report command.
+// Returns the the name of the bug report file created and any error reported. The string returned will
+// be empty if a bug report file is not created.
+func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) (string, error) {
 	newCmd := analyze.NewCmdAnalyze(vzHelper)
 	err := setUpFlags(cmd, newCmd)
 	if err != nil {
-		return err
+		return "", err
 	}
 	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
 	if analyzeErr != nil {
@@ -93,7 +97,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportFileFlagName, err.Error())
+		return "", fmt.Errorf(constants.FlagErrorMessage, constants.BugReportFileFlagName, err.Error())
 	}
 	if bugReportFile == "" {
 		bugReportFile = constants.BugReportFileDefaultValue
@@ -102,19 +106,19 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	// Get the kubernetes clientset, which will validate that the kubeconfigFlagValPointer and contextFlagValPointer are valid.
 	kubeClient, err := vzHelper.GetKubeClient(cmd)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Get the controller runtime client
 	client, err := vzHelper.GetClient(cmd)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Get the dynamic client to retrieve OAM resources
 	dynamicClient, err := vzHelper.GetDynamicClient(cmd)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// Create the bug report file
@@ -131,45 +135,45 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	}
 
 	if err != nil {
-		return fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, err.Error())
+		return "", fmt.Errorf("an error occurred while creating %s: %s", bugReportFile, err.Error())
 	}
 	defer bugRepFile.Close()
 
 	// Read the additional namespaces provided using flag --include-namespaces
 	moreNS, err := cmd.PersistentFlags().GetStringSlice(constants.BugReportIncludeNSFlagName)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportIncludeNSFlagName, err.Error())
+		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.BugReportIncludeNSFlagName, err.Error())
 	}
 	// If additional namespaces pods logs needs to be capture using flag --include-logs
 	isPodLog, err := cmd.PersistentFlags().GetBool(constants.BugReportLogFlagName)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportLogFlagName, err.Error())
+		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.BugReportLogFlagName, err.Error())
 	}
 
 	// If additional namespaces pods logs needs to be capture using flag with duration --duration
 	durationString, err := cmd.PersistentFlags().GetDuration(constants.BugReportTimeFlagName)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.BugReportTimeFlagName, err.Error())
+		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.BugReportTimeFlagName, err.Error())
 	}
 	durationValue := int64(durationString.Seconds())
 	if err != nil {
-		return fmt.Errorf("an error occurred,invalid value --duration: %s", err.Error())
+		return bugRepFile.Name(), fmt.Errorf("an error occurred,invalid value --duration: %s", err.Error())
 	}
 	if durationValue < 0 {
-		return fmt.Errorf("an error occurred, invalid duration can't be less than 1s: %d", durationValue)
+		return bugRepFile.Name(), fmt.Errorf("an error occurred, invalid duration can't be less than 1s: %d", durationValue)
 	}
 
 	// Create a temporary directory to place the cluster data
 	bugReportDir, err := os.MkdirTemp("", constants.BugReportDir)
 	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
+		return bugRepFile.Name(), fmt.Errorf("an error occurred while creating the directory to place cluster resources: %s", err.Error())
 	}
 	defer os.RemoveAll(bugReportDir)
 
 	// set the flag to control the display the resources captured
 	isVerbose, err := cmd.PersistentFlags().GetBool(constants.VerboseFlag)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.VerboseFlag, err.Error())
+		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.VerboseFlag, err.Error())
 	}
 	helpers.SetVerboseOutput(isVerbose)
 
@@ -178,32 +182,32 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
 		os.Remove(bugRepFile.Name())
-		return fmt.Errorf(err.Error())
+		return bugRepFile.Name(), fmt.Errorf(err.Error())
 	}
 
 	// Return an error when the command fails to collect anything from the cluster
 	// There will be bug-report.out and bug-report.err in bugReportDir, ignore them
 	if isDirEmpty(bugReportDir, 2) {
-		return fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
+		return bugRepFile.Name(), fmt.Errorf("The bug-report command did not collect any file from the cluster. " +
 			"Please go through errors (if any), in the standard output.\n")
 	}
 
 	// Process the redacted values file flag.
 	redactionFilePath, err := cmd.PersistentFlags().GetString(constants.RedactedValuesFlagName)
 	if err != nil {
-		return fmt.Errorf(constants.FlagErrorMessage, constants.RedactedValuesFlagName, err.Error())
+		return bugRepFile.Name(), fmt.Errorf(constants.FlagErrorMessage, constants.RedactedValuesFlagName, err.Error())
 	}
 	if redactionFilePath != "" {
 		// Create the redaction map file if the user provides a non-empty file path.
 		if err := helpers.WriteRedactionMapFile(redactionFilePath, nil); err != nil {
-			return fmt.Errorf(constants.RedactionMapCreationError, redactionFilePath, err.Error())
+			return bugRepFile.Name(), fmt.Errorf(constants.RedactionMapCreationError, redactionFilePath, err.Error())
 		}
 	}
 
 	// Generate the bug report
 	err = helpers.CreateReportArchive(bugReportDir, bugRepFile, true)
 	if err != nil {
-		return fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
+		return bugRepFile.Name(), fmt.Errorf("there is an error in creating the bug report, %s", err.Error())
 	}
 
 	brf, _ := os.Stat(bugRepFile.Name())
@@ -218,8 +222,9 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 	} else {
 		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugRepFile.Name())
+		return "", nil
 	}
-	return nil
+	return bugRepFile.Name(), nil
 }
 
 // displayWarning logs a warning message to check the contents of the bug report
@@ -252,18 +257,18 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 
 // creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
-func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
+func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (string, error) {
 	newCmd := NewCmdBugReport(vzHelper)
 	flagErr := setUpFlags(cmd, newCmd)
 	if flagErr != nil {
-		return flagErr
+		return "", flagErr
 	}
-	bugReportErr := runCmdBugReport(newCmd, []string{}, vzHelper)
+	bugReportFileName, bugReportErr := runCmdBugReport(newCmd, []string{}, vzHelper)
 	if bugReportErr != nil {
 		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz bug-report %s \n", bugReportErr.Error())
 	}
 	// return original error from running vz command which was passed into CallVzBugReport as a parameter
-	return err
+	return bugReportFileName, err
 }
 
 // AutoBugReport checks that AutoBugReportFlag is set and then kicks off vz bugreport CLI command. It returns the same error that is passed in
@@ -275,7 +280,14 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 	}
 	if autoBugReportFlag {
 		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
-		err = CallVzBugReport(cmd, vzHelper, err)
+		bugReportFileName, err := CallVzBugReport(cmd, vzHelper, err)
+		redactionFileName, redactErr := generateRedactionFileNameFromBugReportName(bugReportFileName)
+		if redactErr != nil {
+			return fmt.Errorf("That's a whole lot of hoopla") // FIXME: make a good error message
+		}
+		if redactErr := helpers.WriteRedactionMapFile(redactionFileName, nil); redactErr != nil {
+			return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, err.Error())
+		}
 	}
 	return err
 }
@@ -294,4 +306,11 @@ func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	newCmd.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 	newCmd.Flags().Set(constants.GlobalFlagContext, contextFlag)
 	return nil
+}
+
+// generateRedactionFileNameFromBugReportName returns a name for the redacted values file such that it matches the
+// filled-in values of the bugReportFileName, which should have a format of vz-bug-report-datetime-xxxx.tar.gz
+func generateRedactionFileNameFromBugReportName(bugReportFileName string) (string, error) {
+	// TODO: actually implement this
+	return "HOOPLA" + bugReportFileName, nil
 }
