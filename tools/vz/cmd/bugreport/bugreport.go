@@ -6,13 +6,13 @@ package bugreport
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"io/fs"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -79,16 +79,6 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	newCmd := analyze.NewCmdAnalyze(vzHelper)
-	err := setUpFlags(cmd, newCmd)
-	if err != nil {
-		return err
-	}
-	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
-	if analyzeErr != nil {
-		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
-	}
-
 	start := time.Now()
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
@@ -219,6 +209,17 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugRepFile.Name())
 	}
+
+	newCmd := analyze.NewCmdAnalyze(vzHelper)
+	err = setUpFlags(cmd, newCmd)
+	if err != nil {
+		return err
+	}
+	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
+	if analyzeErr != nil {
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
+	}
+
 	return nil
 }
 
