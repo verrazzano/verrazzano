@@ -616,7 +616,7 @@ func createFileFromUnstructuredList(v unstructured.UnstructuredList, namespace, 
 	listJSON, err := v.MarshalJSON()
 	var prettyJSON bytes.Buffer
 	json.Indent(&prettyJSON, listJSON, "", "  ")
-	_, err = f.WriteString(SanitizeString(string(prettyJSON.Bytes()), nil))
+	_, err = f.WriteString(SanitizeString(prettyJSON.String(), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
