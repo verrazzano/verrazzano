@@ -6,6 +6,7 @@ package helpers
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/x509"
@@ -14,6 +15,7 @@ import (
 	errors2 "errors"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,6 +37,10 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	failureToCreateDirectoryMessage = "an error occurred while creating the directory %s: %s"
 )
 
 var errBugReport = "an error occurred while creating the bug report: %s"
@@ -242,6 +248,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 		return err
 	}
 	if err := captureNamespaces(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
+	if err := captureInnoDBClusterResources(client, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
 	return nil
@@ -454,6 +463,28 @@ func captureWorkLoads(kubeClient kubernetes.Interface, namespace, captureDir str
 	return nil
 }
 
+// captureInnoDBClusterResources finds the InnoDBCluster resource from the client for the current namespace, returns an error, and outputs the objects to a inno_db_cluster.json file, if InnoDBCluster resources are present in that namespace.
+func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
+	innoDBClusterList := unstructured.UnstructuredList{}
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBClusterList",
+	}
+	innoDBClusterList.SetGroupVersionKind(innoDBClusterGVK)
+	err := client.List(context.TODO(), &innoDBClusterList, &clipkg.ListOptions{Namespace: namespace})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the InnoDBCluster resource in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if len(innoDBClusterList.Items) > 0 {
+		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
+		if err = createFileFromUnstructuredList(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
 func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList := v1.CertificateList{}
@@ -529,7 +560,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 	var folderPath = filepath.Join(captureDir, namespace, podName)
 	err := os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+		return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 	}
 
 	// Create logs.txt under the directory for the namespace
@@ -580,7 +611,7 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
 		err := os.MkdirAll(folderPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("an error occurred while creating the directory %s: %s", folderPath, err.Error())
+			return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 		}
 	}
 
@@ -593,6 +624,34 @@ func createFile(v interface{}, namespace, resourceFile, captureDir string, vzHel
 
 	resJSON, _ := json.MarshalIndent(v, constants.JSONPrefix, constants.JSONIndent)
 	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
+	if err != nil {
+		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
+	}
+	return nil
+}
+
+// createFileFromUnstructured creates a file from an unstructured list
+func createFileFromUnstructuredList(v unstructured.UnstructuredList, namespace, resourceFile, captureDir string, vzHelper VZHelper) error {
+	var folderPath = filepath.Join(captureDir, namespace)
+
+	if _, err := os.Stat(folderPath); os.IsNotExist(err) {
+		err := os.MkdirAll(folderPath, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
+		}
+	}
+
+	var res = filepath.Join(folderPath, resourceFile)
+	f, err := os.OpenFile(res, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, res, err.Error())
+	}
+	defer f.Close()
+
+	listJSON, err := v.MarshalJSON()
+	var prettyJSON bytes.Buffer
+	json.Indent(&prettyJSON, listJSON, "", "  ")
+	_, err = f.WriteString(SanitizeString(prettyJSON.String(), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
