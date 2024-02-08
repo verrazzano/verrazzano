@@ -75,7 +75,7 @@ func TestCreateReportArchive(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	err = CreateReportArchive(captureDir, bugReportFile)
+	err = CreateReportArchive(captureDir, bugReportFile, true)
 	if err != nil {
 		assert.Error(t, err)
 	}
@@ -568,6 +568,23 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.NoError(t, err, "Error while regex matching")
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
+}
+
+// TestCreateParentsIfNecessary tests that parent directories are only created when intended
+// GIVEN a temporary directory and a string representing a filePath  ,
+// WHEN I call a function to create a parent directory
+// THEN expect it to only create the parent directories if it does not exist and if the file path contains a "/"
+func TestCreateParentsIfNecessary(t *testing.T) {
+	err := os.Mkdir(constants.TestDirectory, 0700)
+	defer os.RemoveAll(constants.TestDirectory)
+	assert.Nil(t, err)
+	createParentsIfNecessary(constants.TestDirectory, "files.txt")
+	createParentsIfNecessary(constants.TestDirectory, "cluster-snapshot/files.txt")
+	_, err = os.Stat(constants.TestDirectory + "/files.txt")
+	assert.NotNil(t, err)
+	_, err = os.Stat(constants.TestDirectory + "/cluster-snapshot")
+	assert.Nil(t, err)
+
 }
 
 // TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
