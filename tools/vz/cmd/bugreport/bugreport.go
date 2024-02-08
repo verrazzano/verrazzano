@@ -280,13 +280,11 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 	}
 	if autoBugReportFlag {
 		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
-		bugReportFileName, err := CallVzBugReport(cmd, vzHelper, err)
-		redactionFileName, redactErr := generateRedactionFileNameFromBugReportName(bugReportFileName)
-		if redactErr != nil {
-			return fmt.Errorf("That's a whole lot of hoopla") // FIXME: make a good error message
-		}
+		var bugReportFileName string
+		bugReportFileName, err = CallVzBugReport(cmd, vzHelper, err)
+		redactionFileName := generateRedactionFileNameFromBugReportName(bugReportFileName)
 		if redactErr := helpers.WriteRedactionMapFile(redactionFileName, nil); redactErr != nil {
-			return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, err.Error())
+			return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, redactErr.Error())
 		}
 	}
 	return err
@@ -310,7 +308,6 @@ func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 
 // generateRedactionFileNameFromBugReportName returns a name for the redacted values file such that it matches the
 // filled-in values of the bugReportFileName, which should have a format of vz-bug-report-datetime-xxxx.tar.gz
-func generateRedactionFileNameFromBugReportName(bugReportFileName string) (string, error) {
-	// TODO: actually implement this
-	return "HOOPLA" + bugReportFileName, nil
+func generateRedactionFileNameFromBugReportName(bugReportFileName string) string {
+	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + "-sensitive-do-not-share-redaction-map.csv"
 }
