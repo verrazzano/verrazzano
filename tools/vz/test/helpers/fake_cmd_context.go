@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
-
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
 
@@ -32,6 +30,18 @@ type FakeRootCmdContext struct {
 	kubeClient    kubernetes.Interface
 	dynamicClient dynamic.Interface
 	genericclioptions.IOStreams
+}
+
+type FileIOStreams struct {
+	In  *os.File
+	Out *os.File
+	Err *os.File
+}
+type FakeRootCmdContextWithFiles struct {
+	client        client.Client
+	kubeClient    kubernetes.Interface
+	dynamicClient dynamic.Interface
+	FileIOStreams
 }
 
 // GetOutputStream - return the output stream
@@ -142,20 +152,21 @@ func NewFakeRootCmdContextWithBuffers() *FakeRootCmdContext {
 }
 
 // NewFakeRootCmdContextWithFiles creates a newFakeRootCmdContext with the out stream and the error stream set to two separate files
-func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContext, error) {
+func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
 	stdOutFile, stdErrfile, err := createStdTempFiles()
 	if err != nil {
 		return nil, err
 	}
-	return &FakeRootCmdContext{
+	return &FakeRootCmdContextWithFiles{
 		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
 		kubeClient: fake.NewSimpleClientset(),
 	}, nil
-}x
+}
 
 // CleanFakeRootCmdContextWithFiles removes the stdOut and the stdErr files used by the context from the local file system
-func CleanFakeRootCmdContextWithFiles(context FakeRootCmdContext) {
-	reflect.ValueOf()
+func CleanFakeRootCmdContextWithFiles(context *FakeRootCmdContextWithFiles) {
+	os.Remove(context.Out.Name())
+	os.Remove(context.Err.Name())
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

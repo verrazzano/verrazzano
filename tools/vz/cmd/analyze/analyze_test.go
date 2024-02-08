@@ -47,21 +47,15 @@ func TestAnalyzeDefaultFromReadOnlyDir(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir and report-format set to "detailed"
 // THEN expect the command to provide the report containing all the details for one or more issues reported
 func TestAnalyzeCommandDetailedReport(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc , err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.NotNil(t, err)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, ingressIPNotFound)
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.DetailedReport)
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Nil(t, err)
-	buf, err := os.ReadFile(stdoutFile.Name())
-	assert.NoError(t, err)
-	assert.Contains(t, string(buf), noIPFoundErr,
+	assert.Contains(t, string(os.ReadFile(rc.Out.)), noIPFoundErr,
 		loadBalancerErr)
 	// Failures must be reported underreport file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
