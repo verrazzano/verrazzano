@@ -444,7 +444,9 @@ func TestCreateInnoDBClusterFile(t *testing.T) {
 	assert.NoError(t, err)
 	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
 	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
-	err = unmarshallFile(innoDBClusterLocation, &innoDBClusterListToUnmarshalInto)
+	bytesToUnmarshall, err := returnBytesFromAFile(innoDBClusterLocation)
+	assert.NoError(t, err)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesToUnmarshall)
 	assert.NoError(t, err)
 	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
 	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")

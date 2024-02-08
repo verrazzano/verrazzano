@@ -6,6 +6,7 @@ package helpers
 import (
 	"archive/tar"
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/x509"
@@ -442,7 +443,7 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 	}
 	if len(innoDBClusterList.Items) > 0 {
 		LogMessage(fmt.Sprintf("InnoDBCluster resources in namespace: %s ...\n", namespace))
-		if err = createFile(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
+		if err = createFileFromUnstructuredList(innoDBClusterList, namespace, constants.InnoDBClusterJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}
@@ -612,8 +613,10 @@ func createFileFromUnstructuredList(v unstructured.UnstructuredList, namespace, 
 	}
 	defer f.Close()
 
-	resJSON, _ := v.MarshalJSON()
-	_, err = f.WriteString(SanitizeString(string(resJSON), nil))
+	listJSON, err := v.MarshalJSON()
+	var prettyJSON bytes.Buffer
+	json.Indent(&prettyJSON, listJSON, "", "  ")
+	_, err = f.WriteString(SanitizeString(string(prettyJSON.Bytes()), nil))
 	if err != nil {
 		LogError(fmt.Sprintf(writeFileError, res, err.Error()))
 	}
