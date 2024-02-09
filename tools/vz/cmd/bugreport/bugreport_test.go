@@ -42,19 +42,17 @@ const (
 // WHEN I call cmd.Help for bug-report
 // THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
-	err := cmd.Help()
+	err = cmd.Help()
 	if err != nil {
 		assert.Error(t, err)
 	}
 
-	buf, err := os.ReadFile(stdoutFile.Name())
+	buf, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(buf), "Verrazzano command line utility to collect data from the cluster, to report an issue")
 }

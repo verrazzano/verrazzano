@@ -4,7 +4,6 @@
 package root
 
 import (
-	"bytes"
 	"fmt"
 	"os"
 	"strings"
@@ -21,14 +20,13 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/cmd/version"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 func TestNewRootCmd(t *testing.T) {
 
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rootCmd := NewRootCmd(rc)
 	assert.NotNil(t, rootCmd)
 
@@ -63,9 +61,11 @@ func TestNewRootCmd(t *testing.T) {
 
 	// Verify help has the expected elements
 	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", constants.GlobalFlagHelp)})
-	err := rootCmd.Execute()
+	err = rootCmd.Execute()
 	assert.NoError(t, err)
-	assert.True(t, strings.Contains(buf.String(), "Usage:"))
-	assert.True(t, strings.Contains(buf.String(), "Available Commands:"))
-	assert.True(t, strings.Contains(buf.String(), "Flags:"))
+	fileBuffer, err := os.ReadFile(rc.Out.Name())
+	assert.Nil(t, err)
+	assert.True(t, strings.Contains(string(fileBuffer), "Usage:"))
+	assert.True(t, strings.Contains(string(fileBuffer), "Available Commands:"))
+	assert.True(t, strings.Contains(string(fileBuffer), "Flags:"))
 }

@@ -24,7 +24,9 @@ const istioIPErr = "Verrazzano install failed as no IP found for service istio-i
 // WHEN I call cmd.Execute from read only dir with a valid capture-dir and report-format set to "summary"
 // THEN expect the command to do the analysis and generate report file into tmp dir
 func TestAnalyzeDefaultFromReadOnlyDir(t *testing.T) {
-	rc := helpers.NewFakeRootCmdContextWithBuffers()
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	pwd, err := os.Getwd()
