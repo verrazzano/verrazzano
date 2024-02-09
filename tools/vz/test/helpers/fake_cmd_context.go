@@ -32,16 +32,10 @@ type FakeRootCmdContext struct {
 	genericclioptions.IOStreams
 }
 
-type FileIOStreams struct {
-	In  *os.File
-	Out *os.File
-	Err *os.File
-}
 type FakeRootCmdContextWithFiles struct {
-	client        client.Client
-	kubeClient    kubernetes.Interface
-	dynamicClient dynamic.Interface
-	FileIOStreams
+	FakeRootCmdContext
+	Out    *os.File
+	ErrOut *os.File
 }
 
 // GetOutputStream - return the output stream
@@ -158,15 +152,19 @@ func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
 		return nil, err
 	}
 	return &FakeRootCmdContextWithFiles{
-		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
-		kubeClient: fake.NewSimpleClientset(),
+		FakeRootCmdContext: FakeRootCmdContext{
+			IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
+			kubeClient: fake.NewSimpleClientset(),
+		},
+		Out:    stdOutFile,
+		ErrOut: stdErrfile,
 	}, nil
 }
 
-// CleanFakeRootCmdContextWithFiles removes the stdOut and the stdErr files used by the context from the local file system
-func CleanFakeRootCmdContextWithFiles(context *FakeRootCmdContextWithFiles) {
+// CleanUpFakeRootCmdContextWithFiles removes the standard out and standard error files from the local file system
+func CleanUpNewFakeRootCmdContextWithFiles(context *FakeRootCmdContextWithFiles) {
 	os.Remove(context.Out.Name())
-	os.Remove(context.Err.Name())
+	os.Remove(context.ErrOut.Name())
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.
