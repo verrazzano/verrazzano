@@ -8,13 +8,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
 
-	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -113,7 +116,7 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
@@ -406,17 +409,63 @@ func TestGetPodListAll(t *testing.T) {
 	assert.Equal(t, podLength, len(pods))
 }
 
+// TestCreateInnoDBClusterFile tests that a InnoDBCluster file titled inno-db-cluster.json can be successfully written
+// GIVEN a k8s cluster with a inno-db-cluster resources present in a namespace,
+// WHEN I call functions to create a list of inno-db-cluster resources for the namespace
+// THEN expect it to write to the provided resource file and no error should be returned
+func TestCreateInnoDBClusterFile(t *testing.T) {
+	schemeForClient := runtime.NewScheme()
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+	innoDBCluster.SetNamespace("keycloak")
+	innoDBCluster.SetName("my-sql")
+	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
+	err := unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+	assert.NoError(t, err)
+	metav1Time := metav1.Time{
+		Time: time.Now().UTC(),
+	}
+	innoDBCluster.SetDeletionTimestamp(&metav1Time)
+	cli := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&innoDBCluster).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforinnodbclusters")
+	assert.Nil(t, err)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureInnoDBClusterResources(cli, "keycloak", captureDir, rc)
+	assert.NoError(t, err)
+	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
+	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
+	bytesToUnmarshall, err := returnBytesFromAFile(innoDBClusterLocation)
+	assert.NoError(t, err)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesToUnmarshall)
+	assert.NoError(t, err)
+	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
+	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
+	assert.NoError(t, err)
+	assert.Equal(t, statusOfCluster, "ONLINE")
+
+}
+
 //		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
-//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//	 	GIVEN a k8s cluster with certificates present in a namespace,
 //		WHEN I call functions to create a list of certificates for the namespace,
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	sampleCert := v1.Certificate{
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
@@ -442,12 +491,12 @@ func TestCreateCertificateFile(t *testing.T) {
 // THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCaCrtJsonFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	certificateListForTest := v1.CertificateList{}
-	sampleCert := v1.Certificate{
+	certificateListForTest := certmanagerv1.CertificateList{}
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-certificate-caCrt.json", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 			SecretName:  "test-secret-name",
@@ -481,19 +530,19 @@ func TestCreateCaCrtJsonFile(t *testing.T) {
 // THEN it should obfuscate the known hostnames with hashed value
 // AND the output certificates.json file should NOT contain any of the sensitive information from KnownHostNames
 func TestRedactHostNamesForCertificates(t *testing.T) {
-	sampleCert := &v1.Certificate{
+	sampleCert := &certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-certificate",
 			Namespace: "cattle-system",
 		},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
 
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
@@ -619,7 +668,6 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	if err != nil {
 		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
 	}
-
 	// Unmarshall file contents into a struct
 	err = json.Unmarshal(fileBytes, object)
 	if err != nil {
@@ -627,4 +675,26 @@ func unmarshallFile(clusterPath string, object interface{}) error {
 	}
 
 	return nil
+}
+
+// returnBytesFromAFile is a helper function that returns the bytes of a file
+func returnBytesFromAFile(clusterPath string) ([]byte, error) {
+	var byteArray = []byte{}
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return byteArray, nil
+	}
+	if err != nil {
+		return byteArray, fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	byteArray, err = io.ReadAll(file)
+	if err != nil {
+		return byteArray, fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	return byteArray, nil
 }

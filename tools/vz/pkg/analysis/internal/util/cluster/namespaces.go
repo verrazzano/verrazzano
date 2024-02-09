@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
@@ -82,12 +81,14 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 		return false, listOfMessagesFromRelevantConditions
 	}
 	var deletionMessage string
-	if namespaceObject.DeletionTimestamp != nil && timeOfCapture != nil {
-		diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
-		deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
-	} else {
-		deletionMessage = "The namespace " + namespaceObject.Name + " has spent an undetermined amount of time in a state of deletion"
+	if namespaceObject.DeletionTimestamp == nil || timeOfCapture == nil {
+		return false, listOfMessagesFromRelevantConditions
 	}
+	diff := timeOfCapture.Sub(namespaceObject.DeletionTimestamp.Time)
+	if int(diff.Minutes()) < 10 {
+		return false, listOfMessagesFromRelevantConditions
+	}
+	deletionMessage = "The namespace " + namespaceObject.Name + " has spent " + fmt.Sprint(int(diff.Minutes())) + " minutes and " + fmt.Sprint(int(diff.Seconds())%60) + " seconds deleting"
 	listOfMessagesFromRelevantConditions = append(listOfMessagesFromRelevantConditions, deletionMessage)
 	namespaceConditions := namespaceObject.Status.Conditions
 	if namespaceConditions == nil {
@@ -102,14 +103,6 @@ func isNamespaceCurrentlyInTerminatingStatus(namespaceObject *corev1.Namespace, 
 }
 func reportNamespaceInTerminatingStatusIssue(clusterRoot string, namespace corev1.Namespace, issueReporter *report.IssueReporter, namespaceFile string, messagesFromConditions []string) {
 	files := []string{namespaceFile}
-	message := []string{fmt.Sprintf("The namespace %s is currently in a state of terminating", namespace.ObjectMeta.Name)}
-	message = append(message, messagesFromConditions...)
-	for i := range messagesFromConditions {
-		if strings.Contains(messagesFromConditions[i], "has spent an undetermined amount of time in a state of deletion") {
-			issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateUnknownDuration, clusterRoot, message, files)
-			return
-		}
-	}
-	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateKnownDuration, clusterRoot, message, files)
+	issueReporter.AddKnownIssueMessagesFiles(report.NamespaceCurrentlyInTerminatingStateForLongDuration, clusterRoot, messagesFromConditions, files)
 
 }
