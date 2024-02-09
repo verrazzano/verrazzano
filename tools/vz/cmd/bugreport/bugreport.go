@@ -282,7 +282,7 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
 		var bugReportFileName string
 		bugReportFileName, err = CallVzBugReport(cmd, vzHelper, err)
-		redactionFileName := generateRedactionFileNameFromBugReportName(bugReportFileName)
+		redactionFileName := helpers.GenerateRedactionFileNameFromBugReportName(bugReportFileName)
 		if redactErr := helpers.WriteRedactionMapFile(redactionFileName, nil); redactErr != nil {
 			return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, redactErr.Error())
 		}
@@ -304,12 +304,4 @@ func setUpFlags(cmd *cobra.Command, newCmd *cobra.Command) error {
 	newCmd.Flags().Set(constants.GlobalFlagKubeConfig, kubeconfigFlag)
 	newCmd.Flags().Set(constants.GlobalFlagContext, contextFlag)
 	return nil
-}
-
-// generateRedactionFileNameFromBugReportName returns a name for the redacted values file
-// to match the bugReportFileName.
-// For example, for a bugReportFileName of vz-bug-report-datetime-xxxx.tar.gz,
-// this function returns vz-bug-report-datetime-xxxx-sensitive-do-not-share-redaction-map.csv.
-func generateRedactionFileNameFromBugReportName(bugReportFileName string) string {
-	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + constants.RedactionFileSuffix
 }
