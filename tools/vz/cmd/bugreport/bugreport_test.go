@@ -6,11 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -26,8 +21,12 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
+	"testing"
 )
 
 const (
@@ -448,7 +447,10 @@ func kubeClientObjets() []runtime.Object {
 				},
 			},
 			Status: corev1.PodStatus{
-				Phase: "Failed",
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-2"}},
 			},
 		},
 		&corev1.Namespace{
@@ -461,12 +463,44 @@ func kubeClientObjets() []runtime.Object {
 				Namespace: vzconstants.IstioSystemNamespace,
 				Name:      vzconstants.Istio,
 				Labels: map[string]string{
-					"app":               vzconstants.Istio,
-					"pod-template-hash": "45f78ffddd",
+					"app": vzconstants.Istio,
 				},
 			},
 			Status: corev1.PodStatus{
-				Phase: "Failed",
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "Istio-2"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "second-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "third-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}},
 			},
 		},
 	}
@@ -512,6 +546,36 @@ func getVpoObjects() []client.Object {
 			},
 			Status: corev1.PodStatus{
 				Phase: "Failed",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "second-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "third-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}},
 			},
 		},
 		&appsv1.Deployment{

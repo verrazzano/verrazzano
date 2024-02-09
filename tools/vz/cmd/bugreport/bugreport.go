@@ -262,7 +262,7 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 	return len(entries) == ignoreFilesCount
 }
 
-// CallVzBugReport creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// CallVzBugReport creates a new bug-report cobra command, initializes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (string, error) {
 	newCmd := NewCmdBugReport(vzHelper)

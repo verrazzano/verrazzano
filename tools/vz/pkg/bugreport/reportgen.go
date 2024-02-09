@@ -6,6 +6,7 @@ package bugreport
 import (
 	"context"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"sync"
@@ -103,8 +104,6 @@ var DefaultPodLog = pkghelpers.PodLogs{
 	Duration:   0,
 }
 
-var problematicPodList []string
-
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs pkghelpers.PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
 
@@ -153,14 +152,18 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 		pkghelpers.LogError(fmt.Sprintf("There is an error with capturing the Verrazzano resources: %s", err.Error()))
 	}
 
-	// set podLogs to capture previous pod logs
-	if len(problematicPodList) != 0 {
-		podLogs.IsPodLog = true
-		podLogs.IsPrevious = true
-	}
-
 	// Capture logs from resources when the --include-logs flag
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
+
+	// find problematic pods from captured resources
+	podNameNamespaces, err := pkghelpers.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
+	if err != nil {
+		return err
+	}
+	err = captureProblematicPodLogs(kubeClient, clusterSnapshotCtx.BugReportDir, vzHelper, podNameNamespaces)
+	if err != nil {
+		return err
+	}
 
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
 	if err = captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
@@ -207,15 +210,15 @@ func captureResources(client clipkg.Client, kubeClient kubernetes.Interface, dyn
 
 	go captureVZResource(wg, evr, vz, bugReportDir)
 
-	for _, ns := range namespaces {
-		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
-	}
-
 	for _, podList := range podsToCollect {
 		go pkghelpers.CaptureLogs(wg, ecl, kubeClient, pkghelpers.Pods{Namespace: podList.Namespace, PodList: podList.PodList.PodList}, bugReportDir, vzHelper, DefaultPodLog)
 	}
 	if len(externalDNSPod.PodList.PodList) > 0 {
 		go pkghelpers.CaptureLogs(wg, ecl, kubeClient, pkghelpers.Pods{Namespace: externalDNSPod.Namespace, PodList: externalDNSPod.PodList.PodList}, bugReportDir, vzHelper, DefaultPodLog)
+	}
+
+	for _, ns := range namespaces {
+		go captureK8SResources(wg, ecr, client, kubeClient, dynamicClient, ns, bugReportDir, vzHelper)
 	}
 
 	wg.Wait()
@@ -289,11 +292,6 @@ func captureK8SResources(wg *sync.WaitGroup, ec chan pkghelpers.ErrorsChannel, c
 	if err := pkghelpers.CaptureK8SResources(client, kubeClient, dynamicClient, namespace, bugReportDir, vzHelper); err != nil {
 		ec <- pkghelpers.ErrorsChannel{ErrorMessage: err.Error()}
 	}
-	// find problematic pods from captured resources
-	problematicPodsNamespaces, pods, _ := pkghelpers.FindProblematicPods(bugReportDir)
-	if len(pods) != 0 {
-		problematicPodList = problematicPodsNamespaces
-	}
 }
 
 // collectNamespaces gathers list of unique namespaces, to be considered to collect the information
@@ -336,9 +334,6 @@ func collectNamespaces(kubeClient kubernetes.Interface, dynamicClient dynamic.In
 		}
 		nsList = append(nsList, additionalNS...)
 	}
-
-	// Include the namespaces that are captured from problematic pod namespaces
-	nsList = append(nsList, problematicPodList...)
 
 	// Remove the duplicates from nsList
 	nsList = pkghelpers.RemoveDuplicate(nsList)
@@ -435,6 +430,18 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 	// Capture Verrazzano projects in verrazzano-mc namespace
 	if err := pkghelpers.CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, vzHelper); err != nil {
 		return err
+	}
+	return nil
+}
+
+// captureProblematicPodLogs tries to capture previous logs for any problematic pods
+func captureProblematicPodLogs(kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, podNameNamespaces map[string][]corev1.Pod) error {
+	if len(podNameNamespaces) != 0 {
+		for namespace, _ := range podNameNamespaces {
+			for _, pod := range podNameNamespaces[namespace] {
+				_ = pkghelpers.CapturePodLog(kubeClient, pod, namespace, bugReportDir, vzHelper, 0, true)
+			}
+		}
 	}
 	return nil
 }

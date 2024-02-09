@@ -20,16 +20,16 @@ var podCacheMutex = &sync.Mutex{}
 
 // FindProblematicPodFiles looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
-func FindProblematicPodFiles(clusterRoot string) (namespaces []string, podFiles []string, err error) {
+func FindProblematicPodFiles(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
 	allPodFiles, err := files.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
 	if err != nil {
-		return nil, podFiles, err
+		return nil, err
 	}
 
 	if len(allPodFiles) == 0 {
-		return nil, podFiles, nil
+		return nil, nil
 	}
-	podFiles = make([]string, 0, len(allPodFiles))
+	namespaces := make(map[string][]corev1.Pod)
 	for _, podFile := range allPodFiles {
 		podList, err := PodAnalysisGetPodList(podFile)
 		if err != nil {
@@ -46,12 +46,10 @@ func FindProblematicPodFiles(clusterRoot string) (namespaces []string, podFiles 
 			if !IsPodProblematic(pod) {
 				continue
 			}
-			namespaces = append(namespaces, pod.Namespace)
-			podFiles = append(podFiles, podFile)
-			break
+			namespaces[pod.Namespace] = append(namespaces[pod.Namespace], pod)
 		}
 	}
-	return namespaces, podFiles, nil
+	return namespaces, nil
 }
 
 // PodAnalysisGetPodList gets a pod list

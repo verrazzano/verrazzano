@@ -612,7 +612,11 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			podLogOptions.InsecureSkipTLSVerifyBackend = true
 			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(context.TODO())
 			if err != nil {
-				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
+				// ignore error if previous container could not be found
+				if !strings.Contains(err.Error(), "(BadRequest)") {
+					LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
+					return nil
+				}
 				return nil
 			}
 			defer podLog.Close()
@@ -1121,15 +1125,13 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 	return &caCrtInfoForCert, true, nil
 }
 
-func FindProblematicPods(bugReportDir string) (namespaces []string, problematicPods []string, err error) {
-	namespaces, pods, err := FindProblematicPodFiles(bugReportDir)
+func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
+	namespaces, err := FindProblematicPodFiles(bugReportDir)
 	if err != nil {
-		return nil, nil, fmt.Errorf("an error occurred while reading values for the flag --previous: %s", err.Error())
+		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
 	}
-	if len(pods) != 0 {
-		for _, pod := range pods {
-			LogMessage(fmt.Sprintf("Problematic pods detected: %s", pod))
-		}
+	if len(namespaces) == 0 {
+		return nil, nil
 	}
-	return namespaces, pods, nil
+	return namespaces, nil
 }
