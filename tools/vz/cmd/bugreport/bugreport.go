@@ -282,9 +282,13 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
 		var bugReportFileName string
 		bugReportFileName, err = CallVzBugReport(cmd, vzHelper, err)
-		redactionFileName := helpers.GenerateRedactionFileNameFromBugReportName(bugReportFileName)
-		if redactErr := helpers.WriteRedactionMapFile(redactionFileName, nil); redactErr != nil {
-			return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, redactErr.Error())
+
+		// Create the redacted values file
+		if bugReportFileName != "" {
+			redactionFileName := helpers.GenerateRedactionFileNameFromBugReportName(bugReportFileName)
+			if redactErr := helpers.WriteRedactionMapFile(redactionFileName, nil); redactErr != nil {
+				return fmt.Errorf(constants.RedactionMapCreationError, redactionFileName, redactErr.Error())
+			}
 		}
 	}
 	return err

@@ -104,7 +104,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }

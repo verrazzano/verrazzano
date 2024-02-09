@@ -367,19 +367,9 @@ func VerifyVzInstallNamespaceExists(kubeClient kubernetes.Interface) bool {
 	return false
 }
 
-// CheckAndRemoveBugReportExistsInDir checks vz bug report exists in dir or not
+// CheckAndRemoveBugReportExistsInDir checks that the bug-report file and the redacted values file
+// exist in the directory dir. Returns true if both exists and have matching names.
 func CheckAndRemoveBugReportExistsInDir(dir string) bool {
-	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
-	if fileMatched, _ := filepath.Glob(dir + bugReportFilePattern); len(fileMatched) == 1 {
-		os.Remove(fileMatched[0])
-		return true
-	}
-	return false
-}
-
-// CheckAndRemoveBugReportAndRedactionFileExistsInDir checks that both a vz bug-report file and
-// a redacted values file exists in dir, with matching names
-func CheckAndRemoveBugReportAndRedactionFileExistsInDir(dir string) bool {
 	// Check for the bug report file
 	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
 	var bugReportFilesMatched []string
