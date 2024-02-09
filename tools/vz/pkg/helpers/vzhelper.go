@@ -21,7 +21,6 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	vpoconstants "github.com/verrazzano/verrazzano/platform-operator/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	vzconstants "github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/github"
 	istioclient "istio.io/client-go/pkg/apis/networking/v1alpha3"
@@ -387,7 +386,7 @@ func CheckAndRemoveBugReportAndRedactionFileExistsInDir(dir string) bool {
 		return false
 	}
 	existingBugReportFileName := bugReportFilesMatched[0]
-	defer os.Remove(existingBugReportFileName )
+	defer os.Remove(existingBugReportFileName)
 
 	// Check the redacted values file exists with the expected name
 	expectedRedactionFileName := GenerateRedactionFileNameFromBugReportName(existingBugReportFileName)
@@ -403,5 +402,5 @@ func CheckAndRemoveBugReportAndRedactionFileExistsInDir(dir string) bool {
 // For example, for a bugReportFileName of vz-bug-report-datetime-xxxx.tar.gz,
 // this function returns vz-bug-report-datetime-xxxx-sensitive-do-not-share-redaction-map.csv.
 func GenerateRedactionFileNameFromBugReportName(bugReportFileName string) string {
-	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + constants.RedactionFileSuffix
+	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + vzconstants.RedactionFileSuffix
 }
