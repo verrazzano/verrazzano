@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
