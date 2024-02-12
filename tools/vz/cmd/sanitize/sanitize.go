@@ -95,7 +95,7 @@ func runCmdSanitize(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper
 	if redactionFilePath != "" {
 		// Create the redaction map file if the user provides a non-empty file path.
 		if err := helpers.WriteRedactionMapFile(redactionFilePath, nil); err != nil {
-			return fmt.Errorf("an error occurred while creating the redacted values map at %s: %s", redactionFilePath, err.Error())
+			return fmt.Errorf(constants.RedactionMapCreationError, redactionFilePath, err.Error())
 		}
 	}
 	return nil
