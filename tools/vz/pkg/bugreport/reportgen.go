@@ -437,7 +437,7 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 // captureProblematicPodLogs tries to capture previous logs for any problematic pods
 func captureProblematicPodLogs(kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper, podNameNamespaces map[string][]corev1.Pod) error {
 	if len(podNameNamespaces) != 0 {
-		for namespace, _ := range podNameNamespaces {
+		for namespace := range podNameNamespaces {
 			for _, pod := range podNameNamespaces[namespace] {
 				_ = pkghelpers.CapturePodLog(kubeClient, pod, namespace, bugReportDir, vzHelper, 0, true)
 			}
