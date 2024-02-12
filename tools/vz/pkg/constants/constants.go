@@ -206,8 +206,8 @@ const (
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
 	// File containing a map from redacted values to their original values
-	RedactionPrefix = "REDACTED-"
-	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
+	RedactionPrefix     = "REDACTED-"
+	RedactionFileSuffix = "-sensitive-do-not-share-redaction-map.csv"
 
 	// File names for the various resources
 	VzResource        = "verrazzano-resources.json"
@@ -267,5 +267,8 @@ const ProgressShorthand = "p"
 const RefreshRate = time.Second * 10
 const TotalWidth = 50
 
-// Error message for failing to parse a flag
-const FlagErrorMessage = "an error occurred while reading value for the flag --%s: %s"
+// Common error strings
+const (
+	FlagErrorMessage          = "an error occurred while reading value for the flag --%s: %s"
+	RedactionMapCreationError = "an error occurred while creating the redacted values map at %s: %s"
+)
