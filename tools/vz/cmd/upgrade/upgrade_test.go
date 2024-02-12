@@ -4,7 +4,6 @@
 package upgrade
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"testing"
@@ -20,7 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -630,7 +628,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// should continue with the upgrade because the registry settings are different from the settings used during install
 	inputFile, err := os.CreateTemp("", "tmpstdin")
 	assert.Nil(t, err)
-	inputFile.WriteString("n")
+	inputFile.WriteString("n\n")
 	defer os.Remove(inputFile.Name())
 	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
 	assert.Nil(t, err)
@@ -650,7 +648,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	assert.NoError(t, err)
 	errBytes, err = os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
-	outBytes, err := os.ReadFile(rc.ErrOut.Name())
+	outBytes, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(outBytes), proceedQuestionText)
 	assert.Contains(t, string(outBytes), "Upgrade canceled")
@@ -678,14 +676,15 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	//
 	//	WHEN I call cmd.Execute for upgrade with different private registry settings and answer "y" when asked to proceed
 	//	THEN the upgrade succeeds and the new registry settings are configured on the VPO
-	inputFile, err := os.CreateTemp("", "tmpstdin")
+	inputFile, err = os.CreateTemp("", "tmpstdin")
 	assert.Nil(t, err)
-	inputFile.WriteString("y")
+	inputFile.WriteString("y\n")
 	defer os.Remove(inputFile.Name())
 	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
 	assert.Nil(t, err)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
+	rc.In = inputFile
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -697,9 +696,14 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// and we reply with "y"
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), proceedQuestionText)
-	assert.Contains(t, outBuf.String(), "Upgrading Verrazzano")
-	assert.Equal(t, "", errBuf.String())
+	assert.NoError(t, err)
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBytes, err = os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBytes), proceedQuestionText)
+	assert.Contains(t, string(outBytes), "Upgrading Verrazzano")
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
 	// and that they are the new settings from the upgrade
@@ -728,8 +732,9 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// First install using a private registry
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -746,9 +751,11 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Need to update the VZ status version otherwise upgrade fails
 	vz := &v1beta1.Verrazzano{}
@@ -758,14 +765,15 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
+	testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// Now do the upgrade using different private registry settings
 	const imageRegistryForUpgrade = "newreg.io"
 	const imagePrefixForUpgrade = "newrepo"
 
-	outBuf := new(bytes.Buffer)
-	errBuf = new(bytes.Buffer)
-	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: outBuf, ErrOut: errBuf})
+	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 
 	cmd = NewCmdUpgrade(rc)
@@ -780,8 +788,12 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// Run upgrade command
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), "Upgrading Verrazzano")
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBuf, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBuf), "Upgrading Verrazzano")
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment environment variables for private registry have been updated
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
@@ -820,9 +832,9 @@ func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
 			// Send stdout stderr to a byte buffer
-			buf := new(bytes.Buffer)
-			errBuf := new(bytes.Buffer)
-			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+			assert.Nil(t, err)
+			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			rc.SetClient(c)
 			cmd := NewCmdUpgrade(rc)
 			assert.NotNil(t, cmd)
@@ -838,7 +850,7 @@ func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 			// Run upgrade command
-			err := cmd.Execute()
+			err = cmd.Execute()
 
 			if tt.isValidSetArgs {
 				// Verify the vz resource is as expected
