@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
@@ -99,7 +99,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -134,7 +134,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
 	// Bug report must not exist
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -159,7 +159,7 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -188,7 +188,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -242,7 +242,7 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot merge objects with different group versions")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -491,7 +491,7 @@ func TestInstallValidations(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), fmt.Sprintf("--%s and --%s cannot both be specified", constants.VersionFlag, constants.ManifestsFlag))
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 
@@ -693,7 +693,7 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Only one install of Verrazzano is allowed")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -731,7 +731,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "Unable to install version v1.3.1, install of version v1.3.2 is in progress")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }

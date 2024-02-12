@@ -375,3 +375,32 @@ func CheckAndRemoveBugReportExistsInDir(dir string) bool {
 	}
 	return false
 }
+
+// CheckAndRemoveBugReportAndRedactionFileExistsInDir checks that both a vz bug-report file and
+// a redacted values file exists in dir, with matching names
+func CheckAndRemoveBugReportAndRedactionFileExistsInDir(dir string) bool {
+	// Check for the bug report file
+	bugReportFilePattern := strings.Replace(vzconstants.BugReportFileDefaultValue, "-dt", "", 1)
+	var bugReportFilesMatched []string
+	if bugReportFilesMatched, _ = filepath.Glob(dir + bugReportFilePattern); len(bugReportFilesMatched) != 1 {
+		return false
+	}
+	existingBugReportFileName := bugReportFilesMatched[0]
+	defer os.Remove(existingBugReportFileName)
+
+	// Check the redacted values file exists with the expected name
+	expectedRedactionFileName := GenerateRedactionFileNameFromBugReportName(existingBugReportFileName)
+	if _, err := os.Stat(expectedRedactionFileName); err != nil {
+		return false
+	}
+	os.Remove(expectedRedactionFileName)
+	return true
+}
+
+// generateRedactionFileNameFromBugReportName returns a name for the redacted values file
+// to match the bugReportFileName.
+// For example, for a bugReportFileName of vz-bug-report-datetime-xxxx.tar.gz,
+// this function returns vz-bug-report-datetime-xxxx-sensitive-do-not-share-redaction-map.csv.
+func GenerateRedactionFileNameFromBugReportName(bugReportFileName string) string {
+	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + vzconstants.RedactionFileSuffix
+}
