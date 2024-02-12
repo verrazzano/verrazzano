@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package upgrade
@@ -104,7 +104,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -144,7 +144,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
 	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
 	// Bug report must not exist
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -176,7 +176,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -214,7 +214,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }

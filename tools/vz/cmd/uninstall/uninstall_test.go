@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package uninstall
@@ -167,7 +167,7 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	// since the Verrazzano resource gets deleted almost instantaneously
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -209,7 +209,7 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -311,7 +311,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
 	assert.Contains(t, errBuf.String(), VzVpoFailureError)
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -351,7 +351,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.Contains(t, errBuf.String(), PodNotFoundError)
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -384,7 +384,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
