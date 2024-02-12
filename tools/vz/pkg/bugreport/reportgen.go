@@ -6,10 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"sync"
-
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -17,10 +13,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -99,6 +99,12 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 
 	// Capture logs from resources when the --include-logs flag is enabled
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
+
+	// flag pods that are missing sidecar containers
+	err = flagMissingSidecarContainers(kubeClient, nsList)
+	if err != nil {
+		return err
+	}
 
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
 	if err = captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
@@ -383,4 +389,23 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 		return err
 	}
 	return nil
+}
+
+// flagMissingSidecarContainers identifies pods in namespaces with --label istio-injection=enabled that are missing sidecar containers
+func flagMissingSidecarContainers(kubeClient kubernetes.Interface, namespaces []string) (error error) {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{vzconstants.LabelIstioInjection: "enabled"}}
+	listOptions := metav1.ListOptions{LabelSelector: labels.Set(labelSelector.MatchLabels).String()}
+	namespaceList, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+	if len(namespaceList.Items) != 0 {
+		findMissingSidecarContainers(namespaceList)
+	}
+	return nil
+}
+
+// findMissingSidecarContainers identifies pods that are missing sidecar containers
+func findMissingSidecarContainers(namespaceList *corev1.NamespaceList) {
+	_ = "sidecar.istio.io/inject"
 }
