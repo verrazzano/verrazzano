@@ -4,9 +4,7 @@
 package helpers
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -14,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 const (
@@ -26,9 +23,9 @@ const (
 
 // TestNewCommand tests the functionality to create a new command based on the usage, short and log help.
 func TestNewCommand(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.NotNil(t, NewCommand(rc, testUse, testShort, testLong))
 }
 
@@ -100,9 +97,9 @@ func TestGetLogFormat(t *testing.T) {
 // TestGetVersion tests the functionality that returns the right Verrazzano version.
 func TestGetVersion(t *testing.T) {
 	// Create a fake VZ helper
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with no values provided for version flags,
 	// WHEN we get the version value,
@@ -161,9 +158,9 @@ func TestGetVersion(t *testing.T) {
 // TestGetVersionWithManifests tests the GetVersion function when the user supplies the manifests flag.
 func TestGetVersionWithManifests(t *testing.T) {
 	// Create a fake VZ helper
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with a specific version and a manifests file with a version that does not match,
 	// WHEN we get the version value,
@@ -173,7 +170,7 @@ func TestGetVersionWithManifests(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "9.9.9")
 	cmd.PersistentFlags().String(constants.ManifestsFlag, "", "")
 	cmd.PersistentFlags().Set(constants.ManifestsFlag, "../../test/testdata/operator-file-fake.yaml")
-	_, err := GetVersion(cmd, rc)
+	_, err = GetVersion(cmd, rc)
 	assert.ErrorContains(t, err, "Requested version '9.9.9' does not match manifests version 'v1.5.2'")
 
 	// GIVEN a command with a specific version and a manifests file with a version that matches,

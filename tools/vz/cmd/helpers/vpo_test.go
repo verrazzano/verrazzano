@@ -3,7 +3,6 @@
 package helpers
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -25,7 +24,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	fakek8s "k8s.io/client-go/kubernetes/fake"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -99,9 +97,9 @@ func TestWaitForPlatformOperator(t *testing.T) {
 	// THEN no error is returned and the expected pod name is returned.
 	fakeClient := fake.NewClientBuilder().WithObjects(
 		getAllVpoObjects()...).Build()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	podName, err := WaitForPlatformOperator(fakeClient, rc, v1beta1.CondInstallComplete, time.Duration(1)*time.Second)
 	assert.NoError(t, err)
 	assert.Equal(t, vpoPodName, podName)
@@ -120,15 +118,15 @@ func TestWaitForOperationToComplete(t *testing.T) {
 	_ = v1beta1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	k8sClient := fakek8s.NewSimpleClientset()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN WaitForOperationToComplete is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(getAllVpoObjects(), getVZObject())...).Build()
-	err := WaitForOperationToComplete(fakeClient, k8sClient, rc, testVZNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
+	err = WaitForOperationToComplete(fakeClient, k8sClient, rc, testVZNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
 	assert.Error(t, err)
 }
 
@@ -146,14 +144,14 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vpoDeployment).Build()
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
 
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN ApplyPlatformOperatorYaml is invoked without the operator manifest flag set,
 	// THEN an error is returned and the existing VPO deployment is not deleted
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err := ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	err = ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 	// VPO deployment should not have been deleted, since the platform operator would not be applied
 	var vpo2 appsv1.Deployment

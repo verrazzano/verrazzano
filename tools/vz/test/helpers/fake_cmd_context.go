@@ -6,6 +6,7 @@ package helpers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"k8s.io/client-go/discovery"
@@ -135,16 +136,6 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 	}
 }
 
-// NewFakeRootCmdContextWithBuffers creates a newFakeRootCmdContext with the out stream and the error stream set to two seperate buffers
-func NewFakeRootCmdContextWithBuffers() *FakeRootCmdContext {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	return &FakeRootCmdContext{
-		IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf},
-		kubeClient: fake.NewSimpleClientset(),
-	}
-}
-
 // NewFakeRootCmdContextWithFiles creates a newFakeRootCmdContext with the out stream and the error stream set to two separate files
 func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
 	stdOutFile, stdErrfile, err := createStdTempFiles()
@@ -163,8 +154,14 @@ func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
 
 // CleanUpFakeRootCmdContextWithFiles removes the standard out and standard error files from the local file system
 func CleanUpNewFakeRootCmdContextWithFiles(context *FakeRootCmdContextWithFiles) {
-	os.Remove(context.Out.Name())
-	os.Remove(context.ErrOut.Name())
+	_, err := os.Stat(context.Out.Name())
+	if !(errors.Is(err, os.ErrNotExist)) {
+		os.Remove(context.Out.Name())
+	}
+	_, err = os.Stat(context.ErrOut.Name())
+	if !(errors.Is(err, os.ErrNotExist)) {
+		os.Remove(context.ErrOut.Name())
+	}
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

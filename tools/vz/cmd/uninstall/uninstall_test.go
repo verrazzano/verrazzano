@@ -4,7 +4,6 @@
 package uninstall
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"strings"
@@ -24,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -54,10 +52,9 @@ func TestUninstallCmd(t *testing.T) {
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, validatingWebhookConfig, clusterRoleBinding, mcClusterRole, registrarClusterRole).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -66,10 +63,14 @@ func TestUninstallCmd(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command, check for the expected status results to be displayed
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(rc.Out.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(errBytes))
+	assert.Contains(t, string(buf), "Uninstalling Verrazzano\n")
 
 	// Ensure resources have been deleted
 	ensureResourcesDeleted(t, c)
@@ -106,10 +107,9 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, job, vz, namespace, validatingWebhookConfig, clusterRoleBinding, mcClusterRole, registrarClusterRole).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -118,10 +118,14 @@ func TestUninstallCmdUninstallJob(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command, check for the expected status results to be displayed
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
-	assert.Contains(t, buf.String(), "Uninstalling Verrazzano\n")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(rc.Out.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(errBytes))
+	assert.Contains(t, string(buf), "Uninstalling Verrazzano\n")
 
 	// Ensure resources have been deleted
 	ensureResourcesDeleted(t, c)
@@ -143,10 +147,9 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	crb := createClusterRoleBinding()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
@@ -161,11 +164,13 @@ func TestUninstallCmdDefaultTimeout(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", string(errBytes))
 	ensureResourcesNotDeleted(t, c)
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
@@ -188,10 +193,9 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	crb := createClusterRoleBinding()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -202,11 +206,13 @@ func TestUninstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run upgrade command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
 	// This must be less than the 1 second polling delay to pass
 	// since the Verrazzano resource gets deleted almost instantaneously
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", errBuf.String())
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for uninstall to complete\n", string(errBytes))
 	ensureResourcesNotDeleted(t, c)
 	// Bug Report must not exist
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
@@ -230,10 +236,9 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	crb := createClusterRoleBinding()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vpo, vz, namespace, webhook, mcClusterRole, registrarClusterRole, crb).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -243,9 +248,11 @@ func TestUninstallCmdDefaultNoWait(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	ensureResourcesNotDeleted(t, c)
 }
@@ -261,10 +268,9 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	vpo := createVpoPod()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz, vpo).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUninstall(rc)
 	assert.NotNil(t, cmd)
@@ -275,9 +281,12 @@ func TestUninstallCmdJsonLogFormat(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	assert.NoError(t, err)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 }
 
 // TestUninstallCmdDefaultNoVPO
@@ -290,10 +299,9 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
@@ -307,10 +315,12 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, VzVpoFailureError)
-	assert.Contains(t, errBuf.String(), VzVpoFailureError)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), VzVpoFailureError)
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -326,10 +336,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
@@ -347,10 +356,12 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
-	assert.Contains(t, errBuf.String(), PodNotFoundError)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), PodNotFoundError)
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -364,10 +375,9 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUninstall(rc)
@@ -380,10 +390,12 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err := cmd.Execute()
+	err = cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	assert.Contains(t, errBuf.String(), "Verrazzano is not installed: Failed to find any Verrazzano resources")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -440,10 +452,10 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 				os.Stdin = tempfile
 			}
 
-			// Send stdout stderr to a byte bufferF
-			buf := new(bytes.Buffer)
-			errBuf := new(bytes.Buffer)
-			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+			rc.IOStreams.In = os.Stdin
+			assert.Nil(t, err)
+			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			rc.SetClient(c)
 			rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 			cmd := NewCmdUninstall(rc)

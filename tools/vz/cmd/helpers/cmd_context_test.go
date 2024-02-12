@@ -4,6 +4,7 @@
 package helpers
 
 import (
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"os"
 	"testing"
 
@@ -19,26 +20,38 @@ const (
 
 // TestGetHTTPClient tests the functionality to return the right HTTP client.
 func TestGetHTTPClient(t *testing.T) {
-	httpClient := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetHTTPClient()
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	httpClient := rc.GetHTTPClient()
 	assert.NotNil(t, httpClient)
 }
 
 // TestGetOutputStream tests the functionality to return the output stream set in the command context.
 func TestGetOutputStream(t *testing.T) {
-	outputStream := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetOutputStream()
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	outputStream := rc.GetOutputStream()
 	assert.NotNil(t, outputStream)
 }
 
 // TestGetInputStream tests the functionality to return the input stream set in the command context.
 func TestGetInputStream(t *testing.T) {
-	inputStream := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetInputStream()
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	inputStream := rc.GetInputStream()
 	assert.NotNil(t, inputStream)
 }
 
 // TestGetInputStream tests the functionality to return the input stream set in the command context.
 func TestGetErrorStream(t *testing.T) {
-	inputStream := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetErrorStream()
-	assert.NotNil(t, inputStream)
+	rc, err := helpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	errorStream := rc.GetErrorStream()
+	assert.NotNil(t, errorStream)
 }
 
 // TestGetKubeConfigGivenCommand tests the functionality to return the kube config set in the command context.
@@ -55,6 +68,7 @@ func TestGetClient(t *testing.T) {
 	cmdWithKubeConfigAndCtx := getCommandWithoutFlags()
 	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagKubeConfig, testKubeConfig, "")
 	cmdWithKubeConfigAndCtx.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
+
 	_, err := NewRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: os.Stdout, ErrOut: os.Stderr}).GetClient(cmdWithKubeConfigAndCtx)
 	assert.Error(t, err)
 }
