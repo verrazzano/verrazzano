@@ -50,6 +50,8 @@ var writeFileError = "an error occurred while writing the file %s: %s\n"
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
 
+var previousTerminatedError = "previous terminated container"
+
 var isError bool
 var isLiveCluster bool
 var isVerbose bool
@@ -612,11 +614,10 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			podLogOptions.InsecureSkipTLSVerifyBackend = true
 			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(context.TODO())
 			if err != nil {
-				// ignore error if previous container could not be found
-				if !strings.Contains(err.Error(), "(BadRequest)") {
-					LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
+				if strings.Contains(err.Error(), previousTerminatedError) {
 					return nil
 				}
+				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
 				return nil
 			}
 			defer podLog.Close()
