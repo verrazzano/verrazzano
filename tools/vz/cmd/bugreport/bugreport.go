@@ -6,13 +6,13 @@ package bugreport
 import (
 	"errors"
 	"fmt"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	"io/fs"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -52,6 +52,7 @@ const minLineLength = 100
 
 var kubeconfigFlagValPointer string
 var contextFlagValPointer string
+var setTarFileValToBugReport = false
 
 // NewCmdBugReport - creates cobra command for bug-report
 func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
@@ -76,16 +77,6 @@ func NewCmdBugReport(vzHelper helpers.VZHelper) *cobra.Command {
 }
 
 func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelper) error {
-	newCmd := analyze.NewCmdAnalyze(vzHelper)
-	err := setUpFlags(cmd, newCmd)
-	if err != nil {
-		return err
-	}
-	analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
-	if analyzeErr != nil {
-		fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
-	}
-
 	start := time.Now()
 	// determines the bug report file
 	bugReportFile, err := cmd.PersistentFlags().GetString(constants.BugReportFileFlagName)
@@ -216,6 +207,23 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		// Verrazzano is not installed, remove the empty bug report file
 		os.Remove(bugRepFile.Name())
 	}
+
+	// A new Analyze cmd gets created if AutoBugReport is called from other cmds that: failed, or have some other reason for calling AutoBugReport
+	// When this happens analyze will be called, AFTER bug-report generates the report and tar-file=BUG_REPORT_FILE.tgz is set
+	if setTarFileValToBugReport {
+		newCmd := analyze.NewCmdAnalyze(vzHelper)
+		// set the tar-file value to the name of the bug-report.tgz to be analyzed
+		newCmd.PersistentFlags().Set(constants.TarFileFlagName, bugRepFile.Name())
+		err = setUpFlags(cmd, newCmd)
+		if err != nil {
+			return err
+		}
+		analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
+		if analyzeErr != nil {
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -247,7 +255,7 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 	return len(entries) == ignoreFilesCount
 }
 
-// creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// CallVzBugReport creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	newCmd := NewCmdBugReport(vzHelper)
@@ -272,6 +280,7 @@ func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) err
 	}
 	if autoBugReportFlag {
 		//err returned from CallVzBugReport is the same error that's passed in, the error that was returned from either installVerrazzano() or waitForInstallToComplete()
+		setTarFileValToBugReport = true
 		err = CallVzBugReport(cmd, vzHelper, err)
 	}
 	return err
