@@ -6,10 +6,6 @@ package bugreport
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
-	"testing"
-
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -20,11 +16,17 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"os"
+	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"strings"
+	"testing"
 )
 
 const (
@@ -168,6 +170,29 @@ func TestBugReportSuccess(t *testing.T) {
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install,default")
+	assert.NoError(t, err)
+	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+	assert.NoError(t, err)
+	err = cmd.Execute()
+	if err != nil {
+		assert.Error(t, err)
+	}
+	assert.NoError(t, err)
+}
+
+// TestBugReportFailedPods
+// GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
+// WHEN I call cmd.Execute
+// THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
+func TestBugReportFailedPods(t *testing.T) {
+	cmd := setUpAndVerifyResources(t)
+
+	tmpDir, _ := os.MkdirTemp("", "bug-report")
+	defer cleanupTempDir(t, tmpDir)
+
+	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+	setUpGlobalFlags(cmd)
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NoError(t, err)
@@ -401,6 +426,86 @@ func getClientWithVZWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
 }
 
+// getKubeClient returns a kubeClient containing runtime objects: namespace and a pod
+func getKubeClient() *k8sfake.Clientset {
+	return k8sfake.NewSimpleClientset(kubeClientObjets()...)
+}
+
+func kubeClientObjets() []runtime.Object {
+	return []runtime.Object{
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzconstants.KeycloakNamespace,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.KeycloakNamespace,
+				Name:      vzconstants.Keycloak,
+				Labels: map[string]string{
+					"app": vzconstants.Keycloak,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-2"}},
+			},
+		},
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzconstants.IstioSystemNamespace,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      vzconstants.Istio,
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "Istio-2"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "second-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "third-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}},
+			},
+		},
+	}
+}
+
 func getVpoObjects() []client.Object {
 	return []client.Object{
 		&v1beta1.Verrazzano{
@@ -411,6 +516,9 @@ func getVpoObjects() []client.Object {
 			Spec: v1beta1.VerrazzanoSpec{
 				Profile: v1beta1.Dev,
 			},
+			Status: v1beta1.VerrazzanoStatus{
+				Components: makeVerrazzanoComponentStatusMap(),
+			},
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
@@ -420,6 +528,54 @@ func getVpoObjects() []client.Object {
 					"app":               constants.VerrazzanoPlatformOperator,
 					"pod-template-hash": "45f78ffddd",
 				},
+			},
+		},
+		&corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: vzconstants.IstioSystemNamespace,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      vzconstants.Istio,
+				Labels: map[string]string{
+					"app":               vzconstants.Istio,
+					"pod-template-hash": "45f78ffddd",
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: "Failed",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "second-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.IstioSystemNamespace,
+				Name:      "third-istio-pod",
+				Labels: map[string]string{
+					"app": vzconstants.Istio,
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{Name: vzconstants.Istio}},
 			},
 		},
 		&appsv1.Deployment{
@@ -544,17 +700,22 @@ func setUpGlobalFlags(cmd *cobra.Command) {
 
 func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 	c := getClientWithVZWatch()
+	var kubeClient *k8sfake.Clientset
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+
 	assert.NoError(t, err)
 
 	stdoutFile, stderrFile := createStdTempFiles(t)
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-
+	if strings.Contains(t.Name(), "FailedPods") {
+		kubeClient = getKubeClient()
+		rc.SetKubeClient(kubeClient)
+	}
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
@@ -566,4 +727,41 @@ func setupFakeDynamicClient(c client.WithWatch, ioStreams genericclioptions.IOSt
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(pkghelper.GetScheme()))
 	return rc
+}
+
+// create verrazzano component status map for testing
+func makeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
+	statusMap := make(v1beta1.ComponentStatusMap)
+	statusMap[vzconstants.ExternalDNS] = &v1beta1.ComponentStatusDetails{
+		Name: vzconstants.ExternalDNS,
+		Conditions: []v1beta1.Condition{
+			{
+				Type:   v1beta1.CondInstallComplete,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		State: v1beta1.CompStateReady,
+	}
+	statusMap[vzconstants.Istio] = &v1beta1.ComponentStatusDetails{
+		Name: vzconstants.Istio,
+		Conditions: []v1beta1.Condition{
+			{
+				Type:   v1beta1.CondInstallComplete,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		State: v1beta1.CompStateReady,
+	}
+	statusMap[vzconstants.Keycloak] = &v1beta1.ComponentStatusDetails{
+		Name: vzconstants.Keycloak,
+		Conditions: []v1beta1.Condition{
+			{
+				Type:   v1beta1.CondInstallComplete,
+				Status: corev1.ConditionTrue,
+			},
+		},
+		State: v1beta1.CompStateReady,
+	}
+
+	return statusMap
 }

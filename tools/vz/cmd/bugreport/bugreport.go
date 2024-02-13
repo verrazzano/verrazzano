@@ -6,18 +6,16 @@ package bugreport
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io/fs"
+	"os"
+	"strings"
+	"time"
 )
 
 const (
@@ -171,7 +169,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Capture cluster snapshot
 	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: bugReportDir, MoreNS: moreNS, PrintReportToConsole: false}
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, helpers.PodLogs{IsPodLog: isPodLog, IsPrevious: false, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
 		os.Remove(bugRepFile.Name())
 		return bugRepFile.Name(), fmt.Errorf(err.Error())
@@ -264,7 +262,7 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 	return len(entries) == ignoreFilesCount
 }
 
-// CallVzBugReport creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// CallVzBugReport creates a new bug-report cobra command, initializes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (string, error) {
 	newCmd := NewCmdBugReport(vzHelper)

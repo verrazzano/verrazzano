@@ -196,7 +196,8 @@ const (
 	OutputTarGZFile = "output-tar-file.tar.gz"
 
 	// File name for the log captured from the pod
-	LogFile = "logs.txt"
+	LogFile         = "logs.txt"
+	PreviousLogFile = "previous-logs.txt"
 
 	// File containing list of resources captured by the tool
 	BugReportOut = "bug-report.out"
@@ -252,7 +253,7 @@ const (
 	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from all containers in running pods of the namespaces being captured."
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
