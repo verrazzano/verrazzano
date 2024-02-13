@@ -14,13 +14,6 @@ import (
 	"encoding/pem"
 	errors2 "errors"
 	"fmt"
-	"io"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -28,15 +21,22 @@ import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"os"
+	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
+	"strings"
+	"sync"
+	"time"
 )
 
 const (
@@ -49,6 +49,8 @@ var writeFileError = "an error occurred while writing the file %s: %s\n"
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
+
+var previousTerminatedError = "previous terminated container"
 
 var isError bool
 var isLiveCluster bool
@@ -63,6 +65,25 @@ type CaCrtInfo struct {
 }
 type Metadata struct {
 	Time string `json:"time"`
+}
+
+type ErrorsChannelLogs struct {
+	PodName      string `json:"podName"`
+	ErrorMessage string `json:"errorMessage"`
+}
+
+type ErrorsChannel struct {
+	ErrorMessage string `json:"errorMessage"`
+}
+
+type Pods struct {
+	Namespace string
+	PodList   []corev1.Pod
+}
+type PodLogs struct {
+	IsPodLog   bool
+	IsPrevious bool
+	Duration   int64
 }
 
 // CreateReportArchive creates the .tar.gz file specified by bugReportFile, from the files in captureDir
@@ -550,7 +571,7 @@ func putIntoHostNamesIfNotPresent(inputKey string) {
 }
 
 // CapturePodLog captures the log from the pod in the captureDir
-func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64) error {
+func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, captureDir string, vzHelper VZHelper, duration int64, previous bool) error {
 	podName := pod.Name
 	if len(podName) == 0 {
 		return nil
@@ -563,22 +584,29 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 		return fmt.Errorf(failureToCreateDirectoryMessage, folderPath, err.Error())
 	}
 
-	// Create logs.txt under the directory for the namespace
-	var logPath = filepath.Join(folderPath, constants.LogFile)
-	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
-	if err != nil {
-		return fmt.Errorf(createFileError, logPath, err.Error())
-	}
-	defer f.Close()
-
 	// Capture logs for both init containers and containers
 	var cs []corev1.Container
 	var podLogOptions corev1.PodLogOptions
 	if duration != 0 {
 		podLogOptions.SinceSeconds = &duration
 	}
+	var logPath string
+	if !previous {
+		logPath = filepath.Join(folderPath, constants.LogFile)
+	} else {
+		logPath = filepath.Join(folderPath, constants.PreviousLogFile)
+		podLogOptions.Previous = true
+	}
 	cs = append(cs, pod.Spec.InitContainers...)
 	cs = append(cs, pod.Spec.Containers...)
+
+	// Create logs.txt or previous-logs.txt under the directory for the namespace
+	f, err := os.OpenFile(logPath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		return fmt.Errorf(createFileError, logPath, err.Error())
+	}
+	defer f.Close()
+
 	// Write the log from all the containers to a single file, with lines differentiating the logs from each of the containers
 	for _, c := range cs {
 		writeToFile := func(contName string) error {
@@ -586,6 +614,9 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 			podLogOptions.InsecureSkipTLSVerifyBackend = true
 			podLog, err := kubeClient.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(context.TODO())
 			if err != nil {
+				if strings.Contains(err.Error(), previousTerminatedError) {
+					return nil
+				}
 				LogError(fmt.Sprintf("An error occurred while reading the logs from pod %s: %s\n", podName, err.Error()))
 				return nil
 			}
@@ -853,6 +884,21 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 	return nil
 }
 
+// CaptureLogs collects the logs from platform operator, application operator and monitoring operator in parallel
+func CaptureLogs(wg *sync.WaitGroup, ec chan ErrorsChannelLogs, kubeClient kubernetes.Interface, pod Pods, bugReportDir string, vzHelper VZHelper, podLog PodLogs) {
+	defer wg.Done()
+	if len(pod.PodList) == 0 {
+		return
+	}
+	// This won't work when there are more than one pods for the same app label
+	LogMessage(fmt.Sprintf("log from pod %s in %s namespace ...\n", pod.PodList[0].Name, pod.Namespace))
+	err := CapturePodLog(kubeClient, pod.PodList[0], pod.Namespace, bugReportDir, vzHelper, podLog.Duration, podLog.IsPrevious)
+	if err != nil {
+		ec <- ErrorsChannelLogs{PodName: pod.PodList[0].Name, ErrorMessage: err.Error()}
+	}
+
+}
+
 // CaptureVerrazzanoProjects captures the Verrazzano projects in the verrazzano-mc namespace, as a JSON file
 func CaptureVerrazzanoProjects(dynamicClient dynamic.Interface, captureDir string, vzHelper VZHelper) error {
 	vzProjectConfigs, err := dynamicClient.Resource(GetVzProjectsConfigScheme()).Namespace(vzconstants.VerrazzanoMultiClusterNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -1078,4 +1124,15 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 
 	}
 	return &caCrtInfoForCert, true, nil
+}
+
+func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
+	namespaces, err := FindProblematicPodFiles(bugReportDir)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
+	}
+	if len(namespaces) == 0 {
+		return nil, nil
+	}
+	return namespaces, nil
 }
