@@ -431,19 +431,16 @@ func findMissingSidecarContainers(pods []corev1.Pod) (error error) {
 			if err != nil {
 				return err
 			}
-			//sidecarContainersFromAnnotation := obj["containers"]
-			//containersFromPod := pod.Spec.Containers
-			//
-			//for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
-			//	for i, container := range containersFromPod {
-			//		if sidecar == container.Name {
-			//			continue
-			//		}
-			//		if i == len(containersFromPod) && sidecar != container.Name {
-			//			fmt.Printf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace)
-			//		}
-			//	}
-			//}
+			sidecarContainersFromAnnotation := obj["containers"]
+			containersFromPod := pod.Spec.Containers
+
+			for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
+				for i, container := range containersFromPod {
+					if i+1 == len(containersFromPod) && sidecar != container.Name {
+						fmt.Printf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace)
+					}
+				}
+			}
 		}
 	}
 	return nil
