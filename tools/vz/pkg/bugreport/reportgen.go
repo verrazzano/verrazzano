@@ -5,6 +5,7 @@ package bugreport
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
@@ -48,6 +49,11 @@ type Pods struct {
 	Namespace string
 	PodList   []corev1.Pod
 }
+
+const (
+	istioSidecarStatus  = "sidecar.istio.io/status"
+	istioInjectionLabel = "sidecar.istio.io/inject=false"
+)
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
@@ -101,7 +107,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
 	// flag pods that are missing sidecar containers
-	err = flagMissingSidecarContainers(kubeClient, nsList)
+	err = flagMissingSidecarContainers(client, kubeClient, nsList)
 	if err != nil {
 		return err
 	}
@@ -392,7 +398,7 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 }
 
 // flagMissingSidecarContainers identifies pods in namespaces with --label istio-injection=enabled that are missing sidecar containers
-func flagMissingSidecarContainers(kubeClient kubernetes.Interface, namespaces []string) (error error) {
+func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.Interface, namespaces []string) (error error) {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{vzconstants.LabelIstioInjection: "enabled"}}
 	listOptions := metav1.ListOptions{LabelSelector: labels.Set(labelSelector.MatchLabels).String()}
 	namespaceList, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), listOptions)
@@ -400,12 +406,45 @@ func flagMissingSidecarContainers(kubeClient kubernetes.Interface, namespaces []
 		return err
 	}
 	if len(namespaceList.Items) != 0 {
-		findMissingSidecarContainers(namespaceList)
+		for _, namespace := range namespaceList.Items {
+			//fmt.Printf("Namespace %s, has matching label %s\n", namespace.Name, vzconstants.LabelIstioInjection)
+			podList, err := pkghelpers.GetPodListAll(client, namespace.Name)
+			if err != nil {
+				return err
+			}
+			err = findMissingSidecarContainers(podList)
+			if err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 // findMissingSidecarContainers identifies pods that are missing sidecar containers
-func findMissingSidecarContainers(namespaceList *corev1.NamespaceList) {
-	_ = "sidecar.istio.io/inject"
+func findMissingSidecarContainers(pods []corev1.Pod) (error error) {
+	for _, pod := range pods {
+		if pod.Annotations[istioSidecarStatus] != "" {
+			sidecarContainers := pod.Annotations[istioSidecarStatus]
+			var obj map[string]interface{}
+			err := json.Unmarshal([]byte(sidecarContainers), &obj)
+			if err != nil {
+				return err
+			}
+			//sidecarContainersFromAnnotation := obj["containers"]
+			//containersFromPod := pod.Spec.Containers
+			//
+			//for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
+			//	for i, container := range containersFromPod {
+			//		if sidecar == container.Name {
+			//			continue
+			//		}
+			//		if i == len(containersFromPod) && sidecar != container.Name {
+			//			fmt.Printf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace)
+			//		}
+			//	}
+			//}
+		}
+	}
+	return nil
 }
