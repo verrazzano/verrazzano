@@ -594,7 +594,7 @@ func CapturePodLog(kubeClient kubernetes.Interface, pod corev1.Pod, namespace, c
 	if !previous {
 		logPath = filepath.Join(folderPath, constants.LogFile)
 	} else {
-		logPath = filepath.Join(folderPath, "previous-logs.txt")
+		logPath = filepath.Join(folderPath, constants.PreviousLogFile)
 		podLogOptions.Previous = true
 	}
 	cs = append(cs, pod.Spec.InitContainers...)
