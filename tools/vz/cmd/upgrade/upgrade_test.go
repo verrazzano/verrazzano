@@ -628,8 +628,11 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// should continue with the upgrade because the registry settings are different from the settings used during install
 	inputFile, err := os.CreateTemp("", "tmpstdin")
 	assert.Nil(t, err)
-	inputFile.WriteString("n\n")
+	inputFile.WriteString("n")
 	defer os.Remove(inputFile.Name())
+	if _, err := inputFile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
 	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
 	assert.Nil(t, err)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
@@ -670,7 +673,6 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	assert.NotNil(t, deployment)
 
 	testhelpers.AssertPrivateRegistryImage(t, c, deployment, testImageRegistry, testImagePrefix)
-	testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN Verrazzano is installed from a private registry
 	//
@@ -678,8 +680,11 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	//	THEN the upgrade succeeds and the new registry settings are configured on the VPO
 	inputFile, err = os.CreateTemp("", "tmpstdin")
 	assert.Nil(t, err)
-	inputFile.WriteString("y\n")
+	inputFile.WriteString("y")
 	defer os.Remove(inputFile.Name())
+	if _, err := inputFile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
 	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
 	assert.Nil(t, err)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)

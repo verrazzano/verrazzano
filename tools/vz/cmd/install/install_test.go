@@ -4,7 +4,6 @@
 package install
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/validators"
@@ -47,7 +46,8 @@ const (
 //	THEN the CLI install command is successful
 func TestInstallCmdDefaultNoWait(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -62,7 +62,9 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -80,7 +82,8 @@ func TestInstallCmdDefaultNoWait(t *testing.T) {
 //	THEN the CLI install command times out and a bug report is generated
 func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -100,8 +103,12 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBuf, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", string(errBytes))
+	assert.Contains(t, string(outBuf), "Installing Verrazzano version v1.3.1")
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -114,7 +121,8 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 //	THEN the CLI install command times out and a bug report is not generated
 func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "2ms")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
@@ -135,8 +143,12 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Installing Verrazzano version v1.3.1")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBuf, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", string(errBytes))
+	assert.Contains(t, string(outBuf), "Installing Verrazzano version v1.3.1")
 	// Bug report must not exist
 	if helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
@@ -150,7 +162,8 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 //	THEN the CLI install command fails and a bug report should be generated
 func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// Run install command
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -162,7 +175,9 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -175,7 +190,8 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 //	THEN the CLI install command fails and a bug report should be generated
 func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator+"-2"))...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// Run install command
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
@@ -193,7 +209,9 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
@@ -206,7 +224,8 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 //	THEN the CLI install command is successful
 func TestInstallCmdJsonLogFormat(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -222,7 +241,9 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -237,7 +258,8 @@ func TestInstallCmdJsonLogFormat(t *testing.T) {
 //	THEN the CLI install command is unsuccessful but a bug report should not be generated
 func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -256,7 +278,8 @@ func TestInstallCmdMultipleGroupVersions(t *testing.T) {
 
 func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, testFilenamePath)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -271,7 +294,9 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1beta1.Verrazzano{}
@@ -291,7 +316,8 @@ func TestInstallCmdFilenamesV1Beta1(t *testing.T) {
 //	THEN the CLI install command is successful
 func TestInstallCmdFilenames(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -306,7 +332,9 @@ func TestInstallCmdFilenames(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -322,7 +350,8 @@ func TestInstallCmdFilenames(t *testing.T) {
 //	THEN the CLI install command is successful
 func TestInstallCmdFilenamesCsv(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml,../../test/testdata/override-components.yaml")
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -338,7 +367,9 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -355,7 +386,8 @@ func TestInstallCmdFilenamesCsv(t *testing.T) {
 //	THEN the CLI install command is successful
 func TestInstallCmdSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "environmentName=test")
@@ -372,7 +404,9 @@ func TestInstallCmdSets(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -389,7 +423,8 @@ func TestInstallCmdSets(t *testing.T) {
 //	THEN the CLI install command is successful
 func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
 	cmd.PersistentFlags().Set(constants.FilenameFlag, "../../test/testdata/dev-profile.yaml")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
@@ -410,7 +445,9 @@ func TestInstallCmdFilenamesAndSets(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vz := v1alpha1.Verrazzano{}
@@ -447,7 +484,8 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-			cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+			cmd, rc := createNewTestCommandAndContext(t, c)
+			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			cmd.PersistentFlags().Set(tt.manifestsFlagName, "../../test/testdata/operator-file-fake.yaml")
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 			cmd.PersistentFlags().Set(constants.SkipConfirmationFlag, "true")
@@ -461,11 +499,15 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			// Run install command
 			err := cmd.Execute()
 			assert.NoError(t, err)
-			assert.Equal(t, "", errBuf.String())
-			assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
-			assert.Contains(t, buf.String(), "namespace/verrazzano-install created")
-			assert.Contains(t, buf.String(), "serviceaccount/verrazzano-platform-operator created")
-			assert.Contains(t, buf.String(), "service/verrazzano-platform-operator created\n")
+			errBytes, err := os.ReadFile(rc.ErrOut.Name())
+			assert.NoError(t, err)
+			outBuf, err := os.ReadFile(rc.ErrOut.Name())
+			assert.NoError(t, err)
+			assert.Equal(t, "", string(errBytes))
+			assert.Contains(t, string(outBuf), "Applying the file ../../test/testdata/operator-file-fake.yaml")
+			assert.Contains(t, string(outBuf), "namespace/verrazzano-install created")
+			assert.Contains(t, string(outBuf), "serviceaccount/verrazzano-platform-operator created")
+			assert.Contains(t, string(outBuf), "service/verrazzano-platform-operator created\n")
 
 			// Verify the objects in the operator-file got added
 			sa := corev1.ServiceAccount{}
@@ -495,7 +537,8 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 //	THEN expect an error but a bug report should not be generated
 func TestInstallValidations(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.ManifestsFlag, "test")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -509,7 +552,8 @@ func TestInstallValidations(t *testing.T) {
 	}
 
 	// test validation for deprecated operator-file flag and version being set
-	cmd, _, _, _ = createNewTestCommandAndBuffers(t, c)
+	cmd, rc = createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.OperatorFileFlag, "test")
 	cmd.PersistentFlags().Set(constants.VersionFlag, "test")
 	err = cmd.Execute()
@@ -523,7 +567,8 @@ func TestInstallValidations(t *testing.T) {
 //	WHEN I call GetWaitTimeout
 //	THEN the default timeout duration is returned
 func TestGetWaitTimeoutDefault(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
 	assert.Equal(t, "30m0s", duration.String())
@@ -535,7 +580,8 @@ func TestGetWaitTimeoutDefault(t *testing.T) {
 //	WHEN I call GetWaitTimeout
 //	THEN the duration returned is zero
 func TestGetWaitTimeoutNoWait(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
@@ -548,7 +594,8 @@ func TestGetWaitTimeoutNoWait(t *testing.T) {
 //	WHEN I call GetWaitTimeout
 //	THEN the duration returned is 10m0s
 func TestGetWaitTimeoutSpecified(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "10m")
 	duration, err := cmdHelpers.GetWaitTimeout(cmd, constants.TimeoutFlag)
 	assert.NoError(t, err)
@@ -561,7 +608,8 @@ func TestGetWaitTimeoutSpecified(t *testing.T) {
 //	WHEN I call GetLogFormat
 //	THEN the simple log format is returned
 func TestGetLogFormatSimple(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "simple")
 	logFormat, err := cmdHelpers.GetLogFormat(cmd)
 	assert.NoError(t, err)
@@ -574,7 +622,8 @@ func TestGetLogFormatSimple(t *testing.T) {
 //	WHEN I call GetLogFormat
 //	THEN json log format is returned
 func TestGetLogFormatJson(t *testing.T) {
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.LogFormatFlag, "json")
 	logFormat, err := cmdHelpers.GetLogFormat(cmd)
 	assert.NoError(t, err)
@@ -587,7 +636,8 @@ func TestGetLogFormatJson(t *testing.T) {
 //	WHEN I call getSetArguments
 //	THEN an error is returned
 func TestSetCommandInvalidFormat(t *testing.T) {
-	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SetFlag, "badflag")
 	propValues, err := cmdHelpers.GetSetArguments(cmd, rc)
 	assert.Nil(t, propValues)
@@ -602,7 +652,8 @@ func TestSetCommandInvalidFormat(t *testing.T) {
 //	WHEN I call getSetArguments
 //	THEN the expected property value is returned
 func TestSetCommandSingle(t *testing.T) {
-	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	propValues, err := cmdHelpers.GetSetArguments(cmd, rc)
 	assert.NoError(t, err)
@@ -616,7 +667,8 @@ func TestSetCommandSingle(t *testing.T) {
 //	WHEN I call getSetArguments
 //	THEN the expected property values are returned
 func TestSetCommandMultiple(t *testing.T) {
-	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "spec.environmentName=default")
 	propValues, err := cmdHelpers.GetSetArguments(cmd, rc)
@@ -632,7 +684,8 @@ func TestSetCommandMultiple(t *testing.T) {
 //	WHEN I call getSetArguments
 //	THEN the expected property values are returned
 func TestSetCommandOverride(t *testing.T) {
-	cmd, _, _, rc := createNewTestCommandAndBuffers(t, nil)
+	cmd, rc := createNewTestCommandAndContext(t, nil)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=dev")
 	cmd.PersistentFlags().Set(constants.SetFlag, "profile=prod")
 	propValues, err := cmdHelpers.GetSetArguments(cmd, rc)
@@ -659,7 +712,8 @@ func TestInstallCmdInProgress(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -671,6 +725,7 @@ func TestInstallCmdInProgress(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
+
 	assert.Equal(t, "", errBuf.String())
 }
 
@@ -692,7 +747,8 @@ func TestInstallCmdAlreadyInstalled(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -730,7 +786,8 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
-	cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
 	cmd.Flags().String(constants.GlobalFlagKubeConfig, tempKubeConfigPath.Name(), "")
@@ -750,11 +807,10 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 	}
 }
 
-func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Command, *bytes.Buffer, *bytes.Buffer, *testhelpers.FakeRootCmdContext) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+func createNewTestCommandAndContext(t *testing.T, c client.Client) (*cobra.Command, *testhelpers.FakeRootCmdContextWithFiles) {
+	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
+	assert.Nil(t, err)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	if c != nil {
 		rc.SetClient(c)
 	}
@@ -762,7 +818,7 @@ func createNewTestCommandAndBuffers(t *testing.T, c client.Client) (*cobra.Comma
 
 	cmd := NewCmdInstall(rc)
 	assert.NotNil(t, cmd)
-	return cmd, buf, errBuf, rc
+	return cmd, rc
 }
 
 // installVZ installs Verrazzano using the given client
@@ -892,7 +948,8 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	const imagePrefix = "testrepo"
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	cmd, _, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 	cmd.PersistentFlags().Set(constants.ImageRegistryFlag, imageRegistry)
 	cmd.PersistentFlags().Set(constants.ImagePrefixFlag, imagePrefix)
@@ -936,7 +993,8 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 //	THEN the CLI install command fails and should catch the missing filename flag or the missing file
 func TestInstallFromFilename(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
-	cmd, _, errBuf, rc := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	cmdHelpers.SetDeleteFunc(cmdHelpers.FakeDeleteFunc)
 	defer cmdHelpers.SetDefaultDeleteFunc()
@@ -983,7 +1041,8 @@ func TestInstallSkipOperatorInstall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-			cmd, _, _, _ := createNewTestCommandAndBuffers(t, c)
+			cmd, rc := createNewTestCommandAndContext(t, c)
+			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			cmd.PersistentFlags().Set(constants.WaitFlag, "false")
 			if tt.skipInstall {
 				cmd.PersistentFlags().Set(constants.SkipPlatformOperatorFlag, "true")
