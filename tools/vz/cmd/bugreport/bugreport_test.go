@@ -598,7 +598,7 @@ func getVpoObjects() []client.Object {
 			},
 			Spec: corev1.PodSpec{
 				InitContainers: []corev1.Container{{Name: "istio-init"}},
-				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-2"}, {Name: "istio-proxy"}},
+				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-container"}, {Name: "istio-proxy"}},
 			},
 		},
 		&corev1.Pod{
@@ -694,7 +694,7 @@ func getVpoObjects() []client.Object {
 			},
 			Spec: corev1.PodSpec{
 				InitContainers: []corev1.Container{{Name: "istio-init"}},
-				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-2"}, {Name: "keycloak-3"}, {Name: "keycloak-4"}},
+				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-container1"}, {Name: "keycloak-container2"}, {Name: "keycloak-4"}},
 			},
 		},
 	}

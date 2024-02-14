@@ -158,19 +158,6 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	// Capture logs from resources when the --include-logs flag
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
-	// flag pods that are missing sidecar containers
-	err = flagMissingSidecarContainers(client, kubeClient)
-
-	// find problematic pods from captured resources
-	podNameNamespaces, err := pkghelpers.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
-	if err != nil {
-		return err
-	}
-	err = captureProblematicPodLogs(kubeClient, clusterSnapshotCtx.BugReportDir, vzHelper, podNameNamespaces)
-	if err != nil {
-		return err
-	}
-
 	// Capture Verrazzano Projects and VerrazzanoManagedCluster
 	if err = captureMultiClusterResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
@@ -189,6 +176,20 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	if err = pkghelpers.CaptureGlobalRancherResources(dynamicClient, clusterSnapshotCtx.BugReportDir, vzHelper); err != nil {
 		return err
 	}
+
+	// flag pods that are missing sidecar containers
+	err = flagMissingSidecarContainers(client, kubeClient)
+
+	// find problematic pods from captured resources
+	podNameNamespaces, err := pkghelpers.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
+	if err != nil {
+		return err
+	}
+	err = captureProblematicPodLogs(kubeClient, clusterSnapshotCtx.BugReportDir, vzHelper, podNameNamespaces)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -453,7 +454,7 @@ func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.In
 		if err != nil {
 			return err
 		}
-		err = findMissingSidecarContainers(podList)
+		err = getSidecarsFromAnnotations(podList)
 		if err != nil {
 			return err
 		}
@@ -461,8 +462,8 @@ func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.In
 	return nil
 }
 
-// findMissingSidecarContainers identifies pods that are missing sidecar containers
-func findMissingSidecarContainers(pods []corev1.Pod) (error error) {
+// getSidecarsFromAnnotations parses istio sidecar containers from pod annotations identifies pods that are missing sidecar containers
+func getSidecarsFromAnnotations(pods []corev1.Pod) (error error) {
 	for _, pod := range pods {
 		if pod.Annotations[istioSidecarStatus] == "" {
 			continue
@@ -474,20 +475,24 @@ func findMissingSidecarContainers(pods []corev1.Pod) (error error) {
 			return err
 		}
 		sidecarContainersFromAnnotation := obj["containers"]
-		containersFromPod := pod.Spec.Containers
+		findMissingSidecarContainers(sidecarContainersFromAnnotation.([]interface{}), pod)
+	}
+	return nil
+}
 
-		for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
-			for i, container := range containersFromPod {
-				if sidecar == container.Name {
-					continue
-				}
-				if i+1 == len(containersFromPod) && sidecar != container.Name {
-					pkghelpers.LogError(fmt.Sprintf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace))
-				}
+// findMissingSidecarContainers identifies missing sidecar containers based on its annotations and pod.Spec.Containers
+func findMissingSidecarContainers(sidecars []interface{}, pod corev1.Pod) {
+	containersFromPod := pod.Spec.Containers
+	for _, sidecar := range sidecars {
+		for i, container := range containersFromPod {
+			if sidecar == container.Name {
+				continue
+			}
+			if i+1 == len(containersFromPod) && sidecar != container.Name {
+				pkghelpers.LogError(fmt.Sprintf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace))
 			}
 		}
 	}
-	return nil
 }
 
 // captureProblematicPodLogs tries to capture previous logs for any problematic pods
