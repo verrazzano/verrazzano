@@ -197,7 +197,7 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	assert.NoError(t, err)
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	file, err := os.Open(bugRepFile)
+	file, _ := os.Open(bugRepFile)
 	defer file.Close()
 
 	istioSystemPath := "/cluster-snapshot/istio-system/"
