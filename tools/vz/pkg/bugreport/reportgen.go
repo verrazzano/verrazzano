@@ -105,10 +105,7 @@ var DefaultPodLog = pkghelpers.PodLogs{
 	Duration:   0,
 }
 
-const (
-	istioSidecarStatus  = "sidecar.istio.io/status"
-	istioInjectionLabel = "sidecar.istio.io/inject=false"
-)
+const istioSidecarStatus = "sidecar.istio.io/status"
 
 // CaptureClusterSnapshot selectively captures the resources from the cluster, useful to analyze the issue.
 func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynamic.Interface, client clipkg.Client, vzHelper pkghelpers.VZHelper, podLogs pkghelpers.PodLogs, clusterSnapshotCtx pkghelpers.ClusterSnapshotCtx) error {
@@ -162,7 +159,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	captureAdditionalResources(client, kubeClient, dynamicClient, vzHelper, clusterSnapshotCtx.BugReportDir, nsList, podLogs)
 
 	// flag pods that are missing sidecar containers
-	err = flagMissingSidecarContainers(client, kubeClient, nsList)
+	err = flagMissingSidecarContainers(client, kubeClient)
 
 	// find problematic pods from captured resources
 	podNameNamespaces, err := pkghelpers.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
@@ -444,24 +441,21 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 }
 
 // flagMissingSidecarContainers identifies pods in namespaces with --label istio-injection=enabled that are missing sidecar containers
-func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.Interface, namespaces []string) (error error) {
+func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.Interface) (error error) {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{vzconstants.LabelIstioInjection: "enabled"}}
 	listOptions := metav1.ListOptions{LabelSelector: labels.Set(labelSelector.MatchLabels).String()}
 	namespaceList, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), listOptions)
 	if err != nil {
 		return err
 	}
-	if len(namespaceList.Items) != 0 {
-		for _, namespace := range namespaceList.Items {
-			//fmt.Printf("Namespace %s, has matching label %s\n", namespace.Name, vzconstants.LabelIstioInjection)
-			podList, err := pkghelpers.GetPodListAll(client, namespace.Name)
-			if err != nil {
-				return err
-			}
-			err = findMissingSidecarContainers(podList)
-			if err != nil {
-				return err
-			}
+	for _, namespace := range namespaceList.Items {
+		podList, err := pkghelpers.GetPodListAll(client, namespace.Name)
+		if err != nil {
+			return err
+		}
+		err = findMissingSidecarContainers(podList)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -470,21 +464,25 @@ func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.In
 // findMissingSidecarContainers identifies pods that are missing sidecar containers
 func findMissingSidecarContainers(pods []corev1.Pod) (error error) {
 	for _, pod := range pods {
-		if pod.Annotations[istioSidecarStatus] != "" {
-			sidecarContainers := pod.Annotations[istioSidecarStatus]
-			var obj map[string]interface{}
-			err := json.Unmarshal([]byte(sidecarContainers), &obj)
-			if err != nil {
-				return err
-			}
-			sidecarContainersFromAnnotation := obj["containers"]
-			containersFromPod := pod.Spec.Containers
+		if pod.Annotations[istioSidecarStatus] == "" {
+			continue
+		}
+		sidecarContainers := pod.Annotations[istioSidecarStatus]
+		var obj map[string]interface{}
+		err := json.Unmarshal([]byte(sidecarContainers), &obj)
+		if err != nil {
+			return err
+		}
+		sidecarContainersFromAnnotation := obj["containers"]
+		containersFromPod := pod.Spec.Containers
 
-			for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
-				for i, container := range containersFromPod {
-					if i+1 == len(containersFromPod) && sidecar != container.Name {
-						fmt.Printf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace)
-					}
+		for _, sidecar := range sidecarContainersFromAnnotation.([]interface{}) {
+			for i, container := range containersFromPod {
+				if sidecar == container.Name {
+					continue
+				}
+				if i+1 == len(containersFromPod) && sidecar != container.Name {
+					pkghelpers.LogError(fmt.Sprintf("Sidecar container: %s, was not found for pod: %s, in namespace %s\n", sidecar, pod.Name, pod.Namespace))
 				}
 			}
 		}
