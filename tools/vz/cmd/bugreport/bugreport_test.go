@@ -187,6 +187,8 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
+	defer cleanupTempDir(t, tmpDir)
+
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -196,6 +198,7 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 	file, err := os.Open(bugRepFile)
+	defer file.Close()
 
 	istioSystemPath := "/cluster-snapshot/istio-system/"
 	previousLogTxt := "previous-logs.txt"
@@ -206,9 +209,6 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	stat, err = os.Stat(tmpDir + istioSystemPath + "third-istio-pod/" + previousLogTxt)
 	assert.NoError(t, err)
 	assert.NotNil(t, stat.Name())
-
-	defer file.Close()
-	defer cleanupTempDir(t, tmpDir)
 }
 
 // TestDefaultBugReportSuccess
