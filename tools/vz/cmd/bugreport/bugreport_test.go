@@ -452,7 +452,6 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			assert.NotNil(t, cmd)
 
 			tmpDir, _ := os.MkdirTemp("", "bug-report")
-
 			bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 			setUpGlobalFlags(cmd)
 			err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -467,6 +466,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 				err := strings.Contains(temp, "was not found for pod:")
 				assert.True(t, err)
 			}
+			assert.NoError(t, err)
 			defer os.Remove(stdoutFile.Name())
 			defer os.Remove(stderrFile.Name())
 			defer cleanupTempDir(t, tmpDir)
