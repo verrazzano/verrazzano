@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
 	"testing"
 )
 
@@ -180,16 +179,14 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestBugReportFailedPods
+// TestBugReportGetPreviousLogs
 // GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
 // WHEN I call cmd.Execute
 // THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
-func TestBugReportFailedPods(t *testing.T) {
+func TestBugReportGetPreviousLogs(t *testing.T) {
 	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
-	defer cleanupTempDir(t, tmpDir)
-
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	setUpGlobalFlags(cmd)
 	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -197,10 +194,21 @@ func TestBugReportFailedPods(t *testing.T) {
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NoError(t, err)
 	err = cmd.Execute()
-	if err != nil {
-		assert.Error(t, err)
-	}
 	assert.NoError(t, err)
+	file, err := os.Open(bugRepFile)
+
+	istioSystemPath := "/cluster-snapshot/istio-system/"
+	previousLogTxt := "previous-logs.txt"
+	pkghelper.UntarArchive(tmpDir, file)
+	stat, err := os.Stat(tmpDir + istioSystemPath + "istio/" + previousLogTxt)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
+	stat, err = os.Stat(tmpDir + istioSystemPath + "third-istio-pod/" + previousLogTxt)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
+
+	defer file.Close()
+	defer cleanupTempDir(t, tmpDir)
 }
 
 // TestDefaultBugReportSuccess
@@ -712,10 +720,8 @@ func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	if strings.Contains(t.Name(), "FailedPods") {
-		kubeClient = getKubeClient()
-		rc.SetKubeClient(kubeClient)
-	}
+	kubeClient = getKubeClient()
+	rc.SetKubeClient(kubeClient)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
