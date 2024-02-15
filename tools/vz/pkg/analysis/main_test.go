@@ -4,14 +4,15 @@ package analysis
 
 import (
 	"fmt"
-	vzhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"os"
 	"testing"
 
+	vzhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
 )
 
 // TestHandleMain Tests the handleMain function
