@@ -479,12 +479,12 @@ func getClientWithWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
 }
 
-// getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
+// getClientWithVZWatch returns a client containing all VPO objects, except for the last object, and the Verrazzano CR
 func getClientWithVZWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[:len(getVpoObjects())-1]...).Build()
 }
 
-// getClientWithMissingSidecar returns a pod with a missing sidecar container
+// getClientWithMissingSidecar returns a client containing all VPO objects (including one with a missing sidecar containers) and the VerrazzanoCR
 func getClientWithMissingSidecar() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
 }
