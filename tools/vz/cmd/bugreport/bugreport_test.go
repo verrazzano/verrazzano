@@ -13,7 +13,6 @@ import (
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelper "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"io/ioutil"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -443,6 +442,8 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 			assert.NoError(t, err)
 			stdoutFile, stderrFile := createStdTempFiles(t)
+			defer os.Remove(stdoutFile.Name())
+			defer os.Remove(stderrFile.Name())
 
 			rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 			kubeClient = getKubeClient()
@@ -452,6 +453,8 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			assert.NotNil(t, cmd)
 
 			tmpDir, _ := os.MkdirTemp("", "bug-report")
+			defer cleanupTempDir(t, tmpDir)
+
 			bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 			setUpGlobalFlags(cmd)
 			err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
@@ -461,15 +464,12 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err = cmd.Execute()
 
 			if !tt.success {
-				stderrFileData, _ := ioutil.ReadFile(stderrFile.Name())
+				stderrFileData, _ := os.ReadFile(stderrFile.Name())
 				temp := string(stderrFileData)
 				err := strings.Contains(temp, "was not found for pod:")
 				assert.True(t, err)
 			}
 			assert.NoError(t, err)
-			defer os.Remove(stdoutFile.Name())
-			defer os.Remove(stderrFile.Name())
-			defer cleanupTempDir(t, tmpDir)
 		})
 	}
 }

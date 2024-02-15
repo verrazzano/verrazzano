@@ -442,7 +442,7 @@ func captureMultiClusterResources(dynamicClient dynamic.Interface, captureDir st
 }
 
 // flagMissingSidecarContainers identifies pods in namespaces with --label istio-injection=enabled that are missing sidecar containers
-func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.Interface) (error error) {
+func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.Interface) error {
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{vzconstants.LabelIstioInjection: "enabled"}}
 	listOptions := metav1.ListOptions{LabelSelector: labels.Set(labelSelector.MatchLabels).String()}
 	namespaceList, err := kubeClient.CoreV1().Namespaces().List(context.TODO(), listOptions)
@@ -463,7 +463,7 @@ func flagMissingSidecarContainers(client clipkg.Client, kubeClient kubernetes.In
 }
 
 // getSidecarsFromAnnotations parses istio sidecar containers from pod annotations identifies pods that are missing sidecar containers
-func getSidecarsFromAnnotations(pods []corev1.Pod) (error error) {
+func getSidecarsFromAnnotations(pods []corev1.Pod) error {
 	for _, pod := range pods {
 		if pod.Annotations[istioSidecarStatus] == "" {
 			continue
