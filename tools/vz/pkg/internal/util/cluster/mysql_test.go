@@ -17,7 +17,7 @@ import (
 func TestAnalyzeMySQLRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
+	assert.NoError(t, AnalyzeMySQLRelatedIssues(logger, "../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
 	report.ClearReports()
 }
 
@@ -28,7 +28,7 @@ func TestAnalyzeMySQLRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testing.T
 func TestAnalyzeMySQLRelatedIssueWhenInputIsNotValid(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.Error(t, AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/does-not-exist/cluster-snapshot"))
+	assert.Error(t, AnalyzeMySQLRelatedIssues(logger, "../../test/cluster/does-not-exist/cluster-snapshot"))
 	report.ClearReports()
 }
 
@@ -39,7 +39,7 @@ func TestAnalyzeMySQLRelatedIssueWhenInputIsNotValid(t *testing.T) {
 func TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating-no-metadata-file/cluster-snapshot")
+	err := AnalyzeMySQLRelatedIssues(logger, "../../test/cluster/inno-db-cluster-stuck-terminating-no-metadata-file/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
 	assert.True(t, len(reportedIssues) == 0)
@@ -52,7 +52,7 @@ func TestAnalyzeMySQLRelatedIssuesWhenMetadataFileIsNotProvided(t *testing.T) {
 func TestAnalyzeMySQLRelatedIssues(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeMySQLRelatedIssues(logger, "../../../test/cluster/inno-db-cluster-stuck-terminating-with-metadata-file/cluster-snapshot")
+	err := AnalyzeMySQLRelatedIssues(logger, "../../test/cluster/inno-db-cluster-stuck-terminating-with-metadata-file/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
 	assert.True(t, len(reportedIssues) == 1)

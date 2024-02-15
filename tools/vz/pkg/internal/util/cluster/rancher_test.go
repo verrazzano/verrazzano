@@ -20,8 +20,8 @@ type testCase struct {
 }
 
 const (
-	clustersReadySnapshot    = "../../../test/cluster/rancher/clusters-ready/cluster-snapshot"
-	clustersNotReadySnapshot = "../../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
+	clustersReadySnapshot    = "../../test/cluster/rancher/clusters-ready/cluster-snapshot"
+	clustersNotReadySnapshot = "../../test/cluster/rancher/clusters-not-ready/cluster-snapshot"
 )
 
 var testCases = []testCase{

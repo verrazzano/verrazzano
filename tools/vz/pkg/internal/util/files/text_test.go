@@ -19,7 +19,7 @@ import (
 // THEN search matches will be returned
 func TestSearchFilesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	rootDirectory := "../../../test"
+	rootDirectory := "../../test"
 	myFiles, err := GetMatchingFileNames(logger, rootDirectory, regexp.MustCompile(".*"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
@@ -39,7 +39,7 @@ func TestSearchFilesGood(t *testing.T) {
 // THEN search matches will be returned
 func TestFindFilesAndSearchGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myMatches, err := FindFilesAndSearch(logger, "../../../test", regexp.MustCompile(".*"), regexp.MustCompile("ghcr.io/.*/rancher"), nil)
+	myMatches, err := FindFilesAndSearch(logger, "../../test", regexp.MustCompile(".*"), regexp.MustCompile("ghcr.io/.*/rancher"), nil)
 	assert.Nil(t, err)
 	assert.NotNil(t, myMatches)
 	assert.True(t, len(myMatches) > 0)
@@ -54,14 +54,14 @@ func TestFindFilesAndSearchGood(t *testing.T) {
 // THEN error will be returned
 func TestBadExpressions(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	_, err := FindFilesAndSearch(logger, "../../../test", nil, regexp.MustCompile("ghcr.io/.*/rancher"), nil)
+	_, err := FindFilesAndSearch(logger, "../../test", nil, regexp.MustCompile("ghcr.io/.*/rancher"), nil)
 	assert.NotNil(t, err)
-	_, err = FindFilesAndSearch(logger, "../../../test", regexp.MustCompile(".*"), nil, nil)
+	_, err = FindFilesAndSearch(logger, "../../test", regexp.MustCompile(".*"), nil, nil)
 	assert.NotNil(t, err)
-	_, err = GetMatchingFileNames(logger, "../../../test", nil)
+	_, err = GetMatchingFileNames(logger, "../../test", nil)
 	assert.NotNil(t, err)
 	myFiles := []string{"test file"}
-	_, err = SearchFiles(logger, "../../../test", myFiles, nil, nil)
+	_, err = SearchFiles(logger, "../../test", myFiles, nil, nil)
 	assert.NotNil(t, err)
 }
 

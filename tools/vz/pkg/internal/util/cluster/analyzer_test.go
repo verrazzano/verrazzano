@@ -33,14 +33,14 @@ func TestRunAnalysisBadArgs(t *testing.T) {
 	assert.True(t, strings.Contains(err.Error(), "runAnalysis failed examining directories"))
 
 	// Call runAnalysis with a directory that exists but has no cluster roots underneath it
-	err = RunAnalysis(rc, logger, "../../../test/cluster/image-pull-case1/bobs-books")
+	err = RunAnalysis(rc, logger, "../../test/cluster/image-pull-case1/bobs-books")
 	assert.NotNil(t, err)
 	assert.True(t, strings.Contains(err.Error(), "runAnalysis didn't find any clusters to analyze"))
 
 	// Call runAnalysis with an analyzer that fails, it will NOT return an error here, we
 	// log them as errors and continue on
 	clusterAnalysisFunctions["bad-tester"] = badTestAnalyzer
-	err = RunAnalysis(rc, logger, "../../../test/cluster/image-pull-case1")
+	err = RunAnalysis(rc, logger, "../../test/cluster/image-pull-case1")
 	delete(clusterAnalysisFunctions, "bad-tester")
 	assert.Nil(t, err)
 }
@@ -59,7 +59,7 @@ func TestRunAnalysisValidArgs(t *testing.T) {
 	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 
 	// Call runAnalysis with an analyzer that passes, we log the info and continue
-	err := RunAnalysis(rc, logger, "../../../test/cluster/cluster-snapshot")
+	err := RunAnalysis(rc, logger, "../../test/cluster/cluster-snapshot")
 	assert.Nil(t, err)
 
 }

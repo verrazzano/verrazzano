@@ -18,7 +18,7 @@ import (
 func TestAnalyzeNetworkingIssues(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
+	assert.NoError(t, AnalyzeNetworkingIssues(logger, "../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
 	report.ClearReports()
 
 }
@@ -31,20 +31,20 @@ func TestDetermineIfTCPKeepIdleIssueHasOccurred(t *testing.T) {
 	// This test confirms that it detects the issue when it appears in a log
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot")
+	err := AnalyzeNetworkingIssues(logger, "../../test/cluster/testTCPKeepIdle/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
 	// This test tests that this issue is not reported when it does not occur
 	report.ClearReports()
-	err = AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdleNotOccurring/cluster-snapshot")
+	err = AnalyzeNetworkingIssues(logger, "../../test/cluster/testTCPKeepIdleNotOccurring/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 0)
 	// This test tests that when this issue occurs multiple times in multiple files, only one issue is reported
 	// This test also confirms that the informational data in the report contains the names of all files where this single issue occurred
 	report.ClearReports()
-	err = AnalyzeNetworkingIssues(logger, "../../../test/cluster/testTCPKeepIdleIssueOccursInTwoPods/cluster-snapshot")
+	err = AnalyzeNetworkingIssues(logger, "../../test/cluster/testTCPKeepIdleIssueOccursInTwoPods/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues = report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)

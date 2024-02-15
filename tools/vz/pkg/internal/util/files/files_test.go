@@ -20,14 +20,14 @@ import (
 // THEN files that matched will be returned
 func TestGetMatchingFileNamesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myFiles, err := GetMatchingFileNames(logger, "../../../test/json", regexp.MustCompile(`node.*\.json$`))
+	myFiles, err := GetMatchingFileNames(logger, "../../test/json", regexp.MustCompile(`node.*\.json$`))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsRegularFile(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingFileNames(logger, "../../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
+	myFiles, err = GetMatchingFileNames(logger, "../../test/json", regexp.MustCompile(`node.*\.none_shall_match`))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
@@ -39,14 +39,14 @@ func TestGetMatchingFileNamesGood(t *testing.T) {
 func TestGetMatchingDirectoriesNamesGood(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
 	// the .*son will match directories with names like "json"
-	myFiles, err := GetMatchingDirectoryNames(logger, "../../../test", regexp.MustCompile(".*son$"))
+	myFiles, err := GetMatchingDirectoryNames(logger, "../../test", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.NotNil(t, myFiles)
 	assert.True(t, len(myFiles) > 0)
 	for _, file := range myFiles {
 		assert.True(t, len(checkIsDirectory(logger, file)) == 0)
 	}
-	myFiles, err = GetMatchingDirectoryNames(logger, "../../../test", regexp.MustCompile("none_shall_match"))
+	myFiles, err = GetMatchingDirectoryNames(logger, "../../test", regexp.MustCompile("none_shall_match"))
 	assert.Nil(t, err)
 	assert.Nil(t, myFiles)
 }
@@ -57,14 +57,14 @@ func TestGetMatchingDirectoriesNamesGood(t *testing.T) {
 // THEN we get failures as expected
 func TestGetMatchingInvalidInputs(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	_, err := GetMatchingDirectoryNames(logger, "../../../test", nil)
+	_, err := GetMatchingDirectoryNames(logger, "../../test", nil)
 	assert.NotNil(t, err)
-	filesFound, err := GetMatchingDirectoryNames(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err := GetMatchingDirectoryNames(logger, "../../test-not-found", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
-	_, err = GetMatchingFileNames(logger, "../../../test", nil)
+	_, err = GetMatchingFileNames(logger, "../../test", nil)
 	assert.NotNil(t, err)
-	filesFound, err = GetMatchingFileNames(logger, "../../../test-not-found", regexp.MustCompile(".*son$"))
+	filesFound, err = GetMatchingFileNames(logger, "../../test-not-found", regexp.MustCompile(".*son$"))
 	assert.Nil(t, err)
 	assert.Nil(t, filesFound)
 
@@ -76,13 +76,13 @@ func TestGetMatchingInvalidInputs(t *testing.T) {
 // THEN utility functions behave as expected
 func TestMiscUtils(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	filename := FormFilePathInClusterRoot("../../../test/cluster/problem-pods/cluster-snapshot/problem-pods", "default")
+	filename := FormFilePathInClusterRoot("../../test/cluster/problem-pods/cluster-snapshot/problem-pods", "default")
 	assert.NotNil(t, filename)
-	namespaces, err := FindNamespaces(logger, "../../../test/cluster/problem-pods/cluster-snapshot")
+	namespaces, err := FindNamespaces(logger, "../../test/cluster/problem-pods/cluster-snapshot")
 	assert.Nil(t, err)
 	assert.NotNil(t, namespaces)
 	assert.True(t, len(namespaces) > 0)
-	_, err = FindNamespaces(logger, "../../../test/problem-pods/not-found")
+	_, err = FindNamespaces(logger, "../../test/problem-pods/not-found")
 	assert.NotNil(t, err)
 }
 
@@ -126,7 +126,7 @@ func checkIsRegularFile(logger *zap.SugaredLogger, fileName string) string {
 // THEN expect it to successfully create a time.Time object with the correct information and no error should be returned.
 func TestGetTimeOfCapture(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	timeObject, err := GetTimeOfCapture(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
+	timeObject, err := GetTimeOfCapture(logger, "../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
 	assert.NotNil(t, timeObject)
 	assert.Nil(t, err)
 	assert.True(t, timeObject.UTC().Format(time.RFC3339) == "2024-01-24T13:44:11Z")

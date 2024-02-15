@@ -17,6 +17,6 @@ func TestInstallationStatus(t *testing.T) {
 	var issueReporter = report.IssueReporter{
 		PendingIssues: make(map[string]report.Issue),
 	}
-	assert.NoError(t, installationStatus(logger, "../../../test/cluster/problem-pods-install/cluster-snapshot", &issueReporter))
-	assert.NoError(t, installationStatus(logger, "../../../test/cluster/pending-pods/cluster-snapshot", &issueReporter))
+	assert.NoError(t, installationStatus(logger, "../../test/cluster/problem-pods-install/cluster-snapshot", &issueReporter))
+	assert.NoError(t, installationStatus(logger, "../../test/cluster/pending-pods/cluster-snapshot", &issueReporter))
 }

@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	clusterAPIReadySnapshot     = "../../../test/cluster/cluster-api/clusters-ready/cluster-snapshot"
-	clustersAPINotReadySnapshot = "../../../test/cluster/cluster-api/clusters-not-ready/cluster-snapshot"
+	clusterAPIReadySnapshot     = "../../test/cluster/cluster-api/clusters-ready/cluster-snapshot"
+	clustersAPINotReadySnapshot = "../../test/cluster/cluster-api/clusters-not-ready/cluster-snapshot"
 )
 
 type capiTestCase struct {

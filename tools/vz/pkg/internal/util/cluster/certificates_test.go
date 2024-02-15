@@ -17,8 +17,8 @@ import (
 func TestAnalyzeCertificateIssues(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificateExpirationIssue/cluster-snapshot"))
-	assert.Error(t, AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificateExpirationIssueInvalid/cluster-snapshot"))
+	assert.NoError(t, AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testCertificateExpirationIssue/cluster-snapshot"))
+	assert.Error(t, AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testCertificateExpirationIssueInvalid/cluster-snapshot"))
 	report.ClearReports()
 
 }
@@ -30,10 +30,10 @@ func TestAnalyzeCertificateIssues(t *testing.T) {
 func TestDetermineIfVZClientIsHangingDueToCerts(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	listOfCerts, err := determineIfVZClientIsHangingDueToCerts(logger, "../../../test/cluster/testCLIHangingIssue/cluster-snapshot")
+	listOfCerts, err := determineIfVZClientIsHangingDueToCerts(logger, "../../test/cluster/testCLIHangingIssue/cluster-snapshot")
 	assert.Equal(t, err, nil)
 	assert.Greater(t, len(listOfCerts), 0)
-	listOfCerts, err = determineIfVZClientIsHangingDueToCerts(logger, "../../../test/cluster/testCertificateExpirationIssue/cluster-snapshot")
+	listOfCerts, err = determineIfVZClientIsHangingDueToCerts(logger, "../../test/cluster/testCertificateExpirationIssue/cluster-snapshot")
 	assert.Equal(t, err, nil)
 	assert.Equal(t, len(listOfCerts), 0)
 }
@@ -46,7 +46,7 @@ func TestGetLatestCondition(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
 	// In this example, two certificates have generic issues, but only one of the certificates has a condition time associated with its condition that reports this
-	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testLatestCondition/cluster-snapshot")
+	err := AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testLatestCondition/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.NotNil(t, reportedIssues)
@@ -67,9 +67,9 @@ func TestGetLatestCondition(t *testing.T) {
 func TestNoIssuesFoundInCertificates(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testValidCertificates/cluster-snapshot")
+	err := AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testValidCertificates/cluster-snapshot")
 	assert.Nil(t, err)
-	err = AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testNoCertificates/cluster-snapshot")
+	err = AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testNoCertificates/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.Nil(t, reportedIssues)
@@ -83,7 +83,7 @@ func TestNoIssuesFoundInCertificates(t *testing.T) {
 func TestCertificatesAreNotGrantedReturnsNoError(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCertificatesNotGranted/cluster-snapshot")
+	err := AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testCertificatesNotGranted/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
@@ -92,7 +92,7 @@ func TestCertificatesAreNotGrantedReturnsNoError(t *testing.T) {
 func TestCaCertInfoFileWithNoIssueReturnsNoError(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCaCertsNotExpired/cluster-snapshot")
+	err := AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testCaCertsNotExpired/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 0)
@@ -101,7 +101,7 @@ func TestCaCertInfoFileWithNoIssueReturnsNoError(t *testing.T) {
 func TestCaCertInfoFileWithExpirationReportsAnIssue(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeCertificateRelatedIssues(logger, "../../../test/cluster/testCaCertsExpired/cluster-snapshot")
+	err := AnalyzeCertificateRelatedIssues(logger, "../../test/cluster/testCaCertsExpired/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)

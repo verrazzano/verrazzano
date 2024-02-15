@@ -53,11 +53,11 @@ func TestPodConditionMessage(t *testing.T) {
 // Expect No Error for each analysis
 func TestAnalyzePodIssues(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/problem-pods/cluster-snapshot"))
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pending-pods/cluster-snapshot"))
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/problem-pods-install/cluster-snapshot"))
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/insufficient-mem/cluster-snapshot"))
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/problem-pods/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/pending-pods/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/problem-pods-install/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/insufficient-mem/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
 }
 
 // TestPodReadinessGateIssue tests whether the relevant issue is reported when a pod does not have its readiness gates ready
@@ -67,7 +67,7 @@ func TestAnalyzePodIssues(t *testing.T) {
 func TestPodReadinessGatesIssue(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/pod-waiting-for-readiness-gates/cluster-snapshot"))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
 	assert.True(t, reportedIssues[0].Type == report.PodWaitingOnReadinessGates)
@@ -81,7 +81,7 @@ func TestPodReadinessGatesIssue(t *testing.T) {
 func TestPodHangingOnDeletionIssue(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzePodIssues(logger, "../../../test/cluster/pod-hanging-on-deletion/cluster-snapshot"))
+	assert.NoError(t, AnalyzePodIssues(logger, "../../test/cluster/pod-hanging-on-deletion/cluster-snapshot"))
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
 	assert.True(t, reportedIssues[0].Type == report.PodHangingOnDeletion)

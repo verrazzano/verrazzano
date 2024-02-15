@@ -19,7 +19,7 @@ import (
 func TestAnalyzeNamespaceRelatedIssueWhenNamespaceAndMetadataNotPresent(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.NoError(t, AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
+	assert.NoError(t, AnalyzeNamespaceRelatedIssues(logger, "../../test/cluster/testTCPKeepIdle/cluster-snapshot"))
 	report.ClearReports()
 }
 
@@ -31,7 +31,7 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 	// This test confirms that it detects the issue when it appears in a log
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/namespace-stuck-terminating-on-finalizers/cluster-snapshot")
+	err := AnalyzeNamespaceRelatedIssues(logger, "../../test/cluster/namespace-stuck-terminating-on-finalizers/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
@@ -45,7 +45,7 @@ func TestDetermineIfNamespaceTerminationIssueHasOccurred(t *testing.T) {
 func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	assert.Error(t, AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/does-not-exist/cluster-snapshot"))
+	assert.Error(t, AnalyzeNamespaceRelatedIssues(logger, "../../test/cluster/does-not-exist/cluster-snapshot"))
 	report.ClearReports()
 }
 
@@ -56,7 +56,7 @@ func TestAnalyzeNamespaceRelatedIssueWhenInputIsNotValid(t *testing.T) {
 func TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
+	err := AnalyzeNamespaceRelatedIssues(logger, "../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
 	assert.True(t, len(reportedIssues) == 1)
@@ -69,7 +69,7 @@ func TestAnalyzeNamespaceRelatedIssueWhenMultipleNamespacesAreProvided(t *testin
 func TestAnalyzeNamespaceRelatedIssueWhenMetadataFileIsNotProvided(t *testing.T) {
 	report.ClearReports()
 	logger := log.GetDebugEnabledLogger()
-	err := AnalyzeNamespaceRelatedIssues(logger, "../../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers-no-metadata-file/cluster-snapshot")
+	err := AnalyzeNamespaceRelatedIssues(logger, "../../test/cluster/multiple-namespaces-stuck-terminating-on-finalizers-no-metadata-file/cluster-snapshot")
 	assert.Nil(t, err)
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 5, 0)
 	assert.True(t, len(reportedIssues) == 0)

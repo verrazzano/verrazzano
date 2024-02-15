@@ -17,7 +17,7 @@ import (
 // THEN valid json data will be returned
 func TestGetJSONDataFromFileGoodData(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myData, err := GetJSONDataFromFile(logger, "../../../test/json/nodes.json")
+	myData, err := GetJSONDataFromFile(logger, "../../test/json/nodes.json")
 	assert.Nil(t, err)
 	assert.NotNil(t, myData)
 	apiVersion, err := GetJSONValue(logger, myData, "apiVersion")
@@ -41,7 +41,7 @@ func TestGetJSONDataFromFileGoodData(t *testing.T) {
 	fmt.Printf("items.status.images.names: %s\n", images)
 
 	// Get it again, this should find it in the cache
-	myData, err = GetJSONDataFromFile(logger, "../../../test/json/nodes.json")
+	myData, err = GetJSONDataFromFile(logger, "../../test/json/nodes.json")
 	assert.Nil(t, err)
 	assert.NotNil(t, myData)
 	assert.True(t, cacheHits > 0)
@@ -66,7 +66,7 @@ func TestGetJSONDataFromFileFileNotFound(t *testing.T) {
 // THEN we will fail as expected
 func TestGetJSONDataFromFileBadData(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	_, err := GetJSONDataFromFile(logger, "../../../test/json/bogus.json")
+	_, err := GetJSONDataFromFile(logger, "../../test/json/bogus.json")
 	assert.NotNil(t, err)
 }
 
@@ -76,7 +76,7 @@ func TestGetJSONDataFromFileBadData(t *testing.T) {
 // THEN valid json data will be returned
 func TestGetJSONArrays(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-	myData, err := GetJSONDataFromFile(logger, "../../../test/json/basic_array.json")
+	myData, err := GetJSONDataFromFile(logger, "../../test/json/basic_array.json")
 	assert.Nil(t, err)
 	assert.NotNil(t, myData)
 	value, err := GetJSONValue(logger, myData, "[1]")
