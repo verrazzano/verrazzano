@@ -321,7 +321,7 @@ func TestUninstallCmdDefaultNoVPO(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(errBytes), VzVpoFailureError)
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -363,7 +363,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(errBytes), PodNotFoundError)
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -397,7 +397,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(errBytes), "Verrazzano is not installed: Failed to find any Verrazzano resources")
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }

@@ -106,7 +106,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", string(errBytes))
 	assert.Contains(t, string(buf), "Upgrading Verrazzano to version v1.4.0")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
 }
@@ -182,7 +182,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.Nil(t, err)
 	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }
@@ -221,7 +221,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.Nil(t, err)
 	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }

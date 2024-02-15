@@ -179,7 +179,7 @@ func TestInstallCmdDefaultNoVPO(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
@@ -213,7 +213,7 @@ func TestInstallCmdDefaultMultipleVPO(t *testing.T) {
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	if !helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal(BugReportNotExist)
 	}
 }
