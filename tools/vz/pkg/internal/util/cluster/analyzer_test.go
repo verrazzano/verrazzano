@@ -8,12 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	vzhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
+	vzhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"go.uber.org/zap"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // TestRunAnalysisBad Tests the main RunAnalysis function

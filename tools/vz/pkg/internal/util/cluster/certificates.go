@@ -14,10 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-
 	certv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
 	"go.uber.org/zap"

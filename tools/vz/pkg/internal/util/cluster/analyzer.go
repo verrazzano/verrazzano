@@ -10,7 +10,6 @@ import (
 	"regexp"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
-
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
 	"go.uber.org/zap"
