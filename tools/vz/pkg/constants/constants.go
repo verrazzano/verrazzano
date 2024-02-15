@@ -196,7 +196,8 @@ const (
 	OutputTarGZFile = "output-tar-file.tar.gz"
 
 	// File name for the log captured from the pod
-	LogFile = "logs.txt"
+	LogFile         = "logs.txt"
+	PreviousLogFile = "previous-logs.txt"
 
 	// File containing list of resources captured by the tool
 	BugReportOut = "bug-report.out"
@@ -206,30 +207,31 @@ const (
 	BugReportWarning = "WARNING: Please examine the contents of the bug report for any sensitive data"
 
 	// File containing a map from redacted values to their original values
-	RedactionPrefix = "REDACTED-"
-	RedactionMap    = "sensitive-do-not-share-redaction-map.csv"
+	RedactionPrefix     = "REDACTED-"
+	RedactionFileSuffix = "-sensitive-do-not-share-redaction-map.csv"
 
 	// File names for the various resources
-	VzResource       = "verrazzano-resources.json"
-	DeploymentsJSON  = "deployments.json"
-	EventsJSON       = "events.json"
-	PodsJSON         = "pods.json"
-	CertificatesJSON = "certificates.json"
-	ServicesJSON     = "services.json"
-	ReplicaSetsJSON  = "replicasets.json"
-	DaemonSetsJSON   = "daemonsets.json"
-	IngressJSON      = "ingress.json"
-	StatefulSetsJSON = "statefulsets.json"
-	AppConfigJSON    = "application-configurations.json"
-	ComponentJSON    = "components.json"
-	IngressTraitJSON = "ingress-traits.json"
-	MetricsTraitJSON = "metrics-traits.json"
-	McAppConfigJSON  = "multicluster-application-configurations.json"
-	McComponentJSON  = "multicluster-components.json"
-	VzProjectsJSON   = "verrazzano-projects.json"
-	VmcJSON          = "verrazzano-managed-clusters.json"
-	NamespaceJSON    = "namespace.json"
-	MetadataJSON     = "metadata.json"
+	VzResource        = "verrazzano-resources.json"
+	DeploymentsJSON   = "deployments.json"
+	EventsJSON        = "events.json"
+	PodsJSON          = "pods.json"
+	CertificatesJSON  = "certificates.json"
+	ServicesJSON      = "services.json"
+	ReplicaSetsJSON   = "replicasets.json"
+	DaemonSetsJSON    = "daemonsets.json"
+	IngressJSON       = "ingress.json"
+	StatefulSetsJSON  = "statefulsets.json"
+	AppConfigJSON     = "application-configurations.json"
+	ComponentJSON     = "components.json"
+	IngressTraitJSON  = "ingress-traits.json"
+	MetricsTraitJSON  = "metrics-traits.json"
+	McAppConfigJSON   = "multicluster-application-configurations.json"
+	McComponentJSON   = "multicluster-components.json"
+	VzProjectsJSON    = "verrazzano-projects.json"
+	VmcJSON           = "verrazzano-managed-clusters.json"
+	NamespaceJSON     = "namespace.json"
+	MetadataJSON      = "metadata.json"
+	InnoDBClusterJSON = "inno-db-cluster.json"
 
 	// Indentation when the resource is marshalled as Json
 	JSONIndent = "  "
@@ -251,7 +253,7 @@ const (
 	// Flag for capture pods logs( both additional and system namespaces)
 	BugReportLogFlagName         = "include-logs"
 	BugReportLogFlagNameShort    = "l"
-	BugReportLogFlagNameUsage    = "Include logs from all containers in running pods of the namespaces being captured."
+	BugReportLogFlagNameUsage    = "Include logs from the pods in one or more namespaces; this is specified along with the --include-namespaces flag."
 	BugReportTimeFlagName        = "duration"
 	BugReportTimeFlagNameShort   = "d"
 	BugReportTimeFlagDefaultTime = 0
@@ -266,5 +268,8 @@ const ProgressShorthand = "p"
 const RefreshRate = time.Second * 10
 const TotalWidth = 50
 
-// Error message for failing to parse a flag
-const FlagErrorMessage = "an error occurred while reading value for the flag --%s: %s"
+// Common error strings
+const (
+	FlagErrorMessage          = "an error occurred while reading value for the flag --%s: %s"
+	RedactionMapCreationError = "an error occurred while creating the redacted values map at %s: %s"
+)

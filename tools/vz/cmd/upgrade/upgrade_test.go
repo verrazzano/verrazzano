@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package upgrade
@@ -149,7 +149,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", string(errBytes))
 	assert.Contains(t, string(buf), "Upgrading Verrazzano to version v1.4.0")
 	// Bug report must not exist
-	if helpers.CheckAndRemoveBugReportExistsInDir("") {
+	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
 }

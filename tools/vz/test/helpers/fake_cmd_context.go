@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
@@ -67,6 +67,11 @@ func (rc *FakeRootCmdContext) GetKubeClient(cmd *cobra.Command) (kubernetes.Inte
 // SetClient - set the client
 func (rc *FakeRootCmdContext) SetClient(client client.Client) {
 	rc.client = client
+}
+
+// SetKubeClient - set the kubeclient
+func (rc *FakeRootCmdContext) SetKubeClient(kubeClient kubernetes.Interface) {
+	rc.kubeClient = kubeClient
 }
 
 // RoundTripFunc - define the type for the Transport function

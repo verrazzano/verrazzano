@@ -1,0 +1,1 @@
+{"apiVersion":"mysql.oracle.com/v2","items":[{"apiVersion":"mysql.oracle.com/v2","kind":"InnoDBCluster","metadata":{"deletionTimestamp":"2024-02-07T15:07:20Z","name":"my-sql","namespace":"keycloak","resourceVersion":"999"},"status":{"cluster":{"status":"ONLINE"}}}],"kind":"InnoDBCluster"}
