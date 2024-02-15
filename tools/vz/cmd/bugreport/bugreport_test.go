@@ -219,6 +219,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	assert.NoError(t, err)
 
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -245,6 +246,7 @@ func TestBugReportRedactedValuesFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -281,6 +283,7 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	assert.NoError(t, err)
 
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -318,15 +321,8 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-	defer os.Remove(stdoutFile.Name())
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-	defer os.Remove(stderrFile.Name())
-
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -337,7 +333,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	_, err = os.ReadFile(stdoutFile.Name())
+	_, err = os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 }
 
@@ -349,6 +345,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -382,6 +379,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
 
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
@@ -639,17 +637,6 @@ func cleanupFile(t *testing.T, file *os.File) {
 	}
 }
 
-// createStdTempFiles creates temporary files for stdout and stderr.
-func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-
-	return stdoutFile, stderrFile
-}
-
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
@@ -700,6 +687,7 @@ func setUpAndVerifyResources(t *testing.T) (*helpers.FakeRootCmdContextWithFiles
 
 	assert.NoError(t, err)
 	rc, err := setupFakeDynamicClient(c)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	if strings.Contains(t.Name(), "FailedPods") {
 		kubeClient = getKubeClient()
