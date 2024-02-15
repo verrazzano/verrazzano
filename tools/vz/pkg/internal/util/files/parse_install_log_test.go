@@ -1,12 +1,13 @@
-// Copyright (c) 2022, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package files
 
 import (
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var vpoLog = "../../../test/cluster/ingress-ip-not-found/cluster-snapshot/verrazzano-install/verrazzano-platform-operator-64694f7cc4-br684/logs.txt"

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ==== START logs for container helm of pod cattle-system/helm-operation-gjfls ====
 helm upgrade --force-adopt=true --history-max=5 --install=true --namespace=cattle-fleet-system --reset-values=true --timeout=5m0s --version=100.0.3+up0.3.9 --wait=true fleet-crd /home/shell/helm/fleet-crd-100.0.3-up0.3.9.tgz

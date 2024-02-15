@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ==== START logs for container rancher-webhook of pod cattle-system/rancher-webhook-6958cfcddf-7wchz ====
 time="2022-06-16T10:27:23Z" level=info msg="Rancher-webhook version dev (HEAD) is starting"

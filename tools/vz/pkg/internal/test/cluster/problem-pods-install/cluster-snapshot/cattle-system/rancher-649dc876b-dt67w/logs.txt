@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ==== START logs for container rancher of pod cattle-system/rancher-649dc876b-dt67w ====
 2022/06/16 10:23:01 [INFO] Rancher version v2.6.4-20220504205847-7131173f2 (7131173f2) is starting

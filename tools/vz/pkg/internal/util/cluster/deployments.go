@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2022, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 // Package cluster handles cluster analysis
@@ -6,11 +6,12 @@ package cluster
 
 import (
 	encjson "encoding/json"
-	"go.uber.org/zap"
 	"io"
-	appsv1 "k8s.io/api/apps/v1"
 	"os"
 	"sync"
+
+	"go.uber.org/zap"
+	appsv1 "k8s.io/api/apps/v1"
 )
 
 var deploymentListMap = make(map[string]*appsv1.DeploymentList)

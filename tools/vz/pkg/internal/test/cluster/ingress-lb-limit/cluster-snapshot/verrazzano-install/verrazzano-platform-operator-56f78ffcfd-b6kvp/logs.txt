@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 ==== START logs for container verrazzano-platform-operator of pod verrazzano-install/verrazzano-platform-operator-56f78ffcfd-b6kvp ====
 {"level":"info","@timestamp":"2022-06-03T14:11:21.182Z","caller":"platform-operator/main.go:98","message":"Starting Verrazzano Platform Operator"}
