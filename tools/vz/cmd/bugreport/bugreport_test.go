@@ -182,7 +182,7 @@ func TestBugReportSuccess(t *testing.T) {
 // TestBugReportGetPreviousLogs
 // GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
 // WHEN I call cmd.Execute
-// THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
+// THEN expect the command to try and capture previous pod logs create the file 'previous-logs.txt'
 func TestBugReportGetPreviousLogs(t *testing.T) {
 	cmd := setUpAndVerifyResources(t)
 
@@ -200,13 +200,16 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	file, _ := os.Open(bugRepFile)
 	defer file.Close()
 
-	istioSystemPath := "/cluster-snapshot/istio-system/"
+	istioSystemPath := "cluster-snapshot/istio-system"
 	previousLogTxt := "previous-logs.txt"
+	istioPodPath := filepath.Join(tmpDir, istioSystemPath, "istio", previousLogTxt)
+	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "third-istio-pod", previousLogTxt)
+
 	pkghelper.UntarArchive(tmpDir, file)
-	stat, err := os.Stat(tmpDir + istioSystemPath + "istio/" + previousLogTxt)
+	stat, err := os.Stat(istioPodPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, stat.Name())
-	stat, err = os.Stat(tmpDir + istioSystemPath + "third-istio-pod/" + previousLogTxt)
+	stat, err = os.Stat(thirdIstioPodPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, stat.Name())
 }
