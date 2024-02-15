@@ -105,7 +105,7 @@ func TestInstallCmdDefaultTimeoutBugReport(t *testing.T) {
 	assert.Error(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
-	outBuf, err := os.ReadFile(rc.ErrOut.Name())
+	outBuf, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", string(errBytes))
 	assert.Contains(t, string(outBuf), "Installing Verrazzano version v1.3.1")
@@ -145,7 +145,7 @@ func TestInstallCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	assert.Error(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
-	outBuf, err := os.ReadFile(rc.ErrOut.Name())
+	outBuf, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for install to complete\n", string(errBytes))
 	assert.Contains(t, string(outBuf), "Installing Verrazzano version v1.3.1")
@@ -501,7 +501,7 @@ func TestInstallCmdManifestsFile(t *testing.T) {
 			assert.NoError(t, err)
 			errBytes, err := os.ReadFile(rc.ErrOut.Name())
 			assert.NoError(t, err)
-			outBuf, err := os.ReadFile(rc.ErrOut.Name())
+			outBuf, err := os.ReadFile(rc.Out.Name())
 			assert.NoError(t, err)
 			assert.Equal(t, "", string(errBytes))
 			assert.Contains(t, string(outBuf), "Applying the file ../../test/testdata/operator-file-fake.yaml")
@@ -643,7 +643,9 @@ func TestSetCommandInvalidFormat(t *testing.T) {
 	assert.Nil(t, propValues)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "Invalid set flag(s) specified")
-	assert.Equal(t, "Invalid set flag \"badflag\" specified. Flag must be specified in the format path=value\n", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Invalid set flag \"badflag\" specified. Flag must be specified in the format path=value\n", string(errBytes))
 }
 
 // TestSetCommandSingle
@@ -725,8 +727,9 @@ func TestInstallCmdInProgress(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 }
 
 // TestInstallCmdAlreadyInstalled
@@ -810,7 +813,6 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 func createNewTestCommandAndContext(t *testing.T, c client.Client) (*cobra.Command, *testhelpers.FakeRootCmdContextWithFiles) {
 	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
 	assert.Nil(t, err)
-	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	if c != nil {
 		rc.SetClient(c)
 	}
@@ -966,7 +968,9 @@ func TestInstallFromPrivateRegistry(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
@@ -1013,7 +1017,9 @@ func TestInstallFromFilename(t *testing.T) {
 	if err != nil {
 		return
 	}
-	assert.Contains(t, errBuf.String(), "Error: invalid arguments specified:")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(errBytes), "Error: invalid arguments specified:")
 	//Clean the resource args for further test cases.
 	s := len(os.Args)
 	os.Args = append(os.Args[:s-1])
