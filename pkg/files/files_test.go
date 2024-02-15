@@ -4,9 +4,10 @@
 package files
 
 import (
-	asserts "github.com/stretchr/testify/assert"
 	"regexp"
 	"testing"
+
+	asserts "github.com/stretchr/testify/assert"
 )
 
 // TestGetMatchingFiles Tests that we can find the expected set of files with a matching expression
@@ -16,11 +17,11 @@ import (
 func TestGetMatchingFiles(t *testing.T) {
 	assert := asserts.New(t)
 
-	files1, err1 := GetMatchingFiles("../../tools/vz/pkg/analysis/test/json", regexp.MustCompile("bogus"))
+	files1, err1 := GetMatchingFiles("../../tools/vz/pkg/internal/test/json", regexp.MustCompile("bogus"))
 	assert.Nil(err1)
 	assert.Equal(len(files1), 1)
 
-	files2, err2 := GetMatchingFiles("../../tools/vz/pkg/analysis/test", regexp.MustCompile("json"))
+	files2, err2 := GetMatchingFiles("../../tools/vz/pkg/internal/test", regexp.MustCompile("json"))
 	assert.Nil(err2)
 	assert.True(len(files2) > 0)
 
