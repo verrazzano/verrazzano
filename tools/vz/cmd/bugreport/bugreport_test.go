@@ -24,7 +24,6 @@ import (
 	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
 	"testing"
 )
 
@@ -182,7 +181,7 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestBugReportFailedPods
+// TestBugReportGetPreviousLogs
 // GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
 // WHEN I call cmd.Execute
 // THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
@@ -200,10 +199,22 @@ func TestBugReportFailedPods(t *testing.T) {
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NoError(t, err)
 	err = cmd.Execute()
-	if err != nil {
-		assert.Error(t, err)
-	}
 	assert.NoError(t, err)
+	file, _ := os.Open(bugRepFile)
+	defer file.Close()
+
+	istioSystemPath := "cluster-snapshot/istio-system"
+	previousLogTxt := "previous-logs.txt"
+	istioPodPath := filepath.Join(tmpDir, istioSystemPath, "istio", previousLogTxt)
+	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "third-istio-pod", previousLogTxt)
+
+	pkghelper.UntarArchive(tmpDir, file)
+	stat, err := os.Stat(istioPodPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
+	stat, err = os.Stat(thirdIstioPodPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
 }
 
 // TestDefaultBugReportSuccess
@@ -689,10 +700,8 @@ func setUpAndVerifyResources(t *testing.T) (*helpers.FakeRootCmdContextWithFiles
 	rc, err := setupFakeDynamicClient(c)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
-	if strings.Contains(t.Name(), "FailedPods") {
-		kubeClient = getKubeClient()
-		rc.SetKubeClient(kubeClient)
-	}
+	kubeClient = getKubeClient()
+	rc.SetKubeClient(kubeClient)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
