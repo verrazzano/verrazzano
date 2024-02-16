@@ -15,6 +15,7 @@ import (
 	"sync"
 	"text/template"
 
+	pkgfiles "github.com/verrazzano/verrazzano/pkg/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
@@ -349,6 +350,33 @@ func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, im
 	return messages, nil
 }
 
+// podAnalysisGetPodList gets a pod list FIXME: get rid of duplicated code between this and GetPodList
+func podAnalysisGetPodList(path string) (podList *corev1.PodList, err error) {
+	// Check the cache first
+	podList = getPodListIfPresent(path)
+	if podList != nil {
+		return podList, nil
+	}
+
+	// Not found in the cache, get it from the file
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+	err = encjson.Unmarshal(fileBytes, &podList)
+	if err != nil {
+		return nil, err
+	}
+	putPodListIfNotPresent(path, podList)
+	return podList, nil
+}
+
 // GetPodList gets a pod list
 func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
 	// Check the cache first
@@ -394,6 +422,53 @@ func IsPodProblematic(pod corev1.Pod) bool {
 // IsPodPending returns a boolean indicating whether a pod is pending or not
 func IsPodPending(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodPending
+}
+
+// FindProblematicPods TODO: write a description
+func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
+	namespaces, err := findProblematicPodNamespaceMap(bugReportDir)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
+	}
+	if len(namespaces) == 0 {
+		return nil, nil
+	}
+	return namespaces, nil
+}
+
+// findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will give a list of files
+// if any have pods that are not Running or Succeeded.
+func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
+	// TODO: get rid of duplicated code between this and findProblematicPodFiles
+	allPodFiles, err := pkgfiles.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allPodFiles) == 0 {
+		return nil, nil
+	}
+	namespaces := make(map[string][]corev1.Pod)
+	for _, podFile := range allPodFiles {
+		podList, err := podAnalysisGetPodList(podFile)
+		if err != nil {
+			_ = fmt.Errorf("%s, failed to get the PodList for %s, skipping", err.Error(), podFile)
+			continue
+		}
+		if podList == nil {
+			continue
+		}
+
+		// If we find any we flag the file as having problematic pods and move to the next file
+		// this is just a quick scan to identify which files to drill into
+		for _, pod := range podList.Items {
+			if !IsPodProblematic(pod) {
+				continue
+			}
+			namespaces[pod.Namespace] = append(namespaces[pod.Namespace], pod)
+		}
+	}
+	return namespaces, nil
 }
 
 // This looks at the pods.json files in the cluster and will give a list of files

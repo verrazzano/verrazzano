@@ -14,6 +14,13 @@ import (
 	"encoding/pem"
 	errors2 "errors"
 	"fmt"
+	"io"
+	"os"
+	"path/filepath"
+	"strings"
+	"sync"
+	"time"
+
 	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	oamcore "github.com/crossplane/oam-kubernetes-runtime/apis/core/v1alpha2"
 	clustersv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
@@ -21,7 +28,6 @@ import (
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,12 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
-	"sync"
-	"time"
 )
 
 const (
@@ -1124,15 +1125,4 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 
 	}
 	return &caCrtInfoForCert, true, nil
-}
-
-func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	namespaces, err := FindProblematicPodFiles(bugReportDir)
-	if err != nil {
-		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
-	}
-	if len(namespaces) == 0 {
-		return nil, nil
-	}
-	return namespaces, nil
 }
