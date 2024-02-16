@@ -466,8 +466,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			if !tt.success {
 				stderrFileData, _ := os.ReadFile(stderrFile.Name())
 				temp := string(stderrFileData)
-				err := strings.Contains(temp, "was not found for pod:")
-				assert.True(t, err)
+				assert.True(t, strings.Contains(temp, "was not found for pod:"))
 			}
 			assert.NoError(t, err)
 		})
