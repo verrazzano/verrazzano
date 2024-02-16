@@ -18,6 +18,7 @@ import (
 	pkgfiles "github.com/verrazzano/verrazzano/pkg/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
+	utillog "github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
@@ -43,7 +44,7 @@ var podAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory str
 // AnalyzePodIssues analyzes pod issues. It starts by scanning for problem pod phases
 // in the cluster and drill down from there.
 func AnalyzePodIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
-	log.Debugf("PodIssues called for %s", clusterRoot)
+	utillog.DebugfIfNotNil(log, "PodIssues called for %s", clusterRoot)
 
 	// Do a quick scan to find pods.json which have Pod which are not in a good state
 	podFiles, err := findProblematicPodFiles(log, clusterRoot)
@@ -70,14 +71,14 @@ func AnalyzePodIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 }
 
 func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (reported int, err error) {
-	log.Debugf("analyzePods called with %s", podFile)
+	utillog.DebugfIfNotNil(log, "analyzePods called with %s", podFile)
 	podList, err := GetPodList(log, podFile)
 	if err != nil {
-		log.Debugf("Failed to get the PodList for %s", podFile, err)
+		utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s", podFile, err)
 		return 0, err
 	}
 	if podList == nil {
-		log.Debugf("No PodList was returned, skipping")
+		utillog.DebugfIfNotNil(log, "No PodList was returned, skipping")
 		return 0, nil
 	}
 
@@ -154,10 +155,10 @@ func arePodReadinessGatesReady(pod corev1.Pod) bool {
 //	but analysis code is free to use the NewKnown* helpers or form fully custom issues and Contribute
 //	those directly to the report.Contribute* helpers
 func podContainerIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+	utillog.DebugfIfNotNil(log, "podContainerIssues analysis called for cluster: %s, ns: %s, pod: %s", clusterRoot, pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	podEvents, err := GetEventsRelatedToPod(log, clusterRoot, pod, nil)
 	if err != nil {
-		log.Debugf("Failed to get events related to ns: %s, pod: %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
+		utillog.DebugfIfNotNil(log, "Failed to get events related to ns: %s, pod: %s", pod.ObjectMeta.Namespace, pod.ObjectMeta.Name)
 	}
 	// TODO: We can get duplicated event drilldown messages if the initcontainers and containers are both impacted similarly
 	//       Since we contribute it to the IssueReporter, thinking maybe can handle de-duplication under the covers to allow
@@ -252,7 +253,7 @@ func registerIssues(messages map[string][]string, files []string, clusterRoot st
 }
 
 func podStatusConditionIssues(log *zap.SugaredLogger, clusterRoot string, podFile string, pod corev1.Pod, issueReporter *report.IssueReporter) (err error) {
-	log.Debugf("Memory or CPU Issues called for %s", clusterRoot)
+	utillog.DebugfIfNotNil(log, "Memory or CPU Issues called for %s", clusterRoot)
 
 	if len(pod.Status.Conditions) > 0 {
 		messages := make(map[string][]string)
@@ -339,7 +340,7 @@ func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, im
 		// action handling to focus on the correct steps, instead of having an entirely separate issue type to handle that.
 		// (or just have a more specific issue type, but need to think about it as we are setting the basic patterns
 		// here in general). Need to think about it though as it will affect how we handle runbooks as well.
-		log.Debugf("Drilldown event reason: %s, message: %s\n", event.Reason, event.Message)
+		utillog.DebugfIfNotNil(log, "Drilldown event reason: %s, message: %s\n", event.Reason, event.Message)
 		if event.Reason == "Failed" && strings.Contains(event.Message, imageName) {
 			// TBD: We need a better mechanism at this level than just the messages. It can add other types of supporting
 			// data to contribute as well here (related files, etc...)
@@ -382,26 +383,26 @@ func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, e
 	// Check the cache first
 	podList = getPodListIfPresent(path)
 	if podList != nil {
-		log.Debugf("Returning cached podList for %s", path)
+		utillog.DebugfIfNotNil(log, "Returning cached podList for %s", path)
 		return podList, nil
 	}
 
 	// Not found in the cache, get it from the file
 	file, err := os.Open(path)
 	if err != nil {
-		log.Debugf("file %s not found", path)
+		utillog.DebugfIfNotNil(log, "file %s not found", path)
 		return nil, err
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Debugf("Failed reading Json file %s", path)
+		utillog.DebugfIfNotNil(log, "Failed reading Json file %s", path)
 		return nil, err
 	}
 	err = encjson.Unmarshal(fileBytes, &podList)
 	if err != nil {
-		log.Debugf("Failed to unmarshal podList at %s", path)
+		utillog.DebugfIfNotNil(log, "Failed to unmarshal podList at %s", path)
 		return nil, err
 	}
 	putPodListIfNotPresent(path, podList)
@@ -424,7 +425,7 @@ func IsPodPending(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodPending
 }
 
-// FindProblematicPods TODO: write a description
+// FindProblematicPods FIXME: write a description
 func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
 	namespaces, err := findProblematicPodNamespaceMap(bugReportDir)
 	if err != nil {
@@ -439,7 +440,7 @@ func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[stri
 // findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	// TODO: get rid of duplicated code between this and findProblematicPodFiles
+	// FIXME: get rid of duplicated code between this and findProblematicPodFiles
 	allPodFiles, err := pkgfiles.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
 	if err != nil {
 		return nil, err
@@ -484,14 +485,14 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 	}
 	podFiles = make([]string, 0, len(allPodFiles))
 	for _, podFile := range allPodFiles {
-		log.Debugf("Looking at pod file for problematic pods: %s", podFile)
+		utillog.DebugfIfNotNil(log, "Looking at pod file for problematic pods: %s", podFile)
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
-			log.Debugf("Failed to get the PodList for %s, skipping", podFile, err)
+			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s, skipping", podFile, err)
 			continue
 		}
 		if podList == nil {
-			log.Debugf("No PodList was returned, skipping")
+			utillog.DebugfIfNotNil(log, "No PodList was returned, skipping")
 			continue
 		}
 
@@ -501,7 +502,7 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 			if !IsPodProblematic(pod) {
 				continue
 			}
-			log.Debugf("Problematic pods detected: %s", podFile)
+			utillog.DebugfIfNotNil(log, "Problematic pods detected: %s", podFile)
 			podFiles = append(podFiles, podFile)
 			break
 		}
@@ -517,11 +518,11 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 	for _, podFile := range podFiles {
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
-			log.Debugf("Failed to get the PodList for %s", podFile, err)
+			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s", podFile, err)
 			continue
 		}
 		if podList == nil {
-			log.Debugf("No PodList was returned, skipping")
+			utillog.DebugfIfNotNil(log, "No PodList was returned, skipping")
 			continue
 		}
 		for _, pod := range podList.Items {
@@ -541,7 +542,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			for _, condition := range pod.Status.Conditions {
 				message, err := podConditionMessage(pod.Name, pod.Namespace, condition)
 				if err != nil {
-					log.Debugf("Failed to create pod condition message: %v", err)
+					utillog.DebugfIfNotNil(log, "Failed to create pod condition message: %v", err)
 					continue
 				}
 				messages = append(messages, message)
@@ -551,7 +552,7 @@ func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFi
 			fileName := files.FindPodLogFileName(clusterRoot, pod)
 			matched, err := files.SearchFile(log, fileName, WideErrorSearchRe, nil)
 			if err != nil {
-				log.Debugf("Failed to search the logfile %s for the ns/pod %s/%s",
+				utillog.DebugfIfNotNil(log, "Failed to search the logfile %s for the ns/pod %s/%s",
 					files.FindPodLogFileName(clusterRoot, pod), pod.ObjectMeta.Namespace, pod.ObjectMeta.Name, err)
 			}
 			if len(matched) > 0 {
