@@ -15,6 +15,7 @@ import (
 	"sync"
 	"text/template"
 
+	pkgfiles "github.com/verrazzano/verrazzano/pkg/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
 	utillog "github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
@@ -409,60 +410,58 @@ func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[stri
 	return namespaces, nil
 }
 
-// findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will return
-// problematicPodNamespaces, which maps namespaces to lists of problematic pods found in each namespace.
+// findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will give a list of files
+// if any have pods that are not Running or Succeeded.
 func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	podFileMap, err := findProblematicPodFilesMap(nil, clusterRoot)
+	// FIXME: get rid of duplicated code between this and findProblematicPodFiles
+	allPodFiles, err := pkgfiles.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
 	if err != nil {
-		// FIXME: get rid of debug print
-		fmt.Printf("err = %s\n", err.Error())
-		return
+		return nil, err
 	}
 
-	problematicPodNamespaces = make(map[string][]corev1.Pod)
-	for _, pods := range podFileMap {
-		for _, pod := range pods {
-			// FIXME: maybe initialize slice?
-			problematicPodNamespaces[pod.Namespace] = append(problematicPodNamespaces[pod.Namespace], pod)
+	if len(allPodFiles) == 0 {
+		return nil, nil
+	}
+	namespaces := make(map[string][]corev1.Pod)
+	for _, podFile := range allPodFiles {
+		podList, err := GetPodList(nil, podFile)
+		if err != nil {
+			_ = fmt.Errorf("%s, failed to get the PodList for %s, skipping", err.Error(), podFile)
+			continue
+		}
+		if podList == nil {
+			continue
+		}
+
+		// If we find any we flag the file as having problematic pods and move to the next file
+		// this is just a quick scan to identify which files to drill into
+		for _, pod := range podList.Items {
+			if !IsPodProblematic(pod) {
+				continue
+			}
+			namespaces[pod.Namespace] = append(namespaces[pod.Namespace], pod)
 		}
 	}
-	return
+	return namespaces, nil
 }
 
 // This looks at the pods.json files in the cluster and will give a list of files
 // if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	podFileMap, err := findProblematicPodFilesMap(log, clusterRoot)
-	if err != nil {
-		// FIXME: get rid of debug print
-		fmt.Printf("err = %s\n", err.Error())
-		return
-	}
-
-	podFiles = make([]string, 0, len(podFileMap))
-	for pf := range podFileMap {
-		podFiles = append(podFiles, pf)
-	}
-	return
-}
-
-// findProblematicPodFilesMap looks at the pods.json files in the cluster and returns podFileMap, which is
-// a map from pod file names to the list of problematic pods found in that pod file.
-func findProblematicPodFilesMap(log *zap.SugaredLogger, clusterRoot string) (podFileMap map[string][]corev1.Pod, err error) {
 	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
 	if err != nil {
-		return nil, err
-	}
-	if len(allPodFiles) == 0 {
-		return nil, nil 
+		return podFiles, err
 	}
 
-	podFileMap = make(map[string][]corev1.Pod)
+	if len(allPodFiles) == 0 {
+		return podFiles, nil
+	}
+	podFiles = make([]string, 0, len(allPodFiles))
 	for _, podFile := range allPodFiles {
 		utillog.DebugfIfNotNil(log, "Looking at pod file for problematic pods: %s", podFile)
 		podList, err := GetPodList(log, podFile)
 		if err != nil {
-			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s, skipping due to error: %s", podFile, err.Error())
+			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s, skipping", podFile, err)
 			continue
 		}
 		if podList == nil {
@@ -470,20 +469,18 @@ func findProblematicPodFilesMap(log *zap.SugaredLogger, clusterRoot string) (pod
 			continue
 		}
 
-		// podFileMap[x] is a list of problematic pods found in the podFile x.
-		// For every problematic pod found in the pod file x, add it to podFileMap[x].
+		// If we find any we flag the file as havin problematic pods and move to the next file
+		// this is just a quick scan to identify which files to drill into
 		for _, pod := range podList.Items {
 			if !IsPodProblematic(pod) {
 				continue
 			}
-			if _, exists := podFileMap[podFile]; !exists {
-				utillog.DebugfIfNotNil(log, "Problematic podFile detected: %s", podFile)
-				podFileMap[podFile] = make([]corev1.Pod, 0)
-			}
-			podFileMap[podFile]= append(podFileMap[podFile], pod)
+			utillog.DebugfIfNotNil(log, "Problematic pods detected: %s", podFile)
+			podFiles = append(podFiles, podFile)
+			break
 		}
 	}
-	return podFileMap, nil
+	return podFiles, nil
 }
 
 func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFiles []string) {
