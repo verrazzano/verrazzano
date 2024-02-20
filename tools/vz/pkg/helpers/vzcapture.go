@@ -46,6 +46,7 @@ const (
 var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
 var writeFileError = "an error occurred while writing the file %s: %s\n"
+var isErrorMutex = &sync.Mutex{}
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -1011,8 +1012,10 @@ func GetManagedClusterConfigScheme() schema.GroupVersionResource {
 
 // LogError logs a message to the standard error
 func LogError(msg string) {
+	isErrorMutex.Lock()
 	isError = true
 	fmt.Fprintf(GetMultiWriterErr(), msg)
+	isErrorMutex.Unlock()
 }
 
 // IsErrorReported returns true when the command logs at least one error to the standard error

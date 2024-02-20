@@ -60,9 +60,11 @@ func InitRegexToReplacementMap() {
 // The redactedValuesOverride parameter can be used to override the default redactedValues map for keeping track of
 // redacted strings.
 func SanitizeString(l string, redactedValuesOverride map[string]string) string {
+	redactedValuesMutex.Lock()
 	if len(regexToReplacementList) == 0 {
 		InitRegexToReplacementMap()
 	}
+	redactedValuesMutex.Unlock()
 	knownHostNamesMutex.Lock()
 	for knownHost := range KnownHostNames {
 		wholeOccurrenceHostPattern := "\"" + knownHost + "\""
