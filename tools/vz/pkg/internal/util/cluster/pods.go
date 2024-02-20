@@ -397,47 +397,50 @@ func IsPodPending(pod corev1.Pod) bool {
 	return pod.Status.Phase == corev1.PodPending
 }
 
-// FindProblematicPods FIXME: write a description
+// FindProblematicPods looks at the pods.json files in bugReportDir and returns
+// problematicPodNamespaces, which is a map from namespaces to lists of problematic pods per namespace.
 func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	namespaces, err := findProblematicPodNamespaceMap(bugReportDir)
+	problematicPodNamespaces, err = findProblematicPodNamespaceMap(bugReportDir)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
 	}
-	if len(namespaces) == 0 {
+	if len(problematicPodNamespaces) == 0 {
 		return nil, nil
 	}
-	return namespaces, nil
+	return problematicPodNamespaces, nil
 }
 
-// findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will give a list of files
-// if any have pods that are not Running or Succeeded. FIXME: fix description
-func findProblematicPodNamespaceMap(clusterRoot string) (namespaces map[string][]corev1.Pod, err error) {
+// findProblematicPodNamespaceMap looks at the pods.json files in the cluster and
+// returns problematicPodNamespaces, which is a map from namespaces to lists of problematic pods per namespace.
+func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
 	podLists, err := getPodListsFromClusterRoot(nil, clusterRoot)
 	if err != nil {
-		// FIXME: named parameter behavior
-		return
+		return nil, err
 	}
 
-	namespaces = make(map[string][]corev1.Pod)
+	// Inspect each pod, and, if it is problematic, add it to the list of problematic pods
+	// for the pod's namespace.
+	problematicPodNamespaces = make(map[string][]corev1.Pod)
 	for _, podList := range podLists {
 		for _, pod := range podList.Items {
 			if !IsPodProblematic(pod) {
 				continue
 			}
-			namespaces[pod.Namespace] = append(namespaces[pod.Namespace], pod)
+			problematicPodNamespaces[pod.Namespace] = append(problematicPodNamespaces[pod.Namespace], pod)
 		}
 	}
-	return
+	return problematicPodNamespaces, nil
 }
 
 // This looks at the pods.json files in the cluster and will give a list of files
-// if any have pods that are not Running or Succeeded. // FIXME: named return values
+// if any have pods that are not Running or Succeeded.
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
 	podLists, err := getPodListsFromClusterRoot(log, clusterRoot)
 	if err != nil {
 		return nil, err
 	}
 
+	podFiles = make([]string, 0, len(podLists))
 	for podFile, podList := range podLists {
 		// If we find any we flag the file as havin problematic pods and move to the next file
 		// this is just a quick scan to identify which files to drill into
@@ -453,8 +456,10 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 	return podFiles, nil
 }
 
-// getPodListsFromClusterRoot FIXME: write description
-func getPodListsFromClusterRoot(log *zap.SugaredLogger, clusterRoot string) (map[string]*corev1.PodList, error) {
+// getPodListsFromClusterRoot looks at the pods.json files from the provided clusterRoot.
+// Then this function returns podLists, which maps from pod file names to a list of pods found in that file.
+func getPodListsFromClusterRoot(log *zap.SugaredLogger, clusterRoot string) (podLists map[string]*corev1.PodList, err error) {
+	// Find the relevant pod files
 	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
 	if err != nil {
 		return nil, err
@@ -463,7 +468,8 @@ func getPodListsFromClusterRoot(log *zap.SugaredLogger, clusterRoot string) (map
 		return nil, nil
 	}
 
-	podLists := make(map[string]*corev1.PodList)
+	// Build the map of pod file names to pod lists
+	podLists = make(map[string]*corev1.PodList)
 	for _, podFile := range allPodFiles {
 		utillog.DebugfIfNotNil(log, "Looking at pod file for problematic pods: %s", podFile)
 		podList, err := GetPodList(log, podFile)
