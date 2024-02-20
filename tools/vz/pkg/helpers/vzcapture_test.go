@@ -1,18 +1,23 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
+	"io"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"os"
 	"path/filepath"
 	"regexp"
 	"testing"
+	"time"
 
-	v1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/crossplane/oam-kubernetes-runtime/apis/core"
 	"github.com/stretchr/testify/assert"
 	appv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/app/v1alpha1"
@@ -20,6 +25,7 @@ import (
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
+	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
@@ -69,7 +75,7 @@ func TestCreateReportArchive(t *testing.T) {
 	if err != nil {
 		assert.Error(t, err)
 	}
-	err = CreateReportArchive(captureDir, bugReportFile)
+	err = CreateReportArchive(captureDir, bugReportFile, true)
 	if err != nil {
 		assert.Error(t, err)
 	}
@@ -110,7 +116,7 @@ func TestGroupVersionResource(t *testing.T) {
 //	THEN expect it to not throw any error
 func TestCaptureK8SResources(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	k8sClient := k8sfake.NewSimpleClientset()
 	scheme := k8scheme.Scheme
@@ -122,9 +128,15 @@ func TestCaptureK8SResources(t *testing.T) {
 	assert.NoError(t, err)
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp("", "testfile")
+	defer cleanupFile(t, tempFile)
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 	err = CaptureK8SResources(client, k8sClient, dynamicClient, constants.VerrazzanoInstall, captureDir, rc)
 	assert.NoError(t, err)
+	isError = false
 }
 
 // TestCaptureMultiClusterResources tests the functionality to capture the multi cluster related resources
@@ -179,7 +191,7 @@ func TestCapturePodLog(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	err = CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc, 0)
+	err = CapturePodLog(k8sClient, corev1.Pod{}, constants.VerrazzanoInstall, captureDir, rc, 0, false)
 	assert.NoError(t, err)
 
 	//  GIVENT and empty k8s cluster,
@@ -188,7 +200,7 @@ func TestCapturePodLog(t *testing.T) {
 	err = CapturePodLog(k8sClient, corev1.Pod{ObjectMeta: metav1.ObjectMeta{
 		Name:      constants.VerrazzanoPlatformOperator,
 		Namespace: constants.VerrazzanoInstall,
-	}}, constants.VerrazzanoInstall, captureDir, rc, 0)
+	}}, constants.VerrazzanoInstall, captureDir, rc, 0, false)
 	assert.NoError(t, err)
 
 	//  GIVENT a k8s cluster with a VPO pod,
@@ -215,7 +227,7 @@ func TestCapturePodLog(t *testing.T) {
 				Image: "dummimage:notag",
 			},
 		},
-	}}, constants.VerrazzanoInstall, captureDir, rc, 300)
+	}}, constants.VerrazzanoInstall, captureDir, rc, 300, false)
 	assert.NoError(t, err)
 }
 
@@ -397,17 +409,63 @@ func TestGetPodListAll(t *testing.T) {
 	assert.Equal(t, podLength, len(pods))
 }
 
+// TestCreateInnoDBClusterFile tests that a InnoDBCluster file titled inno-db-cluster.json can be successfully written
+// GIVEN a k8s cluster with a inno-db-cluster resources present in a namespace,
+// WHEN I call functions to create a list of inno-db-cluster resources for the namespace
+// THEN expect it to write to the provided resource file and no error should be returned
+func TestCreateInnoDBClusterFile(t *testing.T) {
+	schemeForClient := runtime.NewScheme()
+	innoDBClusterGVK := schema.GroupVersionKind{
+		Group:   "mysql.oracle.com",
+		Version: "v2",
+		Kind:    "InnoDBCluster",
+	}
+	innoDBCluster := unstructured.Unstructured{}
+	innoDBCluster.SetGroupVersionKind(innoDBClusterGVK)
+	innoDBCluster.SetNamespace("keycloak")
+	innoDBCluster.SetName("my-sql")
+	innoDBClusterStatusFields := []string{"status", "cluster", "status"}
+	err := unstructured.SetNestedField(innoDBCluster.Object, "ONLINE", innoDBClusterStatusFields...)
+	assert.NoError(t, err)
+	metav1Time := metav1.Time{
+		Time: time.Now().UTC(),
+	}
+	innoDBCluster.SetDeletionTimestamp(&metav1Time)
+	cli := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(&innoDBCluster).Build()
+	captureDir, err := os.MkdirTemp("", "testcaptureforinnodbclusters")
+	assert.Nil(t, err)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureInnoDBClusterResources(cli, "keycloak", captureDir, rc)
+	assert.NoError(t, err)
+	innoDBClusterLocation := filepath.Join(captureDir, "keycloak", constants.InnoDBClusterJSON)
+	innoDBClusterListToUnmarshalInto := unstructured.UnstructuredList{}
+	bytesToUnmarshall, err := returnBytesFromAFile(innoDBClusterLocation)
+	assert.NoError(t, err)
+	innoDBClusterListToUnmarshalInto.UnmarshalJSON(bytesToUnmarshall)
+	assert.NoError(t, err)
+	innoDBClusterResource := innoDBClusterListToUnmarshalInto.Items[0]
+	statusOfCluster, _, err := unstructured.NestedString(innoDBClusterResource.Object, "status", "cluster", "status")
+	assert.NoError(t, err)
+	assert.Equal(t, statusOfCluster, "ONLINE")
+
+}
+
 //		TestCreateCertificateFile tests that a certificate file titled certificates.json can be successfully written
-//	 	GIVEN a k8s cluster with certificates present in a namespace  ,
+//	 	GIVEN a k8s cluster with certificates present in a namespace,
 //		WHEN I call functions to create a list of certificates for the namespace,
 //		THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCertificateFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	sampleCert := v1.Certificate{
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "testcertificate", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
@@ -433,12 +491,12 @@ func TestCreateCertificateFile(t *testing.T) {
 // THEN expect it to write to the provided resource file and no error should be returned.
 func TestCreateCaCrtJsonFile(t *testing.T) {
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
-	certificateListForTest := v1.CertificateList{}
-	sampleCert := v1.Certificate{
+	certificateListForTest := certmanagerv1.CertificateList{}
+	sampleCert := certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{Name: "test-certificate-caCrt.json", Namespace: "cattle-system"},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 			SecretName:  "test-secret-name",
@@ -472,19 +530,19 @@ func TestCreateCaCrtJsonFile(t *testing.T) {
 // THEN it should obfuscate the known hostnames with hashed value
 // AND the output certificates.json file should NOT contain any of the sensitive information from KnownHostNames
 func TestRedactHostNamesForCertificates(t *testing.T) {
-	sampleCert := &v1.Certificate{
+	sampleCert := &certmanagerv1.Certificate{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-certificate",
 			Namespace: "cattle-system",
 		},
-		Spec: v1.CertificateSpec{
+		Spec: certmanagerv1.CertificateSpec{
 			DNSNames:    []string{"example.com", "www.example.com", "api.example.com"},
 			IPAddresses: []string{dummyIP1, dummyIP2},
 		},
 	}
 
 	schemeForClient := k8scheme.Scheme
-	err := v1.AddToScheme(schemeForClient)
+	err := certmanagerv1.AddToScheme(schemeForClient)
 	assert.NoError(t, err)
 	client := fake.NewClientBuilder().WithScheme(schemeForClient).WithObjects(sampleCert).Build()
 	captureDir, err := os.MkdirTemp("", "testcaptureforcertificates")
@@ -510,4 +568,133 @@ func TestRedactHostNamesForCertificates(t *testing.T) {
 		assert.NoError(t, err, "Error while regex matching")
 		assert.Falsef(t, keyMatch, "%s should be obfuscated from certificates.json file %s", k, string(f))
 	}
+}
+
+// TestCreateParentsIfNecessary tests that parent directories are only created when intended
+// GIVEN a temporary directory and a string representing a filePath  ,
+// WHEN I call a function to create a parent directory
+// THEN expect it to only create the parent directories if it does not exist and if the file path contains a "/"
+func TestCreateParentsIfNecessary(t *testing.T) {
+	err := os.Mkdir(constants.TestDirectory, 0700)
+	defer os.RemoveAll(constants.TestDirectory)
+	assert.Nil(t, err)
+	createParentsIfNecessary(constants.TestDirectory, "files.txt")
+	createParentsIfNecessary(constants.TestDirectory, "cluster-snapshot/files.txt")
+	_, err = os.Stat(constants.TestDirectory + "/files.txt")
+	assert.NotNil(t, err)
+	_, err = os.Stat(constants.TestDirectory + "/cluster-snapshot")
+	assert.Nil(t, err)
+
+}
+
+// TestCreateNamespaceFile tests that a namespace file titled namespace.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to get the namespace resource for that namespace
+// THEN expect it to write to the provided resource file with the correct information and no error should be returned.
+func TestCreateNamespaceFile(t *testing.T) {
+	listOfFinalizers := []corev1.FinalizerName{"test-finalizer-name"}
+	sampleNamespace := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-namespace",
+		},
+		Spec: corev1.NamespaceSpec{
+			Finalizers: listOfFinalizers,
+		},
+		Status: corev1.NamespaceStatus{
+			Phase: corev1.NamespaceTerminating,
+		},
+	}
+	client := k8sfake.NewSimpleClientset(&sampleNamespace)
+	captureDir, err := os.MkdirTemp("", "testcapturefornamespaces")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	err = captureNamespaces(client, "test-namespace", captureDir, rc)
+	assert.NoError(t, err)
+	namespaceLocation := filepath.Join(captureDir, "test-namespace", constants.NamespaceJSON)
+	namespaceObjectToUnmarshalInto := &corev1.Namespace{}
+	err = unmarshallFile(namespaceLocation, namespaceObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	assert.True(t, namespaceObjectToUnmarshalInto.Status.Phase == corev1.NamespaceTerminating)
+}
+
+// TestCreateMetadataFile tests that a metadata file titled metadata.json can be successfully written
+// GIVEN a k8s cluster,
+// WHEN I call functions to record the metadata for the capture
+// THEN expect it to write to the correct resource file with the correct information and no error should be returned.
+func TestCreateMetadataFile(t *testing.T) {
+	captureDir, err := os.MkdirTemp("", "testcaptureformetadata")
+	assert.NoError(t, err)
+	t.Log(captureDir)
+	defer cleanupTempDir(t, captureDir)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, err := os.CreateTemp(captureDir, "temporary-log-file-for-test")
+	assert.NoError(t, err)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
+	err = CaptureMetadata(captureDir)
+	assert.NoError(t, err)
+	metadataLocation := filepath.Join(captureDir, constants.MetadataJSON)
+	metadataObjectToUnmarshalInto := &Metadata{}
+	err = unmarshallFile(metadataLocation, metadataObjectToUnmarshalInto)
+	assert.NoError(t, err)
+	timeObject, err := time.Parse(time.RFC3339, metadataObjectToUnmarshalInto.Time)
+	assert.NoError(t, err)
+	assert.True(t, time.Now().UTC().Sub(timeObject).Minutes() < 60)
+
+}
+
+// unmarshallFile is a helper function that is used to place the contents of a file into a defined struct
+func unmarshallFile(clusterPath string, object interface{}) error {
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		return fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+	// Unmarshall file contents into a struct
+	err = json.Unmarshal(fileBytes, object)
+	if err != nil {
+		return fmt.Errorf("Failed to unmarshal %s: %s", clusterPath, err.Error())
+	}
+
+	return nil
+}
+
+// returnBytesFromAFile is a helper function that returns the bytes of a file
+func returnBytesFromAFile(clusterPath string) ([]byte, error) {
+	var byteArray = []byte{}
+	// Parse the json into local struct
+	file, err := os.Open(clusterPath)
+	if os.IsNotExist(err) {
+		// The file may not exist if the component is not installed.
+		return byteArray, nil
+	}
+	if err != nil {
+		return byteArray, fmt.Errorf("failed to open file %s from cluster snapshot: %s", clusterPath, err.Error())
+	}
+	defer file.Close()
+
+	byteArray, err = io.ReadAll(file)
+	if err != nil {
+		return byteArray, fmt.Errorf("Failed reading Json file %s: %s", clusterPath, err.Error())
+	}
+
+	return byteArray, nil
 }

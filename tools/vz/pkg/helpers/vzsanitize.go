@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -33,7 +32,7 @@ var redactedValuesMutex = &sync.Mutex{}
 
 var ipv4Regex = regexPlan{regex: "[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}\\.[[:digit:]]{1,3}"}
 var userData = regexPlan{regex: "\"user_data\":\\s+\"[A-Za-z0-9=+]+\""}
-var sshAuthKeys = regexPlan{regex: "ssh-rsa\\s+[A-Za-z0-9=+ \\-\\/@]+"}
+var sshAuthKeys = regexPlan{regex: "(sk-)?(ssh|ecdsa)-[a-zA-Z0-9\\-\\.@]+\\s+AAAA[A-Za-z0-9\\-\\/\\+]+[=]{0,3}( .*)*"}
 var ocid = regexPlan{regex: "ocid1\\.[[:lower:]]+\\.[[:alnum:]]+\\.[[:alnum:]]*\\.[[:alnum:]]+"}
 var opcid = regexPlan{
 	preprocess: func(s string) string {
@@ -78,13 +77,12 @@ func SanitizeString(l string, redactedValuesOverride map[string]string) string {
 	return l
 }
 
-// WriteRedactionMapFile creates a CSV file to document all the values this tool has
+// WriteRedactionMapFile creates a CSV file at the provided outputFilePath to document all the values this tool has
 // redacted so far, stored in the redactedValues (or redactedValuesOverride) map.
-func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]string) error {
-	fileName := filepath.Join(captureDir, constants.RedactionMap)
-	f, err := os.OpenFile(fileName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+func WriteRedactionMapFile(outputFilePath string, redactedValuesOverride map[string]string) error {
+	f, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
-		return fmt.Errorf(createFileError, fileName, err.Error())
+		return fmt.Errorf(createFileError, outputFilePath, err.Error())
 	}
 	defer f.Close()
 
@@ -93,7 +91,7 @@ func WriteRedactionMapFile(captureDir string, redactedValuesOverride map[string]
 	csvWriter := csv.NewWriter(f)
 	for s, r := range redactedValues {
 		if err = csvWriter.Write([]string{r, s}); err != nil {
-			LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", fileName, err.Error()))
+			LogError(fmt.Sprintf("An error occurred while writing the file %s: %s\n", outputFilePath, err.Error()))
 			return err
 		}
 	}

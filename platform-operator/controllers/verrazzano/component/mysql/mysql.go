@@ -5,6 +5,7 @@ package mysql
 
 import (
 	"context"
+	goerrors "errors"
 	"fmt"
 	"os"
 	"strings"
@@ -721,6 +722,11 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 	if err != nil {
 		return err
 	}
+	if rootPassword == nil {
+		errMsg := fmt.Sprintf("%s is empty in secret %s", mySQLRootKey, rootSec)
+		ctx.Log().Progressf(errMsg)
+		return goerrors.New(errMsg)
+	}
 
 	sqlCmd := fmt.Sprintf(mySQLGrantXAAdminCommand, rootPassword)
 	execCmd := []string{"bash", "-c", sqlCmd}
@@ -731,9 +737,9 @@ func grantXARecoverAdmin(ctx spi.ComponentContext) error {
 	mysqlPod := mySQLPod()
 
 	// Run script defined by mySQLGrantXAAdminCommand from the MySQL pod as root user to grant XA_RECOVER_ADMIN
-	_, _, err = k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
+	_, stdErr, err := k8sutil.ExecPodNoTty(cli, cfg, mysqlPod, mySQLContainerName, execCmd)
 	if err != nil {
-		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v", err))
+		errorMsg := maskPw(fmt.Sprintf("Failed granting XA_RECOVER_ADMIN, err = %v, stdErr = %s", err, stdErr))
 		ctx.Log().Error(errorMsg)
 		return fmt.Errorf("error: %s", maskPw(err.Error()))
 	}

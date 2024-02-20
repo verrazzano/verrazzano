@@ -63,7 +63,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-application-operator
   - name: weblogic-operator
-    version: 4.1.4
+    version: 4.1.8
     chart: platform-operator/thirdparty/charts/weblogic-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/weblogic-values.yaml
@@ -142,7 +142,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-backup-override-static-values.yaml
   - name: argocd
-    version: 2.8.3-2
+    version: 2.8.3-3
     chart: platform-operator/thirdparty/charts/argo-cd
     valuesFiles:
       - platform-operator/helm_config/overrides/argocd-values.yaml

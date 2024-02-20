@@ -34,12 +34,14 @@ import (
 
 // These are the high level analysis functions that are called. The "Runtime Issues" maps to only certificate functions currently.
 var clusterAnalysisFunctions = map[string]func(log *zap.SugaredLogger, directory string) (err error){
-	"Verrazzano Status":  AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
-	"Pod Related Issues": AnalyzePodIssues,
-	"Rancher Status":     AnalyzeRancher,
-	"Runtime Issues":     AnalyzeCertificateRelatedIssues,
-	"Cluster API Issues": AnalyzeClusterAPI,
-	"Networking Issues":  AnalyzeNetworkingIssues,
+	"Verrazzano Status":                         AnalyzeVerrazzano, // Execute first, this may share data other analyzers can use
+	"Pod Related Issues":                        AnalyzePodIssues,
+	"Rancher Status":                            AnalyzeRancher,
+	"Runtime Issues":                            AnalyzeCertificateRelatedIssues,
+	"Cluster API Issues":                        AnalyzeClusterAPI,
+	"Networking Issues":                         AnalyzeNetworkingIssues,
+	"Finalizer and Resource Termination Issues": AnalyzeNamespaceRelatedIssues,
+	"MySQL Issues":                              AnalyzeMySQLRelatedIssues,
 }
 
 // ClusterDumpDirectoriesRe is used for finding cluster-snapshot directory name matches
@@ -66,7 +68,7 @@ var EventReasonFailedRe = regexp.MustCompile(`.*Failed.*`)
 func RunAnalysis(vzHelper helpers.VZHelper, log *zap.SugaredLogger, rootDirectory string) (err error) {
 	log.Debugf("Cluster Analyzer runAnalysis on %s", rootDirectory)
 
-	clusterRoots, err := files.GetMatchingDirectories(log, rootDirectory, ClusterDumpDirectoriesRe)
+	clusterRoots, err := files.GetMatchingDirectoryNames(log, rootDirectory, ClusterDumpDirectoriesRe)
 	if err != nil {
 		log.Debugf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory, err)
 		return fmt.Errorf("Cluster Analyzer runAnalysis failed examining directories for %s", rootDirectory)
@@ -79,7 +81,7 @@ func RunAnalysis(vzHelper helpers.VZHelper, log *zap.SugaredLogger, rootDirector
 	for _, clusterRoot := range clusterRoots {
 		// Ignore directories if they don't contain snapshots. Checking if verrazzano-resources.json exists in the dir
 		// that implies the directory has the required snapshots.
-		vzResourcesPath := files.FindFileInClusterRoot(clusterRoot, verrazzanoResource)
+		vzResourcesPath := files.FormFilePathInClusterRoot(clusterRoot, verrazzanoResource)
 		fileInfo, e := os.Stat(vzResourcesPath)
 		if e != nil || fileInfo.Size() == 0 {
 			log.Debugf("Verrazzano resource file %s is either empty or not there", vzResourcesPath)

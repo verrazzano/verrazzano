@@ -496,7 +496,7 @@
     },
     {
       "name": "weblogic-operator",
-      "version": "4.1.4",
+      "version": "4.1.8",
       "subcomponents": [
         {
           "repository": "oracle",
@@ -504,12 +504,12 @@
           "images": [
             {
               "image": "weblogic-kubernetes-operator",
-              "tag": "4.1.4",
+              "tag": "4.1.8",
               "helmFullImageKey": "image"
             },
             {
               "image": "weblogic-monitoring-exporter",
-              "tag": "2.1.8",
+              "tag": "2.1.9",
               "helmFullImageKey": "weblogicMonitoringExporterImage"
             }
           ]
@@ -958,7 +958,7 @@
     },
     {
       "name": "argocd",
-      "version": "2.8.3-2",
+      "version": "2.8.3-3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -978,7 +978,7 @@
           "images": [
             {
               "image": "redis",
-              "tag": "v7.0.12-20230921093854-848a7e94",
+              "tag": "v7.0.15-20240207150632-c98c652f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
