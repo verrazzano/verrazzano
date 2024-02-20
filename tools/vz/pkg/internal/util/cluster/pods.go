@@ -56,7 +56,7 @@ func AnalyzePodIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 		found, err := analyzePods(log, clusterRoot, podFile)
 		totalFound += found
 		if err != nil {
-			log.Errorf("Failed during analyze Pods for cluster: %s, pods: %s ", clusterRoot, podFile, err)
+			utillog.ErrorfIfNotNil(log, "Failed during analyze Pods for cluster: %s, pods: %s ", clusterRoot, podFile, err)
 			return err
 		}
 	}
@@ -95,7 +95,7 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 			err := function(log, clusterRoot, podFile, pod, &issueReporter)
 			if err != nil {
 				// Log the error and continue on
-				log.Errorf("Error processing analysis function %s", functionName, err)
+				utillog.ErrorfIfNotNil(log, "Error processing analysis function %s", functionName, err)
 			}
 		}
 	}
@@ -351,33 +351,6 @@ func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, im
 	return messages, nil
 }
 
-// podAnalysisGetPodList gets a pod list FIXME: get rid of duplicated code between this and GetPodList
-func podAnalysisGetPodList(path string) (podList *corev1.PodList, err error) {
-	// Check the cache first
-	podList = getPodListIfPresent(path)
-	if podList != nil {
-		return podList, nil
-	}
-
-	// Not found in the cache, get it from the file
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	fileBytes, err := io.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-	err = encjson.Unmarshal(fileBytes, &podList)
-	if err != nil {
-		return nil, err
-	}
-	putPodListIfNotPresent(path, podList)
-	return podList, nil
-}
-
 // GetPodList gets a pod list
 func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
 	// Check the cache first
@@ -451,7 +424,7 @@ func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespace
 	}
 	namespaces := make(map[string][]corev1.Pod)
 	for _, podFile := range allPodFiles {
-		podList, err := podAnalysisGetPodList(podFile)
+		podList, err := GetPodList(nil, podFile)
 		if err != nil {
 			_ = fmt.Errorf("%s, failed to get the PodList for %s, skipping", err.Error(), podFile)
 			continue

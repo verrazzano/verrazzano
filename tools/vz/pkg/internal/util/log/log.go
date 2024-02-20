@@ -70,3 +70,11 @@ func DebugfIfNotNil(log *zap.SugaredLogger, s string, args ...interface{}) {
 	}
 	log.Debugf(s, args)
 }
+
+// ErrorfIfNotNil executes log.Errorf(s, args) if log is not nil. If log is nil, then this function is a no-op.
+func ErrorfIfNotNil(log *zap.SugaredLogger, s string, args ...interface{}) {
+	if log == nil {
+		return
+	}
+	log.Errorf(s, args)
+}
