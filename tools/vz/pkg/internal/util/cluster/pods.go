@@ -15,7 +15,6 @@ import (
 	"sync"
 	"text/template"
 
-	pkgfiles "github.com/verrazzano/verrazzano/pkg/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/files"
 	utillog "github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
@@ -411,30 +410,16 @@ func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[stri
 }
 
 // findProblematicPodNamespaceMap looks at the pods.json files in the cluster and will give a list of files
-// if any have pods that are not Running or Succeeded.
-func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	// FIXME: get rid of duplicated code between this and findProblematicPodFiles
-	allPodFiles, err := pkgfiles.GetMatchingFiles(clusterRoot, regexp.MustCompile("pods.json"))
+// if any have pods that are not Running or Succeeded. FIXME: fix description
+func findProblematicPodNamespaceMap(clusterRoot string) (namespaces map[string][]corev1.Pod, err error) {
+	podLists, err := getPodListsFromClusterRoot(nil, clusterRoot)
 	if err != nil {
-		return nil, err
+		// FIXME: named parameter behavior
+		return
 	}
 
-	if len(allPodFiles) == 0 {
-		return nil, nil
-	}
-	namespaces := make(map[string][]corev1.Pod)
-	for _, podFile := range allPodFiles {
-		podList, err := GetPodList(nil, podFile)
-		if err != nil {
-			_ = fmt.Errorf("%s, failed to get the PodList for %s, skipping", err.Error(), podFile)
-			continue
-		}
-		if podList == nil {
-			continue
-		}
-
-		// If we find any we flag the file as having problematic pods and move to the next file
-		// this is just a quick scan to identify which files to drill into
+	namespaces = make(map[string][]corev1.Pod)
+	for _, podList := range podLists {
 		for _, pod := range podList.Items {
 			if !IsPodProblematic(pod) {
 				continue
@@ -442,33 +427,18 @@ func findProblematicPodNamespaceMap(clusterRoot string) (problematicPodNamespace
 			namespaces[pod.Namespace] = append(namespaces[pod.Namespace], pod)
 		}
 	}
-	return namespaces, nil
+	return
 }
 
 // This looks at the pods.json files in the cluster and will give a list of files
-// if any have pods that are not Running or Succeeded.
+// if any have pods that are not Running or Succeeded. // FIXME: named return values
 func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFiles []string, err error) {
-	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
+	podLists, err := getPodListsFromClusterRoot(log, clusterRoot)
 	if err != nil {
-		return podFiles, err
+		return nil, err
 	}
 
-	if len(allPodFiles) == 0 {
-		return podFiles, nil
-	}
-	podFiles = make([]string, 0, len(allPodFiles))
-	for _, podFile := range allPodFiles {
-		utillog.DebugfIfNotNil(log, "Looking at pod file for problematic pods: %s", podFile)
-		podList, err := GetPodList(log, podFile)
-		if err != nil {
-			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s, skipping", podFile, err)
-			continue
-		}
-		if podList == nil {
-			utillog.DebugfIfNotNil(log, "No PodList was returned, skipping")
-			continue
-		}
-
+	for podFile, podList := range podLists {
 		// If we find any we flag the file as havin problematic pods and move to the next file
 		// this is just a quick scan to identify which files to drill into
 		for _, pod := range podList.Items {
@@ -481,6 +451,33 @@ func findProblematicPodFiles(log *zap.SugaredLogger, clusterRoot string) (podFil
 		}
 	}
 	return podFiles, nil
+}
+
+// getPodListsFromClusterRoot FIXME: write description
+func getPodListsFromClusterRoot(log *zap.SugaredLogger, clusterRoot string) (map[string]*corev1.PodList, error) {
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, PodFilesMatchRe)
+	if err != nil {
+		return nil, err
+	}
+	if len(allPodFiles) == 0 {
+		return nil, nil
+	}
+
+	podLists := make(map[string]*corev1.PodList)
+	for _, podFile := range allPodFiles {
+		utillog.DebugfIfNotNil(log, "Looking at pod file for problematic pods: %s", podFile)
+		podList, err := GetPodList(log, podFile)
+		if err != nil {
+			utillog.DebugfIfNotNil(log, "Failed to get the PodList for %s, skipping due to error: %s", podFile, err.Error())
+			continue
+		}
+		if podList == nil {
+			utillog.DebugfIfNotNil(log, "No PodList was returned, skipping")
+			continue
+		}
+		podLists[podFile] = podList
+	}
+	return podLists, nil
 }
 
 func reportProblemPodsNoIssues(log *zap.SugaredLogger, clusterRoot string, podFiles []string) {
