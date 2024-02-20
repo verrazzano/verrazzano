@@ -481,7 +481,6 @@ func findProblematicPodFilesMap(log *zap.SugaredLogger, clusterRoot string) (pod
 				podFileMap[podFile] = make([]corev1.Pod, 0)
 			}
 			podFileMap[podFile]= append(podFileMap[podFile], pod)
-			break
 		}
 	}
 	return podFileMap, nil
