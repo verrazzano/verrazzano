@@ -8,23 +8,24 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"io"
 	"os"
 	"path/filepath"
 	"regexp"
 	"time"
 
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	utillog "github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 )
 
 // GetMatchingFileNames returns the filenames for files that match a regular expression.
 func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
-	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
+	utillog.DebugfIfNotNil(log, "GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
-		log.Debugf("GetMatchingFiles requires a rootDirectory")
+		utillog.DebugfIfNotNil(log, "GetMatchingFiles requires a rootDirectory")
 		return nil, errors.New("GetMatchingFiles requires a rootDirectory")
 	}
 
@@ -37,7 +38,7 @@ func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatc
 			return nil
 		}
 		if !fileInfo.IsDir() {
-			log.Debugf("GetMatchingFiles %s matched", fileName)
+			utillog.DebugfIfNotNil(log, "GetMatchingFiles %s matched", fileName)
 			fileMatches = append(fileMatches, fileName)
 		}
 		return nil
@@ -45,7 +46,7 @@ func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatc
 
 	err = filepath.Walk(rootDirectory, walkFunc)
 	if err != nil {
-		log.Debugf("GetMatchingFiles failed to walk the filepath", err)
+		utillog.DebugfIfNotNil(log, "GetMatchingFiles failed to walk the filepath", err)
 		return nil, err
 	}
 	return fileMatches, err
@@ -53,9 +54,9 @@ func GetMatchingFileNames(log *zap.SugaredLogger, rootDirectory string, fileMatc
 
 // GetMatchingDirectoryNames returns the filenames for directories that match a regular expression.
 func GetMatchingDirectoryNames(log *zap.SugaredLogger, rootDirectory string, fileMatchRe *regexp.Regexp) (fileMatches []string, err error) {
-	log.Debugf("GetMatchingFiles called with rootDirectory: %s", rootDirectory)
+	utillog.DebugfIfNotNil(log, "GetMatchingFiles called with rootDirectory: %s", rootDirectory)
 	if len(rootDirectory) == 0 {
-		log.Debugf("GetMatchingDirectories requires a root directory")
+		utillog.DebugfIfNotNil(log, "GetMatchingDirectories requires a root directory")
 		return nil, errors.New("GetMatchingDirectories requires a rootDirectory")
 	}
 
@@ -68,7 +69,7 @@ func GetMatchingDirectoryNames(log *zap.SugaredLogger, rootDirectory string, fil
 			return nil
 		}
 		if fileInfo.IsDir() {
-			log.Debugf("GetMatchingDirectories %s matched", fileName)
+			utillog.DebugfIfNotNil(log, "GetMatchingDirectories %s matched", fileName)
 			fileMatches = append(fileMatches, fileName)
 		}
 		return nil
@@ -76,7 +77,7 @@ func GetMatchingDirectoryNames(log *zap.SugaredLogger, rootDirectory string, fil
 
 	err = filepath.Walk(rootDirectory, walkFunc)
 	if err != nil {
-		log.Debugf("GetMatchingFiles failed to walk the filepath", err)
+		utillog.DebugfIfNotNil(log, "GetMatchingFiles failed to walk the filepath", err)
 		return nil, err
 	}
 	return fileMatches, nil
