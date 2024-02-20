@@ -442,11 +442,9 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			vz := v1beta1.Verrazzano{}
 			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 			assert.NoError(t, err)
-			stdoutFile, stderrFile := createStdTempFiles(t)
-			defer os.Remove(stdoutFile.Name())
-			defer os.Remove(stderrFile.Name())
 
-			rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+			rc, err := setupFakeDynamicClient(c)
+			defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			kubeClient = getKubeClient()
 			rc.SetClient(c)
 			rc.SetKubeClient(kubeClient)
@@ -465,7 +463,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err = cmd.Execute()
 
 			if !tt.success {
-				stderrFileData, _ := os.ReadFile(stderrFile.Name())
+				stderrFileData, _ := os.ReadFile(rc.ErrOut.Name())
 				temp := string(stderrFileData)
 				err := strings.Contains(temp, "was not found for pod:")
 				assert.True(t, err)
