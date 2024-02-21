@@ -205,15 +205,23 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	istioSystemPath := filepath.Join("cluster-snapshot", "istio-system")
 	previousLogTxt := "previous-logs.txt"
 	istioPodPath := filepath.Join(tmpDir, istioSystemPath, "istio", previousLogTxt)
+	secondIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "second-istio-pod", previousLogTxt)
 	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "third-istio-pod", previousLogTxt)
 
 	pkghelper.UntarArchive(tmpDir, file)
+
+	// The first and third istio pods have problems and should be flagged
 	stat, err := os.Stat(istioPodPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, stat.Name())
 	stat, err = os.Stat(thirdIstioPodPath)
 	assert.NoError(t, err)
 	assert.NotNil(t, stat.Name())
+
+	// The second istio pod is running as expected and should not be flagged
+	stat, err = os.Stat(secondIstioPodPath)
+	assert.Error(t, err)
+	assert.Nil(t, stat)
 }
 
 // TestDefaultBugReportSuccess
