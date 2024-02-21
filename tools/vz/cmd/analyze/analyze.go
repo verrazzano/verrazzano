@@ -92,7 +92,7 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 	helpers.SetIsLiveCluster()
 
 	// Capture cluster snapshot
-	podLogs := vzbugreport.PodLogs{
+	podLogs := helpers.PodLogs{
 		IsPodLog: true,
 		Duration: int64(0),
 	}
