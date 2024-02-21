@@ -560,6 +560,12 @@ func kubeClientObjets() []runtime.Object {
 			},
 			Status: corev1.PodStatus{
 				Phase: corev1.PodRunning,
+				Conditions: []corev1.PodCondition{
+					{
+						Type:   corev1.PodReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
