@@ -4,16 +4,17 @@
 package analyze
 
 import (
-	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
-	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
+	"github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 )
 
-const imagePullCase1 = "../../pkg/analysis/test/cluster/image-pull-case1/"
-const ingressIPNotFound = "../../pkg/analysis/test/cluster/ingress-ip-not-found"
+const imagePullCase1 = "../../pkg/internal/test/cluster/image-pull-case1/"
+const ingressIPNotFound = "../../pkg/internal/test/cluster/ingress-ip-not-found"
 
 const loadBalancerErr = "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded"
 const noIPFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
@@ -204,7 +205,7 @@ func TestAnalyzeCommandTarGZFile(t *testing.T) {
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar.gz")
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test.tar.gz")
 	err = cmd.Execute()
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
@@ -222,7 +223,7 @@ func TestAnalyzeCommandTGZFile(t *testing.T) {
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tgz")
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test.tgz")
 	err = cmd.Execute()
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
@@ -240,7 +241,7 @@ func TestAnalyzeCommandTarFile(t *testing.T) {
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test.tar")
 	err = cmd.Execute()
 	assert.Nil(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
@@ -258,9 +259,9 @@ func TestAnalyzeCommandTarFileNotFound(t *testing.T) {
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 	err = cmd.Execute()
-	assert.ErrorContains(t, err, "an error occurred when trying to open ../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
+	assert.ErrorContains(t, err, "an error occurred when trying to open ../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test-bad-path.tgz")
 }
 
 // TestAnalyzeCommandVZTarFile
@@ -273,7 +274,7 @@ func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
-	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/analysis/test/cluster/tar-file-in-vz-format.tar.gz")
+	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/tar-file-in-vz-format.tar.gz")
 	err = cmd.Execute()
 	assert.Nil(t, err)
 }
