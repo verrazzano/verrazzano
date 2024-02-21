@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	testCattleSystemPodsDirectory = "../../pkg/analysis/test/cluster/testCattleSystempods"
-	ipAddressRedactionDirectory   = "../../pkg/analysis/test/sanitization/ip-address-redaction"
+	testCattleSystemPodsDirectory = "../../pkg/internal/test/cluster/testCattleSystempods"
+	ipAddressRedactionDirectory   = "../../pkg/internal/test/sanitization/ip-address-redaction"
 	ipToSanitize                  = "127.0.0.0"
 )
 
@@ -159,7 +159,7 @@ func TestSanitizeCommandWithInputTarAndOutputTarGZFile(t *testing.T) {
 	}()
 	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test.tar")
 	cmd.PersistentFlags().Set(constants.OutputTarGZFileFlagName, constants.OutputTarGZFile)
 	defer os.Remove(constants.OutputTarGZFile)
 	assert.NotNil(t, cmd)
@@ -179,7 +179,7 @@ func TestSanitizeCommandWithInputTarAndOutputDirectoryFile(t *testing.T) {
 	}()
 	rc := testHelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	cmd := NewCmdSanitize(rc)
-	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/analysis/test/cluster/istio-ingress-ip-not-found-test.tar")
+	cmd.PersistentFlags().Set(constants.InputTarFileFlagName, "../../pkg/internal/test/cluster/istio-ingress-ip-not-found-test.tar")
 	cmd.PersistentFlags().Set(constants.OutputDirectoryFlagName, constants.TestDirectory)
 	defer os.RemoveAll(constants.TestDirectory)
 	assert.NotNil(t, cmd)
@@ -260,7 +260,7 @@ func TestIsMetadataFile(t *testing.T) {
 // WHEN I call sanitizeDirectory with a structure that contains an input directory that contains files that need to be sanitized
 // THEN expect the function to correctly create the expected output directory containing the properly sanitized file
 func TestSanitizeDirectory(t *testing.T) {
-	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/ocid-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
+	validationForTest := flagValidation{inputDirectory: "../../pkg/internal/test/sanitization/ocid-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
 	defer os.RemoveAll(constants.TestDirectory)
 	err := sanitizeDirectory(validationForTest)
 	assert.Nil(t, err)
@@ -275,14 +275,14 @@ func TestSanitizeDirectory(t *testing.T) {
 // WHEN I call sanitizeFileAndWriteItToOutput with the appropriate arguments that references a file that does not need to be altered
 // THEN expect the function to create the new file, which should be identical to the old file
 func TestSanitizeFileAndWriteItToOutput(t *testing.T) {
-	validationForTest := flagValidation{inputDirectory: "../../pkg/analysis/test/sanitization/no-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
+	validationForTest := flagValidation{inputDirectory: "../../pkg/internal/test/sanitization/no-redaction", inputTarFile: "", outputTarGZFile: "", outputDirectory: constants.TestDirectory}
 	os.Mkdir("test-directory", 0700)
 	defer os.RemoveAll(constants.TestDirectory)
-	err := sanitizeFileAndWriteItToOutput(validationForTest, false, "../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt", 0600)
+	err := sanitizeFileAndWriteItToOutput(validationForTest, false, "../../pkg/internal/test/sanitization/no-redaction/no-redaction-needed.txt", 0600)
 	assert.Nil(t, err)
 	sanitizedFileBytes, err := os.ReadFile(constants.TestDirectory + string(os.PathSeparator) + "no-redaction-needed.txt")
 	assert.Nil(t, err)
-	unsanitizedFileBytes, err := os.ReadFile("../../pkg/analysis/test/sanitization/no-redaction/no-redaction-needed.txt")
+	unsanitizedFileBytes, err := os.ReadFile("../../pkg/internal/test/sanitization/no-redaction/no-redaction-needed.txt")
 	assert.Nil(t, err)
 	assert.Equal(t, sanitizedFileBytes, unsanitizedFileBytes)
 }

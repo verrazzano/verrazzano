@@ -6,6 +6,11 @@ package bugreport
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,11 +26,8 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 const (
@@ -200,7 +202,7 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	file, _ := os.Open(bugRepFile)
 	defer file.Close()
 
-	istioSystemPath := "cluster-snapshot/istio-system"
+	istioSystemPath := filepath.Join("cluster-snapshot", "istio-system")
 	previousLogTxt := "previous-logs.txt"
 	istioPodPath := filepath.Join(tmpDir, istioSystemPath, "istio", previousLogTxt)
 	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "third-istio-pod", previousLogTxt)
