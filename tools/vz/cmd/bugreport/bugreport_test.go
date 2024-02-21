@@ -443,7 +443,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 			assert.NoError(t, err)
 
-			rc, err := setupFakeDynamicClient(c)
+			rc, _ := setupFakeDynamicClient(c)
 			defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			kubeClient = getKubeClient()
 			rc.SetClient(c)
