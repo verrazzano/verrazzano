@@ -47,6 +47,7 @@ var errBugReport = "an error occurred while creating the bug report: %s"
 var createFileError = "an error occurred while creating the file %s: %s"
 var writeFileError = "an error occurred while writing the file %s: %s\n"
 var isErrorMutex = &sync.Mutex{}
+var controllerRuntimeClient = &sync.Mutex{}
 
 var containerStartLog = "==== START logs for container %s of pod %s/%s ====\n"
 var containerEndLog = "==== END logs for container %s of pod %s/%s ====\n"
@@ -494,7 +495,9 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 		Kind:    "InnoDBClusterList",
 	}
 	innoDBClusterList.SetGroupVersionKind(innoDBClusterGVK)
+	controllerRuntimeClient.Lock()
 	err := client.List(context.TODO(), &innoDBClusterList, &clipkg.ListOptions{Namespace: namespace})
+	controllerRuntimeClient.Unlock()
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the InnoDBCluster resource in namespace %s: %s\n", namespace, err.Error()))
 	}
@@ -510,7 +513,9 @@ func captureInnoDBClusterResources(client clipkg.Client, namespace, captureDir s
 // captureCertificates finds the certificates from the client for the current namespace, returns an error, and outputs the objects to a certificates.json file, if certificates are present in that namespace.
 func captureCertificates(client clipkg.Client, namespace, captureDir string, vzHelper VZHelper) error {
 	certificateList := v1.CertificateList{}
+	controllerRuntimeClient.Lock()
 	err := client.List(context.TODO(), &certificateList, &clipkg.ListOptions{Namespace: namespace})
+	controllerRuntimeClient.Unlock()
 	if err != nil {
 		LogError(fmt.Sprintf("An error occurred while getting the Certificates in namespace %s: %s\n", namespace, err.Error()))
 	}
