@@ -33,6 +33,8 @@ import (
 const (
 	testKubeConfig = "kubeconfig"
 	testK8sContext = "testcontext"
+	secondIstioPodName = "second-istio-pod"
+	thirdIstioPodName = "third-istio-pod"
 
 	// captureResourceErrMsg   = "Capturing resources from the cluster"
 	// sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
@@ -202,11 +204,10 @@ func TestBugReportGetPreviousLogs(t *testing.T) {
 	file, _ := os.Open(bugRepFile)
 	defer file.Close()
 
-	istioSystemPath := filepath.Join("cluster-snapshot", "istio-system")
-	previousLogTxt := "previous-logs.txt"
-	istioPodPath := filepath.Join(tmpDir, istioSystemPath, "istio", previousLogTxt)
-	secondIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "second-istio-pod", previousLogTxt)
-	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, "third-istio-pod", previousLogTxt)
+	istioSystemPath := filepath.Join("cluster-snapshot", vzconstants.IstioSystemNamespace)
+	istioPodPath := filepath.Join(tmpDir, istioSystemPath, vzconstants.Istio, constants.PreviousLogFile)
+	secondIstioPodPath := filepath.Join(tmpDir, istioSystemPath, secondIstioPodName, constants.PreviousLogFile)
+	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, thirdIstioPodName, constants.PreviousLogFile)
 
 	pkghelper.UntarArchive(tmpDir, file)
 
@@ -512,10 +513,10 @@ func getClientWithMissingSidecar() client.WithWatch {
 
 // getKubeClient returns a kubeClient containing runtime objects: namespace and a pod
 func getKubeClient() *k8sfake.Clientset {
-	return k8sfake.NewSimpleClientset(kubeClientObjets()...)
+	return k8sfake.NewSimpleClientset(kubeClientObjects()...)
 }
 
-func kubeClientObjets() []runtime.Object {
+func kubeClientObjects() []runtime.Object {
 	return []runtime.Object{
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -561,7 +562,7 @@ func kubeClientObjets() []runtime.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "second-istio-pod",
+				Name:      secondIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -582,7 +583,7 @@ func kubeClientObjets() []runtime.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "third-istio-pod",
+				Name:      thirdIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -659,7 +660,7 @@ func getVpoObjects() []client.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "second-istio-pod",
+				Name:      secondIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -674,7 +675,7 @@ func getVpoObjects() []client.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "third-istio-pod",
+				Name:      thirdIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
