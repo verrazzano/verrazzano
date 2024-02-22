@@ -6,18 +6,16 @@ package bugreport
 import (
 	"errors"
 	"fmt"
-	"io/fs"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
-
 	"github.com/spf13/cobra"
+	"github.com/verrazzano/verrazzano/tools/vz/cmd/analyze"
 	cmdhelpers "github.com/verrazzano/verrazzano/tools/vz/cmd/helpers"
 	vzbugreport "github.com/verrazzano/verrazzano/tools/vz/pkg/bugreport"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"io/fs"
+	"os"
+	"strings"
+	"time"
 )
 
 const (
@@ -116,7 +114,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		bugReportFile = strings.Replace(bugReportFile, "dt", start.Format(constants.DatetimeFormat), 1)
 		bugRepFile, err = os.CreateTemp(".", bugReportFile)
 		if err != nil && (errors.Is(err, fs.ErrPermission) || strings.Contains(err.Error(), constants.ReadOnly)) {
-			fmt.Fprintf(vzHelper.GetOutputStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
+			fmt.Fprintf(vzHelper.GetErrorStream(), "Warning: %s, creating report in current directory, using temp directory instead\n", fs.ErrPermission)
 			bugRepFile, err = os.CreateTemp("", bugReportFile)
 		}
 	} else {
@@ -168,7 +166,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 
 	// Capture cluster snapshot
 	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: bugReportDir, MoreNS: moreNS, PrintReportToConsole: false}
-	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, vzbugreport.PodLogs{IsPodLog: isPodLog, Duration: durationValue}, clusterSnapshotCtx)
+	err = vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, helpers.PodLogs{IsPodLog: isPodLog, IsPrevious: false, Duration: durationValue}, clusterSnapshotCtx)
 	if err != nil {
 		os.Remove(bugRepFile.Name())
 		return bugRepFile.Name(), fmt.Errorf(err.Error())
@@ -261,7 +259,7 @@ func isDirEmpty(directory string, ignoreFilesCount int) bool {
 	return len(entries) == ignoreFilesCount
 }
 
-// CallVzBugReport creates a new bug-report cobra command, initailizes and sets the required flags, and runs the new command.
+// CallVzBugReport creates a new bug-report cobra command, initializes and sets the required flags, and runs the new command.
 // Returns the original error that's passed in as a parameter to preserve the error received from previous cli command failure.
 func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (string, error) {
 	newCmd := NewCmdBugReport(vzHelper)
@@ -281,7 +279,7 @@ func CallVzBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) (
 func AutoBugReport(cmd *cobra.Command, vzHelper helpers.VZHelper, err error) error {
 	autoBugReportFlag, errFlag := cmd.Flags().GetBool(constants.AutoBugReportFlag)
 	if errFlag != nil {
-		fmt.Fprintf(vzHelper.GetOutputStream(), "Error fetching flags: %s", errFlag.Error())
+		fmt.Fprintf(vzHelper.GetErrorStream(), "Error fetching flags: %s", errFlag.Error())
 		return err
 	}
 	if autoBugReportFlag {

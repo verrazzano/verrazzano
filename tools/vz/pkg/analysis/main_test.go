@@ -8,8 +8,10 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/log"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/log"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
+	vzhelper "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 // TestHandleMain Tests the handleMain function
@@ -29,17 +31,27 @@ func TestHandleMain(_ *testing.T) {
 // THEN errors are generated as expected
 func TestExecuteAnalysisBadArgs(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	// Call the analyzer with an unknown type, give it a good cluster dump directory
-	err := Analyze(logger, "badnamehere", "../test/cluster/image-pull-case1")
+	err := Analyze(rc, logger, "badnamehere", "../test/cluster/image-pull-case1")
 	assert.NotNil(t, err)
 	// TODO: Check error message is what we expected here
 
 }
 func TestProblemPodsInCattleSystem(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
-	err := Analyze(logger, "cluster", "test/cluster/testCattleSystempods")
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/testCattleSystempods")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -61,9 +73,14 @@ func TestProblemPodsInCattleSystem(t *testing.T) {
 // THEN a report is generated with image pull issues identified
 func TestImagePull(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/image-pull-case1")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/image-pull-case1")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -84,9 +101,14 @@ func TestImagePull(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestInsufficientMemory(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/insufficient-mem")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/insufficient-mem")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -108,9 +130,14 @@ func TestInsufficientMemory(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestProblemPodsNotReportedUninstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/problem-pods")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/problem-pods")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -132,9 +159,14 @@ func TestProblemPodsNotReportedUninstall(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestProblemPodsNotReportedInstall(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/problem-pods-install")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/problem-pods-install")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -160,7 +192,7 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 //func TestLBIpNotSet(t *testing.T) {
 //	logger := log.GetDebugEnabledLogger()
 
-//	err := Analyze(logger, "cluster", "test/cluster/lb-ipnotset")
+//	err := Analyze(logger, "cluster", "../internal/test/cluster/lb-ipnotset")
 //	assert.Nil(t, err)
 
 //	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -181,9 +213,14 @@ func TestProblemPodsNotReportedInstall(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/ingress-ip-not-found")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/ingress-ip-not-found")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -204,9 +241,14 @@ func TestLBIpNotFound(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestIstioLBIpNotFound(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/istio-ingress-ip-not-found")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/istio-ingress-ip-not-found")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -229,7 +271,7 @@ func TestIstioLBIpNotFound(t *testing.T) {
 // func TestIngressInstall(t *testing.T) {
 //	logger := log.GetDebugEnabledLogger()
 
-//	err := Analyze(logger, "cluster", "test/cluster/ingress-install-unknown")
+//	err := Analyze(logger, "cluster", "../internal/test/cluster/ingress-install-unknown")
 //	assert.Nil(t, err)
 
 //	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -250,9 +292,14 @@ func TestIstioLBIpNotFound(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestLBLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/ingress-lb-limit")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/ingress-lb-limit")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -273,9 +320,14 @@ func TestLBLimitExceeded(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestOciIPLimitExceeded(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/ingress-oci-limit")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/ingress-oci-limit")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -296,9 +348,14 @@ func TestOciIPLimitExceeded(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestOciLBInvalidShape(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/ingress-invalid-shape")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/ingress-invalid-shape")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -319,9 +376,14 @@ func TestOciLBInvalidShape(t *testing.T) {
 // THEN a report is generated with problem pod issues identified
 func TestPendingPods(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/pending-pods")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/pending-pods")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -344,7 +406,7 @@ func TestPendingPods(t *testing.T) {
 //func TestUnknownInstall(t *testing.T) {
 //	logger := log.GetDebugEnabledLogger()
 
-//	err := Analyze(logger, "cluster", "test/cluster/install-unknown")
+//	err := Analyze(logger, "cluster", "../internal/test/cluster/install-unknown")
 //	assert.Nil(t, err)
 
 //	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -365,9 +427,14 @@ func TestPendingPods(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestIstioIngressInstallFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/istio-loadbalancer-creation-issue")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/istio-loadbalancer-creation-issue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -388,9 +455,14 @@ func TestIstioIngressInstallFailure(t *testing.T) {
 // THEN a report is generated with supporting messages from the events related to those failed components' pods
 func TestComponentsNotReadyNoErrorMsg(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/components-not-ready")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/components-not-ready")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -414,9 +486,14 @@ func TestComponentsNotReadyNoErrorMsg(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestExternalDNSConfigurationIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/external-dns-issue")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/external-dns-issue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -438,9 +515,14 @@ func TestExternalDNSConfigurationIssue(t *testing.T) {
 // THEN a report is generated with install failure
 func TestResourceJSONWithVerrazzanoFormat(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/install-failure-verrazzano-format-json")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/install-failure-verrazzano-format-json")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -462,9 +544,14 @@ func TestResourceJSONWithVerrazzanoFormat(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestKeycloakDataMigrationFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/keycloak-data-migration-failure")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/keycloak-data-migration-failure")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -486,9 +573,14 @@ func TestKeycloakDataMigrationFailure(t *testing.T) {
 // This test also tests for detecting a separate expired certificate in the certificates.json
 func TestCertificateVZClientHangingIssue(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/testCLIHangingIssue")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/testCLIHangingIssue")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)
@@ -512,9 +604,14 @@ func TestCertificateVZClientHangingIssue(t *testing.T) {
 // THEN a report is generated with issues identified
 func TestBlockStorageFailure(t *testing.T) {
 	logger := log.GetDebugEnabledLogger()
-
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := vzhelper.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
 	report.ClearReports()
-	err := Analyze(logger, "cluster", "test/cluster/blockstorage-limitexceeded")
+	err := Analyze(rc, logger, "cluster", "../internal/test/cluster/blockstorage-limitexceeded")
 	assert.Nil(t, err)
 
 	reportedIssues := report.GetAllSourcesFilteredIssues(logger, true, 0, 0)

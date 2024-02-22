@@ -196,7 +196,8 @@ const (
 	OutputTarGZFile = "output-tar-file.tar.gz"
 
 	// File name for the log captured from the pod
-	LogFile = "logs.txt"
+	LogFile         = "logs.txt"
+	PreviousLogFile = "previous-logs.txt"
 
 	// File containing list of resources captured by the tool
 	BugReportOut = "bug-report.out"
