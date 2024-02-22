@@ -7,6 +7,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"sync"
+
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -18,10 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"path/filepath"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
 )
 
 // The bug-report command captures the following resources from the cluster by default
@@ -504,5 +505,16 @@ func captureProblematicPodLogs(kubeClient kubernetes.Interface, bugReportDir str
 			}
 		}
 	}
+	return nil
+}
+
+// capturePersistentVolumes to identify resources that are not bound.
+func capturePersistentVolumes(kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper) error {
+	pvcList, err := kubeClient.CoreV1().PersistentVolumeClaims("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	pkghelpers.LogError(fmt.Sprintf("PVC STATUS %s\n", pvcList.Items[0].Status.Phase))
 	return nil
 }

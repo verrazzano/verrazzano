@@ -6,9 +6,10 @@ package cluster
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"os"
 	"regexp"
+
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/files"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
@@ -52,6 +53,9 @@ var LogFilesMatchRe = regexp.MustCompile(`logs.txt`)
 
 // PodFilesMatchRe is used for finding pod files in a cluster dump
 var PodFilesMatchRe = regexp.MustCompile(`pods.json`)
+
+// PVCFilesMatchRe is used for finding pvc files in a cluster dump
+var PVCFilesMatchRe = regexp.MustCompile(`pvcs.json`)
 
 // ErrorSearchRe is used for searching for case insensitive "error". This is useful when we know there is a
 // problem lurking but we can't identify the specific issue and are trying to capture relevant information
