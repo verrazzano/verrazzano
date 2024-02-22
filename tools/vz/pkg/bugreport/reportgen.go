@@ -15,6 +15,7 @@ import (
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	pkghelpers "github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/cluster"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -182,7 +183,7 @@ func CaptureClusterSnapshot(kubeClient kubernetes.Interface, dynamicClient dynam
 	err = flagMissingSidecarContainers(client, kubeClient)
 
 	// find problematic pods from captured resources
-	podNameNamespaces, err := pkghelpers.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
+	podNameNamespaces, err := cluster.FindProblematicPods(clusterSnapshotCtx.BugReportDir)
 	if err != nil {
 		return err
 	}

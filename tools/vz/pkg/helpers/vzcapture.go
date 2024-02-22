@@ -1144,14 +1144,3 @@ func isCaExpired(client clipkg.Client, cert v1.Certificate, namespace string) (*
 	}
 	return &caCrtInfoForCert, true, nil
 }
-
-func FindProblematicPods(bugReportDir string) (problematicPodNamespaces map[string][]corev1.Pod, err error) {
-	namespaces, err := FindProblematicPodFiles(bugReportDir)
-	if err != nil {
-		return nil, fmt.Errorf("an error occurred while trying to find problematic pods %s", err.Error())
-	}
-	if len(namespaces) == 0 {
-		return nil, nil
-	}
-	return namespaces, nil
-}
