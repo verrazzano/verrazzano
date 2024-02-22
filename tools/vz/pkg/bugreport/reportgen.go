@@ -508,14 +508,3 @@ func captureProblematicPodLogs(kubeClient kubernetes.Interface, bugReportDir str
 	}
 	return nil
 }
-
-// capturePersistentVolumes to identify resources that are not bound.
-func capturePersistentVolumes(kubeClient kubernetes.Interface, bugReportDir string, vzHelper pkghelpers.VZHelper) error {
-	pvcList, err := kubeClient.CoreV1().PersistentVolumeClaims("").List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return err
-	}
-
-	pkghelpers.LogError(fmt.Sprintf("PVC STATUS %s\n", pvcList.Items[0].Status.Phase))
-	return nil
-}
