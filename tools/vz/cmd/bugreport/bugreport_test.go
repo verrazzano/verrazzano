@@ -31,10 +31,10 @@ import (
 )
 
 const (
-	testKubeConfig = "kubeconfig"
-	testK8sContext = "testcontext"
+	testKubeConfig     = "kubeconfig"
+	testK8sContext     = "testcontext"
 	secondIstioPodName = "second-istio-pod"
-	thirdIstioPodName = "third-istio-pod"
+	thirdIstioPodName  = "third-istio-pod"
 
 	// captureResourceErrMsg   = "Capturing resources from the cluster"
 	// sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
