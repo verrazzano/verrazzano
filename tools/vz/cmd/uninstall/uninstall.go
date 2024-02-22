@@ -187,43 +187,43 @@ func cleanupResources(client client.Client, vzHelper helpers.VZHelper) {
 	// Delete verrazzano-install namespace
 	err := deleteNamespace(client, constants.VerrazzanoInstall)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	// Delete other verrazzano resources
 	err = deleteWebhookConfiguration(client, constants.VerrazzanoPlatformOperatorWebhook)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteWebhookConfiguration(client, constants.VerrazzanoMysqlInstallValuesWebhook)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteWebhookConfiguration(client, constants.VerrazzanoRequirementsValidatorWebhook)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteMutatingWebhookConfiguration(client, constants.MysqlBackupMutatingWebhookName)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteClusterRoleBinding(client, constants.VerrazzanoPlatformOperator)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteClusterRole(client, constants.VerrazzanoManagedCluster)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 
 	err = deleteClusterRole(client, vzconstants.VerrazzanoClusterRancherName)
 	if err != nil {
-		_, _ = fmt.Fprintf(vzHelper.GetOutputStream(), err.Error()+"\n")
+		_, _ = fmt.Fprintf(vzHelper.GetErrorStream(), err.Error()+"\n")
 	}
 }
 
