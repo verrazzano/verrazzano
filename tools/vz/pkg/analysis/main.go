@@ -5,9 +5,10 @@ package analysis
 
 import (
 	"fmt"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/cluster"
-	"github.com/verrazzano/verrazzano/tools/vz/pkg/analysis/internal/util/report"
+
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/cluster"
+	"github.com/verrazzano/verrazzano/tools/vz/pkg/internal/util/report"
 	"go.uber.org/zap"
 )
 

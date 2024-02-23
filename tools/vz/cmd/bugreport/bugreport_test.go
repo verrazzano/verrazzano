@@ -6,6 +6,11 @@ package bugreport
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
@@ -21,17 +26,15 @@ import (
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
-	"os"
-	"path/filepath"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"strings"
-	"testing"
 )
 
 const (
-	testKubeConfig = "kubeconfig"
-	testK8sContext = "testcontext"
+	testKubeConfig     = "kubeconfig"
+	testK8sContext     = "testcontext"
+	secondIstioPodName = "second-istio-pod"
+	thirdIstioPodName  = "third-istio-pod"
 
 	// captureResourceErrMsg   = "Capturing resources from the cluster"
 	// sensitiveDataErrMsg     = "WARNING: Please examine the contents of the bug report for any sensitive data"
@@ -180,11 +183,11 @@ func TestBugReportSuccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// TestBugReportFailedPods
+// TestBugReportGetPreviousLogs
 // GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
 // WHEN I call cmd.Execute
-// THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
-func TestBugReportFailedPods(t *testing.T) {
+// THEN expect the command to try and capture previous pod logs create the file 'previous-logs.txt'
+func TestBugReportGetPreviousLogs(t *testing.T) {
 	cmd := setUpAndVerifyResources(t)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
@@ -197,10 +200,29 @@ func TestBugReportFailedPods(t *testing.T) {
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
 	assert.NoError(t, err)
 	err = cmd.Execute()
-	if err != nil {
-		assert.Error(t, err)
-	}
 	assert.NoError(t, err)
+	file, _ := os.Open(bugRepFile)
+	defer file.Close()
+
+	istioSystemPath := filepath.Join("cluster-snapshot", vzconstants.IstioSystemNamespace)
+	istioPodPath := filepath.Join(tmpDir, istioSystemPath, vzconstants.Istio, constants.PreviousLogFile)
+	secondIstioPodPath := filepath.Join(tmpDir, istioSystemPath, secondIstioPodName, constants.PreviousLogFile)
+	thirdIstioPodPath := filepath.Join(tmpDir, istioSystemPath, thirdIstioPodName, constants.PreviousLogFile)
+
+	pkghelper.UntarArchive(tmpDir, file)
+
+	// The first and third istio pods have problems and should be flagged
+	stat, err := os.Stat(istioPodPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
+	stat, err = os.Stat(thirdIstioPodPath)
+	assert.NoError(t, err)
+	assert.NotNil(t, stat.Name())
+
+	// The second istio pod is running as expected and should not be flagged
+	stat, err = os.Stat(secondIstioPodPath)
+	assert.Error(t, err)
+	assert.Nil(t, stat)
 }
 
 // TestDefaultBugReportSuccess
@@ -416,26 +438,90 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	assert.FileExists(t, bugRepFile)
 }
 
+// TestIstioSidecarContainersExist
+// GIVEN a CLI bug-report command
+// WHEN I call cmd.Execute
+// THEN expect the command to verify the existence of istio sidecar containers in pods in istio-injection labeled namespaces
+func TestIstioSidecarContainersExist(t *testing.T) {
+	tests := []struct {
+		name    string
+		success bool
+	}{
+		{"Sidecar Containers found", true},
+		{"Sidecar Containers NOT found", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := getClientWithVZWatch()
+			if !tt.success {
+				c = getClientWithMissingSidecar()
+			}
+
+			var kubeClient *k8sfake.Clientset
+
+			// Verify the vz resource is as expected
+			vz := v1beta1.Verrazzano{}
+			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
+			assert.NoError(t, err)
+			stdoutFile, stderrFile := createStdTempFiles(t)
+			defer os.Remove(stdoutFile.Name())
+			defer os.Remove(stderrFile.Name())
+
+			rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+			kubeClient = getKubeClient()
+			rc.SetClient(c)
+			rc.SetKubeClient(kubeClient)
+			cmd := NewCmdBugReport(rc)
+			assert.NotNil(t, cmd)
+
+			tmpDir, _ := os.MkdirTemp("", "bug-report")
+			defer cleanupTempDir(t, tmpDir)
+
+			bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
+			setUpGlobalFlags(cmd)
+			err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+			assert.NoError(t, err)
+			err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
+			assert.NoError(t, err)
+			err = cmd.Execute()
+
+			if !tt.success {
+				stderrFileData, _ := os.ReadFile(stderrFile.Name())
+				temp := string(stderrFileData)
+				err := strings.Contains(temp, "was not found for pod:")
+				assert.True(t, err)
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 // getClientWithWatch returns a client containing all VPO objects
 func getClientWithWatch() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[1:]...).Build()
 }
 
-// getClientWithVZWatch returns a client containing all VPO objects and the Verrazzano CR
+// getClientWithVZWatch returns a client containing all VPO objects, except for the last object, and the Verrazzano CR
 func getClientWithVZWatch() client.WithWatch {
+	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()[:len(getVpoObjects())-1]...).Build()
+}
+
+// getClientWithMissingSidecar returns a client containing all VPO objects (including one with a missing sidecar containers) and the VerrazzanoCR
+func getClientWithMissingSidecar() client.WithWatch {
 	return fake.NewClientBuilder().WithScheme(pkghelper.NewScheme()).WithObjects(getVpoObjects()...).Build()
 }
 
 // getKubeClient returns a kubeClient containing runtime objects: namespace and a pod
 func getKubeClient() *k8sfake.Clientset {
-	return k8sfake.NewSimpleClientset(kubeClientObjets()...)
+	return k8sfake.NewSimpleClientset(kubeClientObjects()...)
 }
 
-func kubeClientObjets() []runtime.Object {
+func kubeClientObjects() []runtime.Object {
 	return []runtime.Object{
 		&corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: vzconstants.KeycloakNamespace,
+				Name:   vzconstants.KeycloakNamespace,
+				Labels: map[string]string{"istio-injection": "enabled"},
 			},
 		},
 		&corev1.Pod{
@@ -476,13 +562,19 @@ func kubeClientObjets() []runtime.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "second-istio-pod",
+				Name:      secondIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
 			},
 			Status: corev1.PodStatus{
 				Phase: corev1.PodRunning,
+				Conditions: []corev1.PodCondition{
+					{
+						Type:   corev1.PodReady,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 			Spec: corev1.PodSpec{
 				Containers: []corev1.Container{{Name: vzconstants.Istio}, {Name: "This-should-not-be-here"}},
@@ -491,7 +583,7 @@ func kubeClientObjets() []runtime.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "third-istio-pod",
+				Name:      thirdIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -518,6 +610,23 @@ func getVpoObjects() []client.Object {
 			},
 			Status: v1beta1.VerrazzanoStatus{
 				Components: makeVerrazzanoComponentStatusMap(),
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.KeycloakNamespace,
+				Name:      vzconstants.Keycloak,
+				Labels: map[string]string{
+					"app": vzconstants.Keycloak,
+				},
+				Annotations: map[string]string{"sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"]}"},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodFailed,
+			},
+			Spec: corev1.PodSpec{
+				InitContainers: []corev1.Container{{Name: "istio-init"}},
+				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-container"}, {Name: "istio-proxy"}},
 			},
 		},
 		&corev1.Pod{
@@ -551,7 +660,7 @@ func getVpoObjects() []client.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "second-istio-pod",
+				Name:      secondIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -566,7 +675,7 @@ func getVpoObjects() []client.Object {
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: vzconstants.IstioSystemNamespace,
-				Name:      "third-istio-pod",
+				Name:      thirdIstioPodName,
 				Labels: map[string]string{
 					"app": vzconstants.Istio,
 				},
@@ -600,6 +709,20 @@ func getVpoObjects() []client.Object {
 				Annotations: map[string]string{
 					"deployment.kubernetes.io/revision": "1",
 				},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: vzconstants.KeycloakNamespace,
+				Name:      "missing-sidecar-keycloak",
+				Labels: map[string]string{
+					"app": vzconstants.Keycloak,
+				},
+				Annotations: map[string]string{"sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"]}"},
+			},
+			Spec: corev1.PodSpec{
+				InitContainers: []corev1.Container{{Name: "istio-init"}},
+				Containers:     []corev1.Container{{Name: vzconstants.Keycloak}, {Name: "keycloak-container1"}, {Name: "keycloak-container2"}, {Name: "keycloak-4"}},
 			},
 		},
 	}
@@ -712,10 +835,8 @@ func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 	defer os.Remove(stdoutFile.Name())
 	defer os.Remove(stderrFile.Name())
 	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
-	if strings.Contains(t.Name(), "FailedPods") {
-		kubeClient = getKubeClient()
-		rc.SetKubeClient(kubeClient)
-	}
+	kubeClient = getKubeClient()
+	rc.SetKubeClient(kubeClient)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
