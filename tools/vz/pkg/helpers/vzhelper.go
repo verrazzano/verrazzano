@@ -57,20 +57,18 @@ type VZHelper interface {
 }
 
 type ReportCtx struct {
-	ReportFile           string
-	ReportFormat         string
-	IncludeSupportData   bool
-	IncludeInfo          bool
-	IncludeActions       bool
-	MinConfidence        int
-	MinImpact            int
-	PrintReportToConsole bool
+	ReportFile         string
+	ReportFormat       string
+	IncludeSupportData bool
+	IncludeInfo        bool
+	IncludeActions     bool
+	MinConfidence      int
+	MinImpact          int
 }
 
 type ClusterSnapshotCtx struct {
-	BugReportDir         string
-	MoreNS               []string
-	PrintReportToConsole bool
+	BugReportDir string
+	MoreNS       []string
 }
 
 const defaultVerrazzanoTmpl = `apiVersion: install.verrazzano.io/%s

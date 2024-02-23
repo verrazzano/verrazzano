@@ -243,9 +243,8 @@ func GenerateHumanReport(log *zap.SugaredLogger, vzHelper helpers.VZHelper, repo
 		}
 		// writes vz & k8s version, a separator and detected issues to report file
 		_, err = repFile.Write([]byte(helpers.GetVersionOut() + sepOut + writeOut + version.GetVZCLIVersionMessageString()))
-		if reportCtx.PrintReportToConsole {
-			printReport()
-		}
+		printReport()
+
 		if err != nil {
 			log.Errorf("Failed to write to report file %s, error found : %s", reportCtx.ReportFile, err.Error())
 			return err

@@ -42,7 +42,7 @@ func NewCmdAnalyze(vzHelper helpers.VZHelper) *cobra.Command {
 		return validateReportFormat(cmd)
 	}
 	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		return RunCmdAnalyze(cmd, vzHelper, true)
+		return RunCmdAnalyze(cmd, vzHelper)
 	}
 
 	cmd.Example = helpExample
@@ -96,11 +96,11 @@ func analyzeLiveCluster(cmd *cobra.Command, vzHelper helpers.VZHelper, directory
 		IsPodLog: true,
 		Duration: int64(0),
 	}
-	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: reportDirectory, MoreNS: moreNS, PrintReportToConsole: true}
+	clusterSnapshotCtx := helpers.ClusterSnapshotCtx{BugReportDir: reportDirectory, MoreNS: moreNS}
 	return vzbugreport.CaptureClusterSnapshot(kubeClient, dynamicClient, client, vzHelper, podLogs, clusterSnapshotCtx)
 }
 
-func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToConsole bool) error {
+func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper) error {
 	validatedStruct, err := parseFlags(cmd, vzHelper, constants.DirectoryFlagName, constants.TarFileFlagName, constants.ReportFileFlagName, constants.VerboseFlag)
 	if err != nil {
 		return err
@@ -134,7 +134,7 @@ func RunCmdAnalyze(cmd *cobra.Command, vzHelper helpers.VZHelper, printReportToC
 			}
 		}
 	}
-	return analysis.AnalysisMain(vzHelper, validatedStruct.directory, validatedStruct.reportFile, reportFormat, printReportToConsole)
+	return analysis.AnalysisMain(vzHelper, validatedStruct.directory, validatedStruct.reportFile, reportFormat)
 }
 
 // This function validates the directory and tar file flags along with checking that the directory flag and the tar file are not both specified
