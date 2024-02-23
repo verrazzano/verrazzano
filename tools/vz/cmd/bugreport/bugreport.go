@@ -225,7 +225,7 @@ func runCmdBugReport(cmd *cobra.Command, args []string, vzHelper helpers.VZHelpe
 		if err != nil {
 			return bugRepFile.Name(), err
 		}
-		analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, false)
+		analyzeErr := analyze.RunCmdAnalyze(newCmd, vzHelper, true)
 		if analyzeErr != nil {
 			fmt.Fprintf(vzHelper.GetErrorStream(), "Error calling vz analyze %s \n", analyzeErr.Error())
 		}
