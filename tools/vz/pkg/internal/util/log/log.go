@@ -63,7 +63,7 @@ func GetDebugEnabledLogger() *zap.SugaredLogger {
 	return logger.Sugar()
 }
 
-// DebugfNotNil executes log.Debugf(s, args) if log is not nil. If log is nil, then this function is a no-op.
+// DebugfIfNotNil executes log.Debugf(s, args) if log is not nil. If log is nil, then this function is a no-op.
 func DebugfIfNotNil(log *zap.SugaredLogger, s string, args ...interface{}) {
 	if log == nil {
 		return
