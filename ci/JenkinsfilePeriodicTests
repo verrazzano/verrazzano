@@ -474,17 +474,14 @@ pipeline {
                                         string(name: 'EXCLUDED_TESTS', value: params.EXCLUDED_TESTS)
                                     ], wait: true
                                 // The verrazzano-examples job is the one from which we get the verrazzano images file
-                                verrazzanoImagesBuildNumber = builtExamples.number
+                                if (builtExamples.currentResult == 'SUCCESS') {
+                                    verrazzanoImagesBuildNumber = builtExamples.number
+                                    copyImagesFromExamplesBuild()
+                                }
                             }
                         }
                     }
                     post {
-                        success {
-                            copyImagesOnPassingStage()
-                        }
-                        unstable {
-                            copyImagesOnPassingStage()
-                        }
                         failure {
                             script {
                                 TESTS_FAILED = true
@@ -644,14 +641,14 @@ pipeline {
     }
 }
 
-def copyImagesOnPassingStage() {
+def copyImagesFromExamplesBuild() {
     script {
         if (verrazzanoImagesBuildNumber > 0) {
             copyArtifacts(projectName: "${verrazzanoImagesJobProjectName}/${CLEAN_BRANCH_NAME}",
                 selector: specific("${verrazzanoImagesBuildNumber}"),
                 filter: verrazzanoImagesFile)
             sh """
-                # Save the images.txt intp the commit specific location, if we have a clean periodic it will copy the images from here to the branch as the current ones
+                # Save the images.txt into the commit specific location, if we have a clean periodic it will copy the images from here to the branch as the current ones
                 OCI_CLI_AUTH="instance_principal" oci --region us-phoenix-1 os object put --force --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VERSIONED_IMAGES_FILENAME} --file ${verrazzanoImagesFile}
             """
         } else {
