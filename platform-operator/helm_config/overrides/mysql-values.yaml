@@ -1,4 +1,11 @@
-# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 configurationFilesPath: /etc/mysql/conf.d/
+
+podAnnotations:
+  proxy.istio.io/config: |
+    holdApplicationUntilProxyStarts: true
+    terminationDrainDuration: 60s
+    proxyMetadata:
+      "EXIT_ON_ZERO_ACTIVE_CONNECTIONS": "true"
