@@ -7,6 +7,9 @@ import (
 	"context"
 	goerrors "errors"
 	"fmt"
+	"os"
+	"strings"
+
 	"github.com/verrazzano/verrazzano/pkg/bom"
 	ctrlerrors "github.com/verrazzano/verrazzano/pkg/controller/errors"
 	k8sready "github.com/verrazzano/verrazzano/pkg/k8s/ready"
@@ -32,10 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	controllerruntime "sigs.k8s.io/controller-runtime"
 	clipkg "sigs.k8s.io/controller-runtime/pkg/client"
-	"strings"
 )
 
 const (
@@ -65,7 +66,7 @@ const (
 	mySQLHookFile          = "platform-operator/scripts/hooks/mysql-hook.sh"
 	serverVersionKey       = "serverVersion"
 	bomSubComponentName    = "mysql-upgrade"
-	mysqlServerImageName   = "mysql-server"
+	mysqlServerImageName   = "community-server"
 	imageRepositoryKey     = "image.repository"
 	mySQLPodName           = "mysql-0"
 	mySQLContainerName     = "mysql"
