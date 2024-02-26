@@ -8,9 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
+	"testing"
 
 	"net/http"
 	"os"
@@ -142,11 +144,9 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 }
 
 // NewFakeRootCmdContextWithFiles creates a newFakeRootCmdContext with the out stream and the error stream set to two separate files
-func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
+func NewFakeRootCmdContextWithFiles(t *testing.T) *FakeRootCmdContextWithFiles {
 	stdOutFile, stdErrfile, err := createStdTempFiles()
-	if err != nil {
-		return nil, err
-	}
+	assert.Nil(t, err)
 	return &FakeRootCmdContextWithFiles{
 		FakeRootCmdContext: FakeRootCmdContext{
 			IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
@@ -154,7 +154,7 @@ func NewFakeRootCmdContextWithFiles() (*FakeRootCmdContextWithFiles, error) {
 		},
 		Out:    stdOutFile,
 		ErrOut: stdErrfile,
-	}, nil
+	}
 }
 
 // CleanUpFakeRootCmdContextWithFiles removes the standard out and standard error files from the local file system

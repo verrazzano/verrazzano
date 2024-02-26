@@ -46,12 +46,11 @@ const (
 // WHEN I call cmd.Help for bug-report
 // THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
-	err = cmd.Help()
+	err := cmd.Help()
 	if err != nil {
 		assert.Error(t, err)
 	}

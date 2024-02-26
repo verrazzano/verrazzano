@@ -69,15 +69,14 @@ func TestStatusCmd(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
 	// Run the status command, check for the expected status results to be displayed
-	err = statusCmd.Execute()
+	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	outBytes, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
@@ -131,15 +130,14 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
 	// Run the status command, check for the expected status results to be displayed
-	err = statusCmd.Execute()
+	err := statusCmd.Execute()
 	assert.NoError(t, err)
 	outBytes, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
@@ -169,15 +167,14 @@ func TestVZNotFound(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
 	// Run the status command, check for the expected status results to be displayed
-	err = statusCmd.Execute()
+	err := statusCmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Failed to find any Verrazzano resources", err.Error())
 }
@@ -207,15 +204,14 @@ func TestStatusMultipleVZ(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz1, &vz2).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 
 	// Run the status command, check for the expected status results to be displayed
-	err = statusCmd.Execute()
+	err := statusCmd.Execute()
 	assert.Error(t, err)
 	assert.Equal(t, "Expected to only find one Verrazzano resource, but found 2", err.Error())
 }
@@ -234,14 +230,13 @@ func TestNilInstance(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
 	// Run the status command, check for the expected status results to be displayed
-	err = statusCmd.Execute()
+	err := statusCmd.Execute()
 	assert.NoError(t, err)
 }
 

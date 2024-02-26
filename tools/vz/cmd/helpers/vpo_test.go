@@ -97,8 +97,7 @@ func TestWaitForPlatformOperator(t *testing.T) {
 	// THEN no error is returned and the expected pod name is returned.
 	fakeClient := fake.NewClientBuilder().WithObjects(
 		getAllVpoObjects()...).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	podName, err := WaitForPlatformOperator(fakeClient, rc, v1beta1.CondInstallComplete, time.Duration(1)*time.Second)
 	assert.NoError(t, err)
@@ -118,15 +117,14 @@ func TestWaitForOperationToComplete(t *testing.T) {
 	_ = v1beta1.AddToScheme(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	k8sClient := fakek8s.NewSimpleClientset()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN WaitForOperationToComplete is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(getAllVpoObjects(), getVZObject())...).Build()
-	err = WaitForOperationToComplete(fakeClient, k8sClient, rc, testVZNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
+	err := WaitForOperationToComplete(fakeClient, k8sClient, rc, testVZNamespacedName, defaultTimeout, defaultTimeout, LogFormatSimple, v1beta1.CondInstallComplete)
 	assert.Error(t, err)
 }
 
@@ -148,10 +146,9 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN ApplyPlatformOperatorYaml is invoked without the operator manifest flag set,
 	// THEN an error is returned and the existing VPO deployment is not deleted
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	err = ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
+	err := ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
 	assert.Error(t, err)
 	// VPO deployment should not have been deleted, since the platform operator would not be applied
 	var vpo2 appsv1.Deployment

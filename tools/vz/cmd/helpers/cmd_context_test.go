@@ -20,8 +20,7 @@ const (
 
 // TestGetHTTPClient tests the functionality to return the right HTTP client.
 func TestGetHTTPClient(t *testing.T) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	httpClient := rc.GetHTTPClient()
 	assert.NotNil(t, httpClient)
@@ -29,8 +28,7 @@ func TestGetHTTPClient(t *testing.T) {
 
 // TestGetOutputStream tests the functionality to return the output stream set in the command context.
 func TestGetOutputStream(t *testing.T) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	outputStream := rc.GetOutputStream()
 	assert.NotNil(t, outputStream)
@@ -38,8 +36,7 @@ func TestGetOutputStream(t *testing.T) {
 
 // TestGetInputStream tests the functionality to return the input stream set in the command context.
 func TestGetInputStream(t *testing.T) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	inputStream := rc.GetInputStream()
 	assert.NotNil(t, inputStream)
@@ -47,8 +44,7 @@ func TestGetInputStream(t *testing.T) {
 
 // TestGetInputStream tests the functionality to return the input stream set in the command context.
 func TestGetErrorStream(t *testing.T) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	errorStream := rc.GetErrorStream()
 	assert.NotNil(t, errorStream)

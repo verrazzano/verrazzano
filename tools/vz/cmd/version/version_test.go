@@ -20,14 +20,13 @@ func TestVersionCmd(t *testing.T) {
 	gitCommit = "9dbc916b58ab9781f7b4c25e51748fb31ec940f8"
 
 	// Send the command output to a byte buffer
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	versionCmd := NewCmdVersion(rc)
 	assert.NotNil(t, versionCmd)
 
 	// Run version command, check for the expected status results to be displayed
-	err = versionCmd.Execute()
+	err := versionCmd.Execute()
 	assert.NoError(t, err)
 	result, err := os.ReadFile(rc.Out.Name())
 	assert.Nil(t, err)

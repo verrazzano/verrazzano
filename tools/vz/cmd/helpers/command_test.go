@@ -23,8 +23,7 @@ const (
 
 // TestNewCommand tests the functionality to create a new command based on the usage, short and log help.
 func TestNewCommand(t *testing.T) {
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.NotNil(t, NewCommand(rc, testUse, testShort, testLong))
 }
@@ -97,8 +96,7 @@ func TestGetLogFormat(t *testing.T) {
 // TestGetVersion tests the functionality that returns the right Verrazzano version.
 func TestGetVersion(t *testing.T) {
 	// Create a fake VZ helper
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with no values provided for version flags,
@@ -158,8 +156,7 @@ func TestGetVersion(t *testing.T) {
 // TestGetVersionWithManifests tests the GetVersion function when the user supplies the manifests flag.
 func TestGetVersionWithManifests(t *testing.T) {
 	// Create a fake VZ helper
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with a specific version and a manifests file with a version that does not match,
@@ -170,7 +167,7 @@ func TestGetVersionWithManifests(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "9.9.9")
 	cmd.PersistentFlags().String(constants.ManifestsFlag, "", "")
 	cmd.PersistentFlags().Set(constants.ManifestsFlag, "../../test/testdata/operator-file-fake.yaml")
-	_, err = GetVersion(cmd, rc)
+	_, err := GetVersion(cmd, rc)
 	assert.ErrorContains(t, err, "Requested version '9.9.9' does not match manifests version 'v1.5.2'")
 
 	// GIVEN a command with a specific version and a manifests file with a version that matches,

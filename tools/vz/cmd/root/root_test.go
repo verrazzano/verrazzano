@@ -24,8 +24,7 @@ import (
 
 func TestNewRootCmd(t *testing.T) {
 
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rootCmd := NewRootCmd(rc)
 	assert.NotNil(t, rootCmd)
@@ -61,7 +60,7 @@ func TestNewRootCmd(t *testing.T) {
 
 	// Verify help has the expected elements
 	rootCmd.SetArgs([]string{fmt.Sprintf("--%s", constants.GlobalFlagHelp)})
-	err = rootCmd.Execute()
+	err := rootCmd.Execute()
 	assert.NoError(t, err)
 	fileBuffer, err := os.ReadFile(rc.Out.Name())
 	assert.Nil(t, err)
