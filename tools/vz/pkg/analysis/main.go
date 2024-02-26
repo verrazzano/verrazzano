@@ -25,13 +25,13 @@ var minConfidence int
 var logger *zap.SugaredLogger
 
 // The analyze tool will analyze information which has already been captured from an environment
-func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
+func AnalysisMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	logger = zap.S()
-	return handleMain(vzHelper, directory, reportFile, reportFormat, printReportToConsole)
+	return handleMain(vzHelper, directory, reportFile, reportFormat)
 }
 
 // handleMain is where the main logic is at, separated here to allow for more test coverage
-func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string, printReportToConsole bool) error {
+func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, reportFormat string) error {
 	// TODO: how we surface different analysis report types will likely change up, for now it is specified here, and it may also
 	// make sense to treat all cluster dumps the same way whether single or multiple (structure the dumps the same way)
 	// We could also have different types of report output formats as well. For example, the current report format is
@@ -45,7 +45,7 @@ func handleMain(vzHelper helpers.VZHelper, directory string, reportFile string, 
 		fmt.Fprintf(vzHelper.GetOutputStream(), "Analyze failed with error: %s, exiting.\n", err.Error())
 		return fmt.Errorf("\nanalyze failed with error: %s, exiting", err.Error())
 	}
-	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions, MinConfidence: minConfidence, MinImpact: minImpact, PrintReportToConsole: printReportToConsole}
+	reportContext := helpers.ReportCtx{ReportFile: reportFile, ReportFormat: reportFormat, IncludeSupportData: includeSupport, IncludeInfo: includeInfo, IncludeActions: includeActions, MinConfidence: minConfidence, MinImpact: minImpact}
 
 	// Generate a report
 	err = report.GenerateHumanReport(logger, vzHelper, reportContext)
