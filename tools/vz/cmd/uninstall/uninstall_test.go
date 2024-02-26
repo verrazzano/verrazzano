@@ -329,8 +329,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	vz := createVz()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(deployment, vz).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -349,7 +348,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, PodNotFoundError)
 	assert.ErrorContains(t, err, PodNotFoundError)
@@ -369,8 +368,7 @@ func TestUninstallCmdDefaultNoUninstallJob(t *testing.T) {
 func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -384,7 +382,7 @@ func TestUninstallCmdDefaultNoVzResource(t *testing.T) {
 	cmd.PersistentFlags().Set(ConfirmUninstallFlag, "true")
 
 	// Run uninstall command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Verrazzano is not installed: Failed to find any Verrazzano resources")
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
@@ -446,10 +444,9 @@ func TestUninstallWithConfirmUninstallFlag(t *testing.T) {
 				os.Stdin = tempfile
 			}
 
-			rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-			rc.IOStreams.In = os.Stdin
-			assert.Nil(t, err)
+			rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+			rc.IOStreams.In = os.Stdin
 			rc.SetClient(c)
 			rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 			cmd := NewCmdUninstall(rc)

@@ -42,8 +42,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -57,7 +56,7 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.Nil(t, err)
@@ -78,8 +77,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -98,7 +96,7 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
 	assert.Nil(t, err)
@@ -120,8 +118,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -140,7 +137,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
 	assert.Nil(t, err)
@@ -162,8 +159,7 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -176,7 +172,7 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 
 	// Run upgrade command
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
@@ -196,8 +192,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	vpo2 := testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator + "-2")
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz, vpo2)...).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -215,7 +210,7 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 
 	// Run upgrade command
 	cmd.PersistentFlags().Set(constants.VPOTimeoutFlag, "1s")
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
@@ -235,8 +230,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -251,7 +245,7 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.Nil(t, err)
@@ -276,8 +270,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			vz := testhelpers.CreateVerrazzanoObjectWithVersion().(*v1beta1.Verrazzano)
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-			rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-			assert.Nil(t, err)
+			rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			rc.SetClient(c)
 			cmd := NewCmdUpgrade(rc)
@@ -291,7 +284,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 			// Run upgrade command
-			err = cmd.Execute()
+			err := cmd.Execute()
 			assert.NoError(t, err)
 			errBytes, err := os.ReadFile(rc.ErrOut.Name())
 			assert.NoError(t, err)
@@ -338,8 +331,7 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -347,7 +339,7 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	assert.NotNil(t, cmd)
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -362,8 +354,7 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
@@ -372,7 +363,7 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -387,8 +378,7 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -396,7 +386,7 @@ func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.4")
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	buf, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
@@ -425,8 +415,7 @@ func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -434,7 +423,7 @@ func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.VersionFlag, "v1.3.3")
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.Error(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -463,8 +452,7 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
@@ -476,7 +464,7 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 	defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 	// Run upgrade command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -493,8 +481,7 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
@@ -512,7 +499,7 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -563,8 +550,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 	const proceedQuestionText = "Proceed to upgrade with new settings? [y/N]"
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 
@@ -633,9 +619,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	if _, err := inputFile.Seek(0, 0); err != nil {
 		assert.Error(t, err)
 	}
-	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
-	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
 	rc.IOStreams.In = inputFile
 	rc.SetClient(c)
 
@@ -685,9 +669,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	if _, err := inputFile.Seek(0, 0); err != nil {
 		assert.Error(t, err)
 	}
-	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
-	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
 	rc.In = inputFile
 
@@ -737,8 +719,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// First install using a private registry
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
@@ -756,7 +737,7 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	defer install.SetDefaultValidateCRFunc()
 
 	// Run install command
-	err = cmd.Execute()
+	err := cmd.Execute()
 	assert.NoError(t, err)
 	errBytes, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
@@ -776,9 +757,7 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	const imageRegistryForUpgrade = "newreg.io"
 	const imagePrefixForUpgrade = "newrepo"
 
-	rc, err = testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
-	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
 
 	cmd = NewCmdUpgrade(rc)
@@ -837,8 +816,7 @@ func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
 			// Send stdout stderr to a byte buffer
-			rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-			assert.Nil(t, err)
+			rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			rc.SetClient(c)
 			cmd := NewCmdUpgrade(rc)
@@ -855,7 +833,7 @@ func TestUpgradeCmdWithSetFlagsNoWait(t *testing.T) {
 			defer cmdHelpers.SetDefaultVPOIsReadyFunc()
 
 			// Run upgrade command
-			err = cmd.Execute()
+			err := cmd.Execute()
 
 			if tt.isValidSetArgs {
 				// Verify the vz resource is as expected

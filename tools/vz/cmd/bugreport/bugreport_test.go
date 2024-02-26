@@ -239,7 +239,7 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.Nil(t, err)
 	rc.SetClient(c)
@@ -266,9 +266,8 @@ func TestBugReportRedactedValuesFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -303,9 +302,8 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -342,9 +340,8 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
@@ -365,9 +362,8 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -377,7 +373,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	setUpGlobalFlags(cmd)
-	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
 	assert.NoError(t, err)
@@ -399,9 +395,8 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
 
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -411,7 +406,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 
 	bugRepFile := tmpDir + string(os.PathSeparator) + "bug-report.tgz"
 	setUpGlobalFlags(cmd)
-	err = cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
+	err := cmd.PersistentFlags().Set(constants.BugReportFileFlagName, bugRepFile)
 	assert.NoError(t, err)
 	err = cmd.PersistentFlags().Set(constants.BugReportIncludeNSFlagName, "dummy,verrazzano-install")
 	assert.NoError(t, err)
@@ -452,7 +447,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 			assert.NoError(t, err)
 
-			rc, _ := setupFakeDynamicClient(c)
+			rc := setupFakeDynamicClient(c, t)
 			defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			kubeClient = getKubeClient()
 			rc.SetClient(c)
@@ -806,9 +801,8 @@ func setUpAndVerifyResources(t *testing.T) (*helpers.FakeRootCmdContextWithFiles
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 
 	assert.NoError(t, err)
-	rc, err := setupFakeDynamicClient(c)
+	rc := setupFakeDynamicClient(c, t)
 	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
-	assert.Nil(t, err)
 	kubeClient = getKubeClient()
 	rc.SetKubeClient(kubeClient)
 	cmd := NewCmdBugReport(rc)
@@ -817,14 +811,11 @@ func setUpAndVerifyResources(t *testing.T) (*helpers.FakeRootCmdContextWithFiles
 	return rc, cmd
 }
 
-func setupFakeDynamicClient(c client.WithWatch) (*helpers.FakeRootCmdContextWithFiles, error) {
-	rc, err := helpers.NewFakeRootCmdContextWithFiles()
-	if err != nil {
-		return rc, err
-	}
+func setupFakeDynamicClient(c client.WithWatch, t *testing.T) *helpers.FakeRootCmdContextWithFiles {
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(pkghelper.GetScheme()))
-	return rc, nil
+	return rc
 }
 
 // create verrazzano component status map for testing

@@ -812,8 +812,7 @@ func TestInstallCmdDifferentVersion(t *testing.T) {
 }
 
 func createNewTestCommandAndContext(t *testing.T, c client.Client) (*cobra.Command, *testhelpers.FakeRootCmdContextWithFiles) {
-	rc, err := testhelpers.NewFakeRootCmdContextWithFiles()
-	assert.Nil(t, err)
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	if c != nil {
 		rc.SetClient(c)
 	}
