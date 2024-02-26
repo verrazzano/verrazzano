@@ -262,6 +262,9 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 	if err := captureServices(kubeClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
+	if err := capturePersistentVolumeClaims(kubeClient, namespace, captureDir, vzHelper); err != nil {
+		return err
+	}
 	if err := captureCapiNamespacedResources(dynamicClient, namespace, captureDir, vzHelper); err != nil {
 		return err
 	}
@@ -433,6 +436,21 @@ func captureServices(kubeClient kubernetes.Interface, namespace, captureDir stri
 	if len(serviceList.Items) > 0 {
 		LogMessage(fmt.Sprintf("Services in namespace: %s ...\n", namespace))
 		if err = createFile(serviceList, namespace, constants.ServicesJSON, captureDir, vzHelper); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// captureServices captures the PersistentVolumeClaims in the given namespace, as a JSON file
+func capturePersistentVolumeClaims(kubeClient kubernetes.Interface, namespace, captureDir string, vzHelper VZHelper) error {
+	pvcList, err := kubeClient.CoreV1().PersistentVolumeClaims(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		LogError(fmt.Sprintf("An error occurred while getting the PersistentVolumeClaims in namespace %s: %s\n", namespace, err.Error()))
+	}
+	if len(pvcList.Items) > 0 {
+		LogMessage(fmt.Sprintf("PersistentVolumeClaims in namespace: %s ...\n", namespace))
+		if err = createFile(pvcList, namespace, constants.PersistentVolumeClaimsJSON, captureDir, vzHelper); err != nil {
 			return err
 		}
 	}

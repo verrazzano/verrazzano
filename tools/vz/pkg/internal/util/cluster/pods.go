@@ -23,9 +23,19 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+// pvcListMap holds pvcLists which have been read in already
+var pvcCacheMutex = &sync.Mutex{}
+var pvcListMap = make(map[string]*corev1.PersistentVolumeClaimList)
+
+const PendingStatus = "Pending"
+
 // podListMap holds podLists which have been read in already
 var podListMap = make(map[string]*corev1.PodList)
 var podCacheMutex = &sync.Mutex{}
+
+var issueReporter = report.IssueReporter{
+	PendingIssues: make(map[string]report.Issue),
+}
 
 var dockerPullRateLimitRe = regexp.MustCompile(`.*You have reached your pull rate limit.*`)
 var dockerNameUnknownRe = regexp.MustCompile(`.*name unknown.*`)
@@ -66,7 +76,56 @@ func AnalyzePodIssues(log *zap.SugaredLogger, clusterRoot string) (err error) {
 		reportProblemPodsNoIssues(log, clusterRoot, podFiles)
 	}
 
+	//Find issues with the persistentVolumeClaims
+	allPVCFiles, err := files.GetMatchingFileNames(log, clusterRoot, PVCFilesMatchRe)
+	if err != nil {
+		return err
+	}
+	totalFound = 0
+	for _, pvcFile := range allPVCFiles {
+		found, err := analyzePersistentVolumeClaims(log, clusterRoot, pvcFile)
+		totalFound += found
+		if err != nil {
+			log.Errorf("Failed during analyze PVC for cluster: %s, pvc: %s ", clusterRoot, pvcFile, err)
+			return err
+		}
+	}
+
 	return nil
+}
+
+func analyzePersistentVolumeClaims(log *zap.SugaredLogger, clusterRoot string, pvcFile string) (reported int, err error) {
+	log.Debugf("analyzePersistentVolumeClaims called with %s", pvcFile)
+	var files []string
+	pvcList, err := GetPVCList(log, pvcFile)
+	if err != nil {
+		log.Debugf("Failed to get the PVCList for %s", pvcFile, err)
+		return 0, err
+	}
+	if pvcList == nil {
+		log.Debugf("No PVCList was returned, skipping")
+		return 0, nil
+	}
+
+	for _, pvc := range pvcList.Items {
+		if helpers.GetIsLiveCluster() {
+			files = []string{report.GetRelatedPVCMessage(pvc.ObjectMeta.Name, pvc.ObjectMeta.Namespace)}
+		} else {
+			files = []string{pvcFile}
+		}
+
+		if pvc.Status.Phase == PendingStatus {
+			issueReporter.AddKnownIssueMessagesFiles(
+				report.PersistentVolumeClaimNotBound,
+				clusterRoot,
+				report.SingleMessage(report.GetRelatedPVCMessage(pvc.ObjectMeta.Name, pvc.ObjectMeta.Namespace)),
+				files,
+			)
+		}
+	}
+
+	issueReporter.Contribute(log, clusterRoot)
+	return len(issueReporter.PendingIssues), nil
 }
 
 func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (reported int, err error) {
@@ -81,9 +140,6 @@ func analyzePods(log *zap.SugaredLogger, clusterRoot string, podFile string) (re
 		return 0, nil
 	}
 
-	var issueReporter = report.IssueReporter{
-		PendingIssues: make(map[string]report.Issue),
-	}
 	for _, pod := range podList.Items {
 		if !IsPodProblematic(pod) {
 			continue
@@ -350,6 +406,37 @@ func drillIntoEventsForImagePullIssue(log *zap.SugaredLogger, pod corev1.Pod, im
 	return messages, nil
 }
 
+// GetPVCList gets a pvc list
+func GetPVCList(log *zap.SugaredLogger, path string) (pvcList *corev1.PersistentVolumeClaimList, err error) {
+	// Check the cache first
+	pvcList = getPVCListIfPresent(path)
+	if pvcList != nil {
+		log.Debugf("Returning cached pvcList for %s", path)
+		return pvcList, nil
+	}
+
+	// Not found in the cache, get it from the file
+	file, err := os.Open(path)
+	if err != nil {
+		log.Debugf("file %s not found", path)
+		return nil, err
+	}
+	defer file.Close()
+
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Debugf("Failed reading Json file %s", path)
+		return nil, err
+	}
+	err = encjson.Unmarshal(fileBytes, &pvcList)
+	if err != nil {
+		log.Debugf("Failed to unmarshal pvcList at %s", path)
+		return nil, err
+	}
+	putPVCListIfNotPresent(path, pvcList)
+	return pvcList, nil
+}
+
 // GetPodList gets a pod list
 func GetPodList(log *zap.SugaredLogger, path string) (podList *corev1.PodList, err error) {
 	// Check the cache first
@@ -585,6 +672,26 @@ func checkIfHelmPodsAdded(messages []string) []string {
 	return messages
 
 }
+
+func getPVCListIfPresent(path string) (pvcList *corev1.PersistentVolumeClaimList) {
+	pvcCacheMutex.Lock()
+	pvcListTest := pvcListMap[path]
+	if pvcListTest != nil {
+		pvcList = pvcListTest
+	}
+	pvcCacheMutex.Unlock()
+	return pvcList
+}
+
+func putPVCListIfNotPresent(path string, pvcList *corev1.PersistentVolumeClaimList) {
+	pvcCacheMutex.Lock()
+	pvcListInMap := pvcListMap[path]
+	if pvcListInMap == nil {
+		pvcListMap[path] = pvcList
+	}
+	pvcCacheMutex.Unlock()
+}
+
 func getPodListIfPresent(path string) (podList *corev1.PodList) {
 	podCacheMutex.Lock()
 	podListTest := podListMap[path]
