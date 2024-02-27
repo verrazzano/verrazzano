@@ -6,11 +6,13 @@ package helpers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"io"
-
 	"k8s.io/client-go/discovery"
 	discoveryFake "k8s.io/client-go/discovery/fake"
+	"testing"
 
 	"net/http"
 	"os"
@@ -31,6 +33,12 @@ type FakeRootCmdContext struct {
 	kubeClient    kubernetes.Interface
 	dynamicClient dynamic.Interface
 	genericclioptions.IOStreams
+}
+
+type FakeRootCmdContextWithFiles struct {
+	FakeRootCmdContext
+	Out    *os.File
+	ErrOut *os.File
 }
 
 // GetOutputStream - return the output stream
@@ -133,6 +141,47 @@ func NewFakeRootCmdContext(streams genericclioptions.IOStreams) *FakeRootCmdCont
 		IOStreams:  streams,
 		kubeClient: fake.NewSimpleClientset(),
 	}
+}
+
+// NewFakeRootCmdContextWithFiles creates a newFakeRootCmdContext with the out stream and the error stream set to two separate files
+func NewFakeRootCmdContextWithFiles(t *testing.T) *FakeRootCmdContextWithFiles {
+	stdOutFile, stdErrfile, err := createStdTempFiles()
+	assert.Nil(t, err)
+	return &FakeRootCmdContextWithFiles{
+		FakeRootCmdContext: FakeRootCmdContext{
+			IOStreams:  genericclioptions.IOStreams{In: os.Stdin, Out: stdOutFile, ErrOut: stdErrfile},
+			kubeClient: fake.NewSimpleClientset(),
+		},
+		Out:    stdOutFile,
+		ErrOut: stdErrfile,
+	}
+}
+
+// CleanUpFakeRootCmdContextWithFiles removes the standard out and standard error files from the local file system
+func CleanUpNewFakeRootCmdContextWithFiles(context *FakeRootCmdContextWithFiles) {
+	_, err := os.Stat(context.Out.Name())
+	if !(errors.Is(err, os.ErrNotExist)) {
+		os.Remove(context.Out.Name())
+	}
+	_, err = os.Stat(context.ErrOut.Name())
+	if !(errors.Is(err, os.ErrNotExist)) {
+		os.Remove(context.ErrOut.Name())
+	}
+}
+
+// createStdTempFiles creates temporary files for stdout and stderr.
+func createStdTempFiles() (*os.File, *os.File, error) {
+	stdoutFile, err := os.CreateTemp("", "tmpstdout")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stderrFile, err := os.CreateTemp("", "tmpstderr")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return stdoutFile, stderrFile, nil
 }
 
 func (rc *FakeRootCmdContext) GetDiscoveryClient(cmd *cobra.Command) (discovery.DiscoveryInterface, error) {
