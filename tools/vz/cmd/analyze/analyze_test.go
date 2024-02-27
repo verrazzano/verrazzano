@@ -273,19 +273,14 @@ func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 // WHEN I call cmd.Execute with a valid capture-dir, report-format set to "summary", and a verrazzano resource that has components that are unavailable
 // THEN expect the command to provide the report containing which components are unavailable
 func TestAnalyzeCommandWithUnavailableComponents(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer func() {
-		os.Remove(stdoutFile.Name())
-		os.Remove(stderrFile.Name())
-	}()
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, mysqlUnavailable)
 	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
 	err := cmd.Execute()
 	assert.Nil(t, err)
-	buf, err := os.ReadFile(stdoutFile.Name())
+	buf, err := os.ReadFile(rc.Out.Name())
 	assert.Contains(t, string(buf), unavailableErr)
 
 	// Failures must be reported underreport file details-XXXXXX.out
@@ -293,15 +288,4 @@ func TestAnalyzeCommandWithUnavailableComponents(t *testing.T) {
 		os.Remove(fileMatched[0])
 		assert.NoFileExists(t, fileMatched[0])
 	}
-}
-
-// createStdTempFiles creates temporary files for stdout and stderr.
-func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-
-	return stdoutFile, stderrFile
 }
