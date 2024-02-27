@@ -1,10 +1,11 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package install
 
 import (
 	"context"
+	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	"os"
 	"testing"
 
@@ -49,7 +50,8 @@ func TestInstallProgressFlag(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz1).Build()
-	cmd, buf, errBuf, _ := createNewTestCommandAndBuffers(t, c)
+	cmd, rc := createNewTestCommandAndContext(t, c)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd.PersistentFlags().Set(constants.ProgressFlag, "true")
 	cmd.PersistentFlags().Set(constants.TimeoutFlag, "3m")
 	tempKubeConfigPath, _ := os.CreateTemp(os.TempDir(), testKubeConfig)
@@ -68,11 +70,15 @@ func TestInstallProgressFlag(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 	vz := v1beta1.Verrazzano{}
 	err = c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "admin"}, &vz)
 	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "Installing Verrazzano version")
+	outBuf, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBuf), "Installing Verrazzano version")
 }
 
 func makeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
