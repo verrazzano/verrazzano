@@ -111,6 +111,7 @@ const (
 	PendingPods                                                     = "PendingPods"
 	PodProblemsNotReported                                          = "PodProblemsNotReported"
 	ComponentsNotReady                                              = "ComponentsNotReady"
+	ComponentsUnavailable                                           = "ComponentsUnavailable"
 	IngressNoIPFound                                                = "IngressNoIPFound"
 	IstioIngressNoIP                                                = "IstioIngressNoIP"
 	PersistentVolumeClaimNotBound                                   = "PersistentVolumeClaimNotBound"
@@ -153,6 +154,7 @@ var knownIssues = map[string]Issue{
 	PendingPods:                   {Type: PendingPods, Summary: "Pods in a Pending state were detected. These may come up normally or there may be specific issues preventing them from coming up", Informational: true, Impact: 0, Confidence: 1, Actions: []Action{KnownActions[PendingPods]}},
 	PodProblemsNotReported:        {Type: PodProblemsNotReported, Summary: "Problem pods were detected, however a specific root cause was not identified", Informational: true, Impact: 0, Confidence: 10, Actions: []Action{KnownActions[PodProblemsNotReported]}},
 	ComponentsNotReady:            {Type: InstallFailure, Summary: "Verrazzano install failed, one or more components did not reach Ready state", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[InstallFailure]}},
+	ComponentsUnavailable:         {Type: ComponentsUnavailable, Summary: "One or more components reached Ready state, but is unavailable", Informational: false, Impact: 0, Confidence: 10},
 	IngressNoIPFound:              {Type: IngressNoIPFound, Summary: "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IngressNoIPFound]}},
 	PersistentVolumeClaimNotBound: {Type: PersistentVolumeClaimNotBound, Summary: "PersistentVolumeClaim resources  are not in the expected state, one or more persistentvolumeclaim is not bound to the persisten volume, ", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[PersistentVolumeClaimNotBound]}},
 	IstioIngressNoIP:              {Type: IstioIngressNoIP, Summary: "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer", Informational: false, Impact: 10, Confidence: 10, Actions: []Action{KnownActions[IstioIngressNoIP]}},
