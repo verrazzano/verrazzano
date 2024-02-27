@@ -77,7 +77,7 @@ func TestInvalidIssues(t *testing.T) {
 	buf := new(bytes.Buffer)
 	errBuf := new(bytes.Buffer)
 	rc := help.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
-	reportCtx := helpers.ReportCtx{ReportFile: "report", ReportFormat: constants.SummaryReport, IncludeSupportData: true, IncludeInfo: true, IncludeActions: true, MinConfidence: 8, MinImpact: 8, PrintReportToConsole: true}
+	reportCtx := helpers.ReportCtx{ReportFile: "report", ReportFormat: constants.SummaryReport, IncludeSupportData: true, IncludeInfo: true, IncludeActions: true, MinConfidence: 8, MinImpact: 8}
 	assert.NoError(t, GenerateHumanReport(logger, rc, reportCtx))
 	assert.FileExists(t, "report")
 	os.Remove("report")

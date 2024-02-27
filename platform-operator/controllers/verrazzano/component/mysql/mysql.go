@@ -69,6 +69,7 @@ const (
 	imageRepositoryKey     = "image.repository"
 	mySQLPodName           = "mysql-0"
 	mySQLContainerName     = "mysql"
+	hyphen                 = "-"
 	initDbScript           = `#!/bin/sh
 
 if [[ $HOSTNAME == *-0 ]]; then
@@ -365,7 +366,9 @@ func getMySQLVersion(bomFile *bom.Bom) (bom.KeyValue, error) {
 	if err != nil {
 		return bom.KeyValue{}, err
 	}
-	return bom.KeyValue{Key: serverVersionKey, Value: version}, nil
+	// MySQL has a validation and expects the version in the form x.y.z[.w], so a hyphen character results in a validation error
+	parts := strings.Split(version, hyphen)
+	return bom.KeyValue{Key: serverVersionKey, Value: parts[0]}, nil
 }
 
 func generateMySQLOperatorOverrides(bomFile *bom.Bom, kvs []bom.KeyValue) ([]bom.KeyValue, error) {
