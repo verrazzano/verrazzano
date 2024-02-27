@@ -124,7 +124,6 @@ func TestApplyPlatformOperatorYaml(t *testing.T) {
 	// GIVEN a k8s cluster with VPO installed,
 	// WHEN ApplyPlatformOperatorYaml is invoked,
 	// THEN an error is returned as the VZ resource is not in InstallComplete state.
-
 	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
 	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	err := ApplyPlatformOperatorYaml(getCommandWithoutFlags(), fakeClient, rc, "1.5.0")
