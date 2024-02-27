@@ -1,0 +1,807 @@
+{
+  "metadata": {
+    "resourceVersion": "131808"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "b728120e9b2997709bda24c7ba748f7c6b384203ae873ac96b5236e07f7e54e3",
+        "namespace": "verrazzano-system",
+        "uid": "62e4de35-3765-4236-9874-ff8161a09b3a",
+        "resourceVersion": "23725",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:08:18Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "859da44e46c54558ede3baf20ec81548928bf61e0e29c1ce9b10bc7f9ca54802",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:opensearch\",\"hostname\":\"opensearch.vmi.system.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "meta.helm.sh/release-name": "opensearch-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-logging",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "65M",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {},
+                  "f:nginx.ingress.kubernetes.io/proxy-body-size": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "859da44e46c54558ede3baf20ec81548928bf61e0e29c1ce9b10bc7f9ca54802"
+            ],
+            "secretName": "system-tls-os-ingest"
+          }
+        ],
+        "rules": [
+          {
+            "host": "859da44e46c54558ede3baf20ec81548928bf61e0e29c1ce9b10bc7f9ca54802",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "opensearch-dashboards",
+        "namespace": "verrazzano-system",
+        "uid": "6a32ac76-f378-4430-a752-c180ae15184f",
+        "resourceVersion": "23724",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:08:18Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "5f4b3468fc18c850ffc64510befe84b9d6037d09a4022ade2f81e9736075c968",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:opensearch-dashboards\",\"hostname\":\"osd.vmi.system.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "meta.helm.sh/release-name": "opensearch-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-logging",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "65M",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {},
+                  "f:nginx.ingress.kubernetes.io/proxy-body-size": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:08:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "5f4b3468fc18c850ffc64510befe84b9d6037d09a4022ade2f81e9736075c968"
+            ],
+            "secretName": "system-tls-osd"
+          }
+        ],
+        "rules": [
+          {
+            "host": "5f4b3468fc18c850ffc64510befe84b9d6037d09a4022ade2f81e9736075c968",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-ingress",
+        "namespace": "verrazzano-system",
+        "uid": "b63db540-d2a5-4abf-bb78-c64adbf1b82b",
+        "resourceVersion": "15495",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:01:48Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "d553eea25f2e6353c55b31837305203c37ef509d78af4860c3815cc851896884",
+          "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:verrazzano-ingress\",\"hostname\":\"verrazzano.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "meta.helm.sh/release-name": "verrazzano-authproxy",
+          "meta.helm.sh/release-namespace": "verrazzano-system",
+          "nginx.ingress.kubernetes.io/affinity": "cookie",
+          "nginx.ingress.kubernetes.io/configuration-snippet": "proxy_hide_header X-Powered-By;\nadd_header Last-Modified \"$date_gmt\";\nadd_header Pragma \"no-cache\";\nadd_header Cache-Control \"no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0\";\nadd_header Expect-CT \"max-age=86400, enforce\";\nadd_header Referrer-Policy \"strict-origin\";\nadd_header X-Content-Type-Options \"nosniff\" always;\nadd_header X-Frame-Options \"DENY\" always;\nadd_header X-Permitted-Cross-Domain-Policies \"none\";\nadd_header Strict-Transport-Security \"max-age=86400; includeSubDomains\";\nadd_header X-XSS-Protection \"1; mode=block\";\nadd_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-eval' static.oracle.com; form-action 'none'; connect-src 'self' https:; media-src 'none'; object-src 'none'; font-src 'self' static.oracle.com; img-src 'self' data:; style-src 'self' static.oracle.com; frame-ancestors 'none';\" always;\n",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$1$2",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-expires": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-name": "route",
+          "nginx.ingress.kubernetes.io/session-cookie-samesite": "Strict",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local",
+          "verrazzano.io/dns.wildcard.domain": "nip.io"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:01:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:external-dns.alpha.kubernetes.io/target": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {},
+                  "f:nginx.ingress.kubernetes.io/affinity": {},
+                  "f:nginx.ingress.kubernetes.io/configuration-snippet": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-expires": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-max-age": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-name": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-samesite": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {},
+                  "f:verrazzano.io/dns.wildcard.domain": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:02:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:02:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "d553eea25f2e6353c55b31837305203c37ef509d78af4860c3815cc851896884"
+            ],
+            "secretName": "verrazzano-tls"
+          }
+        ],
+        "rules": [
+          {
+            "host": "d553eea25f2e6353c55b31837305203c37ef509d78af4860c3815cc851896884",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana",
+        "namespace": "verrazzano-system",
+        "uid": "39fc3787-b499-414d-abea-0efbb6beaf82",
+        "resourceVersion": "15502",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:02:01Z",
+        "labels": {
+          "k8s-app": "verrazzano.io",
+          "vmo.v1.verrazzano.io": "system"
+        },
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "967988307d36fb766e57f70cd8ec96e76abe7484748c4c85edad1299fc6df70b",
+          "external-dns.alpha.kubernetes.io/target": "verrazzano-ingress.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io",
+          "external-dns.alpha.kubernetes.io/ttl": "60",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:vmi-system-grafana\",\"hostname\":\"grafana.vmi.system.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "verrazzano.io/v1",
+            "kind": "VerrazzanoMonitoringInstance",
+            "name": "system",
+            "uid": "050bd6fc-b0be-4d35-b80d-0c0faea2ed37",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "verrazzano-monitoring-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:02:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:external-dns.alpha.kubernetes.io/target": {},
+                  "f:external-dns.alpha.kubernetes.io/ttl": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:nginx.ingress.kubernetes.io/proxy-body-size": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:k8s-app": {},
+                  "f:vmo.v1.verrazzano.io": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"050bd6fc-b0be-4d35-b80d-0c0faea2ed37\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:02:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:02:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "967988307d36fb766e57f70cd8ec96e76abe7484748c4c85edad1299fc6df70b"
+            ],
+            "secretName": "system-tls-grafana"
+          }
+        ],
+        "rules": [
+          {
+            "host": "967988307d36fb766e57f70cd8ec96e76abe7484748c4c85edad1299fc6df70b",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-kiali",
+        "namespace": "verrazzano-system",
+        "uid": "6f9fa77d-cf72-45d6-b089-4833e5b31d83",
+        "resourceVersion": "17825",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:03:27Z",
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "21b5fead5f56364b55d03d97607bc60b73943985b9b45d5953ce905ba8bfeec7",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:vmi-system-kiali\",\"hostname\":\"kiali.vmi.system.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "nginx.ingress.kubernetes.io/backend-protocol": "HTTP",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+          "nginx.ingress.kubernetes.io/secure-backends": "false",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:03:27Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:nginx.ingress.kubernetes.io/backend-protocol": {},
+                  "f:nginx.ingress.kubernetes.io/proxy-body-size": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/secure-backends": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:03:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:03:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "21b5fead5f56364b55d03d97607bc60b73943985b9b45d5953ce905ba8bfeec7"
+            ],
+            "secretName": "system-tls-kiali"
+          }
+        ],
+        "rules": [
+          {
+            "host": "21b5fead5f56364b55d03d97607bc60b73943985b9b45d5953ce905ba8bfeec7",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-prometheus",
+        "namespace": "verrazzano-system",
+        "uid": "53f12fa7-7445-48ae-86c7-07032d5dd1b0",
+        "resourceVersion": "21327",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:06:03Z",
+        "annotations": {
+          "cert-manager.io/cluster-issuer": "verrazzano-cluster-issuer",
+          "cert-manager.io/common-name": "f693add797762f40d5efed2383737215f3f55f0376c057154dd65a452acb459a",
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"HTTPS\",\"serviceName\":\"verrazzano-system:verrazzano-authproxy\",\"ingressName\":\"verrazzano-system:vmi-system-prometheus\",\"hostname\":\"prometheus.vmi.system.default.REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f.nip.io\",\"path\":\"/()(.*)\",\"allNodes\":false}]",
+          "kubernetes.io/tls-acme": "true",
+          "nginx.ingress.kubernetes.io/affinity": "cookie",
+          "nginx.ingress.kubernetes.io/proxy-body-size": "6M",
+          "nginx.ingress.kubernetes.io/rewrite-target": "/$2",
+          "nginx.ingress.kubernetes.io/service-upstream": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": "true",
+          "nginx.ingress.kubernetes.io/session-cookie-expires": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-max-age": "86400",
+          "nginx.ingress.kubernetes.io/session-cookie-name": "prometheus",
+          "nginx.ingress.kubernetes.io/session-cookie-samesite": "Strict",
+          "nginx.ingress.kubernetes.io/upstream-vhost": "${service_name}.${namespace}.svc.cluster.local"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:06:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:cert-manager.io/cluster-issuer": {},
+                  "f:cert-manager.io/common-name": {},
+                  "f:kubernetes.io/tls-acme": {},
+                  "f:nginx.ingress.kubernetes.io/affinity": {},
+                  "f:nginx.ingress.kubernetes.io/proxy-body-size": {},
+                  "f:nginx.ingress.kubernetes.io/rewrite-target": {},
+                  "f:nginx.ingress.kubernetes.io/service-upstream": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-conditional-samesite-none": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-expires": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-max-age": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-name": {},
+                  "f:nginx.ingress.kubernetes.io/session-cookie-samesite": {},
+                  "f:nginx.ingress.kubernetes.io/upstream-vhost": {}
+                }
+              },
+              "f:spec": {
+                "f:ingressClassName": {},
+                "f:rules": {},
+                "f:tls": {}
+              }
+            }
+          },
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:06:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "networking.k8s.io/v1",
+            "time": "2024-01-30T01:06:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ingressClassName": "verrazzano-nginx",
+        "tls": [
+          {
+            "hosts": [
+              "f693add797762f40d5efed2383737215f3f55f0376c057154dd65a452acb459a"
+            ],
+            "secretName": "system-tls-prometheus"
+          }
+        ],
+        "rules": [
+          {
+            "host": "f693add797762f40d5efed2383737215f3f55f0376c057154dd65a452acb459a",
+            "http": {
+              "paths": [
+                {
+                  "path": "/()(.*)",
+                  "pathType": "ImplementationSpecific",
+                  "backend": {
+                    "service": {
+                      "name": "verrazzano-authproxy",
+                      "port": {
+                        "number": 8775
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

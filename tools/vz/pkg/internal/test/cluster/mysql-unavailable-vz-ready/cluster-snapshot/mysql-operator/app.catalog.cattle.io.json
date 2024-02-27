@@ -1,0 +1,264 @@
+{
+  "apiVersion": "catalog.cattle.io/v1",
+  "items": [
+    {
+      "apiVersion": "catalog.cattle.io/v1",
+      "kind": "App",
+      "metadata": {
+        "annotations": {
+          "objectset.rio.cattle.io/applied": "H4sIAAAAAAAA/6xWUVPjNhD+K57lVXbsJEDwTB96MNMytHeUY9qZlntYy+tYRZZUSXYbGP/3jmzIJSmmx809QaTV7n7ffvrkR2jIY4keIX8EVEp79EIrF37q4k/i3pFPrNAJR+8lJULPRAk51CSbGI0BNhmn/1Zk43V3DznMuoxFV0KV330kbsn/7zGFDUEOrk5CpcSSJHSUdFnSbNxfMtaGLHptky77olzOIA8J909Dz4BbGjDfioacx8ZArlopGUgsSL7KRI2uhhyq1eIMs4yfVbwo0+NVOcd0QVSdrU5OF4tlulyV6YqyKlR7wnXQxrg+0SODAcYNVWRJcXKQ//EIaMSvZJ3QCnIYSCik5vcfQugFSfLDToXSEQOulbdaSrKQe9sSg3uhwhi303gb3+2ggfnJErPTxXGMhFm8xBXGeILLuDpLs+VxVWXZKUH/qWfgDPFAJK/R+vDPnuz2kMyBARrzeWWVpMliHs+TNFkBg5Ict8KM8ODnzcdffoo+PDUX/Uiyic5DkajSNirJSL0Rah2NcZdK6Yt30blsnScbCRUBA8GHTLX3xuWzmcTCjZgTrpsZ102j1czX1JCbObwXEmcVduFUIriG6ZH6jQnraIwUfJAYMOi2uEZAPYMOZUuDzkh1w1/R4JrcBVXYSn9Da+G83TzL8mDTaCe8Pty+bqW81lLwDeRwWb3X/tqSI+VDwSEk1Jnq3EyeHvdG1Ty1jIWkcqs0N2y9HxKHhnoG9gCA3el5rB3IwjXkAH3fs8FbtvNfMBCq0qHW/ugvlfMoZcR1YyR5AgaVsM5fDEOnQaDpfBmnWbxIb9M0Pz7LF6vfIVzsL4lS2oepwHnwB4pQvSyiYhPRP8RbL9Q6v1NZEv1Wk4paF2SHkdMtBMhYDlQfRQeKDTK9aguyijy5O3Wnjo6iy3Bby5YHpGHptqadc8DAefRtaK58hvG11mLJ6dZOm8rWJ2wnOH3PuW6VnxJ97PD1ej07qGEL5Am2vtZWPAx3JLlfueCtu9WfuL7Rkibv27dP7URJHL9F5ndClUKtJ2mzWlLxFPOfai+M4RXTeQv5aIzba3m8FA1NT/iNFR5Qoip1ou36JW6utKmuiewr3ED/6Q0OCeua20QEV560yWDBFh8eUOk9M5wytvG93PW1nQxxeFlRhK+Mrc3tWd5OR3aiiWfz23vogg9u34qs/3zlw9eII9tR+QOpwNEQkTJwbdNgyP3Y9/2/AQAA//+0+8Xq2QkAAA",
+          "objectset.rio.cattle.io/id": "helm-app",
+          "objectset.rio.cattle.io/owner-gvk": "/v1, Kind=Secret",
+          "objectset.rio.cattle.io/owner-name": "sh.helm.release.v1.mysql-operator.v1",
+          "objectset.rio.cattle.io/owner-namespace": "mysql-operator"
+        },
+        "creationTimestamp": "2024-01-30T01:02:44Z",
+        "generation": 1,
+        "labels": {
+          "objectset.rio.cattle.io/hash": "f839a11c9fcbd058d2a03eef9867334048d08e1f"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "catalog.cattle.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:objectset.rio.cattle.io/applied": {},
+                  "f:objectset.rio.cattle.io/id": {},
+                  "f:objectset.rio.cattle.io/owner-gvk": {},
+                  "f:objectset.rio.cattle.io/owner-name": {},
+                  "f:objectset.rio.cattle.io/owner-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:objectset.rio.cattle.io/hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"264a1735-aea1-4a8a-a6a4-f90145ff117e\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:chart": {
+                  ".": {},
+                  "f:metadata": {
+                    ".": {},
+                    "f:apiVersion": {},
+                    "f:appVersion": {},
+                    "f:description": {},
+                    "f:icon": {},
+                    "f:name": {},
+                    "f:type": {},
+                    "f:version": {}
+                  },
+                  "f:values": {
+                    ".": {},
+                    "f:envs": {
+                      ".": {},
+                      "f:imagesDefaultRegistry": {},
+                      "f:imagesDefaultRepository": {},
+                      "f:imagesPullPolicy": {}
+                    },
+                    "f:image": {
+                      ".": {},
+                      "f:name": {},
+                      "f:pullPolicy": {},
+                      "f:pullSecrets": {
+                        ".": {},
+                        "f:enabled": {},
+                        "f:secretName": {}
+                      },
+                      "f:registry": {},
+                      "f:repository": {},
+                      "f:tag": {}
+                    }
+                  }
+                },
+                "f:helmVersion": {},
+                "f:info": {
+                  ".": {},
+                  "f:description": {},
+                  "f:firstDeployed": {},
+                  "f:lastDeployed": {},
+                  "f:notes": {},
+                  "f:readme": {},
+                  "f:status": {}
+                },
+                "f:name": {},
+                "f:namespace": {},
+                "f:resources": {},
+                "f:values": {
+                  ".": {},
+                  "f:envs": {
+                    ".": {},
+                    "f:imagesDefaultRegistry": {},
+                    "f:imagesDefaultRepository": {}
+                  },
+                  "f:image": {
+                    ".": {},
+                    "f:pullSecrets": {
+                      ".": {},
+                      "f:enabled": {},
+                      "f:secretName": {}
+                    },
+                    "f:registry": {},
+                    "f:repository": {},
+                    "f:tag": {}
+                  }
+                },
+                "f:version": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2024-01-30T01:02:44Z"
+          },
+          {
+            "apiVersion": "catalog.cattle.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                ".": {},
+                "f:observedGeneration": {},
+                "f:summary": {
+                  ".": {},
+                  "f:state": {}
+                }
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "subresource": "status",
+            "time": "2024-01-30T01:02:44Z"
+          }
+        ],
+        "name": "mysql-operator",
+        "namespace": "mysql-operator",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": false,
+            "controller": true,
+            "kind": "Secret",
+            "name": "sh.helm.release.v1.mysql-operator.v1",
+            "uid": "264a1735-aea1-4a8a-a6a4-f90145ff117e"
+          }
+        ],
+        "resourceVersion": "16011",
+        "uid": "a022ee8b-e6a2-4ef8-8878-32ce3d9f3980"
+      },
+      "spec": {
+        "chart": {
+          "metadata": {
+            "apiVersion": "v2",
+            "appVersion": "8.0.32-2.0.8",
+            "description": "MySQL Operator Helm Chart for deploying MySQL InnoDB Cluster in Kubernetes",
+            "icon": "https://labs.mysql.com/common/themes/sakila/favicon.ico",
+            "name": "mysql-operator",
+            "type": "application",
+            "version": "2.0.8"
+          },
+          "values": {
+            "envs": {
+              "imagesDefaultRegistry": null,
+              "imagesDefaultRepository": null,
+              "imagesPullPolicy": "IfNotPresent"
+            },
+            "image": {
+              "name": "mysql-operator",
+              "pullPolicy": "IfNotPresent",
+              "pullSecrets": {
+                "enabled": false,
+                "secretName": null
+              },
+              "registry": null,
+              "repository": "mysql",
+              "tag": ""
+            }
+          }
+        },
+        "helmVersion": 3,
+        "info": {
+          "description": "Install complete",
+          "firstDeployed": "2024-01-30T00:59:38Z",
+          "lastDeployed": "2024-01-30T00:59:38Z",
+          "notes": "Create an MySQL InnoDB Cluster by executing:\n1. When using a source distribution / git clone: `helm install [cluster-name] -n [ns-name] ~/helm/mysql-innodbcluster`\n2. When using the Helm repo from ArtifactHub\n2.1 With self signed certificates\n    export NAMESPACE=\"your-namespace\"\n    # in case the namespace doesn't exist, please pass --create-namespace\n    helm install my-mysql-innodbcluster mysql-operator/mysql-innodbcluster -n $NAMESPACE \\\n        --version 2.0.8 \\\n        --set credentials.root.password=\"\u003e-0URS4F3P4SS\" \\\n        --set tls.useSelfSigned=true\n\n2.2 When you have own CA and TLS certificates\n        export NAMESPACE=\"your-namespace\"\n        export CLUSTER_NAME=\"my-mysql-innodbcluster\"\n        export CA_SECRET=\"$CLUSTER_NAME-ca-secret\"\n        export TLS_SECRET=\"$CLUSTER_NAME-tls-secret\"\n        export ROUTER_TLS_SECRET=\"$CLUSTER_NAME-router-tls-secret\"\n        # Path to ca.pem, server-cert.pem, server-key.pem, router-cert.pem and router-key.pem\n        export CERT_PATH=\"/path/to/your/ca_and_tls_certificates\"\n\n        kubectl create namespace $NAMESPACE\n\n        kubectl create secret generic $CA_SECRET \\\n            --namespace=$NAMESPACE --dry-run=client --save-config -o yaml \\\n            --from-file=ca.pem=$CERT_PATH/ca.pem \\\n        | kubectl apply -f -\n\n        kubectl create secret tls $TLS_SECRET \\\n            --namespace=$NAMESPACE --dry-run=client --save-config -o yaml \\\n            --cert=$CERT_PATH/server-cert.pem --key=$CERT_PATH/server-key.pem \\\n        | kubectl apply -f -\n\n        kubectl create secret tls $ROUTER_TLS_SECRET \\\n            --namespace=$NAMESPACE --dry-run=client --save-config -o yaml \\\n            --cert=$CERT_PATH/router-cert.pem --key=$CERT_PATH/router-key.pem \\\n        | kubectl apply -f -\n\n        helm install my-mysql-innodbcluster mysql-operator/mysql-innodbcluster -n $NAMESPACE \\\n        --version 2.0.8 \\\n        --set credentials.root.password=\"\u003e-0URS4F3P4SS\" \\\n        --set tls.useSelfSigned=false \\\n        --set tls.caSecretName=$CA_SECRET \\\n        --set tls.serverCertAndPKsecretName=$TLS_SECRET \\\n        --set tls.routerCertAndPKsecretName=$ROUTER_TLS_SECRET\n",
+          "readme": "# MySQL Operator for Kubernetes\n\n## Introduction\n\nThe MySQL Operator for Kubernetes is an operator for managing MySQL InnoDB Cluster setups inside a Kubernetes Cluster.\nIt manages the full lifecycle with set up and maintenance that includes automating upgrades and backup.\n\nMySQL Operator for Kubernetes is brought to you by the MySQL team at Oracle.\n\n## Issues and Pull Requests\n\nAs with all MySQL projects, issues (including bugs and feature requests) are tracked here:\n\n  * https://bugs.mysql.com/\n\nPull requests submitted via github are also tracked at bugs.mysql.com; see [CONTRIBUTING](CONTRIBUTING.md) for related information.\n\n## License\n\nCopyright (c) 2020, 2023, Oracle and/or its affiliates.\n\nLicense information can be found in the [LICENSE](https://github.com/mysql/mysql-operator/blob/trunk/LICENSE) file.\nThis distribution may include materials developed by third parties. For license\nand attribution notices for these materials, please refer to the `LICENSE` file.\n\n## Pre-requisites\n* Kubernetes 1.21+\n* Helm v3\n\n## MySQL Operator for Kubernetes Installation with Helm\n\nInstall the Helm repository:\n\n```sh\n$\u003e helm repo add mysql-operator https://mysql.github.io/mysql-operator/\n$\u003e helm repo update\n```\n\nThen deploy the operator:\n\n```sh\n$\u003e helm install mysql-operator mysql-operator/mysql-operator --namespace mysql-operator --create-namespace\n```\n\nThis deploys the latest MySQL Operator for Kubernetes from DockerHub using all defaults; although the deployment\ncan be customized through a variety of options to override built-in defaults. See the documentation for details.\n\n## More Information\n\nRefer to the official documentation at:\n\n  * https://dev.mysql.com/doc/mysql-operator/en/\n\nFor additional downloads and the source code, visit:\n\n  * https://dev.mysql.com/downloads\n  * https://github.com/mysql/mysql-operator\n\nContributing to MySQL Operator for Kubernetes, see:\n\n  * See [CONTRIBUTING](CONTRIBUTING.md)\n",
+          "status": "deployed"
+        },
+        "name": "mysql-operator",
+        "namespace": "mysql-operator",
+        "resources": [
+          {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "name": "mysql-operator-sa",
+            "namespace": "mysql-operator"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRole",
+            "name": "mysql-operator"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRole",
+            "name": "mysql-sidecar"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRoleBinding",
+            "name": "mysql-operator-rolebinding"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "name": "mysql-operator",
+            "namespace": "mysql-operator"
+          },
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "mysql-operator",
+            "namespace": "mysql-operator"
+          },
+          {
+            "apiVersion": "zalando.org/v1",
+            "kind": "ClusterKopfPeering",
+            "name": "mysql-operator"
+          }
+        ],
+        "values": {
+          "envs": {
+            "imagesDefaultRegistry": "ghcr.io",
+            "imagesDefaultRepository": "verrazzano"
+          },
+          "image": {
+            "pullSecrets": {
+              "enabled": true,
+              "secretName": "verrazzano-container-registry"
+            },
+            "registry": "ghcr.io",
+            "repository": "verrazzano",
+            "tag": "8.0.32-2.0.8"
+          }
+        },
+        "version": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "summary": {
+          "state": "deployed"
+        }
+      }
+    }
+  ],
+  "kind": "AppList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "131918"
+  }
+}

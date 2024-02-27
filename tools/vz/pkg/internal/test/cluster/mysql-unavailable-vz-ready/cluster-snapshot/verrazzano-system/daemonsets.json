@@ -1,0 +1,601 @@
+{
+  "metadata": {
+    "resourceVersion": "131790"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "fluentd",
+        "namespace": "verrazzano-system",
+        "uid": "691a3f18-7160-42d5-a4a9-7ebbd47fdea6",
+        "resourceVersion": "91162",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T01:20:54Z",
+        "labels": {
+          "app": "fluentd",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "deprecated.daemonset.template.generation": "1",
+          "meta.helm.sh/release-name": "fluentd",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T01:20:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:deprecated.daemonset.template.generation": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:revisionHistoryLimit": {},
+                "f:selector": {},
+                "f:template": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:sidecar.istio.io/inject": {},
+                      "f:verrazzano.io/cmChecksum": {}
+                    },
+                    "f:labels": {
+                      ".": {},
+                      "f:app": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:containers": {
+                      "k:{\"name\":\"fluentd\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"CA_FILE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"CLUSTER_NAME\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"CONFIG_HASH\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"ELASTICSEARCH_PASSWORD\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"ELASTICSEARCH_URL\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"ELASTICSEARCH_USER\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"FLUENTD_CONF\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"FLUENT_ELASTICSEARCH_SED_DISABLE\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"K8S_NODE_NAME\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:fieldRef": {}
+                            }
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":24231,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:resources": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:add": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {},
+                          "f:seLinuxOptions": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/fluentd/cacerts\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/fluentd/etc\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          },
+                          "k:{\"mountPath\":\"/fluentd/secret\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          },
+                          "k:{\"mountPath\":\"/run/log/journal\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          },
+                          "k:{\"mountPath\":\"/var/lib\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          },
+                          "k:{\"mountPath\":\"/var/log\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:initContainers": {
+                      ".": {},
+                      "k:{\"name\":\"cacert-init\"}": {
+                        ".": {},
+                        "f:command": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {},
+                          "f:runAsGroup": {},
+                          "f:runAsNonRoot": {},
+                          "f:runAsUser": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/fluentd/cacerts\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          },
+                          "k:{\"mountPath\":\"/fluentd/secret\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          },
+                          "k:{\"mountPath\":\"/init\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {},
+                            "f:readOnly": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"cacerts\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"fluentd-config\"}": {
+                        ".": {},
+                        "f:configMap": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:name": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"fluentd-init\"}": {
+                        ".": {},
+                        "f:configMap": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:name": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"run-log-journal\"}": {
+                        ".": {},
+                        "f:hostPath": {
+                          ".": {},
+                          "f:path": {},
+                          "f:type": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"secret-volume\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:secret": {
+                          ".": {},
+                          "f:defaultMode": {},
+                          "f:optional": {},
+                          "f:secretName": {}
+                        }
+                      },
+                      "k:{\"name\":\"varlib\"}": {
+                        ".": {},
+                        "f:hostPath": {
+                          ".": {},
+                          "f:path": {},
+                          "f:type": {}
+                        },
+                        "f:name": {}
+                      },
+                      "k:{\"name\":\"varlog\"}": {
+                        ".": {},
+                        "f:hostPath": {
+                          ".": {},
+                          "f:path": {},
+                          "f:type": {}
+                        },
+                        "f:name": {}
+                      }
+                    }
+                  }
+                },
+                "f:updateStrategy": {
+                  "f:rollingUpdate": {
+                    ".": {},
+                    "f:maxSurge": {},
+                    "f:maxUnavailable": {}
+                  },
+                  "f:type": {}
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T02:17:33Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:currentNumberScheduled": {},
+                "f:desiredNumberScheduled": {},
+                "f:numberAvailable": {},
+                "f:numberMisscheduled": {},
+                "f:numberReady": {},
+                "f:observedGeneration": {},
+                "f:updatedNumberScheduled": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "selector": {
+          "matchLabels": {
+            "app": "fluentd"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "fluentd"
+            },
+            "annotations": {
+              "sidecar.istio.io/inject": "true",
+              "verrazzano.io/cmChecksum": "991390db67b60c20f5b4d8e2f63f653acf350f7cf354924d003a33ecd9925c52"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "fluentd-init",
+                "configMap": {
+                  "name": "fluentd-init",
+                  "defaultMode": 493
+                }
+              },
+              {
+                "name": "cacerts",
+                "emptyDir": {}
+              },
+              {
+                "name": "secret-volume",
+                "secret": {
+                  "secretName": "verrazzano-es-internal",
+                  "defaultMode": 420,
+                  "optional": true
+                }
+              },
+              {
+                "name": "fluentd-config",
+                "configMap": {
+                  "name": "fluentd-config",
+                  "defaultMode": 420
+                }
+              },
+              {
+                "name": "varlog",
+                "hostPath": {
+                  "path": "/var/log",
+                  "type": ""
+                }
+              },
+              {
+                "name": "varlib",
+                "hostPath": {
+                  "path": "/var/lib",
+                  "type": ""
+                }
+              },
+              {
+                "name": "run-log-journal",
+                "hostPath": {
+                  "path": "/run/log/journal",
+                  "type": ""
+                }
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "cacert-init",
+                "image": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84",
+                "command": [
+                  "/init/init.sh"
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "fluentd-init",
+                    "readOnly": true,
+                    "mountPath": "/init"
+                  },
+                  {
+                    "name": "cacerts",
+                    "mountPath": "/fluentd/cacerts"
+                  },
+                  {
+                    "name": "secret-volume",
+                    "readOnly": true,
+                    "mountPath": "/fluentd/secret"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "runAsUser": 999,
+                  "runAsGroup": 997,
+                  "runAsNonRoot": true,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "containers": [
+              {
+                "name": "fluentd",
+                "image": "ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84",
+                "args": [
+                  "-c",
+                  "/etc/fluentd.conf"
+                ],
+                "ports": [
+                  {
+                    "name": "http-metrics",
+                    "containerPort": 24231,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "FLUENTD_CONF",
+                    "value": "fluentd-standalone.conf"
+                  },
+                  {
+                    "name": "FLUENT_ELASTICSEARCH_SED_DISABLE",
+                    "value": "true"
+                  },
+                  {
+                    "name": "ELASTICSEARCH_URL",
+                    "value": "http://verrazzano-authproxy-opensearch:8775"
+                  },
+                  {
+                    "name": "CLUSTER_NAME",
+                    "value": "local"
+                  },
+                  {
+                    "name": "ELASTICSEARCH_USER",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "verrazzano-es-internal",
+                        "key": "username",
+                        "optional": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "ELASTICSEARCH_PASSWORD",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "verrazzano-es-internal",
+                        "key": "password",
+                        "optional": true
+                      }
+                    }
+                  },
+                  {
+                    "name": "CA_FILE",
+                    "value": "/fluentd/cacerts/all-ca-certs.pem"
+                  },
+                  {
+                    "name": "CONFIG_HASH",
+                    "value": "ed0126aa80557d12cc8a88ca3524da8ad650e65a4a95256da8df7f4132842416"
+                  },
+                  {
+                    "name": "K8S_NODE_NAME",
+                    "valueFrom": {
+                      "fieldRef": {
+                        "apiVersion": "v1",
+                        "fieldPath": "spec.nodeName"
+                      }
+                    }
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "cacerts",
+                    "mountPath": "/fluentd/cacerts"
+                  },
+                  {
+                    "name": "secret-volume",
+                    "readOnly": true,
+                    "mountPath": "/fluentd/secret"
+                  },
+                  {
+                    "name": "fluentd-config",
+                    "readOnly": true,
+                    "mountPath": "/fluentd/etc"
+                  },
+                  {
+                    "name": "varlog",
+                    "mountPath": "/var/log"
+                  },
+                  {
+                    "name": "varlib",
+                    "readOnly": true,
+                    "mountPath": "/var/lib"
+                  },
+                  {
+                    "name": "run-log-journal",
+                    "readOnly": true,
+                    "mountPath": "/run/log/journal"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "add": [
+                      "DAC_OVERRIDE"
+                    ],
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "seLinuxOptions": {},
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "fluentd",
+            "serviceAccount": "fluentd",
+            "securityContext": {
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "schedulerName": "default-scheduler"
+          }
+        },
+        "updateStrategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": 1,
+            "maxSurge": 0
+          }
+        },
+        "revisionHistoryLimit": 10
+      },
+      "status": {
+        "currentNumberScheduled": 4,
+        "numberMisscheduled": 0,
+        "desiredNumberScheduled": 4,
+        "numberReady": 4,
+        "observedGeneration": 1,
+        "updatedNumberScheduled": 4,
+        "numberAvailable": 4
+      }
+    }
+  ]
+}

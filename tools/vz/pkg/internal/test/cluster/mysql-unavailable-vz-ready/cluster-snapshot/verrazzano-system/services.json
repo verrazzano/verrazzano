@@ -1,0 +1,1310 @@
+{
+  "metadata": {
+    "resourceVersion": "131808"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "coherence-operator-rest",
+        "namespace": "verrazzano-system",
+        "uid": "02724299-be02-4ace-9500-34ecd8b0be93",
+        "resourceVersion": "3702",
+        "creationTimestamp": "2024-01-30T00:44:29Z",
+        "labels": {
+          "app.kubernetes.io/component": "rest",
+          "app.kubernetes.io/instance": "coherence-operator-rest",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/part-of": "coherence-operator",
+          "app.kubernetes.io/version": "3.3.2",
+          "control-plane": "coherence"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "coherence-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:44:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:control-plane": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8000,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-rest",
+            "protocol": "TCP",
+            "port": 8000,
+            "targetPort": 8000
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "manager",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/version": "3.3.2"
+        },
+        "clusterIP": "REDACTED-6ffcd57fe56f8caf716d94fac66846804fd33b37c04820bf99c0f824e461a2a0",
+        "clusterIPs": [
+          "REDACTED-6ffcd57fe56f8caf716d94fac66846804fd33b37c04820bf99c0f824e461a2a0"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-webhook",
+        "namespace": "verrazzano-system",
+        "uid": "366ee15d-264b-4ea3-b473-c91e50174b93",
+        "resourceVersion": "3706",
+        "creationTimestamp": "2024-01-30T00:44:29Z",
+        "labels": {
+          "app.kubernetes.io/component": "webhook",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/part-of": "coherence-operator",
+          "app.kubernetes.io/version": "3.3.2",
+          "control-plane": "coherence"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "coherence-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:44:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:control-plane": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "webhook",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 9443
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "manager",
+          "app.kubernetes.io/instance": "coherence-operator-manager",
+          "app.kubernetes.io/name": "coherence-operator",
+          "app.kubernetes.io/version": "3.3.2"
+        },
+        "clusterIP": "REDACTED-dd4530c3abb531f8d33e8f839c87ad67c0363742dc1ea48ac1713860c3ef1a77",
+        "clusterIPs": [
+          "REDACTED-dd4530c3abb531f8d33e8f839c87ad67c0363742dc1ea48ac1713860c3ef1a77"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "fluentd",
+        "namespace": "verrazzano-system",
+        "uid": "32b682ef-92b6-4bfe-bfde-e912238c1c8f",
+        "resourceVersion": "34391",
+        "creationTimestamp": "2024-01-30T01:20:54Z",
+        "labels": {
+          "app": "fluentd",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "fluentd",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:20:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":24231,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-metrics",
+            "protocol": "TCP",
+            "port": 24231,
+            "targetPort": 24231
+          }
+        ],
+        "selector": {
+          "app": "fluentd"
+        },
+        "clusterIP": "REDACTED-573453eea5afb63ab4d522de3e24eae9fb60d0aa02f2b0a2d4cde10a21660283",
+        "clusterIPs": [
+          "REDACTED-573453eea5afb63ab4d522de3e24eae9fb60d0aa02f2b0a2d4cde10a21660283"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator",
+        "namespace": "verrazzano-system",
+        "uid": "ecf0e2b0-79f5-4f83-a809-3f88972d1c48",
+        "resourceVersion": "11945",
+        "creationTimestamp": "2024-01-30T00:59:44Z",
+        "labels": {
+          "app": "verrazzano-application-operator",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-application-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":9100,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https-webhook",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 9443
+          },
+          {
+            "name": "http-metric",
+            "protocol": "TCP",
+            "port": 9100,
+            "targetPort": 9100
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-application-operator"
+        },
+        "clusterIP": "REDACTED-335dd412d043259bf7b11733c4cc125b95e30154028074eac6ee63cb2335e579",
+        "clusterIPs": [
+          "REDACTED-335dd412d043259bf7b11733c4cc125b95e30154028074eac6ee63cb2335e579"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook",
+        "namespace": "verrazzano-system",
+        "uid": "85e92be9-f278-4274-9dc5-82f167589774",
+        "resourceVersion": "11941",
+        "creationTimestamp": "2024-01-30T00:59:44Z",
+        "labels": {
+          "app": "verrazzano-application-operator-webhook",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-application-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:44Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":9100,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https-webhook",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 9443
+          },
+          {
+            "name": "http-metric",
+            "protocol": "TCP",
+            "port": 9100,
+            "targetPort": 9100
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-application-operator-webhook"
+        },
+        "clusterIP": "REDACTED-2fed7b82dffc30fff8a0cee606c3f31da965d10b65d849775f0debb491b217e7",
+        "clusterIPs": [
+          "REDACTED-2fed7b82dffc30fff8a0cee606c3f31da965d10b65d849775f0debb491b217e7"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-authproxy",
+        "namespace": "verrazzano-system",
+        "uid": "845cd2c6-360a-4eda-88ac-2eead9f46114",
+        "resourceVersion": "13601",
+        "creationTimestamp": "2024-01-30T01:01:48Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-authproxy",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:01:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8775,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":8776,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":8777,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-api",
+            "protocol": "TCP",
+            "port": 8775,
+            "targetPort": 8775
+          },
+          {
+            "name": "grpc",
+            "protocol": "TCP",
+            "port": 8776,
+            "targetPort": 8776
+          },
+          {
+            "name": "http-v2",
+            "protocol": "TCP",
+            "port": 8777,
+            "targetPort": 8777
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-authproxy"
+        },
+        "clusterIP": "REDACTED-6286b4e3049070cfe0e64d141750af05fc5b10a94474896fc7d325a4be0f0609",
+        "clusterIPs": [
+          "REDACTED-6286b4e3049070cfe0e64d141750af05fc5b10a94474896fc7d325a4be0f0609"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-authproxy-opensearch",
+        "namespace": "verrazzano-system",
+        "uid": "0bc7ff63-597e-4fa1-b850-5527b57e7257",
+        "resourceVersion": "13591",
+        "creationTimestamp": "2024-01-30T01:01:48Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-authproxy",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:01:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8775,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-authproxy",
+            "protocol": "TCP",
+            "port": 8775,
+            "targetPort": 8775
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-authproxy"
+        },
+        "clusterIP": "REDACTED-0908d5f16fb9ea4ca2a6f70f7cf7fa2b4ce827cc54d7a388c0e0fb488968c107",
+        "clusterIPs": [
+          "REDACTED-0908d5f16fb9ea4ca2a6f70f7cf7fa2b4ce827cc54d7a388c0e0fb488968c107"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-cluster-operator",
+        "namespace": "verrazzano-system",
+        "uid": "6ab8e50a-55ed-4c8a-a481-f13f1d21b411",
+        "resourceVersion": "21045",
+        "creationTimestamp": "2024-01-30T01:06:25Z",
+        "labels": {
+          "app": "verrazzano-cluster-operator",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-cluster-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:06:25Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":9100,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-metric",
+            "protocol": "TCP",
+            "port": 9100,
+            "targetPort": 9100
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-cluster-operator"
+        },
+        "clusterIP": "REDACTED-05167f5914056cc1a0103861d88a79f2bcd4f58f373a1a31c4580f411f39f51d",
+        "clusterIPs": [
+          "REDACTED-05167f5914056cc1a0103861d88a79f2bcd4f58f373a1a31c4580f411f39f51d"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-cluster-operator-webhook",
+        "namespace": "verrazzano-system",
+        "uid": "0ccf02a1-27d1-4041-9065-bad8c355559b",
+        "resourceVersion": "21041",
+        "creationTimestamp": "2024-01-30T01:06:25Z",
+        "labels": {
+          "app": "verrazzano-cluster-operator-webhook",
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-cluster-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:06:25Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https-webhook",
+            "protocol": "TCP",
+            "port": 443,
+            "targetPort": 9443
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-cluster-operator-webhook"
+        },
+        "clusterIP": "REDACTED-84d5698680ce1c6635d3b64854f0adb45bfc6deb6c6682c5350fd2669dba451e",
+        "clusterIPs": [
+          "REDACTED-84d5698680ce1c6635d3b64854f0adb45bfc6deb6c6682c5350fd2669dba451e"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console",
+        "namespace": "verrazzano-system",
+        "uid": "b981e278-388a-4388-b650-a08f82635361",
+        "resourceVersion": "14116",
+        "creationTimestamp": "2024-01-30T01:02:04Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-console",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:02:04Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8000,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-console",
+            "protocol": "TCP",
+            "port": 8000,
+            "targetPort": 8000
+          }
+        ],
+        "selector": {
+          "app": "verrazzano-console"
+        },
+        "clusterIP": "REDACTED-5269270ec94aad40e713cc82289b984685f412100d213d07f1114fe9dbfc6552",
+        "clusterIPs": [
+          "REDACTED-5269270ec94aad40e713cc82289b984685f412100d213d07f1114fe9dbfc6552"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-monitoring-operator",
+        "namespace": "verrazzano-system",
+        "uid": "cde9e7ec-2449-408a-bd0b-b3f82c99049d",
+        "resourceVersion": "13573",
+        "creationTimestamp": "2024-01-30T01:01:48Z",
+        "labels": {
+          "app": "verrazzano-monitoring-operator",
+          "app.kubernetes.io/managed-by": "Helm",
+          "k8s-app": "verrazzano-monitoring-operator"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "verrazzano-monitoring-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:01:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:k8s-app": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8090,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":9100,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-metrics",
+            "protocol": "TCP",
+            "port": 8090,
+            "targetPort": 8090
+          },
+          {
+            "name": "http-prom",
+            "protocol": "TCP",
+            "port": 9100,
+            "targetPort": 9100
+          }
+        ],
+        "selector": {
+          "k8s-app": "verrazzano-monitoring-operator"
+        },
+        "clusterIP": "REDACTED-befc3f1c6ad46e1d23f3ee820513edf43f06e1310612bc312e2eaa53d6141188",
+        "clusterIPs": [
+          "REDACTED-befc3f1c6ad46e1d23f3ee820513edf43f06e1310612bc312e2eaa53d6141188"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana",
+        "namespace": "verrazzano-system",
+        "uid": "0e947c75-c168-472a-9513-5ea4c721bdc5",
+        "resourceVersion": "13996",
+        "creationTimestamp": "2024-01-30T01:02:01Z",
+        "labels": {
+          "k8s-app": "verrazzano.io",
+          "verrazzano-component": "grafana",
+          "vmo.v1.verrazzano.io": "system"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "verrazzano.io/v1",
+            "kind": "VerrazzanoMonitoringInstance",
+            "name": "system",
+            "uid": "050bd6fc-b0be-4d35-b80d-0c0faea2ed37",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "verrazzano-monitoring-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:02:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:labels": {
+                  ".": {},
+                  "f:k8s-app": {},
+                  "f:verrazzano-component": {},
+                  "f:vmo.v1.verrazzano.io": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"050bd6fc-b0be-4d35-b80d-0c0faea2ed37\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":3000,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-grafana",
+            "protocol": "TCP",
+            "port": 3000,
+            "targetPort": 3000
+          }
+        ],
+        "selector": {
+          "app": "system-grafana"
+        },
+        "clusterIP": "REDACTED-d1af7ebb29ab689a29b37a01fe8fa18a2cc8baf030d0076ad60e98bb5c5949ee",
+        "clusterIPs": [
+          "REDACTED-d1af7ebb29ab689a29b37a01fe8fa18a2cc8baf030d0076ad60e98bb5c5949ee"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-kiali",
+        "namespace": "verrazzano-system",
+        "uid": "1bdcfa58-9699-43c7-af84-13c56934fec4",
+        "resourceVersion": "13697",
+        "creationTimestamp": "2024-01-30T01:01:49Z",
+        "labels": {
+          "app": "kiali",
+          "app.kubernetes.io/instance": "vmi-system-kiali",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "kiali",
+          "app.kubernetes.io/part-of": "kiali",
+          "app.kubernetes.io/version": "v1.73.0",
+          "helm.sh/chart": "kiali-server-1.73.0",
+          "version": "v1.73.0"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "kiali-server",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:01:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {},
+                  "f:version": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":9090,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":20001,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "appProtocol": "http",
+            "port": 20001,
+            "targetPort": 20001
+          },
+          {
+            "name": "http-metrics",
+            "protocol": "TCP",
+            "appProtocol": "http",
+            "port": 9090,
+            "targetPort": 9090
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/instance": "vmi-system-kiali",
+          "app.kubernetes.io/name": "kiali"
+        },
+        "clusterIP": "REDACTED-d64a5ed9a1080b6ca90a3ffdb487bb26a98f9a47d14a85f73d43453a7243f3cb",
+        "clusterIPs": [
+          "REDACTED-d64a5ed9a1080b6ca90a3ffdb487bb26a98f9a47d14a85f73d43453a7243f3cb"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-svc",
+        "namespace": "verrazzano-system",
+        "uid": "6d3c2c2b-3e2d-4eb8-b47a-d9c6666cb12d",
+        "resourceVersion": "11824",
+        "creationTimestamp": "2024-01-30T00:59:42Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm",
+          "weblogic.operatorName": "verrazzano-system"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "weblogic-operator",
+          "meta.helm.sh/release-namespace": "verrazzano-system"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:42Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:weblogic.operatorName": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":8083,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  },
+                  "k:{\"port\":8084,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "metrics",
+            "protocol": "TCP",
+            "appProtocol": "http",
+            "port": 8083,
+            "targetPort": 8083
+          },
+          {
+            "name": "restwebhook",
+            "protocol": "TCP",
+            "appProtocol": "https",
+            "port": 8084,
+            "targetPort": 8084
+          }
+        ],
+        "selector": {
+          "app": "weblogic-operator-webhook"
+        },
+        "clusterIP": "REDACTED-042a1f5fc5b6a1e82028c7b9779991b9ffc06ade2833c054b80129a77b959ffb",
+        "clusterIPs": [
+          "REDACTED-042a1f5fc5b6a1e82028c7b9779991b9ffc06ade2833c054b80129a77b959ffb"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

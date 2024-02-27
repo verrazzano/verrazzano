@@ -1,0 +1,34 @@
+==== START logs for container initwebhooks of pod verrazzano-install/verrazzano-platform-operator-webhook-658d47f58c-2pp2w ====
+{"level":"info","@timestamp":"2024-01-30T02:10:57.315Z","caller":"platform-operator/main.go:120","message":"Starting Verrazzano Platform Operator"}
+{"level":"info","@timestamp":"2024-01-30T02:10:57.316Z","caller":"platform-operator/main.go:130","message":"Verrazzano version: 2.0.0-5302+15451eee"}
+{"level":"info","@timestamp":"2024-01-30T02:10:57.334Z","caller":"certificate/certificate.go:172","message":"CA secret verrazzano-platform-operator-ca exists, using..."}
+{"level":"info","@timestamp":"2024-01-30T02:10:57.340Z","caller":"certificate/certificate.go:81","message":"Secret verrazzano-platform-operator-tls exists, using..."}
+==== END logs for container initwebhooks of pod verrazzano-install/verrazzano-platform-operator-webhook-658d47f58c-2pp2w ====
+==== START logs for container webhook-run of pod verrazzano-install/verrazzano-platform-operator-webhook-658d47f58c-2pp2w ====
+{"level":"info","@timestamp":"2024-01-30T02:10:58.332Z","caller":"platform-operator/main.go:120","message":"Starting Verrazzano Platform Operator"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.341Z","caller":"platform-operator/main.go:130","message":"Verrazzano version: 2.0.0-5302+15451eee"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.422Z","logger":"controller-runtime.metrics","caller":"metrics/listener.go:44","message":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.423Z","caller":"operatorinit/run_webhook.go:89","message":"Start called for pod verrazzano-platform-operator-webhook-658d47f58c-2pp2w"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:139","message":"skip registering a mutating webhook, object does not implement admission.Defaulter or WithDefaulter wasn't called","GVK":"install.verrazzano.io/v1alpha1, Kind=Verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:153","message":"Registering a validating webhook","GVK":"install.verrazzano.io/v1alpha1, Kind=Verrazzano","path":"/validate-install-verrazzano-io-v1alpha1-verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/validate-install-verrazzano-io-v1alpha1-verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/convert"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:184","message":"Conversion webhook enabled","GVK":"install.verrazzano.io/v1alpha1, Kind=Verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:139","message":"skip registering a mutating webhook, object does not implement admission.Defaulter or WithDefaulter wasn't called","GVK":"install.verrazzano.io/v1beta1, Kind=Verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:153","message":"Registering a validating webhook","GVK":"install.verrazzano.io/v1beta1, Kind=Verrazzano","path":"/validate-install-verrazzano-io-v1beta1-verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.683Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/validate-install-verrazzano-io-v1beta1-verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.684Z","logger":"controller-runtime.builder","caller":"builder/webhook.go:184","message":"Conversion webhook enabled","GVK":"install.verrazzano.io/v1beta1, Kind=Verrazzano"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.684Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/mysql-backup-job-annotate"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.684Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/v1beta1-validate-requirements"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.684Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/v1alpha1-validate-requirements"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.685Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/v1beta1-validate-mysql-install-override-values"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.685Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:148","message":"Registering webhook","path":"/v1alpha1-validate-mysql-install-override-values"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.685Z","caller":"operatorinit/run_webhook.go:80","message":"Starting webhook controller-runtime manager"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.685Z","logger":"controller-runtime.webhook.webhooks","caller":"webhook/server.go:216","message":"Starting webhook server"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.685Z","caller":"manager/internal.go:366","message":"Starting server","path":"/metrics","kind":"metrics","addr":"[::]:8080"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.686Z","logger":"controller-runtime.certwatcher","caller":"certwatcher/certwatcher.go:131","message":"Updated current TLS certificate"}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.687Z","logger":"controller-runtime.webhook","caller":"webhook/server.go:270","message":"Serving webhook server","host":"","port":9443}
+{"level":"info","@timestamp":"2024-01-30T02:10:58.687Z","logger":"controller-runtime.certwatcher","caller":"certwatcher/certwatcher.go:85","message":"Starting certificate watcher"}
+2024/01/30 02:15:48 http: TLS handshake error from REDACTED-b815c4857fb29bd094b28f7ce167cc599fcbce3bd9aab63ad69bb38a94e95fd9:57922: read tcp REDACTED-07212481d5b305f599b118c470c50478698fa94a799b2c0d6438802dc4676200:9443->REDACTED-b815c4857fb29bd094b28f7ce167cc599fcbce3bd9aab63ad69bb38a94e95fd9:57922: i/o timeout
+2024/01/30 02:26:48 http: TLS handshake error from REDACTED-54dca846a6d89edad8abf5a0f6158acef71d53242ea232831da778d3abc345c4:60200: read tcp REDACTED-07212481d5b305f599b118c470c50478698fa94a799b2c0d6438802dc4676200:9443->REDACTED-54dca846a6d89edad8abf5a0f6158acef71d53242ea232831da778d3abc345c4:60200: i/o timeout
+==== END logs for container webhook-run of pod verrazzano-install/verrazzano-platform-operator-webhook-658d47f58c-2pp2w ====

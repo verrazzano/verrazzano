@@ -1,0 +1,1098 @@
+{
+  "metadata": {
+    "resourceVersion": "131803"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf416eb2f07",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "8339e8dc-ec2e-40b6-b6fb-ab0fcf4e2942",
+        "resourceVersion": "81285",
+        "creationTimestamp": "2024-01-30T02:08:53Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81282"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-ingress-nginx/ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6 to REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:53.618351Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf440311b50",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "b857c5d9-e836-494f-a1db-d979ee44ed85",
+        "resourceVersion": "81313",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf44b224cfa",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "830f2b5f-8e7b-49e4-9e50-0a4a8d9c06ee",
+        "resourceVersion": "81318",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf44cd0027a",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "25746f30-70d7-4722-8287-0b21ac244f1c",
+        "resourceVersion": "81319",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf45a0072fe",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "0d32c347-ba02-47f9-80a8-084be7c1a68a",
+        "resourceVersion": "81330",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{controller}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/nginx-ingress-controller:v1.7.1-20240109112845-33c273be0\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf463530a1c",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "1c86528f-0a06-41b2-b66b-07b53bba38d5",
+        "resourceVersion": "81343",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{controller}"
+      },
+      "reason": "Created",
+      "message": "Created container controller",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf464d79707",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "8c491ae6-521c-4fd7-8283-2a714ae25b23",
+        "resourceVersion": "81344",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{controller}"
+      },
+      "reason": "Started",
+      "message": "Started container controller",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf464e97390",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "c139e9da-77ce-41da-b710-167abc88e693",
+        "resourceVersion": "81346",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:54Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:08:54Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf478f00820",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "37f9a2a2-b0de-4e64-9149-99df48e7d4ea",
+        "resourceVersion": "81359",
+        "creationTimestamp": "2024-01-30T02:08:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:55Z",
+      "lastTimestamp": "2024-01-30T02:08:55Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf47e933098",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "2c02b0b0-49ca-4925-b8e2-a1cb058d83d9",
+        "resourceVersion": "81362",
+        "creationTimestamp": "2024-01-30T02:08:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:55Z",
+      "lastTimestamp": "2024-01-30T02:08:55Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf4d1b1c925",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "a8c571f0-49cb-48f5-9c89-8bedad7ef348",
+        "resourceVersion": "81431",
+        "creationTimestamp": "2024-01-30T02:08:56Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:57Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81283",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-0163e4e634eed99f3d251008fe2bdcf9a90da8e10e718a4ff7b8ec1e47f230df:15021/healthz/ready\": dial tcp REDACTED-0163e4e634eed99f3d251008fe2bdcf9a90da8e10e718a4ff7b8ec1e47f230df:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-315aa13432868f2d8e082c3a065d32bba078a9ba8a8f36865db2ee691e0f93fd"
+      },
+      "firstTimestamp": "2024-01-30T02:08:56Z",
+      "lastTimestamp": "2024-01-30T02:08:57Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6.17aefdf5fd0fdfac",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "05bdec2e-643e-4732-bee2-092836d723d2",
+        "resourceVersion": "81580",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+        "uid": "7b174472-5df2-4df3-8c75-2731e87d7562",
+        "apiVersion": "v1",
+        "resourceVersion": "81495"
+      },
+      "reason": "RELOAD",
+      "message": "NGINX reload triggered due to a change in configuration",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq.17aefcbde6016d1a",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "a88a09ee-39b2-4923-bd93-03b049b3f7d3",
+        "resourceVersion": "81745",
+        "creationTimestamp": "2024-01-30T01:46:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:05Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq",
+        "uid": "583800e4-ef09-41c0-b9ee-5cd86f4a8c82",
+        "apiVersion": "v1",
+        "resourceVersion": "53667",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-abc33df90673a461a6fad34d6d907217cd54bfad445ea5e482a3ddafc0c5a8fa:15021/healthz/ready\": dial tcp REDACTED-abc33df90673a461a6fad34d6d907217cd54bfad445ea5e482a3ddafc0c5a8fa:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T01:46:41Z",
+      "lastTimestamp": "2024-01-30T02:09:03Z",
+      "count": 7,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq.17aefdf3d140cfb3",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "bc8ac521-5995-41e8-a63f-81a344d87df4",
+        "resourceVersion": "81417",
+        "creationTimestamp": "2024-01-30T02:08:57Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:57Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq",
+        "uid": "583800e4-ef09-41c0-b9ee-5cd86f4a8c82",
+        "apiVersion": "v1",
+        "resourceVersion": "53667",
+        "fieldPath": "spec.containers{controller}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container controller",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:52Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq.17aefdf3d1429917",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "0c73dd7d-ee77-4492-8c9e-da5c7923f6d1",
+        "resourceVersion": "81419",
+        "creationTimestamp": "2024-01-30T02:08:57Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:57Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq",
+        "uid": "583800e4-ef09-41c0-b9ee-5cd86f4a8c82",
+        "apiVersion": "v1",
+        "resourceVersion": "53667",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:52Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq.17aefdf429d7c879",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "e052dd74-83f8-4f9f-b6b5-ef0dd92095c4",
+        "resourceVersion": "81654",
+        "creationTimestamp": "2024-01-30T02:08:59Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq",
+        "uid": "583800e4-ef09-41c0-b9ee-5cd86f4a8c82",
+        "apiVersion": "v1",
+        "resourceVersion": "53667",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:53Z",
+      "lastTimestamp": "2024-01-30T02:08:57Z",
+      "count": 3,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq.17aefdf5175bbae1",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "ac71356a-8142-4da4-9e27-85f9114e11c7",
+        "resourceVersion": "81645",
+        "creationTimestamp": "2024-01-30T02:09:03Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc-x44vq",
+        "uid": "583800e4-ef09-41c0-b9ee-5cd86f4a8c82",
+        "apiVersion": "v1",
+        "resourceVersion": "53667",
+        "fieldPath": "spec.containers{controller}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-abc33df90673a461a6fad34d6d907217cd54bfad445ea5e482a3ddafc0c5a8fa:15020/app-health/controller/readyz\": dial tcp REDACTED-abc33df90673a461a6fad34d6d907217cd54bfad445ea5e482a3ddafc0c5a8fa:15020: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:57Z",
+      "lastTimestamp": "2024-01-30T02:08:57Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc.17aefdf41684bd7e",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "7827daef-1a8c-455a-a768-0d40546d6fcd",
+        "resourceVersion": "81286",
+        "creationTimestamp": "2024-01-30T02:08:53Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller-76c59cb9fc",
+        "uid": "b173061a-06c3-4065-909d-0b5a72cf5fcd",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "59250"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: ingress-controller-ingress-nginx-controller-76c59cb9fc-krzl6",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:53Z",
+      "lastTimestamp": "2024-01-30T02:08:53Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller.17aefc5916d26e5c",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "00ed9560-7a4a-454f-9c73-ee4a9b3e89c8",
+        "resourceVersion": "88655",
+        "creationTimestamp": "2024-01-30T01:39:28Z",
+        "managedFields": [
+          {
+            "manager": "cloud-provider-oci",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:15:17Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Service",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller",
+        "uid": "a20a1114-eaa2-491f-bdaa-0c811c140402",
+        "apiVersion": "v1",
+        "resourceVersion": "15438"
+      },
+      "reason": "UpdatedLoadBalancer",
+      "message": "Updated load balancer with new hosts",
+      "source": {
+        "component": "service-controller"
+      },
+      "firstTimestamp": "2024-01-30T01:39:28Z",
+      "lastTimestamp": "2024-01-30T02:15:17Z",
+      "count": 5,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller.17aefc6da82cad1f",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "33379927-ce7f-461a-9d8c-c962f0c5cd9e",
+        "resourceVersion": "128918",
+        "creationTimestamp": "2024-01-30T01:40:56Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:56:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "HorizontalPodAutoscaler",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller",
+        "uid": "dcb45753-ff7e-4174-94d2-d9798d7ebe42",
+        "apiVersion": "autoscaling/v2",
+        "resourceVersion": "12458"
+      },
+      "reason": "FailedGetResourceMetric",
+      "message": "failed to get memory utilization: unable to get metrics for resource memory: unable to fetch metrics from resource metrics API: the server could not find the requested resource (get pods.metrics.k8s.io)",
+      "source": {
+        "component": "horizontal-pod-autoscaler"
+      },
+      "firstTimestamp": "2024-01-30T01:40:56Z",
+      "lastTimestamp": "2024-01-30T02:56:01Z",
+      "count": 301,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller.17aefdf5b3c916bc",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "f1e3c420-626d-4679-8511-9e22ca5ca6a8",
+        "resourceVersion": "81516",
+        "creationTimestamp": "2024-01-30T02:09:00Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:00Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ConfigMap",
+        "namespace": "verrazzano-ingress-nginx",
+        "name": "ingress-controller-ingress-nginx-controller",
+        "uid": "af9cb9f6-6c16-44d0-b0f1-2e789fc7fe01",
+        "apiVersion": "v1",
+        "resourceVersion": "11870"
+      },
+      "reason": "CREATE",
+      "message": "ConfigMap verrazzano-ingress-nginx/ingress-controller-ingress-nginx-controller",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:00Z",
+      "lastTimestamp": "2024-01-30T02:09:00Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}

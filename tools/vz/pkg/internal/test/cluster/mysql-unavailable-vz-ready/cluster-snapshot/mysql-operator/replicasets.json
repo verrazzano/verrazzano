@@ -1,0 +1,273 @@
+{
+  "metadata": {
+    "resourceVersion": "131788"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql-operator-5b7984f478",
+        "namespace": "mysql-operator",
+        "uid": "7c98cc93-fad9-4fc6-8d1c-962ad0402ef7",
+        "resourceVersion": "131038",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T00:59:42Z",
+        "labels": {
+          "name": "mysql-operator",
+          "pod-template-hash": "5b7984f478"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/desired-replicas": "1",
+          "deployment.kubernetes.io/max-replicas": "2",
+          "deployment.kubernetes.io/revision": "1",
+          "meta.helm.sh/release-name": "mysql-operator",
+          "meta.helm.sh/release-namespace": "mysql-operator"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "mysql-operator",
+            "uid": "2a85d1e9-5e38-4ffa-bab4-4a7362d55a40",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T00:59:42Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:deployment.kubernetes.io/desired-replicas": {},
+                  "f:deployment.kubernetes.io/max-replicas": {},
+                  "f:deployment.kubernetes.io/revision": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:name": {},
+                  "f:pod-template-hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"2a85d1e9-5e38-4ffa-bab4-4a7362d55a40\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:replicas": {},
+                "f:selector": {},
+                "f:template": {
+                  "f:metadata": {
+                    "f:annotations": {
+                      ".": {},
+                      "f:traffic.sidecar.istio.io/excludeOutboundPorts": {}
+                    },
+                    "f:labels": {
+                      ".": {},
+                      "f:name": {},
+                      "f:pod-template-hash": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:containers": {
+                      "k:{\"name\":\"mysql-operator\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"MYSQLSH_USER_CONFIG_HOME\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"MYSQL_OPERATOR_DEFAULT_REPOSITORY\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"MYSQL_OPERATOR_IMAGE_PULL_POLICY\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {},
+                          "f:readOnlyRootFilesystem": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/mysqlsh\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:runAsGroup": {},
+                      "f:runAsNonRoot": {},
+                      "f:runAsUser": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"mysqlsh-home\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T02:58:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:fullyLabeledReplicas": {},
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "name": "mysql-operator",
+            "pod-template-hash": "5b7984f478"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "name": "mysql-operator",
+              "pod-template-hash": "5b7984f478"
+            },
+            "annotations": {
+              "traffic.sidecar.istio.io/excludeOutboundPorts": "443"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "mysqlsh-home",
+                "emptyDir": {}
+              }
+            ],
+            "containers": [
+              {
+                "name": "mysql-operator",
+                "image": "ghcr.io/verrazzano/mysql-operator:8.0.32-2.0.8",
+                "args": [
+                  "mysqlsh",
+                  "--log-level=@INFO",
+                  "--pym",
+                  "mysqloperator",
+                  "operator"
+                ],
+                "env": [
+                  {
+                    "name": "MYSQLSH_USER_CONFIG_HOME",
+                    "value": "/mysqlsh"
+                  },
+                  {
+                    "name": "MYSQL_OPERATOR_DEFAULT_REPOSITORY",
+                    "value": "ghcr.io/verrazzano"
+                  },
+                  {
+                    "name": "MYSQL_OPERATOR_IMAGE_PULL_POLICY",
+                    "value": "IfNotPresent"
+                  }
+                ],
+                "resources": {},
+                "volumeMounts": [
+                  {
+                    "name": "mysqlsh-home",
+                    "mountPath": "/mysqlsh"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "readOnlyRootFilesystem": true,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 30,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "mysql-operator-sa",
+            "serviceAccount": "mysql-operator-sa",
+            "securityContext": {
+              "runAsUser": 27,
+              "runAsGroup": 27,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "schedulerName": "default-scheduler"
+          }
+        }
+      },
+      "status": {
+        "replicas": 1,
+        "fullyLabeledReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "observedGeneration": 1
+      }
+    }
+  ]
+}

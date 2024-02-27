@@ -1,0 +1,30 @@
+==== START logs for container webhookswait of pod verrazzano-system/verrazzano-cluster-operator-5d55f5c596-5drqv ====
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100   135  100   135    0     0 {"kind":"AdmissionReview","apiVersion":"admission.k8s.io/v1","response":{"uid":"","allowed":true,"status":{"metadata":{},"code":200}}}
+  3857      0 --:--:-- --:--:-- --:--:--  3857
+==== END logs for container webhookswait of pod verrazzano-system/verrazzano-cluster-operator-5d55f5c596-5drqv ====
+==== START logs for container verrazzano-cluster-operator of pod verrazzano-system/verrazzano-cluster-operator-5d55f5c596-5drqv ====
+{"level":"info","@timestamp":"2024-01-30T01:47:39.074Z","caller":"vzlog/vzlog.go:295","message":"Ingress NGINX namespace is verrazzano-ingress-nginx"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.165Z","logger":"controller-runtime.metrics","caller":"metrics/listener.go:44","message":"Metrics server is starting to listen","addr":":8080"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.184Z","caller":"operatorinit/run_operator.go:115","message":"Starting CAPI Cluster controller"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"operatorinit/run_operator.go:182","message":"starting manager"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"operatorinit/run_operator.go:235","message":"Watching for CRD clusters.management.cattle.io to be installed or uninstalled"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"manager/internal.go:366","message":"Starting server","kind":"health probe","addr":"[::]:8081"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"manager/internal.go:366","message":"Starting server","path":"/metrics","kind":"metrics","addr":"[::]:8080"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:185","message":"Starting EventSource","controller":"verrazzanomanagedcluster","controllerGroup":"clusters.verrazzano.io","controllerKind":"VerrazzanoManagedCluster","source":"kind source: *v1alpha1.VerrazzanoManagedCluster"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:193","message":"Starting Controller","controller":"verrazzanomanagedcluster","controllerGroup":"clusters.verrazzano.io","controllerKind":"VerrazzanoManagedCluster"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:185","message":"Starting EventSource","controller":"cluster","controllerGroup":"cluster.x-k8s.io","controllerKind":"Cluster","source":"kind source: *unstructured.Unstructured"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:193","message":"Starting Controller","controller":"cluster","controllerGroup":"cluster.x-k8s.io","controllerKind":"Cluster"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:185","message":"Starting EventSource","controller":"okequickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OKEQuickCreate","source":"kind source: *v1alpha1.OKEQuickCreate"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:193","message":"Starting Controller","controller":"okequickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OKEQuickCreate"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:185","message":"Starting EventSource","controller":"ocneociquickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OCNEOCIQuickCreate","source":"kind source: *v1alpha1.OCNEOCIQuickCreate"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:193","message":"Starting Controller","controller":"ocneociquickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OCNEOCIQuickCreate"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:185","message":"Starting EventSource","controller":"cluster","controllerGroup":"management.cattle.io","controllerKind":"Cluster","source":"kind source: *unstructured.Unstructured"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.185Z","caller":"controller/controller.go:193","message":"Starting Controller","controller":"cluster","controllerGroup":"management.cattle.io","controllerKind":"Cluster"}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.286Z","caller":"controller/controller.go:227","message":"Starting workers","controller":"ocneociquickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OCNEOCIQuickCreate","worker count":1}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.286Z","caller":"controller/controller.go:227","message":"Starting workers","controller":"cluster","controllerGroup":"management.cattle.io","controllerKind":"Cluster","worker count":1}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.286Z","caller":"controller/controller.go:227","message":"Starting workers","controller":"cluster","controllerGroup":"cluster.x-k8s.io","controllerKind":"Cluster","worker count":1}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.286Z","caller":"controller/controller.go:227","message":"Starting workers","controller":"verrazzanomanagedcluster","controllerGroup":"clusters.verrazzano.io","controllerKind":"VerrazzanoManagedCluster","worker count":1}
+{"level":"info","@timestamp":"2024-01-30T01:47:39.286Z","caller":"controller/controller.go:227","message":"Starting workers","controller":"okequickcreate","controllerGroup":"clusters.verrazzano.io","controllerKind":"OKEQuickCreate","worker count":1}
+==== END logs for container verrazzano-cluster-operator of pod verrazzano-system/verrazzano-cluster-operator-5d55f5c596-5drqv ====

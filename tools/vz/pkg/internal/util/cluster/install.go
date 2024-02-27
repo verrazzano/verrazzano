@@ -53,6 +53,7 @@ const istioSystem = "istio-system"
 
 const installErrorNotFound = "Component specific error(s) not found in the Verrazzano install log for - "
 const installErrorMessage = "One or more components listed below did not reach Ready state:"
+const installUnavailableMessage = "One or more components listed below is in Ready state but Unavailable:"
 
 const (
 	// Service name
@@ -78,19 +79,26 @@ var dispatchFunctions = map[string]func(log *zap.SugaredLogger, clusterRoot stri
 }
 
 func AnalyzeVerrazzanoResource(log *zap.SugaredLogger, clusterRoot string, issueReporter *report.IssueReporter) (err error) {
-	compsNotReady, err := getComponentsNotReady(log, clusterRoot)
+	compsNotReady, compsReadyNotAvailable, err := getComponentsNotReady(log, clusterRoot)
+	notReady := false
 	if err != nil {
 		return err
 	}
 
-	if len(compsNotReady) > 0 {
-		reportInstallIssue(log, clusterRoot, compsNotReady, issueReporter)
-	}
-
 	// When one or more components are not in Ready state, get the events from the pods based on the list of known failures and report
 	if len(compsNotReady) > 0 {
+		notReady = true
+		reportInstallIssue(log, clusterRoot, compsNotReady, issueReporter, notReady)
 		analyzeVerrazzanoInstallIssue(log, clusterRoot, issueReporter)
 	}
+
+	// When one or more components are in Ready state, but are unavailable, report the issue
+	if len(compsReadyNotAvailable) > 0 {
+		reportInstallIssue(log, clusterRoot, compsReadyNotAvailable, issueReporter, notReady)
+		analyzeVerrazzanoInstallIssue(log, clusterRoot, issueReporter)
+
+	}
+
 	// Handle uninstall issue here, before returning
 	return nil
 }
@@ -365,34 +373,35 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 }
 
 // Read the Verrazzano resource and return the list of components which did not reach Ready state
-func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, error) {
+func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, []string, error) {
 	var compsNotReady = make([]string, 0)
+	compsReadyNotAvailable := compsNotReady
 	vzResourcesPath := files.FormFilePathInClusterRoot(clusterRoot, verrazzanoResource)
 	fileInfo, e := os.Stat(vzResourcesPath)
 	if e != nil || fileInfo.Size() == 0 {
 		log.Infof("Verrazzano resource file %s is either empty or there is an issue in getting the file info about it", vzResourcesPath)
 		// The cluster dump taken by the latest script is expected to contain the verrazzano-resources.json.
 		// In order to support cluster dumps taken in earlier release, return nil rather than an error.
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	file, err := os.Open(vzResourcesPath)
 	if err != nil {
 		log.Infof("file %s not found", vzResourcesPath)
-		return compsNotReady, err
+		return compsNotReady, compsReadyNotAvailable, err
 	}
 	defer file.Close()
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		log.Infof("Failed reading Json file %s", vzResourcesPath)
-		return compsNotReady, err
+		return compsNotReady, compsReadyNotAvailable, err
 	}
 
 	var vzResourceList installv1alpha1.VerrazzanoList
 	err = encjson.Unmarshal(fileBytes, &vzResourceList)
 	if err != nil {
 		log.Infof("Failed to unmarshal Verrazzano resource at %s", vzResourcesPath)
-		return compsNotReady, err
+		return compsNotReady, compsReadyNotAvailable, err
 	}
 
 	var vzRes installv1alpha1.Verrazzano
@@ -404,31 +413,28 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 		err := encjson.Unmarshal(fileBytes, &vzRes)
 		if err != nil {
 			log.Infof("Failed to unmarshal Verrazzano resource at %s", vzResourcesPath)
-			return compsNotReady, err
+			return compsNotReady, compsReadyNotAvailable, err
 		}
 	}
 
-	if vzRes.Status.State != installv1alpha1.VzStateReady {
-		log.Debugf("Verrazzano installation is not complete, installation state %s", vzRes.Status.State)
-
-		// Verrazzano installation is not complete, find out the list of components which are not ready
-		for _, compStatusDetail := range vzRes.Status.Components {
-			if compStatusDetail.State != installv1alpha1.CompStateReady {
-				if compStatusDetail.State == installv1alpha1.CompStateDisabled {
-					continue
-				}
-				log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
-				compsNotReady = append(compsNotReady, compStatusDetail.Name)
+	// Identify any inconsistencies with component statues and availabilities, regardless of Verrazzano status
+	for _, compStatusDetail := range vzRes.Status.Components {
+		if compStatusDetail.State != installv1alpha1.CompStateReady {
+			if compStatusDetail.State == installv1alpha1.CompStateDisabled {
+				continue
 			}
+			log.Debugf("Component %s is not in ready state, state is %s", compStatusDetail.Name, vzRes.Status.State)
+			compsNotReady = append(compsNotReady, compStatusDetail.Name)
+		} else if compStatusDetail.Available != nil && *compStatusDetail.Available != installv1alpha1.ComponentAvailable {
+			log.Debugf("Component %s is in ready state, but is unavailable, availability is %s", compStatusDetail.Name, vzRes.Status.Available)
+			compsReadyNotAvailable = append(compsReadyNotAvailable, compStatusDetail.Name)
 		}
-		return compsNotReady, nil
 	}
-
-	return compsNotReady, nil
+	return compsNotReady, compsReadyNotAvailable, nil
 }
 
-// Read the platform operator log, report the errors found for the list of components which fail to reach Ready state
-func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
+// report all components that are in Ready state but are unavailable
+func reportUnavailableComponents(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter) error {
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
 	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, vpologRegExp)
 	if err != nil {
@@ -441,7 +447,7 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	// We should get only one pod file, use the first element rather than going through the slice
 	vpoLog := allPodFiles[0]
 	messages := make(StringSlice, 1)
-	messages[0] = installErrorMessage
+	messages[0] = installUnavailableMessage
 
 	// Go through all the components which did not reach Ready state
 	allMessages, _ := files.ConvertToLogMessage(vpoLog)
@@ -507,6 +513,96 @@ func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotRead
 	files[0] = reportVzResource
 	files[1] = reportVpoLog
 	issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
+	return nil
+}
+
+func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter, notReadyComponentsFound bool) error {
+	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
+	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, vpologRegExp)
+	if err != nil {
+		return err
+	}
+
+	if len(allPodFiles) < 1 {
+		return fmt.Errorf("failed to find Verrazzano Platform Operator pod")
+	}
+	// We should get only one pod file, use the first element rather than going through the slice
+	vpoLog := allPodFiles[0]
+	messages := make(StringSlice, 1)
+	messages[0] = installErrorMessage
+	if !notReadyComponentsFound {
+		messages[0] = installUnavailableMessage
+	}
+
+	// Go through all the components which did not reach Ready state
+	allMessages, _ := files.ConvertToLogMessage(vpoLog)
+
+	// Slice to hold the components without specific errors in platform operator log
+	var compsNoMessages []string
+	for _, comp := range compsNotReady {
+		var allErrors []files.LogMessage
+		allErrors, err := files.FilterLogsByLevelComponent(logLevelError, comp, allMessages)
+		if err != nil {
+			log.Infof("There is an error: %s reading install log: %s", err, vpoLog)
+		}
+
+		if comp == mysql.ComponentName {
+			allInfo, err := files.FilterLogsByLevelComponent(logLevelInfo, comp, allMessages)
+			if err != nil {
+				log.Debugf("Failed to get info logs for %s component", comp)
+			}
+			checkIfLoadJobFailed(vpoLog, allErrors, allInfo, clusterRoot, issueReporter)
+		}
+
+		// Display only the last error for the component from the install log.
+		// Need a better way to handle distinct errors for a component, however some of the errors during the initial
+		// stages of the install might not indicate any real issue always, as reconcile takes care of healing those errors.
+		if len(allErrors) > 0 {
+			errorMessage := allErrors[len(allErrors)-1].Message
+			messages = append(messages, "\t "+comp+": "+errorMessage)
+			vpoErrorMessages = append(vpoErrorMessages, errorMessage)
+		} else {
+			compsNoMessages = append(compsNoMessages, comp)
+		}
+	}
+
+	// Create a single message to display the list of components without specific error in the platform operator
+	if len(compsNoMessages) > 0 {
+		errorMessage := "\t " + installErrorNotFound + strings.Join(compsNoMessages[:], ", ")
+		messages = append(messages, errorMessage)
+	}
+
+	// Get unique namespaces associated with the components with no error messages
+	namespacesCompNoMsg := getUniqueNamespaces(log, compsNoMessages)
+
+	// Check the events related to failed components namespace to provide additional support data
+	for _, namespace := range namespacesCompNoMsg {
+		eventList, err := GetEventsRelatedToComponentNamespace(log, clusterRoot, namespace, nil)
+		if err != nil {
+			log.Debugf("Failed to get events related to %s namespace", namespace)
+		}
+		messages.addMessages(CheckEventsForWarnings(log, eventList, "Warning", nil))
+	}
+
+	reportVzResource := ""
+	reportVpoLog := ""
+	// Construct resource in the analysis report, differently for live analysis
+	if helpers.GetIsLiveCluster() {
+		reportVzResource = report.GetRelatedVZResourceMessage()
+		reportVpoLog = report.GetRelatedLogFromPodMessage(vpoLog)
+	} else {
+		reportVzResource = clusterRoot + "/" + verrazzanoResource
+		reportVpoLog = vpoLog
+	}
+	files := make(StringSlice, 2)
+	files[0] = reportVzResource
+	files[1] = reportVpoLog
+	if !notReadyComponentsFound {
+		issueReporter.AddKnownIssueMessagesFiles(report.ComponentsUnavailable, clusterRoot, messages, files)
+	} else {
+		issueReporter.AddKnownIssueMessagesFiles(report.ComponentsNotReady, clusterRoot, messages, files)
+	}
+
 	return nil
 }
 

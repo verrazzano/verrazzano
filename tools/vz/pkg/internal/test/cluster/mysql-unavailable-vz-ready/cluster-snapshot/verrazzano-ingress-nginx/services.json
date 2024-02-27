@@ -1,0 +1,348 @@
+{
+  "metadata": {
+    "resourceVersion": "131808"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "a20a1114-eaa2-491f-bdaa-0c811c140402",
+        "resourceVersion": "15438",
+        "creationTimestamp": "2024-01-30T00:59:43Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/part-of": "ingress-nginx",
+          "app.kubernetes.io/version": "1.7.1",
+          "helm.sh/chart": "ingress-nginx-4.6.1"
+        },
+        "annotations": {
+          "field.cattle.io/publicEndpoints": "[{\"addresses\":[\"REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f\"],\"port\":443,\"protocol\":\"TCP\",\"serviceName\":\"verrazzano-ingress-nginx:ingress-controller-ingress-nginx-controller\",\"allNodes\":false}]",
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
+        },
+        "finalizers": [
+          "service.kubernetes.io/load-balancer-cleanup"
+        ],
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:allocateLoadBalancerNodePorts": {},
+                "f:externalTrafficPolicy": {},
+                "f:internalTrafficPolicy": {},
+                "f:ipFamilies": {},
+                "f:ipFamilyPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          },
+          {
+            "manager": "cloud-provider-oci",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:00:25Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:finalizers": {
+                  ".": {},
+                  "v:\"service.kubernetes.io/load-balancer-cleanup\"": {}
+                }
+              },
+              "f:status": {
+                "f:loadBalancer": {
+                  "f:ingress": {}
+                }
+              }
+            },
+            "subresource": "status"
+          },
+          {
+            "manager": "rancher",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T01:02:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:field.cattle.io/publicEndpoints": {}
+                }
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "https",
+            "protocol": "TCP",
+            "appProtocol": "https",
+            "port": 443,
+            "targetPort": "https",
+            "nodePort": 32358
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/name": "ingress-nginx"
+        },
+        "clusterIP": "REDACTED-6e768247cb7de32c87ed74b14194974e95837d7c1f26350af5b4de417417ed41",
+        "clusterIPs": [
+          "REDACTED-6e768247cb7de32c87ed74b14194974e95837d7c1f26350af5b4de417417ed41"
+        ],
+        "type": "LoadBalancer",
+        "sessionAffinity": "None",
+        "externalTrafficPolicy": "Cluster",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "allocateLoadBalancerNodePorts": true,
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {
+          "ingress": [
+            {
+              "ip": "REDACTED-b998ab7f99032f11a0bc41a7730a8c684c0d71863ece70d7c7ba8f8a1c45ca7f"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-controller-metrics",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "954e2242-71dc-43b9-915c-944009ca7abb",
+        "resourceVersion": "11880",
+        "creationTimestamp": "2024-01-30T00:59:43Z",
+        "labels": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/part-of": "ingress-nginx",
+          "app.kubernetes.io/version": "1.7.1",
+          "helm.sh/chart": "ingress-nginx-4.6.1"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":10254,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http-metrics",
+            "protocol": "TCP",
+            "port": 10254,
+            "targetPort": "http-metrics"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "controller",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/name": "ingress-nginx"
+        },
+        "clusterIP": "REDACTED-e1f7e0a9250b91078ad349c7c43060ef511f30ff83f49d78d2ad65aeb5bea419",
+        "clusterIPs": [
+          "REDACTED-e1f7e0a9250b91078ad349c7c43060ef511f30ff83f49d78d2ad65aeb5bea419"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    },
+    {
+      "metadata": {
+        "name": "ingress-controller-ingress-nginx-defaultbackend",
+        "namespace": "verrazzano-ingress-nginx",
+        "uid": "65ef07c6-3f8f-439e-9090-76277661dbe7",
+        "resourceVersion": "11884",
+        "creationTimestamp": "2024-01-30T00:59:43Z",
+        "labels": {
+          "app.kubernetes.io/component": "default-backend",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/managed-by": "Helm",
+          "app.kubernetes.io/name": "ingress-nginx",
+          "app.kubernetes.io/part-of": "ingress-nginx",
+          "app.kubernetes.io/version": "1.7.1",
+          "helm.sh/chart": "ingress-nginx-4.6.1"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "ingress-controller",
+          "meta.helm.sh/release-namespace": "verrazzano-ingress-nginx"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:43Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/component": {},
+                  "f:app.kubernetes.io/instance": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:app.kubernetes.io/name": {},
+                  "f:app.kubernetes.io/part-of": {},
+                  "f:app.kubernetes.io/version": {},
+                  "f:helm.sh/chart": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":80,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:appProtocol": {},
+                    "f:name": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "http",
+            "protocol": "TCP",
+            "appProtocol": "http",
+            "port": 80,
+            "targetPort": "http"
+          }
+        ],
+        "selector": {
+          "app.kubernetes.io/component": "default-backend",
+          "app.kubernetes.io/instance": "ingress-controller",
+          "app.kubernetes.io/name": "ingress-nginx"
+        },
+        "clusterIP": "REDACTED-9a18018b31f4f687908b431b3e90141c8eebc8f3dcc1f91f27a519387629b3ea",
+        "clusterIPs": [
+          "REDACTED-9a18018b31f4f687908b431b3e90141c8eebc8f3dcc1f91f27a519387629b3ea"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

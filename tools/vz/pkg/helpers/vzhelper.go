@@ -397,10 +397,29 @@ func CheckAndRemoveBugReportAndRedactionFileExistsInDir(dir string) bool {
 	return true
 }
 
-// generateRedactionFileNameFromBugReportName returns a name for the redacted values file
+// GenerateRedactionFileNameFromBugReportName returns a name for the redacted values file
 // to match the bugReportFileName.
 // For example, for a bugReportFileName of vz-bug-report-datetime-xxxx.tar.gz,
 // this function returns vz-bug-report-datetime-xxxx-sensitive-do-not-share-redaction-map.csv.
 func GenerateRedactionFileNameFromBugReportName(bugReportFileName string) string {
 	return strings.TrimSuffix(bugReportFileName, ".tar.gz") + vzconstants.RedactionFileSuffix
+}
+
+func MakeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
+	statusMap := make(v1beta1.ComponentStatusMap)
+	for _, comp := range registry.GetComponents() {
+		if comp.IsOperatorInstallSupported() {
+			statusMap[comp.Name()] = &v1beta1.ComponentStatusDetails{
+				Name: comp.Name(),
+				Conditions: []v1beta1.Condition{
+					{
+						Type:   v1beta1.CondInstallComplete,
+						Status: corev1.ConditionTrue,
+					},
+				},
+				State: v1beta1.CompStateReady,
+			}
+		}
+	}
+	return statusMap
 }

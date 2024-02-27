@@ -1,0 +1,1749 @@
+{
+  "apiVersion": "catalog.cattle.io/v1",
+  "items": [
+    {
+      "apiVersion": "catalog.cattle.io/v1",
+      "kind": "App",
+      "metadata": {
+        "annotations": {
+          "objectset.rio.cattle.io/applied": "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",
+          "objectset.rio.cattle.io/id": "helm-app",
+          "objectset.rio.cattle.io/owner-gvk": "/v1, Kind=Secret",
+          "objectset.rio.cattle.io/owner-name": "sh.helm.release.v1.ingress-controller.v1",
+          "objectset.rio.cattle.io/owner-namespace": "verrazzano-ingress-nginx"
+        },
+        "creationTimestamp": "2024-01-30T01:02:44Z",
+        "generation": 1,
+        "labels": {
+          "objectset.rio.cattle.io/hash": "54c0a5e7555ed645b32b38670b99d9b828b2f7e1"
+        },
+        "managedFields": [
+          {
+            "apiVersion": "catalog.cattle.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:objectset.rio.cattle.io/applied": {},
+                  "f:objectset.rio.cattle.io/id": {},
+                  "f:objectset.rio.cattle.io/owner-gvk": {},
+                  "f:objectset.rio.cattle.io/owner-name": {},
+                  "f:objectset.rio.cattle.io/owner-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:objectset.rio.cattle.io/hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"4d7a8347-d275-49b6-b81c-e257e5c6d954\"}": {}
+                }
+              },
+              "f:spec": {
+                ".": {},
+                "f:chart": {
+                  ".": {},
+                  "f:metadata": {
+                    ".": {},
+                    "f:annotations": {
+                      ".": {},
+                      "f:artifacthub.io/changes": {},
+                      "f:artifacthub.io/prerelease": {}
+                    },
+                    "f:apiVersion": {},
+                    "f:appVersion": {},
+                    "f:description": {},
+                    "f:home": {},
+                    "f:icon": {},
+                    "f:keywords": {},
+                    "f:kubeVersion": {},
+                    "f:maintainers": {},
+                    "f:name": {},
+                    "f:sources": {},
+                    "f:version": {}
+                  },
+                  "f:values": {
+                    ".": {},
+                    "f:commonLabels": {},
+                    "f:controller": {
+                      ".": {},
+                      "f:addHeaders": {},
+                      "f:admissionWebhooks": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:certManager": {
+                          ".": {},
+                          "f:admissionCert": {
+                            ".": {},
+                            "f:duration": {}
+                          },
+                          "f:enabled": {},
+                          "f:rootCert": {
+                            ".": {},
+                            "f:duration": {}
+                          }
+                        },
+                        "f:certificate": {},
+                        "f:createSecretJob": {
+                          ".": {},
+                          "f:resources": {},
+                          "f:securityContext": {
+                            ".": {},
+                            "f:allowPrivilegeEscalation": {}
+                          }
+                        },
+                        "f:enabled": {},
+                        "f:existingPsp": {},
+                        "f:extraEnvs": {},
+                        "f:failurePolicy": {},
+                        "f:key": {},
+                        "f:labels": {},
+                        "f:namespaceSelector": {},
+                        "f:networkPolicyEnabled": {},
+                        "f:objectSelector": {},
+                        "f:patch": {
+                          ".": {},
+                          "f:enabled": {},
+                          "f:image": {
+                            ".": {},
+                            "f:digest": {},
+                            "f:image": {},
+                            "f:pullPolicy": {},
+                            "f:registry": {},
+                            "f:tag": {}
+                          },
+                          "f:labels": {},
+                          "f:nodeSelector": {
+                            ".": {},
+                            "f:kubernetes.io/os": {}
+                          },
+                          "f:podAnnotations": {},
+                          "f:priorityClassName": {},
+                          "f:securityContext": {
+                            ".": {},
+                            "f:fsGroup": {},
+                            "f:runAsNonRoot": {},
+                            "f:runAsUser": {}
+                          },
+                          "f:tolerations": {}
+                        },
+                        "f:patchWebhookJob": {
+                          ".": {},
+                          "f:resources": {},
+                          "f:securityContext": {
+                            ".": {},
+                            "f:allowPrivilegeEscalation": {}
+                          }
+                        },
+                        "f:port": {},
+                        "f:service": {
+                          ".": {},
+                          "f:annotations": {},
+                          "f:externalIPs": {},
+                          "f:loadBalancerSourceRanges": {},
+                          "f:servicePort": {},
+                          "f:type": {}
+                        }
+                      },
+                      "f:affinity": {},
+                      "f:allowSnippetAnnotations": {},
+                      "f:annotations": {},
+                      "f:autoscaling": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:apiVersion": {},
+                        "f:behavior": {},
+                        "f:enabled": {},
+                        "f:maxReplicas": {},
+                        "f:minReplicas": {},
+                        "f:targetCPUUtilizationPercentage": {},
+                        "f:targetMemoryUtilizationPercentage": {}
+                      },
+                      "f:autoscalingTemplate": {},
+                      "f:config": {},
+                      "f:configAnnotations": {},
+                      "f:configMapNamespace": {},
+                      "f:containerName": {},
+                      "f:containerPort": {
+                        ".": {},
+                        "f:http": {},
+                        "f:https": {}
+                      },
+                      "f:customTemplate": {
+                        ".": {},
+                        "f:configMapKey": {},
+                        "f:configMapName": {}
+                      },
+                      "f:dnsConfig": {},
+                      "f:dnsPolicy": {},
+                      "f:electionID": {},
+                      "f:enableMimalloc": {},
+                      "f:enableTopologyAwareRouting": {},
+                      "f:existingPsp": {},
+                      "f:extraArgs": {},
+                      "f:extraContainers": {},
+                      "f:extraEnvs": {},
+                      "f:extraInitContainers": {},
+                      "f:extraModules": {},
+                      "f:extraVolumeMounts": {},
+                      "f:extraVolumes": {},
+                      "f:healthCheckHost": {},
+                      "f:healthCheckPath": {},
+                      "f:hostNetwork": {},
+                      "f:hostPort": {
+                        ".": {},
+                        "f:enabled": {},
+                        "f:ports": {
+                          ".": {},
+                          "f:http": {},
+                          "f:https": {}
+                        }
+                      },
+                      "f:hostname": {},
+                      "f:image": {
+                        ".": {},
+                        "f:allowPrivilegeEscalation": {},
+                        "f:chroot": {},
+                        "f:digest": {},
+                        "f:digestChroot": {},
+                        "f:image": {},
+                        "f:pullPolicy": {},
+                        "f:registry": {},
+                        "f:runAsUser": {},
+                        "f:tag": {}
+                      },
+                      "f:ingressClass": {},
+                      "f:ingressClassByName": {},
+                      "f:ingressClassResource": {
+                        ".": {},
+                        "f:controllerValue": {},
+                        "f:default": {},
+                        "f:enabled": {},
+                        "f:name": {},
+                        "f:parameters": {}
+                      },
+                      "f:keda": {
+                        ".": {},
+                        "f:apiVersion": {},
+                        "f:behavior": {},
+                        "f:cooldownPeriod": {},
+                        "f:enabled": {},
+                        "f:maxReplicas": {},
+                        "f:minReplicas": {},
+                        "f:pollingInterval": {},
+                        "f:restoreToOriginalReplicaCount": {},
+                        "f:scaledObject": {
+                          ".": {},
+                          "f:annotations": {}
+                        },
+                        "f:triggers": {}
+                      },
+                      "f:kind": {},
+                      "f:labels": {},
+                      "f:lifecycle": {
+                        ".": {},
+                        "f:preStop": {
+                          ".": {},
+                          "f:exec": {
+                            ".": {},
+                            "f:command": {}
+                          }
+                        }
+                      },
+                      "f:livenessProbe": {
+                        ".": {},
+                        "f:failureThreshold": {},
+                        "f:httpGet": {
+                          ".": {},
+                          "f:path": {},
+                          "f:port": {},
+                          "f:scheme": {}
+                        },
+                        "f:initialDelaySeconds": {},
+                        "f:periodSeconds": {},
+                        "f:successThreshold": {},
+                        "f:timeoutSeconds": {}
+                      },
+                      "f:maxmindLicenseKey": {},
+                      "f:metrics": {
+                        ".": {},
+                        "f:enabled": {},
+                        "f:port": {},
+                        "f:portName": {},
+                        "f:prometheusRule": {
+                          ".": {},
+                          "f:additionalLabels": {},
+                          "f:enabled": {},
+                          "f:rules": {}
+                        },
+                        "f:service": {
+                          ".": {},
+                          "f:annotations": {},
+                          "f:externalIPs": {},
+                          "f:labels": {},
+                          "f:loadBalancerSourceRanges": {},
+                          "f:servicePort": {},
+                          "f:type": {}
+                        },
+                        "f:serviceMonitor": {
+                          ".": {},
+                          "f:additionalLabels": {},
+                          "f:enabled": {},
+                          "f:metricRelabelings": {},
+                          "f:namespace": {},
+                          "f:namespaceSelector": {},
+                          "f:relabelings": {},
+                          "f:scrapeInterval": {},
+                          "f:targetLabels": {}
+                        }
+                      },
+                      "f:minAvailable": {},
+                      "f:minReadySeconds": {},
+                      "f:name": {},
+                      "f:nodeSelector": {
+                        ".": {},
+                        "f:kubernetes.io/os": {}
+                      },
+                      "f:opentelemetry": {
+                        ".": {},
+                        "f:containerSecurityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {}
+                        },
+                        "f:enabled": {},
+                        "f:image": {}
+                      },
+                      "f:podAnnotations": {},
+                      "f:podLabels": {},
+                      "f:podSecurityContext": {},
+                      "f:priorityClassName": {},
+                      "f:proxySetHeaders": {},
+                      "f:publishService": {
+                        ".": {},
+                        "f:enabled": {},
+                        "f:pathOverride": {}
+                      },
+                      "f:readinessProbe": {
+                        ".": {},
+                        "f:failureThreshold": {},
+                        "f:httpGet": {
+                          ".": {},
+                          "f:path": {},
+                          "f:port": {},
+                          "f:scheme": {}
+                        },
+                        "f:initialDelaySeconds": {},
+                        "f:periodSeconds": {},
+                        "f:successThreshold": {},
+                        "f:timeoutSeconds": {}
+                      },
+                      "f:replicaCount": {},
+                      "f:reportNodeInternalIp": {},
+                      "f:resources": {
+                        ".": {},
+                        "f:requests": {
+                          ".": {},
+                          "f:cpu": {},
+                          "f:memory": {}
+                        }
+                      },
+                      "f:scope": {
+                        ".": {},
+                        "f:enabled": {},
+                        "f:namespace": {},
+                        "f:namespaceSelector": {}
+                      },
+                      "f:service": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:appProtocol": {},
+                        "f:enableHttp": {},
+                        "f:enableHttps": {},
+                        "f:enabled": {},
+                        "f:external": {
+                          ".": {},
+                          "f:enabled": {}
+                        },
+                        "f:externalIPs": {},
+                        "f:internal": {
+                          ".": {},
+                          "f:annotations": {},
+                          "f:enabled": {},
+                          "f:loadBalancerSourceRanges": {},
+                          "f:ports": {},
+                          "f:targetPorts": {}
+                        },
+                        "f:ipFamilies": {},
+                        "f:ipFamilyPolicy": {},
+                        "f:labels": {},
+                        "f:loadBalancerIP": {},
+                        "f:loadBalancerSourceRanges": {},
+                        "f:nodePorts": {
+                          ".": {},
+                          "f:http": {},
+                          "f:https": {},
+                          "f:tcp": {},
+                          "f:udp": {}
+                        },
+                        "f:ports": {
+                          ".": {},
+                          "f:http": {},
+                          "f:https": {}
+                        },
+                        "f:targetPorts": {
+                          ".": {},
+                          "f:http": {},
+                          "f:https": {}
+                        },
+                        "f:type": {}
+                      },
+                      "f:shareProcessNamespace": {},
+                      "f:sysctls": {},
+                      "f:tcp": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:configMapNamespace": {}
+                      },
+                      "f:terminationGracePeriodSeconds": {},
+                      "f:tolerations": {},
+                      "f:topologySpreadConstraints": {},
+                      "f:udp": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:configMapNamespace": {}
+                      },
+                      "f:updateStrategy": {},
+                      "f:watchIngressWithoutClass": {}
+                    },
+                    "f:defaultBackend": {
+                      ".": {},
+                      "f:affinity": {},
+                      "f:autoscaling": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:apiVersion": {},
+                        "f:enabled": {},
+                        "f:maxReplicas": {},
+                        "f:minReplicas": {},
+                        "f:targetCPUUtilizationPercentage": {},
+                        "f:targetMemoryUtilizationPercentage": {}
+                      },
+                      "f:containerSecurityContext": {},
+                      "f:enabled": {},
+                      "f:existingPsp": {},
+                      "f:extraArgs": {},
+                      "f:extraEnvs": {},
+                      "f:extraVolumeMounts": {},
+                      "f:extraVolumes": {},
+                      "f:image": {
+                        ".": {},
+                        "f:allowPrivilegeEscalation": {},
+                        "f:image": {},
+                        "f:privileged": {},
+                        "f:pullPolicy": {},
+                        "f:readOnlyRootFilesystem": {},
+                        "f:registry": {},
+                        "f:runAsNonRoot": {},
+                        "f:runAsUser": {},
+                        "f:tag": {}
+                      },
+                      "f:labels": {},
+                      "f:livenessProbe": {
+                        ".": {},
+                        "f:failureThreshold": {},
+                        "f:initialDelaySeconds": {},
+                        "f:periodSeconds": {},
+                        "f:successThreshold": {},
+                        "f:timeoutSeconds": {}
+                      },
+                      "f:minAvailable": {},
+                      "f:minReadySeconds": {},
+                      "f:name": {},
+                      "f:nodeSelector": {
+                        ".": {},
+                        "f:kubernetes.io/os": {}
+                      },
+                      "f:podAnnotations": {},
+                      "f:podLabels": {},
+                      "f:podSecurityContext": {},
+                      "f:port": {},
+                      "f:priorityClassName": {},
+                      "f:readinessProbe": {
+                        ".": {},
+                        "f:failureThreshold": {},
+                        "f:initialDelaySeconds": {},
+                        "f:periodSeconds": {},
+                        "f:successThreshold": {},
+                        "f:timeoutSeconds": {}
+                      },
+                      "f:replicaCount": {},
+                      "f:resources": {},
+                      "f:service": {
+                        ".": {},
+                        "f:annotations": {},
+                        "f:externalIPs": {},
+                        "f:loadBalancerSourceRanges": {},
+                        "f:servicePort": {},
+                        "f:type": {}
+                      },
+                      "f:serviceAccount": {
+                        ".": {},
+                        "f:automountServiceAccountToken": {},
+                        "f:create": {},
+                        "f:name": {}
+                      },
+                      "f:tolerations": {},
+                      "f:updateStrategy": {}
+                    },
+                    "f:dhParam": {},
+                    "f:imagePullSecrets": {},
+                    "f:podSecurityPolicy": {
+                      ".": {},
+                      "f:enabled": {}
+                    },
+                    "f:portNamePrefix": {},
+                    "f:rbac": {
+                      ".": {},
+                      "f:create": {},
+                      "f:scope": {}
+                    },
+                    "f:revisionHistoryLimit": {},
+                    "f:serviceAccount": {
+                      ".": {},
+                      "f:annotations": {},
+                      "f:automountServiceAccountToken": {},
+                      "f:create": {},
+                      "f:name": {}
+                    },
+                    "f:tcp": {},
+                    "f:udp": {}
+                  }
+                },
+                "f:helmVersion": {},
+                "f:info": {
+                  ".": {},
+                  "f:description": {},
+                  "f:firstDeployed": {},
+                  "f:lastDeployed": {},
+                  "f:notes": {},
+                  "f:readme": {},
+                  "f:status": {}
+                },
+                "f:name": {},
+                "f:namespace": {},
+                "f:resources": {},
+                "f:values": {
+                  ".": {},
+                  "f:controller": {
+                    ".": {},
+                    "f:admissionWebhooks": {
+                      ".": {},
+                      "f:enabled": {}
+                    },
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:allowSnippetAnnotations": {},
+                    "f:autoscaling": {
+                      ".": {},
+                      "f:enabled": {},
+                      "f:minReplicas": {}
+                    },
+                    "f:config": {
+                      ".": {},
+                      "f:client-body-buffer-size": {},
+                      "f:log-format-escape-json": {},
+                      "f:log-format-upstream": {},
+                      "f:proxy-buffer-size": {}
+                    },
+                    "f:containerSecurityContext": {
+                      ".": {},
+                      "f:allowPrivilegeEscalation": {},
+                      "f:capabilities": {
+                        ".": {},
+                        "f:add": {},
+                        "f:drop": {}
+                      },
+                      "f:privileged": {}
+                    },
+                    "f:extraArgs": {
+                      ".": {},
+                      "f:ingress-class": {}
+                    },
+                    "f:extraVolumeMounts": {},
+                    "f:extraVolumes": {},
+                    "f:image": {
+                      ".": {},
+                      "f:digest": {},
+                      "f:repository": {},
+                      "f:tag": {}
+                    },
+                    "f:ingressClass": {},
+                    "f:ingressClassByName": {},
+                    "f:ingressClassResource": {
+                      ".": {},
+                      "f:controllerValue": {},
+                      "f:default": {},
+                      "f:enabled": {},
+                      "f:name": {}
+                    },
+                    "f:metrics": {
+                      ".": {},
+                      "f:enabled": {},
+                      "f:portName": {}
+                    },
+                    "f:podAnnotations": {
+                      ".": {},
+                      "f:prometheus.io/port": {},
+                      "f:prometheus.io/scrape": {},
+                      "f:sidecar.istio.io/rewriteAppHTTPProbers": {},
+                      "f:system.io/scrape": {},
+                      "f:traffic.sidecar.istio.io/excludeInboundPorts": {},
+                      "f:traffic.sidecar.istio.io/includeInboundPorts": {}
+                    },
+                    "f:podSecurityContext": {
+                      ".": {},
+                      "f:runAsGroup": {},
+                      "f:runAsNonRoot": {},
+                      "f:runAsUser": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:publishService": {
+                      ".": {},
+                      "f:enabled": {}
+                    },
+                    "f:service": {
+                      ".": {},
+                      "f:enableHttp": {},
+                      "f:type": {}
+                    },
+                    "f:watchIngressWithoutClass": {}
+                  },
+                  "f:defaultBackend": {
+                    ".": {},
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:enabled": {},
+                    "f:extraVolumeMounts": {},
+                    "f:extraVolumes": {},
+                    "f:image": {
+                      ".": {},
+                      "f:repository": {},
+                      "f:tag": {}
+                    },
+                    "f:podAnnotations": {
+                      ".": {},
+                      "f:traffic.sidecar.istio.io/excludeInboundPorts": {}
+                    },
+                    "f:podSecurityContext": {
+                      ".": {},
+                      "f:runAsGroup": {},
+                      "f:runAsNonRoot": {},
+                      "f:runAsUser": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:replicaCount": {}
+                  },
+                  "f:imagePullSecrets": {}
+                },
+                "f:version": {}
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "time": "2024-01-30T01:02:44Z"
+          },
+          {
+            "apiVersion": "catalog.cattle.io/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                ".": {},
+                "f:observedGeneration": {},
+                "f:summary": {
+                  ".": {},
+                  "f:state": {}
+                }
+              }
+            },
+            "manager": "rancher",
+            "operation": "Update",
+            "subresource": "status",
+            "time": "2024-01-30T01:02:44Z"
+          }
+        ],
+        "name": "ingress-controller",
+        "namespace": "verrazzano-ingress-nginx",
+        "ownerReferences": [
+          {
+            "apiVersion": "v1",
+            "blockOwnerDeletion": false,
+            "controller": true,
+            "kind": "Secret",
+            "name": "sh.helm.release.v1.ingress-controller.v1",
+            "uid": "4d7a8347-d275-49b6-b81c-e257e5c6d954"
+          }
+        ],
+        "resourceVersion": "16050",
+        "uid": "9cdd3c42-585a-44fe-bc97-a8ddc1892d13"
+      },
+      "spec": {
+        "chart": {
+          "metadata": {
+            "annotations": {
+              "artifacthub.io/changes": "- \"[helm] Support custom port configuration for internal service (#9846)\"\n- \"Adding resource type to default HPA configuration to resolve issues with Terraform helm chart usage (#9803)\"\n- \"Update Ingress-Nginx version controller-v1.7.1\"\n",
+              "artifacthub.io/prerelease": "false"
+            },
+            "apiVersion": "v2",
+            "appVersion": "1.7.1",
+            "description": "Ingress controller for Kubernetes using NGINX as a reverse proxy and load balancer",
+            "home": "https://github.com/kubernetes/ingress-nginx",
+            "icon": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c5/Nginx_logo.svg/500px-Nginx_logo.svg.png",
+            "keywords": [
+              "ingress",
+              "nginx"
+            ],
+            "kubeVersion": "\u003e=1.20.0-0",
+            "maintainers": [
+              {
+                "name": "rikatz"
+              },
+              {
+                "name": "strongjz"
+              },
+              {
+                "name": "tao12345666333"
+              }
+            ],
+            "name": "ingress-nginx",
+            "sources": [
+              "https://github.com/kubernetes/ingress-nginx"
+            ],
+            "version": "4.6.1"
+          },
+          "values": {
+            "commonLabels": {},
+            "controller": {
+              "addHeaders": {},
+              "admissionWebhooks": {
+                "annotations": {},
+                "certManager": {
+                  "admissionCert": {
+                    "duration": ""
+                  },
+                  "enabled": false,
+                  "rootCert": {
+                    "duration": ""
+                  }
+                },
+                "certificate": "/usr/local/certificates/cert",
+                "createSecretJob": {
+                  "resources": {},
+                  "securityContext": {
+                    "allowPrivilegeEscalation": false
+                  }
+                },
+                "enabled": true,
+                "existingPsp": "",
+                "extraEnvs": null,
+                "failurePolicy": "Fail",
+                "key": "/usr/local/certificates/key",
+                "labels": {},
+                "namespaceSelector": {},
+                "networkPolicyEnabled": false,
+                "objectSelector": {},
+                "patch": {
+                  "enabled": true,
+                  "image": {
+                    "digest": "sha256:01d181618f270f2a96c04006f33b2699ad3ccb02da48d0f89b22abce084b292f",
+                    "image": "ingress-nginx/kube-webhook-certgen",
+                    "pullPolicy": "IfNotPresent",
+                    "registry": "registry.k8s.io",
+                    "tag": "v20230312-helm-chart-4.5.2-28-g66a760794"
+                  },
+                  "labels": {},
+                  "nodeSelector": {
+                    "kubernetes.io/os": "linux"
+                  },
+                  "podAnnotations": {},
+                  "priorityClassName": "",
+                  "securityContext": {
+                    "fsGroup": 2000,
+                    "runAsNonRoot": true,
+                    "runAsUser": 2000
+                  },
+                  "tolerations": null
+                },
+                "patchWebhookJob": {
+                  "resources": {},
+                  "securityContext": {
+                    "allowPrivilegeEscalation": false
+                  }
+                },
+                "port": 8443,
+                "service": {
+                  "annotations": {},
+                  "externalIPs": null,
+                  "loadBalancerSourceRanges": null,
+                  "servicePort": 443,
+                  "type": "ClusterIP"
+                }
+              },
+              "affinity": {},
+              "allowSnippetAnnotations": true,
+              "annotations": {},
+              "autoscaling": {
+                "annotations": {},
+                "apiVersion": "autoscaling/v2",
+                "behavior": {},
+                "enabled": false,
+                "maxReplicas": 11,
+                "minReplicas": 1,
+                "targetCPUUtilizationPercentage": 50,
+                "targetMemoryUtilizationPercentage": 50
+              },
+              "autoscalingTemplate": null,
+              "config": {},
+              "configAnnotations": {},
+              "configMapNamespace": "",
+              "containerName": "controller",
+              "containerPort": {
+                "http": 80,
+                "https": 443
+              },
+              "customTemplate": {
+                "configMapKey": "",
+                "configMapName": ""
+              },
+              "dnsConfig": {},
+              "dnsPolicy": "ClusterFirst",
+              "electionID": "",
+              "enableMimalloc": true,
+              "enableTopologyAwareRouting": false,
+              "existingPsp": "",
+              "extraArgs": {},
+              "extraContainers": null,
+              "extraEnvs": null,
+              "extraInitContainers": null,
+              "extraModules": null,
+              "extraVolumeMounts": null,
+              "extraVolumes": null,
+              "healthCheckHost": "",
+              "healthCheckPath": "/healthz",
+              "hostNetwork": false,
+              "hostPort": {
+                "enabled": false,
+                "ports": {
+                  "http": 80,
+                  "https": 443
+                }
+              },
+              "hostname": {},
+              "image": {
+                "allowPrivilegeEscalation": true,
+                "chroot": false,
+                "digest": "sha256:7244b95ea47bddcb8267c1e625fb163fc183ef55448855e3ac52a7b260a60407",
+                "digestChroot": "sha256:e35d5ab487861b9d419c570e3530589229224a0762c7b4d2e2222434abb8d988",
+                "image": "ingress-nginx/controller",
+                "pullPolicy": "IfNotPresent",
+                "registry": "registry.k8s.io",
+                "runAsUser": 101,
+                "tag": "v1.7.1"
+              },
+              "ingressClass": "nginx",
+              "ingressClassByName": false,
+              "ingressClassResource": {
+                "controllerValue": "k8s.io/ingress-nginx",
+                "default": false,
+                "enabled": true,
+                "name": "nginx",
+                "parameters": {}
+              },
+              "keda": {
+                "apiVersion": "keda.sh/v1alpha1",
+                "behavior": {},
+                "cooldownPeriod": 300,
+                "enabled": false,
+                "maxReplicas": 11,
+                "minReplicas": 1,
+                "pollingInterval": 30,
+                "restoreToOriginalReplicaCount": false,
+                "scaledObject": {
+                  "annotations": {}
+                },
+                "triggers": null
+              },
+              "kind": "Deployment",
+              "labels": {},
+              "lifecycle": {
+                "preStop": {
+                  "exec": {
+                    "command": [
+                      "/wait-shutdown"
+                    ]
+                  }
+                }
+              },
+              "livenessProbe": {
+                "failureThreshold": 5,
+                "httpGet": {
+                  "path": "/healthz",
+                  "port": 10254,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 10,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "maxmindLicenseKey": "",
+              "metrics": {
+                "enabled": false,
+                "port": 10254,
+                "portName": "metrics",
+                "prometheusRule": {
+                  "additionalLabels": {},
+                  "enabled": false,
+                  "rules": null
+                },
+                "service": {
+                  "annotations": {},
+                  "externalIPs": null,
+                  "labels": {},
+                  "loadBalancerSourceRanges": null,
+                  "servicePort": 10254,
+                  "type": "ClusterIP"
+                },
+                "serviceMonitor": {
+                  "additionalLabels": {},
+                  "enabled": false,
+                  "metricRelabelings": null,
+                  "namespace": "",
+                  "namespaceSelector": {},
+                  "relabelings": null,
+                  "scrapeInterval": "30s",
+                  "targetLabels": null
+                }
+              },
+              "minAvailable": 1,
+              "minReadySeconds": 0,
+              "name": "controller",
+              "nodeSelector": {
+                "kubernetes.io/os": "linux"
+              },
+              "opentelemetry": {
+                "containerSecurityContext": {
+                  "allowPrivilegeEscalation": false
+                },
+                "enabled": false,
+                "image": "registry.k8s.io/ingress-nginx/opentelemetry:v20230312-helm-chart-4.5.2-28-g66a760794@sha256:40f766ac4a9832f36f217bb0e98d44c8d38faeccbfe861fbc1a76af7e9ab257f"
+              },
+              "podAnnotations": {},
+              "podLabels": {},
+              "podSecurityContext": {},
+              "priorityClassName": "",
+              "proxySetHeaders": {},
+              "publishService": {
+                "enabled": true,
+                "pathOverride": ""
+              },
+              "readinessProbe": {
+                "failureThreshold": 3,
+                "httpGet": {
+                  "path": "/healthz",
+                  "port": 10254,
+                  "scheme": "HTTP"
+                },
+                "initialDelaySeconds": 10,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 1
+              },
+              "replicaCount": 1,
+              "reportNodeInternalIp": false,
+              "resources": {
+                "requests": {
+                  "cpu": "100m",
+                  "memory": "90Mi"
+                }
+              },
+              "scope": {
+                "enabled": false,
+                "namespace": "",
+                "namespaceSelector": ""
+              },
+              "service": {
+                "annotations": {},
+                "appProtocol": true,
+                "enableHttp": true,
+                "enableHttps": true,
+                "enabled": true,
+                "external": {
+                  "enabled": true
+                },
+                "externalIPs": null,
+                "internal": {
+                  "annotations": {},
+                  "enabled": false,
+                  "loadBalancerSourceRanges": null,
+                  "ports": {},
+                  "targetPorts": {}
+                },
+                "ipFamilies": [
+                  "IPv4"
+                ],
+                "ipFamilyPolicy": "SingleStack",
+                "labels": {},
+                "loadBalancerIP": "",
+                "loadBalancerSourceRanges": null,
+                "nodePorts": {
+                  "http": "",
+                  "https": "",
+                  "tcp": {},
+                  "udp": {}
+                },
+                "ports": {
+                  "http": 80,
+                  "https": 443
+                },
+                "targetPorts": {
+                  "http": "http",
+                  "https": "https"
+                },
+                "type": "LoadBalancer"
+              },
+              "shareProcessNamespace": false,
+              "sysctls": {},
+              "tcp": {
+                "annotations": {},
+                "configMapNamespace": ""
+              },
+              "terminationGracePeriodSeconds": 300,
+              "tolerations": null,
+              "topologySpreadConstraints": null,
+              "udp": {
+                "annotations": {},
+                "configMapNamespace": ""
+              },
+              "updateStrategy": {},
+              "watchIngressWithoutClass": false
+            },
+            "defaultBackend": {
+              "affinity": {},
+              "autoscaling": {
+                "annotations": {},
+                "apiVersion": "autoscaling/v2",
+                "enabled": false,
+                "maxReplicas": 2,
+                "minReplicas": 1,
+                "targetCPUUtilizationPercentage": 50,
+                "targetMemoryUtilizationPercentage": 50
+              },
+              "containerSecurityContext": {},
+              "enabled": false,
+              "existingPsp": "",
+              "extraArgs": {},
+              "extraEnvs": null,
+              "extraVolumeMounts": null,
+              "extraVolumes": null,
+              "image": {
+                "allowPrivilegeEscalation": false,
+                "image": "defaultbackend-amd64",
+                "privileged": false,
+                "pullPolicy": "IfNotPresent",
+                "readOnlyRootFilesystem": true,
+                "registry": "registry.k8s.io",
+                "runAsNonRoot": true,
+                "runAsUser": 65534,
+                "tag": "1.5"
+              },
+              "labels": {},
+              "livenessProbe": {
+                "failureThreshold": 3,
+                "initialDelaySeconds": 30,
+                "periodSeconds": 10,
+                "successThreshold": 1,
+                "timeoutSeconds": 5
+              },
+              "minAvailable": 1,
+              "minReadySeconds": 0,
+              "name": "defaultbackend",
+              "nodeSelector": {
+                "kubernetes.io/os": "linux"
+              },
+              "podAnnotations": {},
+              "podLabels": {},
+              "podSecurityContext": {},
+              "port": 8080,
+              "priorityClassName": "",
+              "readinessProbe": {
+                "failureThreshold": 6,
+                "initialDelaySeconds": 0,
+                "periodSeconds": 5,
+                "successThreshold": 1,
+                "timeoutSeconds": 5
+              },
+              "replicaCount": 1,
+              "resources": {},
+              "service": {
+                "annotations": {},
+                "externalIPs": null,
+                "loadBalancerSourceRanges": null,
+                "servicePort": 80,
+                "type": "ClusterIP"
+              },
+              "serviceAccount": {
+                "automountServiceAccountToken": true,
+                "create": true,
+                "name": ""
+              },
+              "tolerations": null,
+              "updateStrategy": {}
+            },
+            "dhParam": "",
+            "imagePullSecrets": null,
+            "podSecurityPolicy": {
+              "enabled": false
+            },
+            "portNamePrefix": "",
+            "rbac": {
+              "create": true,
+              "scope": false
+            },
+            "revisionHistoryLimit": 10,
+            "serviceAccount": {
+              "annotations": {},
+              "automountServiceAccountToken": true,
+              "create": true,
+              "name": ""
+            },
+            "tcp": {},
+            "udp": {}
+          }
+        },
+        "helmVersion": 3,
+        "info": {
+          "description": "Install complete",
+          "firstDeployed": "2024-01-30T00:59:37Z",
+          "lastDeployed": "2024-01-30T00:59:37Z",
+          "notes": "The ingress-nginx controller has been installed.\nIt may take a few minutes for the LoadBalancer IP to be available.\nYou can watch the status by running 'kubectl --namespace verrazzano-ingress-nginx get services -o wide -w ingress-controller-ingress-nginx-controller'\n\nAn example Ingress that makes use of the controller:\n  apiVersion: networking.k8s.io/v1\n  kind: Ingress\n  metadata:\n    name: example\n    namespace: foo\n  spec:\n    ingressClassName: verrazzano-nginx\n    rules:\n      - host: www.example.com\n        http:\n          paths:\n            - pathType: Prefix\n              backend:\n                service:\n                  name: exampleService\n                  port:\n                    number: 80\n              path: /\n    # This section is only required if TLS is to be enabled for the Ingress\n    tls:\n      - hosts:\n        - www.example.com\n        secretName: example-tls\n\nIf TLS is enabled for the Ingress, a Secret containing the certificate and key must also be provided:\n\n  apiVersion: v1\n  kind: Secret\n  metadata:\n    name: example-tls\n    namespace: foo\n  data:\n    tls.crt: \u003cbase64 encoded cert\u003e\n    tls.key: \u003cbase64 encoded key\u003e\n  type: kubernetes.io/tls\n",
+          "readme": "# ingress-nginx\n\n[ingress-nginx](https://github.com/kubernetes/ingress-nginx) Ingress controller for Kubernetes using NGINX as a reverse proxy and load balancer\n\n![Version: 4.6.1](https://img.shields.io/badge/Version-4.6.1-informational?style=flat-square) ![AppVersion: 1.7.1](https://img.shields.io/badge/AppVersion-1.7.1-informational?style=flat-square)\n\nTo use, add `ingressClassName: nginx` spec field or the `kubernetes.io/ingress.class: nginx` annotation to your Ingress resources.\n\nThis chart bootstraps an ingress-nginx deployment on a [Kubernetes](http://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.\n\n## Requirements\n\nKubernetes: `\u003e=1.20.0-0`\n\n## Get Repo Info\n\n```console\nhelm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx\nhelm repo update\n```\n\n## Install Chart\n\n**Important:** only helm3 is supported\n\n```console\nhelm install [RELEASE_NAME] ingress-nginx/ingress-nginx\n```\n\nThe command deploys ingress-nginx on the Kubernetes cluster in the default configuration.\n\n_See [configuration](#configuration) below._\n\n_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._\n\n## Uninstall Chart\n\n```console\nhelm uninstall [RELEASE_NAME]\n```\n\nThis removes all the Kubernetes components associated with the chart and deletes the release.\n\n_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._\n\n## Upgrading Chart\n\n```console\nhelm upgrade [RELEASE_NAME] [CHART] --install\n```\n\n_See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._\n\n### Migrating from stable/nginx-ingress\n\nThere are two main ways to migrate a release from `stable/nginx-ingress` to `ingress-nginx/ingress-nginx` chart:\n\n1. For Nginx Ingress controllers used for non-critical services, the easiest method is to [uninstall](#uninstall-chart) the old release and [install](#install-chart) the new one\n1. For critical services in production that require zero-downtime, you will want to:\n    1. [Install](#install-chart) a second Ingress controller\n    1. Redirect your DNS traffic from the old controller to the new controller\n    1. Log traffic from both controllers during this changeover\n    1. [Uninstall](#uninstall-chart) the old controller once traffic has fully drained from it\n\nNote that there are some different and upgraded configurations between the two charts, described by Rimas Mocevicius from JFrog in the \"Upgrading to ingress-nginx Helm chart\" section of [Migrating from Helm chart nginx-ingress to ingress-nginx](https://rimusz.net/migrating-to-ingress-nginx). As the `ingress-nginx/ingress-nginx` chart continues to update, you will want to check current differences by running [helm configuration](#configuration) commands on both charts.\n\n## Configuration\n\nSee [Customizing the Chart Before Installing](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing). To see all configurable options with detailed comments, visit the chart's [values.yaml](./values.yaml), or run these configuration commands:\n\n```console\nhelm show values ingress-nginx/ingress-nginx\n```\n\n### PodDisruptionBudget\n\nNote that the PodDisruptionBudget resource will only be defined if the replicaCount is greater than one,\nelse it would make it impossible to evacuate a node. See [gh issue #7127](https://github.com/helm/charts/issues/7127) for more info.\n\n### Prometheus Metrics\n\nThe Nginx ingress controller can export Prometheus metrics, by setting `controller.metrics.enabled` to `true`.\n\nYou can add Prometheus annotations to the metrics service using `controller.metrics.service.annotations`.\nAlternatively, if you use the Prometheus Operator, you can enable ServiceMonitor creation using `controller.metrics.serviceMonitor.enabled`. And set `controller.metrics.serviceMonitor.additionalLabels.release=\"prometheus\"`. \"release=prometheus\" should match the label configured in the prometheus servicemonitor ( see `kubectl get servicemonitor prometheus-kube-prom-prometheus -oyaml -n prometheus`)\n\n### ingress-nginx nginx\\_status page/stats server\n\nPrevious versions of this chart had a `controller.stats.*` configuration block, which is now obsolete due to the following changes in nginx ingress controller:\n\n- In [0.16.1](https://github.com/kubernetes/ingress-nginx/blob/main/Changelog.md#0161), the vts (virtual host traffic status) dashboard was removed\n- In [0.23.0](https://github.com/kubernetes/ingress-nginx/blob/main/Changelog.md#0230), the status page at port 18080 is now a unix socket webserver only available at localhost.\n  You can use `curl --unix-socket /tmp/nginx-status-server.sock http://localhost/nginx_status` inside the controller container to access it locally, or use the snippet from [nginx-ingress changelog](https://github.com/kubernetes/ingress-nginx/blob/main/Changelog.md#0230) to re-enable the http server\n\n### ExternalDNS Service Configuration\n\nAdd an [ExternalDNS](https://github.com/kubernetes-sigs/external-dns) annotation to the LoadBalancer service:\n\n```yaml\ncontroller:\n  service:\n    annotations:\n      external-dns.alpha.kubernetes.io/hostname: kubernetes-example.com.\n```\n\n### AWS L7 ELB with SSL Termination\n\nAnnotate the controller as shown in the [nginx-ingress l7 patch](https://github.com/kubernetes/ingress-nginx/blob/ab3a789caae65eec4ad6e3b46b19750b481b6bce/deploy/aws/l7/service-l7.yaml):\n\n```yaml\ncontroller:\n  service:\n    targetPorts:\n      http: http\n      https: http\n    annotations:\n      service.beta.kubernetes.io/aws-load-balancer-ssl-cert: arn:aws:acm:XX-XXXX-X:XXXXXXXXX:certificate/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXX\n      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: \"http\"\n      service.beta.kubernetes.io/aws-load-balancer-ssl-ports: \"https\"\n      service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: '3600'\n```\n\n### Additional Internal Load Balancer\n\nThis setup is useful when you need both external and internal load balancers but don't want to have multiple ingress controllers and multiple ingress objects per application.\n\nBy default, the ingress object will point to the external load balancer address, but if correctly configured, you can make use of the internal one if the URL you are looking up resolves to the internal load balancer's URL.\n\nYou'll need to set both the following values:\n\n`controller.service.internal.enabled`\n`controller.service.internal.annotations`\n\nIf one of them is missing the internal load balancer will not be deployed. Example you may have `controller.service.internal.enabled=true` but no annotations set, in this case no action will be taken.\n\n`controller.service.internal.annotations` varies with the cloud service you're using.\n\nExample for AWS:\n\n```yaml\ncontroller:\n  service:\n    internal:\n      enabled: true\n      annotations:\n        # Create internal ELB\n        service.beta.kubernetes.io/aws-load-balancer-internal: \"true\"\n        # Any other annotation can be declared here.\n```\n\nExample for GCE:\n\n```yaml\ncontroller:\n  service:\n    internal:\n      enabled: true\n      annotations:\n        # Create internal LB. More information: https://cloud.google.com/kubernetes-engine/docs/how-to/internal-load-balancing\n        # For GKE versions 1.17 and later\n        networking.gke.io/load-balancer-type: \"Internal\"\n        # For earlier versions\n        # cloud.google.com/load-balancer-type: \"Internal\"\n\n        # Any other annotation can be declared here.\n```\n\nExample for Azure:\n\n```yaml\ncontroller:\n  service:\n      annotations:\n        # Create internal LB\n        service.beta.kubernetes.io/azure-load-balancer-internal: \"true\"\n        # Any other annotation can be declared here.\n```\n\nExample for Oracle Cloud Infrastructure:\n\n```yaml\ncontroller:\n  service:\n      annotations:\n        # Create internal LB\n        service.beta.kubernetes.io/oci-load-balancer-internal: \"true\"\n        # Any other annotation can be declared here.\n```\n\nAn use case for this scenario is having a split-view DNS setup where the public zone CNAME records point to the external balancer URL while the private zone CNAME records point to the internal balancer URL. This way, you only need one ingress kubernetes object.\n\nOptionally you can set `controller.service.loadBalancerIP` if you need a static IP for the resulting `LoadBalancer`.\n\n### Ingress Admission Webhooks\n\nWith nginx-ingress-controller version 0.25+, the nginx ingress controller pod exposes an endpoint that will integrate with the `validatingwebhookconfiguration` Kubernetes feature to prevent bad ingress from being added to the cluster.\n**This feature is enabled by default since 0.31.0.**\n\nWith nginx-ingress-controller in 0.25.* work only with kubernetes 1.14+, 0.26 fix [this issue](https://github.com/kubernetes/ingress-nginx/pull/4521)\n\n#### How the Chart Configures the Hooks\nA validating and configuration requires the endpoint to which the request is sent to use TLS. It is possible to set up custom certificates to do this, but in most cases, a self-signed certificate is enough. The setup of this component requires some more complex orchestration when using helm. The steps are created to be idempotent and to allow turning the feature on and off without running into helm quirks.\n\n1. A pre-install hook provisions a certificate into the same namespace using a format compatible with provisioning using end user certificates. If the certificate already exists, the hook exits.\n2. The ingress nginx controller pod is configured to use a TLS proxy container, which will load that certificate.\n3. Validating and Mutating webhook configurations are created in the cluster.\n4. A post-install hook reads the CA from the secret created by step 1 and patches the Validating and Mutating webhook configurations. This process will allow a custom CA provisioned by some other process to also be patched into the webhook configurations. The chosen failure policy is also patched into the webhook configurations\n\n#### Alternatives\nIt should be possible to use [cert-manager/cert-manager](https://github.com/cert-manager/cert-manager) if a more complete solution is required.\n\nYou can enable automatic self-signed TLS certificate provisioning via cert-manager by setting the `controller.admissionWebhooks.certManager.enabled` value to true.\n\nPlease ensure that cert-manager is correctly installed and configured.\n\n### Helm Error When Upgrading: spec.clusterIP: Invalid value: \"\"\n\nIf you are upgrading this chart from a version between 0.31.0 and 1.2.2 then you may get an error like this:\n\n```console\nError: UPGRADE FAILED: Service \"?????-controller\" is invalid: spec.clusterIP: Invalid value: \"\": field is immutable\n```\n\nDetail of how and why are in [this issue](https://github.com/helm/charts/pull/13646) but to resolve this you can set `xxxx.service.omitClusterIP` to `true` where `xxxx` is the service referenced in the error.\n\nAs of version `1.26.0` of this chart, by simply not providing any clusterIP value, `invalid: spec.clusterIP: Invalid value: \"\": field is immutable` will no longer occur since `clusterIP: \"\"` will not be rendered.\n\n## Values\n\n| Key | Type | Default | Description |\n|-----|------|---------|-------------|\n| commonLabels | object | `{}` |  |\n| controller.addHeaders | object | `{}` | Will add custom headers before sending response traffic to the client according to: https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/#add-headers |\n| controller.admissionWebhooks.annotations | object | `{}` |  |\n| controller.admissionWebhooks.certManager.admissionCert.duration | string | `\"\"` |  |\n| controller.admissionWebhooks.certManager.enabled | bool | `false` |  |\n| controller.admissionWebhooks.certManager.rootCert.duration | string | `\"\"` |  |\n| controller.admissionWebhooks.certificate | string | `\"/usr/local/certificates/cert\"` |  |\n| controller.admissionWebhooks.createSecretJob.resources | object | `{}` |  |\n| controller.admissionWebhooks.createSecretJob.securityContext.allowPrivilegeEscalation | bool | `false` |  |\n| controller.admissionWebhooks.enabled | bool | `true` |  |\n| controller.admissionWebhooks.existingPsp | string | `\"\"` | Use an existing PSP instead of creating one |\n| controller.admissionWebhooks.extraEnvs | list | `[]` | Additional environment variables to set |\n| controller.admissionWebhooks.failurePolicy | string | `\"Fail\"` | Admission Webhook failure policy to use |\n| controller.admissionWebhooks.key | string | `\"/usr/local/certificates/key\"` |  |\n| controller.admissionWebhooks.labels | object | `{}` | Labels to be added to admission webhooks |\n| controller.admissionWebhooks.namespaceSelector | object | `{}` |  |\n| controller.admissionWebhooks.networkPolicyEnabled | bool | `false` |  |\n| controller.admissionWebhooks.objectSelector | object | `{}` |  |\n| controller.admissionWebhooks.patch.enabled | bool | `true` |  |\n| controller.admissionWebhooks.patch.image.digest | string | `\"sha256:01d181618f270f2a96c04006f33b2699ad3ccb02da48d0f89b22abce084b292f\"` |  |\n| controller.admissionWebhooks.patch.image.image | string | `\"ingress-nginx/kube-webhook-certgen\"` |  |\n| controller.admissionWebhooks.patch.image.pullPolicy | string | `\"IfNotPresent\"` |  |\n| controller.admissionWebhooks.patch.image.registry | string | `\"registry.k8s.io\"` |  |\n| controller.admissionWebhooks.patch.image.tag | string | `\"v20230312-helm-chart-4.5.2-28-g66a760794\"` |  |\n| controller.admissionWebhooks.patch.labels | object | `{}` | Labels to be added to patch job resources |\n| controller.admissionWebhooks.patch.nodeSelector.\"kubernetes.io/os\" | string | `\"linux\"` |  |\n| controller.admissionWebhooks.patch.podAnnotations | object | `{}` |  |\n| controller.admissionWebhooks.patch.priorityClassName | string | `\"\"` | Provide a priority class name to the webhook patching job # |\n| controller.admissionWebhooks.patch.securityContext.fsGroup | int | `2000` |  |\n| controller.admissionWebhooks.patch.securityContext.runAsNonRoot | bool | `true` |  |\n| controller.admissionWebhooks.patch.securityContext.runAsUser | int | `2000` |  |\n| controller.admissionWebhooks.patch.tolerations | list | `[]` |  |\n| controller.admissionWebhooks.patchWebhookJob.resources | object | `{}` |  |\n| controller.admissionWebhooks.patchWebhookJob.securityContext.allowPrivilegeEscalation | bool | `false` |  |\n| controller.admissionWebhooks.port | int | `8443` |  |\n| controller.admissionWebhooks.service.annotations | object | `{}` |  |\n| controller.admissionWebhooks.service.externalIPs | list | `[]` |  |\n| controller.admissionWebhooks.service.loadBalancerSourceRanges | list | `[]` |  |\n| controller.admissionWebhooks.service.servicePort | int | `443` |  |\n| controller.admissionWebhooks.service.type | string | `\"ClusterIP\"` |  |\n| controller.affinity | object | `{}` | Affinity and anti-affinity rules for server scheduling to nodes # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity # |\n| controller.allowSnippetAnnotations | bool | `true` | This configuration defines if Ingress Controller should allow users to set their own *-snippet annotations, otherwise this is forbidden / dropped when users add those annotations. Global snippets in ConfigMap are still respected |\n| controller.annotations | object | `{}` | Annotations to be added to the controller Deployment or DaemonSet # |\n| controller.autoscaling.annotations | object | `{}` |  |\n| controller.autoscaling.apiVersion | string | `\"autoscaling/v2\"` |  |\n| controller.autoscaling.behavior | object | `{}` |  |\n| controller.autoscaling.enabled | bool | `false` |  |\n| controller.autoscaling.maxReplicas | int | `11` |  |\n| controller.autoscaling.minReplicas | int | `1` |  |\n| controller.autoscaling.targetCPUUtilizationPercentage | int | `50` |  |\n| controller.autoscaling.targetMemoryUtilizationPercentage | int | `50` |  |\n| controller.autoscalingTemplate | list | `[]` |  |\n| controller.config | object | `{}` | Will add custom configuration options to Nginx https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/configmap/ |\n| controller.configAnnotations | object | `{}` | Annotations to be added to the controller config configuration configmap. |\n| controller.configMapNamespace | string | `\"\"` | Allows customization of the configmap / nginx-configmap namespace; defaults to $(POD_NAMESPACE) |\n| controller.containerName | string | `\"controller\"` | Configures the controller container name |\n| controller.containerPort | object | `{\"http\":80,\"https\":443}` | Configures the ports that the nginx-controller listens on |\n| controller.customTemplate.configMapKey | string | `\"\"` |  |\n| controller.customTemplate.configMapName | string | `\"\"` |  |\n| controller.dnsConfig | object | `{}` | Optionally customize the pod dnsConfig. |\n| controller.dnsPolicy | string | `\"ClusterFirst\"` | Optionally change this to ClusterFirstWithHostNet in case you have 'hostNetwork: true'. By default, while using host network, name resolution uses the host's DNS. If you wish nginx-controller to keep resolving names inside the k8s network, use ClusterFirstWithHostNet. |\n| controller.electionID | string | `\"\"` | Election ID to use for status update, by default it uses the controller name combined with a suffix of 'leader' |\n| controller.enableMimalloc | bool | `true` | Enable mimalloc as a drop-in replacement for malloc. # ref: https://github.com/microsoft/mimalloc # |\n| controller.enableTopologyAwareRouting | bool | `false` | This configuration enables Topology Aware Routing feature, used together with service annotation service.kubernetes.io/topology-aware-hints=\"auto\" Defaults to false |\n| controller.existingPsp | string | `\"\"` | Use an existing PSP instead of creating one |\n| controller.extraArgs | object | `{}` | Additional command line arguments to pass to nginx-ingress-controller E.g. to specify the default SSL certificate you can use |\n| controller.extraContainers | list | `[]` | Additional containers to be added to the controller pod. See https://github.com/lemonldap-ng-controller/lemonldap-ng-controller as example. |\n| controller.extraEnvs | list | `[]` | Additional environment variables to set |\n| controller.extraInitContainers | list | `[]` | Containers, which are run before the app containers are started. |\n| controller.extraModules | list | `[]` | Modules, which are mounted into the core nginx image. See values.yaml for a sample to add opentelemetry module |\n| controller.extraVolumeMounts | list | `[]` | Additional volumeMounts to the controller main container. |\n| controller.extraVolumes | list | `[]` | Additional volumes to the controller pod. |\n| controller.healthCheckHost | string | `\"\"` | Address to bind the health check endpoint. It is better to set this option to the internal node address if the ingress nginx controller is running in the `hostNetwork: true` mode. |\n| controller.healthCheckPath | string | `\"/healthz\"` | Path of the health check endpoint. All requests received on the port defined by the healthz-port parameter are forwarded internally to this path. |\n| controller.hostNetwork | bool | `false` | Required for use with CNI based kubernetes installations (such as ones set up by kubeadm), since CNI and hostport don't mix yet. Can be deprecated once https://github.com/kubernetes/kubernetes/issues/23920 is merged |\n| controller.hostPort.enabled | bool | `false` | Enable 'hostPort' or not |\n| controller.hostPort.ports.http | int | `80` | 'hostPort' http port |\n| controller.hostPort.ports.https | int | `443` | 'hostPort' https port |\n| controller.hostname | object | `{}` | Optionally customize the pod hostname. |\n| controller.image.allowPrivilegeEscalation | bool | `true` |  |\n| controller.image.chroot | bool | `false` |  |\n| controller.image.digest | string | `\"sha256:7244b95ea47bddcb8267c1e625fb163fc183ef55448855e3ac52a7b260a60407\"` |  |\n| controller.image.digestChroot | string | `\"sha256:e35d5ab487861b9d419c570e3530589229224a0762c7b4d2e2222434abb8d988\"` |  |\n| controller.image.image | string | `\"ingress-nginx/controller\"` |  |\n| controller.image.pullPolicy | string | `\"IfNotPresent\"` |  |\n| controller.image.registry | string | `\"registry.k8s.io\"` |  |\n| controller.image.runAsUser | int | `101` |  |\n| controller.image.tag | string | `\"v1.7.1\"` |  |\n| controller.ingressClass | string | `\"nginx\"` | For backwards compatibility with ingress.class annotation, use ingressClass. Algorithm is as follows, first ingressClassName is considered, if not present, controller looks for ingress.class annotation |\n| controller.ingressClassByName | bool | `false` | Process IngressClass per name (additionally as per spec.controller). |\n| controller.ingressClassResource.controllerValue | string | `\"k8s.io/ingress-nginx\"` | Controller-value of the controller that is processing this ingressClass |\n| controller.ingressClassResource.default | bool | `false` | Is this the default ingressClass for the cluster |\n| controller.ingressClassResource.enabled | bool | `true` | Is this ingressClass enabled or not |\n| controller.ingressClassResource.name | string | `\"nginx\"` | Name of the ingressClass |\n| controller.ingressClassResource.parameters | object | `{}` | Parameters is a link to a custom resource containing additional configuration for the controller. This is optional if the controller does not require extra parameters. |\n| controller.keda.apiVersion | string | `\"keda.sh/v1alpha1\"` |  |\n| controller.keda.behavior | object | `{}` |  |\n| controller.keda.cooldownPeriod | int | `300` |  |\n| controller.keda.enabled | bool | `false` |  |\n| controller.keda.maxReplicas | int | `11` |  |\n| controller.keda.minReplicas | int | `1` |  |\n| controller.keda.pollingInterval | int | `30` |  |\n| controller.keda.restoreToOriginalReplicaCount | bool | `false` |  |\n| controller.keda.scaledObject.annotations | object | `{}` |  |\n| controller.keda.triggers | list | `[]` |  |\n| controller.kind | string | `\"Deployment\"` | Use a `DaemonSet` or `Deployment` |\n| controller.labels | object | `{}` | Labels to be added to the controller Deployment or DaemonSet and other resources that do not have option to specify labels # |\n| controller.lifecycle | object | `{\"preStop\":{\"exec\":{\"command\":[\"/wait-shutdown\"]}}}` | Improve connection draining when ingress controller pod is deleted using a lifecycle hook: With this new hook, we increased the default terminationGracePeriodSeconds from 30 seconds to 300, allowing the draining of connections up to five minutes. If the active connections end before that, the pod will terminate gracefully at that time. To effectively take advantage of this feature, the Configmap feature worker-shutdown-timeout new value is 240s instead of 10s. # |\n| controller.livenessProbe.failureThreshold | int | `5` |  |\n| controller.livenessProbe.httpGet.path | string | `\"/healthz\"` |  |\n| controller.livenessProbe.httpGet.port | int | `10254` |  |\n| controller.livenessProbe.httpGet.scheme | string | `\"HTTP\"` |  |\n| controller.livenessProbe.initialDelaySeconds | int | `10` |  |\n| controller.livenessProbe.periodSeconds | int | `10` |  |\n| controller.livenessProbe.successThreshold | int | `1` |  |\n| controller.livenessProbe.timeoutSeconds | int | `1` |  |\n| controller.maxmindLicenseKey | string | `\"\"` | Maxmind license key to download GeoLite2 Databases. # https://blog.maxmind.com/2019/12/18/significant-changes-to-accessing-and-using-geolite2-databases |\n| controller.metrics.enabled | bool | `false` |  |\n| controller.metrics.port | int | `10254` |  |\n| controller.metrics.portName | string | `\"metrics\"` |  |\n| controller.metrics.prometheusRule.additionalLabels | object | `{}` |  |\n| controller.metrics.prometheusRule.enabled | bool | `false` |  |\n| controller.metrics.prometheusRule.rules | list | `[]` |  |\n| controller.metrics.service.annotations | object | `{}` |  |\n| controller.metrics.service.externalIPs | list | `[]` | List of IP addresses at which the stats-exporter service is available # Ref: https://kubernetes.io/docs/user-guide/services/#external-ips # |\n| controller.metrics.service.labels | object | `{}` | Labels to be added to the metrics service resource |\n| controller.metrics.service.loadBalancerSourceRanges | list | `[]` |  |\n| controller.metrics.service.servicePort | int | `10254` |  |\n| controller.metrics.service.type | string | `\"ClusterIP\"` |  |\n| controller.metrics.serviceMonitor.additionalLabels | object | `{}` |  |\n| controller.metrics.serviceMonitor.enabled | bool | `false` |  |\n| controller.metrics.serviceMonitor.metricRelabelings | list | `[]` |  |\n| controller.metrics.serviceMonitor.namespace | string | `\"\"` |  |\n| controller.metrics.serviceMonitor.namespaceSelector | object | `{}` |  |\n| controller.metrics.serviceMonitor.relabelings | list | `[]` |  |\n| controller.metrics.serviceMonitor.scrapeInterval | string | `\"30s\"` |  |\n| controller.metrics.serviceMonitor.targetLabels | list | `[]` |  |\n| controller.minAvailable | int | `1` | Define either 'minAvailable' or 'maxUnavailable', never both. |\n| controller.minReadySeconds | int | `0` | `minReadySeconds` to avoid killing pods before we are ready # |\n| controller.name | string | `\"controller\"` |  |\n| controller.nodeSelector | object | `{\"kubernetes.io/os\":\"linux\"}` | Node labels for controller pod assignment # Ref: https://kubernetes.io/docs/user-guide/node-selection/ # |\n| controller.opentelemetry.containerSecurityContext.allowPrivilegeEscalation | bool | `false` |  |\n| controller.opentelemetry.enabled | bool | `false` |  |\n| controller.opentelemetry.image | string | `\"registry.k8s.io/ingress-nginx/opentelemetry:v20230312-helm-chart-4.5.2-28-g66a760794@sha256:40f766ac4a9832f36f217bb0e98d44c8d38faeccbfe861fbc1a76af7e9ab257f\"` |  |\n| controller.podAnnotations | object | `{}` | Annotations to be added to controller pods # |\n| controller.podLabels | object | `{}` | Labels to add to the pod container metadata |\n| controller.podSecurityContext | object | `{}` | Security Context policies for controller pods |\n| controller.priorityClassName | string | `\"\"` |  |\n| controller.proxySetHeaders | object | `{}` | Will add custom headers before sending traffic to backends according to https://github.com/kubernetes/ingress-nginx/tree/main/docs/examples/customization/custom-headers |\n| controller.publishService | object | `{\"enabled\":true,\"pathOverride\":\"\"}` | Allows customization of the source of the IP address or FQDN to report in the ingress status field. By default, it reads the information provided by the service. If disable, the status field reports the IP address of the node or nodes where an ingress controller pod is running. |\n| controller.publishService.enabled | bool | `true` | Enable 'publishService' or not |\n| controller.publishService.pathOverride | string | `\"\"` | Allows overriding of the publish service to bind to Must be \u003cnamespace\u003e/\u003cservice_name\u003e |\n| controller.readinessProbe.failureThreshold | int | `3` |  |\n| controller.readinessProbe.httpGet.path | string | `\"/healthz\"` |  |\n| controller.readinessProbe.httpGet.port | int | `10254` |  |\n| controller.readinessProbe.httpGet.scheme | string | `\"HTTP\"` |  |\n| controller.readinessProbe.initialDelaySeconds | int | `10` |  |\n| controller.readinessProbe.periodSeconds | int | `10` |  |\n| controller.readinessProbe.successThreshold | int | `1` |  |\n| controller.readinessProbe.timeoutSeconds | int | `1` |  |\n| controller.replicaCount | int | `1` |  |\n| controller.reportNodeInternalIp | bool | `false` | Bare-metal considerations via the host network https://kubernetes.github.io/ingress-nginx/deploy/baremetal/#via-the-host-network Ingress status was blank because there is no Service exposing the NGINX Ingress controller in a configuration using the host network, the default --publish-service flag used in standard cloud setups does not apply |\n| controller.resources.requests.cpu | string | `\"100m\"` |  |\n| controller.resources.requests.memory | string | `\"90Mi\"` |  |\n| controller.scope.enabled | bool | `false` | Enable 'scope' or not |\n| controller.scope.namespace | string | `\"\"` | Namespace to limit the controller to; defaults to $(POD_NAMESPACE) |\n| controller.scope.namespaceSelector | string | `\"\"` | When scope.enabled == false, instead of watching all namespaces, we watching namespaces whose labels only match with namespaceSelector. Format like foo=bar. Defaults to empty, means watching all namespaces. |\n| controller.service.annotations | object | `{}` |  |\n| controller.service.appProtocol | bool | `true` | If enabled is adding an appProtocol option for Kubernetes service. An appProtocol field replacing annotations that were using for setting a backend protocol. Here is an example for AWS: service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http It allows choosing the protocol for each backend specified in the Kubernetes service. See the following GitHub issue for more details about the purpose: https://github.com/kubernetes/kubernetes/issues/40244 Will be ignored for Kubernetes versions older than 1.20 # |\n| controller.service.enableHttp | bool | `true` |  |\n| controller.service.enableHttps | bool | `true` |  |\n| controller.service.enabled | bool | `true` |  |\n| controller.service.external.enabled | bool | `true` |  |\n| controller.service.externalIPs | list | `[]` | List of IP addresses at which the controller services are available # Ref: https://kubernetes.io/docs/user-guide/services/#external-ips # |\n| controller.service.internal.annotations | object | `{}` | Annotations are mandatory for the load balancer to come up. Varies with the cloud service. |\n| controller.service.internal.enabled | bool | `false` | Enables an additional internal load balancer (besides the external one). |\n| controller.service.internal.loadBalancerSourceRanges | list | `[]` | Restrict access For LoadBalancer service. Defaults to REDACTED-19e36255972107d42b8cecb77ef5622e842e8a50778a6ed8dd1ce94732daca9e/0. |\n| controller.service.internal.ports | object | `{}` | Custom port mapping for internal service |\n| controller.service.internal.targetPorts | object | `{}` | Custom target port mapping for internal service |\n| controller.service.ipFamilies | list | `[\"IPv4\"]` | List of IP families (e.g. IPv4, IPv6) assigned to the service. This field is usually assigned automatically based on cluster configuration and the ipFamilyPolicy field. # Ref: https://kubernetes.io/docs/concepts/services-networking/dual-stack/ |\n| controller.service.ipFamilyPolicy | string | `\"SingleStack\"` | Represents the dual-stack-ness requested or required by this Service. Possible values are SingleStack, PreferDualStack or RequireDualStack. The ipFamilies and clusterIPs fields depend on the value of this field. # Ref: https://kubernetes.io/docs/concepts/services-networking/dual-stack/ |\n| controller.service.labels | object | `{}` |  |\n| controller.service.loadBalancerIP | string | `\"\"` | Used by cloud providers to connect the resulting `LoadBalancer` to a pre-existing static IP according to https://kubernetes.io/docs/concepts/services-networking/service/#loadbalancer |\n| controller.service.loadBalancerSourceRanges | list | `[]` |  |\n| controller.service.nodePorts.http | string | `\"\"` |  |\n| controller.service.nodePorts.https | string | `\"\"` |  |\n| controller.service.nodePorts.tcp | object | `{}` |  |\n| controller.service.nodePorts.udp | object | `{}` |  |\n| controller.service.ports.http | int | `80` |  |\n| controller.service.ports.https | int | `443` |  |\n| controller.service.targetPorts.http | string | `\"http\"` |  |\n| controller.service.targetPorts.https | string | `\"https\"` |  |\n| controller.service.type | string | `\"LoadBalancer\"` |  |\n| controller.shareProcessNamespace | bool | `false` |  |\n| controller.sysctls | object | `{}` | See https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/ for notes on enabling and using sysctls |\n| controller.tcp.annotations | object | `{}` | Annotations to be added to the tcp config configmap |\n| controller.tcp.configMapNamespace | string | `\"\"` | Allows customization of the tcp-services-configmap; defaults to $(POD_NAMESPACE) |\n| controller.terminationGracePeriodSeconds | int | `300` | `terminationGracePeriodSeconds` to avoid killing pods before we are ready # wait up to five minutes for the drain of connections # |\n| controller.tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ # |\n| controller.topologySpreadConstraints | list | `[]` | Topology spread constraints rely on node labels to identify the topology domain(s) that each Node is in. # Ref: https://kubernetes.io/docs/concepts/workloads/pods/pod-topology-spread-constraints/ # |\n| controller.udp.annotations | object | `{}` | Annotations to be added to the udp config configmap |\n| controller.udp.configMapNamespace | string | `\"\"` | Allows customization of the udp-services-configmap; defaults to $(POD_NAMESPACE) |\n| controller.updateStrategy | object | `{}` | The update strategy to apply to the Deployment or DaemonSet # |\n| controller.watchIngressWithoutClass | bool | `false` | Process Ingress objects without ingressClass annotation/ingressClassName field Overrides value for --watch-ingress-without-class flag of the controller binary Defaults to false |\n| defaultBackend.affinity | object | `{}` |  |\n| defaultBackend.autoscaling.annotations | object | `{}` |  |\n| defaultBackend.autoscaling.apiVersion | string | `\"autoscaling/v2\"` |  |\n| defaultBackend.autoscaling.enabled | bool | `false` |  |\n| defaultBackend.autoscaling.maxReplicas | int | `2` |  |\n| defaultBackend.autoscaling.minReplicas | int | `1` |  |\n| defaultBackend.autoscaling.targetCPUUtilizationPercentage | int | `50` |  |\n| defaultBackend.autoscaling.targetMemoryUtilizationPercentage | int | `50` |  |\n| defaultBackend.containerSecurityContext | object | `{}` | Security Context policies for controller main container. See https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/ for notes on enabling and using sysctls # |\n| defaultBackend.enabled | bool | `false` |  |\n| defaultBackend.existingPsp | string | `\"\"` | Use an existing PSP instead of creating one |\n| defaultBackend.extraArgs | object | `{}` |  |\n| defaultBackend.extraEnvs | list | `[]` | Additional environment variables to set for defaultBackend pods |\n| defaultBackend.extraVolumeMounts | list | `[]` |  |\n| defaultBackend.extraVolumes | list | `[]` |  |\n| defaultBackend.image.allowPrivilegeEscalation | bool | `false` |  |\n| defaultBackend.image.image | string | `\"defaultbackend-amd64\"` |  |\n| defaultBackend.image.pullPolicy | string | `\"IfNotPresent\"` |  |\n| defaultBackend.image.readOnlyRootFilesystem | bool | `true` |  |\n| defaultBackend.image.registry | string | `\"registry.k8s.io\"` |  |\n| defaultBackend.image.runAsNonRoot | bool | `true` |  |\n| defaultBackend.image.runAsUser | int | `65534` |  |\n| defaultBackend.image.tag | string | `\"1.5\"` |  |\n| defaultBackend.labels | object | `{}` | Labels to be added to the default backend resources |\n| defaultBackend.livenessProbe.failureThreshold | int | `3` |  |\n| defaultBackend.livenessProbe.initialDelaySeconds | int | `30` |  |\n| defaultBackend.livenessProbe.periodSeconds | int | `10` |  |\n| defaultBackend.livenessProbe.successThreshold | int | `1` |  |\n| defaultBackend.livenessProbe.timeoutSeconds | int | `5` |  |\n| defaultBackend.minAvailable | int | `1` |  |\n| defaultBackend.minReadySeconds | int | `0` | `minReadySeconds` to avoid killing pods before we are ready # |\n| defaultBackend.name | string | `\"defaultbackend\"` |  |\n| defaultBackend.nodeSelector | object | `{\"kubernetes.io/os\":\"linux\"}` | Node labels for default backend pod assignment # Ref: https://kubernetes.io/docs/user-guide/node-selection/ # |\n| defaultBackend.podAnnotations | object | `{}` | Annotations to be added to default backend pods # |\n| defaultBackend.podLabels | object | `{}` | Labels to add to the pod container metadata |\n| defaultBackend.podSecurityContext | object | `{}` | Security Context policies for controller pods See https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/ for notes on enabling and using sysctls # |\n| defaultBackend.port | int | `8080` |  |\n| defaultBackend.priorityClassName | string | `\"\"` |  |\n| defaultBackend.readinessProbe.failureThreshold | int | `6` |  |\n| defaultBackend.readinessProbe.initialDelaySeconds | int | `0` |  |\n| defaultBackend.readinessProbe.periodSeconds | int | `5` |  |\n| defaultBackend.readinessProbe.successThreshold | int | `1` |  |\n| defaultBackend.readinessProbe.timeoutSeconds | int | `5` |  |\n| defaultBackend.replicaCount | int | `1` |  |\n| defaultBackend.resources | object | `{}` |  |\n| defaultBackend.service.annotations | object | `{}` |  |\n| defaultBackend.service.externalIPs | list | `[]` | List of IP addresses at which the default backend service is available # Ref: https://kubernetes.io/docs/user-guide/services/#external-ips # |\n| defaultBackend.service.loadBalancerSourceRanges | list | `[]` |  |\n| defaultBackend.service.servicePort | int | `80` |  |\n| defaultBackend.service.type | string | `\"ClusterIP\"` |  |\n| defaultBackend.serviceAccount.automountServiceAccountToken | bool | `true` |  |\n| defaultBackend.serviceAccount.create | bool | `true` |  |\n| defaultBackend.serviceAccount.name | string | `\"\"` |  |\n| defaultBackend.tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints # Ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/ # |\n| defaultBackend.updateStrategy | object | `{}` | The update strategy to apply to the Deployment or DaemonSet # |\n| dhParam | string | `\"\"` | A base64-encoded Diffie-Hellman parameter. This can be generated with: `openssl dhparam 4096 2\u003e /dev/null | base64` # Ref: https://github.com/kubernetes/ingress-nginx/tree/main/docs/examples/customization/ssl-dh-param |\n| imagePullSecrets | list | `[]` | Optional array of imagePullSecrets containing private registry credentials # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/ |\n| podSecurityPolicy.enabled | bool | `false` |  |\n| portNamePrefix | string | `\"\"` | Prefix for TCP and UDP ports names in ingress controller service # Some cloud providers, like Yandex Cloud may have a requirements for a port name regex to support cloud load balancer integration |\n| rbac.create | bool | `true` |  |\n| rbac.scope | bool | `false` |  |\n| revisionHistoryLimit | int | `10` | Rollback limit # |\n| serviceAccount.annotations | object | `{}` | Annotations for the controller service account |\n| serviceAccount.automountServiceAccountToken | bool | `true` |  |\n| serviceAccount.create | bool | `true` |  |\n| serviceAccount.name | string | `\"\"` |  |\n| tcp | object | `{}` | TCP service key-value pairs # Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md # |\n| udp | object | `{}` | UDP service key-value pairs # Ref: https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/exposing-tcp-udp-services.md # |\n",
+          "status": "deployed"
+        },
+        "name": "ingress-controller",
+        "namespace": "verrazzano-ingress-nginx",
+        "resources": [
+          {
+            "apiVersion": "policy/v1",
+            "kind": "PodDisruptionBudget",
+            "name": "ingress-controller-ingress-nginx-controller",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "policy/v1",
+            "kind": "PodDisruptionBudget",
+            "name": "ingress-controller-ingress-nginx-defaultbackend",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "name": "ingress-controller-ingress-nginx",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "ServiceAccount",
+            "name": "ingress-controller-ingress-nginx-backend",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "name": "ingress-controller-ingress-nginx-controller",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "name": "ingress-controller-ingress-nginx-defaultbackend-custom-error-pages",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRole",
+            "name": "verrazzano-ingress-nginx-ingress-controller-ingress-nginx"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "ClusterRoleBinding",
+            "name": "verrazzano-ingress-nginx-ingress-controller-ingress-nginx"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "Role",
+            "name": "ingress-controller-ingress-nginx",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "rbac.authorization.k8s.io/v1",
+            "kind": "RoleBinding",
+            "name": "ingress-controller-ingress-nginx",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "name": "ingress-controller-ingress-nginx-controller-metrics",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "name": "ingress-controller-ingress-nginx-controller",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "v1",
+            "kind": "Service",
+            "name": "ingress-controller-ingress-nginx-defaultbackend",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "ingress-controller-ingress-nginx-controller",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "apps/v1",
+            "kind": "Deployment",
+            "name": "ingress-controller-ingress-nginx-defaultbackend",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "autoscaling/v2",
+            "kind": "HorizontalPodAutoscaler",
+            "name": "ingress-controller-ingress-nginx-controller",
+            "namespace": "verrazzano-ingress-nginx"
+          },
+          {
+            "apiVersion": "networking.k8s.io/v1",
+            "kind": "IngressClass",
+            "name": "verrazzano-nginx"
+          }
+        ],
+        "values": {
+          "controller": {
+            "admissionWebhooks": {
+              "enabled": false
+            },
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/component": "controller",
+                          "app.kubernetes.io/name": "ingress-nginx"
+                        }
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    },
+                    "weight": 100
+                  }
+                ]
+              }
+            },
+            "allowSnippetAnnotations": false,
+            "autoscaling": {
+              "enabled": true,
+              "minReplicas": 2
+            },
+            "config": {
+              "client-body-buffer-size": "64k",
+              "log-format-escape-json": "true",
+              "log-format-upstream": " { \"@timestamp\": \"$time_iso8601\", \"req_id\": \"$req_id\", \"proxy_upstream_name\": \"$proxy_upstream_name\", \"proxy_alternative_upstream_name\": \"$proxy_alternative_upstream_name\", \"upstream_status\": \"$upstream_status\", \"upstream_addr\": \"$upstream_addr\", \"message\": \"$request_method $host$request_uri\", \"http_request\": { \"requestMethod\": \"$request_method\", \"requestUrl\": \"$host$request_uri\", \"status\": $status, \"requestSize\": \"$request_length\", \"responseSize\": \"$upstream_response_length\", \"userAgent\": \"$http_user_agent\", \"remoteIp\": \"$remote_addr\", \"referer\": \"$http_referer\", \"latency\": \"$upstream_response_time s\", \"protocol\":\"$server_protocol\" } }",
+              "proxy-buffer-size": "8k"
+            },
+            "containerSecurityContext": {
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "add": [
+                  "NET_BIND_SERVICE"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false
+            },
+            "extraArgs": {
+              "ingress-class": "verrazzano-nginx"
+            },
+            "extraVolumeMounts": [
+              {
+                "mountPath": "/usr/local/nginx/html",
+                "name": "custom-400-error"
+              }
+            ],
+            "extraVolumes": [
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "400.html",
+                      "path": "400.html"
+                    }
+                  ],
+                  "name": "ingress-controller-ingress-nginx-defaultbackend-custom-error-pages"
+                },
+                "name": "custom-400-error"
+              }
+            ],
+            "image": {
+              "digest": null,
+              "repository": "ghcr.io/verrazzano/nginx-ingress-controller",
+              "tag": "v1.7.1-20240109112845-33c273be0"
+            },
+            "ingressClass": "verrazzano-nginx",
+            "ingressClassByName": true,
+            "ingressClassResource": {
+              "controllerValue": "k8s.io/verrazzano-ingress-nginx",
+              "default": false,
+              "enabled": true,
+              "name": "verrazzano-nginx"
+            },
+            "metrics": {
+              "enabled": true,
+              "portName": "http-metrics"
+            },
+            "podAnnotations": {
+              "prometheus.io/port": "10254",
+              "prometheus.io/scrape": "true",
+              "sidecar.istio.io/rewriteAppHTTPProbers": "true",
+              "system.io/scrape": "true",
+              "traffic.sidecar.istio.io/excludeInboundPorts": "80,443",
+              "traffic.sidecar.istio.io/includeInboundPorts": ""
+            },
+            "podSecurityContext": {
+              "runAsGroup": 101,
+              "runAsNonRoot": true,
+              "runAsUser": 101,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "publishService": {
+              "enabled": true
+            },
+            "service": {
+              "enableHttp": false,
+              "type": "LoadBalancer"
+            },
+            "watchIngressWithoutClass": true
+          },
+          "defaultBackend": {
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchLabels": {
+                          "app.kubernetes.io/component": "default-backend",
+                          "app.kubernetes.io/name": "ingress-nginx"
+                        }
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    },
+                    "weight": 100
+                  }
+                ]
+              }
+            },
+            "enabled": true,
+            "extraVolumeMounts": [
+              {
+                "mountPath": "/www",
+                "name": "error-pages"
+              }
+            ],
+            "extraVolumes": [
+              {
+                "configMap": {
+                  "items": [
+                    {
+                      "key": "301.html",
+                      "path": "301.html"
+                    },
+                    {
+                      "key": "302.html",
+                      "path": "302.html"
+                    },
+                    {
+                      "key": "304.html",
+                      "path": "304.html"
+                    },
+                    {
+                      "key": "307.html",
+                      "path": "307.html"
+                    },
+                    {
+                      "key": "308.html",
+                      "path": "308.html"
+                    },
+                    {
+                      "key": "400.html",
+                      "path": "400.html"
+                    },
+                    {
+                      "key": "401.html",
+                      "path": "401.html"
+                    },
+                    {
+                      "key": "403.html",
+                      "path": "403.html"
+                    },
+                    {
+                      "key": "404.html",
+                      "path": "404.html"
+                    },
+                    {
+                      "key": "407.html",
+                      "path": "407.html"
+                    },
+                    {
+                      "key": "408.html",
+                      "path": "408.html"
+                    },
+                    {
+                      "key": "409.html",
+                      "path": "409.html"
+                    },
+                    {
+                      "key": "413.html",
+                      "path": "413.html"
+                    },
+                    {
+                      "key": "414.html",
+                      "path": "414.html"
+                    },
+                    {
+                      "key": "415.html",
+                      "path": "415.html"
+                    },
+                    {
+                      "key": "416.html",
+                      "path": "416.html"
+                    },
+                    {
+                      "key": "418.html",
+                      "path": "418.html"
+                    },
+                    {
+                      "key": "421.html",
+                      "path": "421.html"
+                    },
+                    {
+                      "key": "429.html",
+                      "path": "429.html"
+                    },
+                    {
+                      "key": "431.html",
+                      "path": "431.html"
+                    },
+                    {
+                      "key": "500.html",
+                      "path": "500.html"
+                    },
+                    {
+                      "key": "501.html",
+                      "path": "501.html"
+                    },
+                    {
+                      "key": "502.html",
+                      "path": "502.html"
+                    },
+                    {
+                      "key": "503.html",
+                      "path": "503.html"
+                    },
+                    {
+                      "key": "504.html",
+                      "path": "504.html"
+                    },
+                    {
+                      "key": "505.html",
+                      "path": "505.html"
+                    },
+                    {
+                      "key": "301.html",
+                      "path": "301.htm"
+                    },
+                    {
+                      "key": "302.html",
+                      "path": "302.htm"
+                    },
+                    {
+                      "key": "304.html",
+                      "path": "304.htm"
+                    },
+                    {
+                      "key": "307.html",
+                      "path": "307.htm"
+                    },
+                    {
+                      "key": "308.html",
+                      "path": "308.htm"
+                    },
+                    {
+                      "key": "400.html",
+                      "path": "400.htm"
+                    },
+                    {
+                      "key": "401.html",
+                      "path": "401.htm"
+                    },
+                    {
+                      "key": "403.html",
+                      "path": "403.htm"
+                    },
+                    {
+                      "key": "404.html",
+                      "path": "404.htm"
+                    },
+                    {
+                      "key": "407.html",
+                      "path": "407.htm"
+                    },
+                    {
+                      "key": "408.html",
+                      "path": "408.htm"
+                    },
+                    {
+                      "key": "409.html",
+                      "path": "409.htm"
+                    },
+                    {
+                      "key": "413.html",
+                      "path": "413.htm"
+                    },
+                    {
+                      "key": "414.html",
+                      "path": "414.htm"
+                    },
+                    {
+                      "key": "415.html",
+                      "path": "415.htm"
+                    },
+                    {
+                      "key": "416.html",
+                      "path": "416.htm"
+                    },
+                    {
+                      "key": "418.html",
+                      "path": "418.htm"
+                    },
+                    {
+                      "key": "421.html",
+                      "path": "421.htm"
+                    },
+                    {
+                      "key": "429.html",
+                      "path": "429.htm"
+                    },
+                    {
+                      "key": "431.html",
+                      "path": "431.htm"
+                    },
+                    {
+                      "key": "500.html",
+                      "path": "500.htm"
+                    },
+                    {
+                      "key": "501.html",
+                      "path": "501.htm"
+                    },
+                    {
+                      "key": "502.html",
+                      "path": "502.htm"
+                    },
+                    {
+                      "key": "503.html",
+                      "path": "503.htm"
+                    },
+                    {
+                      "key": "504.html",
+                      "path": "504.htm"
+                    },
+                    {
+                      "key": "505.html",
+                      "path": "505.htm"
+                    },
+                    {
+                      "key": "301.json",
+                      "path": "301.json"
+                    },
+                    {
+                      "key": "302.json",
+                      "path": "302.json"
+                    },
+                    {
+                      "key": "304.json",
+                      "path": "304.json"
+                    },
+                    {
+                      "key": "307.json",
+                      "path": "307.json"
+                    },
+                    {
+                      "key": "308.json",
+                      "path": "308.json"
+                    },
+                    {
+                      "key": "400.json",
+                      "path": "400.json"
+                    },
+                    {
+                      "key": "401.json",
+                      "path": "401.json"
+                    },
+                    {
+                      "key": "403.json",
+                      "path": "403.json"
+                    },
+                    {
+                      "key": "404.json",
+                      "path": "404.json"
+                    },
+                    {
+                      "key": "407.json",
+                      "path": "407.json"
+                    },
+                    {
+                      "key": "408.json",
+                      "path": "408.json"
+                    },
+                    {
+                      "key": "409.json",
+                      "path": "409.json"
+                    },
+                    {
+                      "key": "413.json",
+                      "path": "413.json"
+                    },
+                    {
+                      "key": "414.json",
+                      "path": "414.json"
+                    },
+                    {
+                      "key": "415.json",
+                      "path": "415.json"
+                    },
+                    {
+                      "key": "416.json",
+                      "path": "416.json"
+                    },
+                    {
+                      "key": "418.json",
+                      "path": "418.json"
+                    },
+                    {
+                      "key": "421.json",
+                      "path": "421.json"
+                    },
+                    {
+                      "key": "429.json",
+                      "path": "429.json"
+                    },
+                    {
+                      "key": "431.json",
+                      "path": "431.json"
+                    },
+                    {
+                      "key": "500.json",
+                      "path": "500.json"
+                    },
+                    {
+                      "key": "501.json",
+                      "path": "501.json"
+                    },
+                    {
+                      "key": "502.json",
+                      "path": "502.json"
+                    },
+                    {
+                      "key": "503.json",
+                      "path": "503.json"
+                    },
+                    {
+                      "key": "504.json",
+                      "path": "504.json"
+                    },
+                    {
+                      "key": "505.json",
+                      "path": "505.json"
+                    }
+                  ],
+                  "name": "ingress-controller-ingress-nginx-defaultbackend-custom-error-pages"
+                },
+                "name": "error-pages"
+              }
+            ],
+            "image": {
+              "repository": "ghcr.io/verrazzano/nginx-ingress-default-backend",
+              "tag": "v1.7.1-20240109112845-33c273be0"
+            },
+            "podAnnotations": {
+              "traffic.sidecar.istio.io/excludeInboundPorts": "8080"
+            },
+            "podSecurityContext": {
+              "runAsGroup": 65534,
+              "runAsNonRoot": true,
+              "runAsUser": 65534,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "replicaCount": 2
+          },
+          "imagePullSecrets": [
+            {
+              "name": "verrazzano-container-registry"
+            }
+          ]
+        },
+        "version": 1
+      },
+      "status": {
+        "observedGeneration": 1,
+        "summary": {
+          "state": "deployed"
+        }
+      }
+    }
+  ],
+  "kind": "AppList",
+  "metadata": {
+    "continue": "",
+    "resourceVersion": "131911"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "name": "system-tls-grafana",
+    "expired": false
+  },
+  {
+    "name": "system-tls-kiali",
+    "expired": false
+  },
+  {
+    "name": "system-tls-os-ingest",
+    "expired": false
+  },
+  {
+    "name": "system-tls-osd",
+    "expired": false
+  },
+  {
+    "name": "system-tls-prometheus",
+    "expired": false
+  },
+  {
+    "name": "verrazzano-tls",
+    "expired": false
+  }
+]

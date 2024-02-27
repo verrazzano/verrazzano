@@ -1,0 +1,5480 @@
+{
+  "metadata": {
+    "resourceVersion": "131803"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-j9x7s.17aefdf2fb1642d4",
+        "namespace": "verrazzano-system",
+        "uid": "bc047c83-5969-402b-b2b1-35b5ee393615",
+        "resourceVersion": "80843",
+        "creationTimestamp": "2024-01-30T02:08:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-j9x7s",
+        "uid": "07cc4731-243e-4afa-9ed9-4b400ee7f8e8",
+        "apiVersion": "v1",
+        "resourceVersion": "53526",
+        "fieldPath": "spec.containers{manager}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container manager",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:48Z",
+      "lastTimestamp": "2024-01-30T02:08:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm.17aefdf30a120f28",
+        "namespace": "verrazzano-system",
+        "uid": "622b7f22-41cb-4328-b681-a73fe030362f",
+        "resourceVersion": "80888",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm",
+        "uid": "0da25b70-ae9a-4754-87ac-007c131bce9f",
+        "apiVersion": "v1",
+        "resourceVersion": "80866"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/coherence-operator-5d9d4bf8b8-wzqsm to REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:49.107827Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm.17aefdf386ed10b7",
+        "namespace": "verrazzano-system",
+        "uid": "f795ae32-65e6-43e9-9ef3-54d573df4c46",
+        "resourceVersion": "81084",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm",
+        "uid": "0da25b70-ae9a-4754-87ac-007c131bce9f",
+        "apiVersion": "v1",
+        "resourceVersion": "80877",
+        "fieldPath": "spec.containers{manager}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/oracle/coherence-operator:3.3.2\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm.17aefdf5b4dafffb",
+        "namespace": "verrazzano-system",
+        "uid": "aa344bab-95b4-4dde-8c14-38f05923dd62",
+        "resourceVersion": "81517",
+        "creationTimestamp": "2024-01-30T02:09:00Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:00Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm",
+        "uid": "0da25b70-ae9a-4754-87ac-007c131bce9f",
+        "apiVersion": "v1",
+        "resourceVersion": "80877",
+        "fieldPath": "spec.containers{manager}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/oracle/coherence-operator:3.3.2\" in 9.36047835s (9.360491284s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:00Z",
+      "lastTimestamp": "2024-01-30T02:09:00Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm.17aefdf6602d7726",
+        "namespace": "verrazzano-system",
+        "uid": "b5ec67b0-6502-4bbf-a405-775b3f6800d3",
+        "resourceVersion": "81643",
+        "creationTimestamp": "2024-01-30T02:09:03Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm",
+        "uid": "0da25b70-ae9a-4754-87ac-007c131bce9f",
+        "apiVersion": "v1",
+        "resourceVersion": "80877",
+        "fieldPath": "spec.containers{manager}"
+      },
+      "reason": "Created",
+      "message": "Created container manager",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:03Z",
+      "lastTimestamp": "2024-01-30T02:09:03Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm.17aefdf661e21591",
+        "namespace": "verrazzano-system",
+        "uid": "66f34a0b-d786-48c6-9378-e26ef07cdc9b",
+        "resourceVersion": "81646",
+        "creationTimestamp": "2024-01-30T02:09:03Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:03Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8-wzqsm",
+        "uid": "0da25b70-ae9a-4754-87ac-007c131bce9f",
+        "apiVersion": "v1",
+        "resourceVersion": "80877",
+        "fieldPath": "spec.containers{manager}"
+      },
+      "reason": "Started",
+      "message": "Started container manager",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:03Z",
+      "lastTimestamp": "2024-01-30T02:09:03Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "coherence-operator-5d9d4bf8b8.17aefdf3074d2965",
+        "namespace": "verrazzano-system",
+        "uid": "1d28c3d6-88d9-481a-a1c4-3fb059595d71",
+        "resourceVersion": "80871",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-system",
+        "name": "coherence-operator-5d9d4bf8b8",
+        "uid": "49ec874c-05d7-4335-84eb-6c819664440b",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "54628"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: coherence-operator-5d9d4bf8b8-wzqsm",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:49Z",
+      "lastTimestamp": "2024-01-30T02:08:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-gzm26.17aefe16c651d49d",
+        "namespace": "verrazzano-system",
+        "uid": "2025948b-08ad-4610-8ad3-f54ae1ce4460",
+        "resourceVersion": "84379",
+        "creationTimestamp": "2024-01-30T02:11:22Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:11:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-gzm26",
+        "uid": "0dd03bd2-2d3d-4e4e-b1f9-94550288f099",
+        "apiVersion": "v1",
+        "resourceVersion": "38783"
+      },
+      "reason": "NodeNotReady",
+      "message": "Node is not ready",
+      "source": {
+        "component": "node-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:11:22Z",
+      "lastTimestamp": "2024-01-30T02:11:22Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8bbd29ef5",
+        "namespace": "verrazzano-system",
+        "uid": "29f3aef7-f657-4f0d-88fa-16485d2cefc0",
+        "resourceVersion": "77830",
+        "creationTimestamp": "2024-01-30T02:05:47Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" in 8m8.19797588s (8m8.198060539s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:47Z",
+      "lastTimestamp": "2024-01-30T02:05:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8c2cf529e",
+        "namespace": "verrazzano-system",
+        "uid": "72702868-7c7b-47d0-9fcf-8d875d2d476c",
+        "resourceVersion": "77833",
+        "creationTimestamp": "2024-01-30T02:05:47Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:47Z",
+      "lastTimestamp": "2024-01-30T02:05:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8c3ec058d",
+        "namespace": "verrazzano-system",
+        "uid": "b4dfcc66-d826-4ca9-909d-b7dabfcc6702",
+        "resourceVersion": "77835",
+        "creationTimestamp": "2024-01-30T02:05:47Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:47Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:47Z",
+      "lastTimestamp": "2024-01-30T02:05:47Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8e64b94a5",
+        "namespace": "verrazzano-system",
+        "uid": "dfc8adb1-71eb-4f51-9e57-38b8e0a6bb3c",
+        "resourceVersion": "77891",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:50Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8eda05a2b",
+        "namespace": "verrazzano-system",
+        "uid": "9a39b19b-1556-4dee-8e6c-229898594c0a",
+        "resourceVersion": "77894",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Created",
+      "message": "Created container fluentd",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:50Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8eec7d82d",
+        "namespace": "verrazzano-system",
+        "uid": "ce087437-333d-4da7-8abc-d98ce3c8023b",
+        "resourceVersion": "77895",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:50Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Started",
+      "message": "Started container fluentd",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:50Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8eee644b1",
+        "namespace": "verrazzano-system",
+        "uid": "cd3a87d9-992a-4363-902e-27bda1c3bd8b",
+        "resourceVersion": "77852",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8f558323d",
+        "namespace": "verrazzano-system",
+        "uid": "2e15389f-7bf1-4f79-9de5-dcfdcc439cb9",
+        "resourceVersion": "77854",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc8f6b4681d",
+        "namespace": "verrazzano-system",
+        "uid": "54efbd9e-5db5-40e8-a074-a2f9af9ace0e",
+        "resourceVersion": "77857",
+        "creationTimestamp": "2024-01-30T02:05:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:48Z",
+      "lastTimestamp": "2024-01-30T02:05:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-jm6z7.17aefdc9218679ae",
+        "namespace": "verrazzano-system",
+        "uid": "4a0bbd1a-0876-43d1-90ba-ed43ad6c63be",
+        "resourceVersion": "77916",
+        "creationTimestamp": "2024-01-30T02:05:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:05:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-jm6z7",
+        "uid": "0958f282-c9c6-4e76-a319-b6fdc1984c80",
+        "apiVersion": "v1",
+        "resourceVersion": "64206",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-99bf7e3e49583b4cd5ff2ebd3bb1dc85e1dd2ae954f38a5fda1d97aeba9c7da6:15021/healthz/ready\": dial tcp REDACTED-99bf7e3e49583b4cd5ff2ebd3bb1dc85e1dd2ae954f38a5fda1d97aeba9c7da6:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:05:49Z",
+      "lastTimestamp": "2024-01-30T02:05:51Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe4b0d167615",
+        "namespace": "verrazzano-system",
+        "uid": "046fee11-9b7c-4fbc-a7ca-925ff9145abd",
+        "resourceVersion": "88443",
+        "creationTimestamp": "2024-01-30T02:15:07Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:15:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88439"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/fluentd-p7zc7 to REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:15:07.115570Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe4b22658ffd",
+        "namespace": "verrazzano-system",
+        "uid": "a57cf4f0-e001-4824-8bf5-0aaa525681e4",
+        "resourceVersion": "88450",
+        "creationTimestamp": "2024-01-30T02:15:07Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:15:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440"
+      },
+      "reason": "FailedCreatePodSandBox",
+      "message": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_fluentd-p7zc7_verrazzano-system_fb927673-f736-43b5-a7e3-fb203d2717ab_0(731c36c95b54fc5e6fbdfa648d8bfa61dfc9438ae5b8cf3d43dcced3f2318277): error adding pod verrazzano-system_fluentd-p7zc7 to CNI network \"cbr0\": plugin type=\"flannel\" failed (add): open /run/flannel/subnet.env: no such file or directory",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:15:07Z",
+      "lastTimestamp": "2024-01-30T02:15:07Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe4ea59b992c",
+        "namespace": "verrazzano-system",
+        "uid": "c3eb748a-d930-47cf-8ee5-038e2dc88456",
+        "resourceVersion": "88765",
+        "creationTimestamp": "2024-01-30T02:15:22Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:15:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440"
+      },
+      "reason": "FailedCreatePodSandBox",
+      "message": "Failed to create pod sandbox: rpc error: code = Unknown desc = failed to create pod network sandbox k8s_fluentd-p7zc7_verrazzano-system_fb927673-f736-43b5-a7e3-fb203d2717ab_0(89145e1e975d9e536b56055691a37c8c468a03cf33ad4096809879d0691ad3b2): error adding pod verrazzano-system_fluentd-p7zc7 to CNI network \"cbr0\": plugin type=\"flannel\" failed (add): open /run/flannel/subnet.env: no such file or directory",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:15:22Z",
+      "lastTimestamp": "2024-01-30T02:15:22Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe526e265a6a",
+        "namespace": "verrazzano-system",
+        "uid": "5e735522-6f44-47a5-b086-06be4d1c725b",
+        "resourceVersion": "89070",
+        "creationTimestamp": "2024-01-30T02:15:38Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:15:38Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{cacert-init}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:15:38Z",
+      "lastTimestamp": "2024-01-30T02:15:38Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe68a9d715f5",
+        "namespace": "verrazzano-system",
+        "uid": "176028e8-45fb-4eb1-8c30-9a87c5fbac3a",
+        "resourceVersion": "90809",
+        "creationTimestamp": "2024-01-30T02:17:14Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:14Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{cacert-init}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84\" in 1m35.490676845s (1m35.490694358s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:14Z",
+      "lastTimestamp": "2024-01-30T02:17:14Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe68afe53c20",
+        "namespace": "verrazzano-system",
+        "uid": "0276d1e4-8f60-415d-962a-42a03480746e",
+        "resourceVersion": "90811",
+        "creationTimestamp": "2024-01-30T02:17:14Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:14Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{cacert-init}"
+      },
+      "reason": "Created",
+      "message": "Created container cacert-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:14Z",
+      "lastTimestamp": "2024-01-30T02:17:14Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe68b15dbe83",
+        "namespace": "verrazzano-system",
+        "uid": "1f8e09ab-0699-45cd-a2b4-65318ae8cd99",
+        "resourceVersion": "90813",
+        "creationTimestamp": "2024-01-30T02:17:14Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:14Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{cacert-init}"
+      },
+      "reason": "Started",
+      "message": "Started container cacert-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:14Z",
+      "lastTimestamp": "2024-01-30T02:17:14Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe68d382d65c",
+        "namespace": "verrazzano-system",
+        "uid": "0f43d13f-061a-4eab-8d8d-0de96674087c",
+        "resourceVersion": "90818",
+        "creationTimestamp": "2024-01-30T02:17:15Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:15Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:14Z",
+      "lastTimestamp": "2024-01-30T02:17:14Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6bcfd6592c",
+        "namespace": "verrazzano-system",
+        "uid": "cf47fac2-93bb-4c39-baf4-6dc9be041f26",
+        "resourceVersion": "91043",
+        "creationTimestamp": "2024-01-30T02:17:27Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:27Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" in 12.823233329s (12.82324996s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:27Z",
+      "lastTimestamp": "2024-01-30T02:17:27Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6bd5b7430c",
+        "namespace": "verrazzano-system",
+        "uid": "195b36ec-7c79-42a7-abba-5c28901db2a2",
+        "resourceVersion": "91044",
+        "creationTimestamp": "2024-01-30T02:17:27Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:27Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:27Z",
+      "lastTimestamp": "2024-01-30T02:17:27Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6bd6c358cb",
+        "namespace": "verrazzano-system",
+        "uid": "eb89c1f5-5588-42a9-a0df-cb2184d35682",
+        "resourceVersion": "91045",
+        "creationTimestamp": "2024-01-30T02:17:27Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:27Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:27Z",
+      "lastTimestamp": "2024-01-30T02:17:27Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c176c1a81",
+        "namespace": "verrazzano-system",
+        "uid": "a9563f10-62bd-4b69-89e1-5031f9e9c1d5",
+        "resourceVersion": "91117",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/fluentd-kubernetes-daemonset:v1.14.5-20230922100900-8777b84\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:31Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c1d8efe28",
+        "namespace": "verrazzano-system",
+        "uid": "a0dfe10c-2479-42e6-831c-cbc56b554082",
+        "resourceVersion": "91122",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Created",
+      "message": "Created container fluentd",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:31Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c1e867284",
+        "namespace": "verrazzano-system",
+        "uid": "e7213b9f-bddd-48d4-be94-beb6b6f9839f",
+        "resourceVersion": "91123",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{fluentd}"
+      },
+      "reason": "Started",
+      "message": "Started container fluentd",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:31Z",
+      "count": 2,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c1ea11eb4",
+        "namespace": "verrazzano-system",
+        "uid": "35b55c77-990e-464b-841c-cc66b079a438",
+        "resourceVersion": "91072",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c2548c449",
+        "namespace": "verrazzano-system",
+        "uid": "e3c9061b-e3f1-4d6b-9ad0-c1e205d5af09",
+        "resourceVersion": "91073",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c2675575f",
+        "namespace": "verrazzano-system",
+        "uid": "f4d298fd-e809-432d-b2a7-c576f8202264",
+        "resourceVersion": "91074",
+        "creationTimestamp": "2024-01-30T02:17:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:29Z",
+      "lastTimestamp": "2024-01-30T02:17:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd-p7zc7.17aefe6c532ce159",
+        "namespace": "verrazzano-system",
+        "uid": "09306f4d-1270-4c3f-b56d-3cba8c78f117",
+        "resourceVersion": "91142",
+        "creationTimestamp": "2024-01-30T02:17:30Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:17:32Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "fluentd-p7zc7",
+        "uid": "fb927673-f736-43b5-a7e3-fb203d2717ab",
+        "apiVersion": "v1",
+        "resourceVersion": "88440",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-9c3f81e76d36b0f0afef40de2ef55f69147fe3a8b2c92211ea78239cbfe466c6:15021/healthz/ready\": dial tcp REDACTED-9c3f81e76d36b0f0afef40de2ef55f69147fe3a8b2c92211ea78239cbfe466c6:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0"
+      },
+      "firstTimestamp": "2024-01-30T02:17:30Z",
+      "lastTimestamp": "2024-01-30T02:17:32Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd.17aefe24a106e530",
+        "namespace": "verrazzano-system",
+        "uid": "c4531750-fcc9-429a-97c5-d63a3fa18370",
+        "resourceVersion": "85478",
+        "creationTimestamp": "2024-01-30T02:12:22Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:12:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Service",
+        "namespace": "verrazzano-system",
+        "name": "fluentd",
+        "uid": "32b682ef-92b6-4bfe-bfde-e912238c1c8f",
+        "apiVersion": "v1",
+        "resourceVersion": "34391"
+      },
+      "reason": "FailedToUpdateEndpointSlices",
+      "message": "Error updating Endpoint Slices for Service verrazzano-system/fluentd: skipping Pod fluentd-gzm26 for Service verrazzano-system/fluentd: Node REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8 Not Found",
+      "source": {
+        "component": "endpoint-slice-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:12:22Z",
+      "lastTimestamp": "2024-01-30T02:12:22Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "fluentd.17aefe4b0c4f8aaa",
+        "namespace": "verrazzano-system",
+        "uid": "84b413be-efcf-449c-a21f-bb808277eb14",
+        "resourceVersion": "88442",
+        "creationTimestamp": "2024-01-30T02:15:07Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:15:07Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "DaemonSet",
+        "namespace": "verrazzano-system",
+        "name": "fluentd",
+        "uid": "691a3f18-7160-42d5-a4a9-7ebbd47fdea6",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "85476"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: fluentd-p7zc7",
+      "source": {
+        "component": "daemonset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:15:07Z",
+      "lastTimestamp": "2024-01-30T02:15:07Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "opensearch-dashboards.17aefdf5f3892a6f",
+        "namespace": "verrazzano-system",
+        "uid": "baf8e9d8-f10d-403a-ae87-1a8c3f33a693",
+        "resourceVersion": "81568",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "opensearch-dashboards",
+        "uid": "6a32ac76-f378-4430-a752-c180ae15184f",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "23724"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "opensearch.17aefdf5f37106e8",
+        "namespace": "verrazzano-system",
+        "uid": "5f0a9dbd-5509-4f3b-8fa7-7f4be667d2ff",
+        "resourceVersion": "81567",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "b728120e9b2997709bda24c7ba748f7c6b384203ae873ac96b5236e07f7e54e3",
+        "uid": "62e4de35-3765-4236-9874-ff8161a09b3a",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "23725"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-6lf4x.17aefdf3b89f7ce3",
+        "namespace": "verrazzano-system",
+        "uid": "7fccffa3-ea78-421a-8283-254361a309c7",
+        "resourceVersion": "81395",
+        "creationTimestamp": "2024-01-30T02:08:56Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:56Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-6lf4x",
+        "uid": "f9ef2fa7-1b84-4aed-be03-4822a11ba953",
+        "apiVersion": "v1",
+        "resourceVersion": "11965",
+        "fieldPath": "spec.containers{verrazzano-application-operator-webhook}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container verrazzano-application-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:52Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdf3bbb85c3f",
+        "namespace": "verrazzano-system",
+        "uid": "32cd0fee-7023-4a91-8321-7c3863dac1d4",
+        "resourceVersion": "81180",
+        "creationTimestamp": "2024-01-30T02:08:52Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:52Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81171"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/verrazzano-application-operator-webhook-5c4bb8899b-t57pg to REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:52.088294Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdf8a19144f6",
+        "namespace": "verrazzano-system",
+        "uid": "cc130c5f-a0d0-4867-944c-58268538b0bf",
+        "resourceVersion": "81921",
+        "creationTimestamp": "2024-01-30T02:09:13Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:13Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.initContainers{initwebhooks}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/verrazzano-application-operator:v2.0.0-20240129183412-15451eee\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:13Z",
+      "lastTimestamp": "2024-01-30T02:09:13Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdfa92d6dc0e",
+        "namespace": "verrazzano-system",
+        "uid": "e9bf6918-b726-43de-a74b-aecae49e7768",
+        "resourceVersion": "82175",
+        "creationTimestamp": "2024-01-30T02:09:21Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:21Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.initContainers{initwebhooks}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/verrazzano-application-operator:v2.0.0-20240129183412-15451eee\" in 8.342818261s (8.342824774s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:21Z",
+      "lastTimestamp": "2024-01-30T02:09:21Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdfad92fd256",
+        "namespace": "verrazzano-system",
+        "uid": "59b0ef29-9faf-4dab-89a9-b4c2e3dfd5c2",
+        "resourceVersion": "82199",
+        "creationTimestamp": "2024-01-30T02:09:22Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.initContainers{initwebhooks}"
+      },
+      "reason": "Created",
+      "message": "Created container initwebhooks",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:22Z",
+      "lastTimestamp": "2024-01-30T02:09:22Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdfae06b2c04",
+        "namespace": "verrazzano-system",
+        "uid": "2d4dc045-4da5-4294-99e8-164cb35c6048",
+        "resourceVersion": "82200",
+        "creationTimestamp": "2024-01-30T02:09:22Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.initContainers{initwebhooks}"
+      },
+      "reason": "Started",
+      "message": "Started container initwebhooks",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:22Z",
+      "lastTimestamp": "2024-01-30T02:09:22Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefdfb1305c875",
+        "namespace": "verrazzano-system",
+        "uid": "0799bfe5-4c98-4030-be1a-97599f8e1986",
+        "resourceVersion": "82231",
+        "creationTimestamp": "2024-01-30T02:09:23Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:23Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.containers{verrazzano-application-operator-webhook}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/verrazzano-application-operator:v2.0.0-20240129183412-15451eee\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:23Z",
+      "lastTimestamp": "2024-01-30T02:09:23Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefe107a7c8985",
+        "namespace": "verrazzano-system",
+        "uid": "de6e9d36-21d8-4703-809d-09e6fcadcaba",
+        "resourceVersion": "83760",
+        "creationTimestamp": "2024-01-30T02:10:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.containers{verrazzano-application-operator-webhook}"
+      },
+      "reason": "Created",
+      "message": "Created container verrazzano-application-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:55Z",
+      "lastTimestamp": "2024-01-30T02:10:55Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg.17aefe107bd57002",
+        "namespace": "verrazzano-system",
+        "uid": "7dfe7081-0926-4908-9c82-1e4e8f727a22",
+        "resourceVersion": "83761",
+        "creationTimestamp": "2024-01-30T02:10:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+        "uid": "61199bdf-a311-4502-ac3c-0e4f86e2c293",
+        "apiVersion": "v1",
+        "resourceVersion": "81176",
+        "fieldPath": "spec.containers{verrazzano-application-operator-webhook}"
+      },
+      "reason": "Started",
+      "message": "Started container verrazzano-application-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:55Z",
+      "lastTimestamp": "2024-01-30T02:10:55Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b.17aefdf3bae8bcfa",
+        "namespace": "verrazzano-system",
+        "uid": "fede9f1c-36bf-42f5-b7d6-de749156ebb7",
+        "resourceVersion": "81174",
+        "creationTimestamp": "2024-01-30T02:08:52Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:52Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-application-operator-webhook-5c4bb8899b",
+        "uid": "f9037974-10ed-4cf6-8f08-9c2bd4301703",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "12219"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: verrazzano-application-operator-webhook-5c4bb8899b-t57pg",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:52Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-9ntpw.17aefc882c45c1ba",
+        "namespace": "verrazzano-system",
+        "uid": "2820df24-d190-465e-b23a-bc51541154e9",
+        "resourceVersion": "82025",
+        "creationTimestamp": "2024-01-30T01:42:50Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-9ntpw",
+        "uid": "c9df6431-ca27-469d-b1cc-59aae86f2121",
+        "apiVersion": "v1",
+        "resourceVersion": "53804",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-2b4757bf434aa7d548ebee0debd949f972fede8fa998a6d8d52ec990a8c45aad:15021/healthz/ready\": dial tcp REDACTED-2b4757bf434aa7d548ebee0debd949f972fede8fa998a6d8d52ec990a8c45aad:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T01:42:50Z",
+      "lastTimestamp": "2024-01-30T02:09:16Z",
+      "count": 16,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-9ntpw.17aefdf2fbc5836b",
+        "namespace": "verrazzano-system",
+        "uid": "3776b55d-e494-4670-a79c-633268d698f0",
+        "resourceVersion": "80868",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-9ntpw",
+        "uid": "c9df6431-ca27-469d-b1cc-59aae86f2121",
+        "apiVersion": "v1",
+        "resourceVersion": "53804",
+        "fieldPath": "spec.containers{verrazzano-console}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container verrazzano-console",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:48Z",
+      "lastTimestamp": "2024-01-30T02:08:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-9ntpw.17aefdf2fbc9ecd4",
+        "namespace": "verrazzano-system",
+        "uid": "93ef1c28-2b0e-419f-a93f-249bc67519ce",
+        "resourceVersion": "80874",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-9ntpw",
+        "uid": "c9df6431-ca27-469d-b1cc-59aae86f2121",
+        "apiVersion": "v1",
+        "resourceVersion": "53804",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:48Z",
+      "lastTimestamp": "2024-01-30T02:08:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-9ntpw.17aefdf36f0ef77e",
+        "namespace": "verrazzano-system",
+        "uid": "e7c88396-96a1-4dd0-a6eb-6b74ff1aadc8",
+        "resourceVersion": "81434",
+        "creationTimestamp": "2024-01-30T02:08:52Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:58Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-9ntpw",
+        "uid": "c9df6431-ca27-469d-b1cc-59aae86f2121",
+        "apiVersion": "v1",
+        "resourceVersion": "53804",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:50Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf314034b62",
+        "namespace": "verrazzano-system",
+        "uid": "4d4f9f35-c780-4475-ac67-a1d9d10aa775",
+        "resourceVersion": "80912",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80901"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/verrazzano-console-689bc4584d-vrncr to REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:49.274619Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf39dd981e7",
+        "namespace": "verrazzano-system",
+        "uid": "612c91db-155c-4a3e-a31c-5a10c1eef866",
+        "resourceVersion": "81128",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf3a4cd6b91",
+        "namespace": "verrazzano-system",
+        "uid": "cf848319-76f0-4af9-a659-a224105c43ba",
+        "resourceVersion": "81141",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf3a5f448ec",
+        "namespace": "verrazzano-system",
+        "uid": "6357edd9-80c0-43c5-b045-321892ca70ce",
+        "resourceVersion": "81145",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf3d38b2d73",
+        "namespace": "verrazzano-system",
+        "uid": "568dae50-e073-474c-a017-f84e217a903b",
+        "resourceVersion": "81236",
+        "creationTimestamp": "2024-01-30T02:08:52Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:52Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{verrazzano-console}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/console:v2.0.0-20231116162144-dddf493\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:52Z",
+      "lastTimestamp": "2024-01-30T02:08:52Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9c2429acd",
+        "namespace": "verrazzano-system",
+        "uid": "539b4961-0849-4fc0-9db9-d0caf055a2cb",
+        "resourceVersion": "82081",
+        "creationTimestamp": "2024-01-30T02:09:18Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{verrazzano-console}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/console:v2.0.0-20231116162144-dddf493\" in 25.479774487s (25.479797009s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:17Z",
+      "lastTimestamp": "2024-01-30T02:09:17Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9ca93d485",
+        "namespace": "verrazzano-system",
+        "uid": "4aa70858-55b0-478e-bf42-acb5b3c8db80",
+        "resourceVersion": "82085",
+        "creationTimestamp": "2024-01-30T02:09:18Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{verrazzano-console}"
+      },
+      "reason": "Created",
+      "message": "Created container verrazzano-console",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:18Z",
+      "lastTimestamp": "2024-01-30T02:09:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9cc2aeb30",
+        "namespace": "verrazzano-system",
+        "uid": "a8f62e3d-f525-4fa4-a0fb-35d2e786e4b5",
+        "resourceVersion": "82091",
+        "creationTimestamp": "2024-01-30T02:09:18Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:18Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{verrazzano-console}"
+      },
+      "reason": "Started",
+      "message": "Started container verrazzano-console",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:18Z",
+      "lastTimestamp": "2024-01-30T02:09:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9cc3811f0",
+        "namespace": "verrazzano-system",
+        "uid": "4fc9a596-fdb5-43a9-81aa-9d2bca03ee8b",
+        "resourceVersion": "82096",
+        "creationTimestamp": "2024-01-30T02:09:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:19Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:18Z",
+      "lastTimestamp": "2024-01-30T02:09:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9d5522611",
+        "namespace": "verrazzano-system",
+        "uid": "4744fda1-6f4c-4fae-9195-6687f62914ca",
+        "resourceVersion": "82105",
+        "creationTimestamp": "2024-01-30T02:09:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:19Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:18Z",
+      "lastTimestamp": "2024-01-30T02:09:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdf9d7ea8ad7",
+        "namespace": "verrazzano-system",
+        "uid": "a566b60d-4989-4d3d-bc6f-8afb4b35fc14",
+        "resourceVersion": "82113",
+        "creationTimestamp": "2024-01-30T02:09:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:19Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:18Z",
+      "lastTimestamp": "2024-01-30T02:09:18Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d-vrncr.17aefdfa16e61cba",
+        "namespace": "verrazzano-system",
+        "uid": "ea3ff9ca-833a-4552-8558-e1c49c41350d",
+        "resourceVersion": "82173",
+        "creationTimestamp": "2024-01-30T02:09:19Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:21Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d-vrncr",
+        "uid": "1f5c653c-1b19-4dbc-8e8c-75d5090a2ee6",
+        "apiVersion": "v1",
+        "resourceVersion": "80908",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-7e111a69a316ce40c58721aac2ac4eb91261261a38fc0d5dcaf06948c091a1fb:15021/healthz/ready\": dial tcp REDACTED-7e111a69a316ce40c58721aac2ac4eb91261261a38fc0d5dcaf06948c091a1fb:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:09:19Z",
+      "lastTimestamp": "2024-01-30T02:09:21Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-console-689bc4584d.17aefdf3126a7c56",
+        "namespace": "verrazzano-system",
+        "uid": "e8ad094b-1d5e-4a74-8cb5-14518145863c",
+        "resourceVersion": "80911",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-console-689bc4584d",
+        "uid": "c89ac547-6523-4b84-85ec-bf77e9926586",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "54696"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: verrazzano-console-689bc4584d-vrncr",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:49Z",
+      "lastTimestamp": "2024-01-30T02:08:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-ingress.17aefdf5f39ee4d0",
+        "namespace": "verrazzano-system",
+        "uid": "938e17a7-b171-433e-95d7-4a615e099e13",
+        "resourceVersion": "81569",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-ingress",
+        "uid": "b63db540-d2a5-4abf-bb78-c64adbf1b82b",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "15495"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-monitoring-operator-776c468498-42pcn.17aefdf449773eda",
+        "namespace": "verrazzano-system",
+        "uid": "bb96d7a2-90d5-4a1a-825c-b322e9909f6f",
+        "resourceVersion": "81949",
+        "creationTimestamp": "2024-01-30T02:08:54Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:14Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "verrazzano-monitoring-operator-776c468498-42pcn",
+        "uid": "f2f4abbd-6214-41a5-9471-0d83710989bc",
+        "apiVersion": "v1",
+        "resourceVersion": "53826",
+        "fieldPath": "spec.containers{verrazzano-monitoring-operator}"
+      },
+      "reason": "Unhealthy",
+      "message": "Liveness probe failed: Get \"http://REDACTED-1305be0421d13f9f33d2c89b2354346e5e9286a20702cf1cffe18b2e8635a8f9:15020/app-health/verrazzano-monitoring-operator/livez\": context deadline exceeded (Client.Timeout exceeded while awaiting headers)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-85995673261762af80f9cca0203cd436750be1779eab2f936dd52cdd94175079"
+      },
+      "firstTimestamp": "2024-01-30T02:08:54Z",
+      "lastTimestamp": "2024-01-30T02:09:14Z",
+      "count": 2,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefdf3840da37e",
+        "namespace": "verrazzano-system",
+        "uid": "5c0750b5-aad9-4308-b9f7-c767b8c5439a",
+        "resourceVersion": "81078",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81074"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/vmi-system-grafana-5c9f45889-47cdc to REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:51.154358Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefdf3891f620d",
+        "namespace": "verrazzano-system",
+        "uid": "ce5a90d4-166b-40dc-b53f-91cd455d77cb",
+        "resourceVersion": "81088",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076"
+      },
+      "reason": "FailedAttachVolume",
+      "message": "Multi-Attach error for volume \"csi-fa564d2a-a290-4cdb-adff-c5bb85357a1d\" Volume is already used by pod(s) vmi-system-grafana-5c9f45889-gn7rz",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe0033d9b492",
+        "namespace": "verrazzano-system",
+        "uid": "e62d168d-ae7c-42cf-93a3-1596ab8df8c7",
+        "resourceVersion": "82612",
+        "creationTimestamp": "2024-01-30T02:09:45Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:45Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076"
+      },
+      "reason": "SuccessfulAttachVolume",
+      "message": "AttachVolume.Attach succeeded for volume \"csi-fa564d2a-a290-4cdb-adff-c5bb85357a1d\" ",
+      "source": {
+        "component": "attachdetach-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:45Z",
+      "lastTimestamp": "2024-01-30T02:09:45Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe1073fa449f",
+        "namespace": "verrazzano-system",
+        "uid": "1b8f2681-8405-42fa-a678-c3f0dd43ddee",
+        "resourceVersion": "83756",
+        "creationTimestamp": "2024-01-30T02:10:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:55Z",
+      "lastTimestamp": "2024-01-30T02:10:55Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe10c9e751b2",
+        "namespace": "verrazzano-system",
+        "uid": "6c8d1ab2-56ef-4bc7-869b-489854f527ff",
+        "resourceVersion": "83849",
+        "creationTimestamp": "2024-01-30T02:10:58Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:58Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:56Z",
+      "lastTimestamp": "2024-01-30T02:10:56Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe10cb86f5f8",
+        "namespace": "verrazzano-system",
+        "uid": "8e2bfdc0-49ae-4599-a686-3a170b96260c",
+        "resourceVersion": "83855",
+        "creationTimestamp": "2024-01-30T02:10:58Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:58Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.initContainers{istio-init}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-init",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:56Z",
+      "lastTimestamp": "2024-01-30T02:10:56Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe1104566aff",
+        "namespace": "verrazzano-system",
+        "uid": "1b7ee0ec-cb0c-4dae-8133-418358b3127b",
+        "resourceVersion": "83946",
+        "creationTimestamp": "2024-01-30T02:11:02Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:11:02Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{grafana}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/grafana:v7.5.17-20240118125055-3baac6db\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:57Z",
+      "lastTimestamp": "2024-01-30T02:10:57Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe293773b6bc",
+        "namespace": "verrazzano-system",
+        "uid": "35af1262-4523-4359-9781-ecad66c1ae2b",
+        "resourceVersion": "85832",
+        "creationTimestamp": "2024-01-30T02:12:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:12:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{grafana}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/grafana:v7.5.17-20240118125055-3baac6db\" in 1m43.936718992s (1m43.936754319s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:12:41Z",
+      "lastTimestamp": "2024-01-30T02:12:41Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe2940938b82",
+        "namespace": "verrazzano-system",
+        "uid": "30a4a416-b515-4692-8ff9-47cb6fec87d3",
+        "resourceVersion": "85835",
+        "creationTimestamp": "2024-01-30T02:12:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:12:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{grafana}"
+      },
+      "reason": "Created",
+      "message": "Created container grafana",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:12:41Z",
+      "lastTimestamp": "2024-01-30T02:12:41Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe2941fab5fe",
+        "namespace": "verrazzano-system",
+        "uid": "bb6eacd8-5ebd-4c8f-b2f3-0df7ee92e66e",
+        "resourceVersion": "85836",
+        "creationTimestamp": "2024-01-30T02:12:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:12:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{grafana}"
+      },
+      "reason": "Started",
+      "message": "Started container grafana",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:12:41Z",
+      "lastTimestamp": "2024-01-30T02:12:41Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe29420c4124",
+        "namespace": "verrazzano-system",
+        "uid": "185e17aa-aa5a-4c79-821f-7a029847fe8e",
+        "resourceVersion": "85837",
+        "creationTimestamp": "2024-01-30T02:12:41Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:12:41Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{k8s-sidecar}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/verrazzano/k8s-sidecar:v1.15.0-20230922083013-7adaf012\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:12:41Z",
+      "lastTimestamp": "2024-01-30T02:12:41Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe42302e597a",
+        "namespace": "verrazzano-system",
+        "uid": "9df08578-0514-4383-ade8-d9134e3a5211",
+        "resourceVersion": "87618",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{k8s-sidecar}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/verrazzano/k8s-sidecar:v1.15.0-20230922083013-7adaf012\" in 1m47.074403261s (1m47.074412208s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe4238f58695",
+        "namespace": "verrazzano-system",
+        "uid": "72951ba7-7bd4-4796-b771-5ccbb0befb8a",
+        "resourceVersion": "87620",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{k8s-sidecar}"
+      },
+      "reason": "Created",
+      "message": "Created container k8s-sidecar",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe423a6b090a",
+        "namespace": "verrazzano-system",
+        "uid": "f0e30d28-3886-4c37-aa5c-5ece20002300",
+        "resourceVersion": "87622",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{k8s-sidecar}"
+      },
+      "reason": "Started",
+      "message": "Started container k8s-sidecar",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe423a7ad064",
+        "namespace": "verrazzano-system",
+        "uid": "ff31e020-933e-4448-88b1-c8bc623d70a7",
+        "resourceVersion": "87623",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Pulled",
+      "message": "Container image \"ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47\" already present on machine",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe4243a4b33a",
+        "namespace": "verrazzano-system",
+        "uid": "d67f09c7-bead-4c39-85f0-d946eeb8cbf8",
+        "resourceVersion": "87627",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Created",
+      "message": "Created container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe424523e90d",
+        "namespace": "verrazzano-system",
+        "uid": "2a5ab4ca-36d3-4406-8078-14fcae9658c7",
+        "resourceVersion": "87628",
+        "creationTimestamp": "2024-01-30T02:14:29Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:29Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Started",
+      "message": "Started container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:29Z",
+      "lastTimestamp": "2024-01-30T02:14:29Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-47cdc.17aefe42877f7539",
+        "namespace": "verrazzano-system",
+        "uid": "c7b5648c-7b3e-4c94-b20e-dab29a937d7b",
+        "resourceVersion": "87669",
+        "creationTimestamp": "2024-01-30T02:14:30Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:14:31Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-47cdc",
+        "uid": "fc425859-860d-4ccd-90b1-5e9b1801bec8",
+        "apiVersion": "v1",
+        "resourceVersion": "81076",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-c1e3b66e0dafaf7542618551952d100982b72e4492b3440399288de3b78336a9:15021/healthz/ready\": dial tcp REDACTED-c1e3b66e0dafaf7542618551952d100982b72e4492b3440399288de3b78336a9:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:14:30Z",
+      "lastTimestamp": "2024-01-30T02:14:31Z",
+      "count": 3,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-gn7rz.17aefb144f03d16c",
+        "namespace": "verrazzano-system",
+        "uid": "1bfd5cb3-f627-4b77-b9dd-09914e34d48c",
+        "resourceVersion": "81475",
+        "creationTimestamp": "2024-01-30T01:16:13Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:59Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-gn7rz",
+        "uid": "bb67ff5a-09e6-4e11-abce-54f643f0cb1e",
+        "apiVersion": "v1",
+        "resourceVersion": "29979",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: Get \"http://REDACTED-ac1b051bcad25a3d6e3372b121f989343acc681e0d950a47882ea5fbb4d08cff:15021/healthz/ready\": dial tcp REDACTED-ac1b051bcad25a3d6e3372b121f989343acc681e0d950a47882ea5fbb4d08cff:15021: connect: connection refused",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T01:16:13Z",
+      "lastTimestamp": "2024-01-30T02:08:53Z",
+      "count": 4,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-gn7rz.17aefdf380c046a7",
+        "namespace": "verrazzano-system",
+        "uid": "932b4e48-be6a-4e88-8864-dfa93dc3686f",
+        "resourceVersion": "81272",
+        "creationTimestamp": "2024-01-30T02:08:53Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-gn7rz",
+        "uid": "bb67ff5a-09e6-4e11-abce-54f643f0cb1e",
+        "apiVersion": "v1",
+        "resourceVersion": "29979",
+        "fieldPath": "spec.containers{grafana}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container grafana",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-gn7rz.17aefdf380ca6061",
+        "namespace": "verrazzano-system",
+        "uid": "f4f2d905-cd61-4424-be16-d601517ea2b6",
+        "resourceVersion": "81292",
+        "creationTimestamp": "2024-01-30T02:08:53Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-gn7rz",
+        "uid": "bb67ff5a-09e6-4e11-abce-54f643f0cb1e",
+        "apiVersion": "v1",
+        "resourceVersion": "29979",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container istio-proxy",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-gn7rz.17aefdf380cb2fc3",
+        "namespace": "verrazzano-system",
+        "uid": "eb510c2b-6e60-4cb1-9707-6d5751c9731c",
+        "resourceVersion": "81298",
+        "creationTimestamp": "2024-01-30T02:08:53Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:53Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-gn7rz",
+        "uid": "bb67ff5a-09e6-4e11-abce-54f643f0cb1e",
+        "apiVersion": "v1",
+        "resourceVersion": "29979",
+        "fieldPath": "spec.containers{k8s-sidecar}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container k8s-sidecar",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889-gn7rz.17aefdf39a84ac7d",
+        "namespace": "verrazzano-system",
+        "uid": "eb190aa6-e7e1-49bc-acdb-64ff7804deb3",
+        "resourceVersion": "81347",
+        "creationTimestamp": "2024-01-30T02:08:55Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:55Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889-gn7rz",
+        "uid": "bb67ff5a-09e6-4e11-abce-54f643f0cb1e",
+        "apiVersion": "v1",
+        "resourceVersion": "29979",
+        "fieldPath": "spec.containers{istio-proxy}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: HTTP probe failed with statuscode: 503",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana-5c9f45889.17aefdf3835546ce",
+        "namespace": "verrazzano-system",
+        "uid": "71f93969-ff21-45fe-a067-b88181909186",
+        "resourceVersion": "81075",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana-5c9f45889",
+        "uid": "b01b49c0-6f0a-4070-a0b4-1e6395a8f477",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "30798"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: vmi-system-grafana-5c9f45889-47cdc",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-grafana.17aefdf5f3b3fd03",
+        "namespace": "verrazzano-system",
+        "uid": "621c20ac-c88b-4008-a729-db1a83efab3b",
+        "resourceVersion": "81570",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-grafana",
+        "uid": "39fc3787-b499-414d-abea-0efbb6beaf82",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "15502"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-kiali.17aefdf5f3c57f56",
+        "namespace": "verrazzano-system",
+        "uid": "60e06631-7e27-47a2-89d5-d3eb1463ba66",
+        "resourceVersion": "81571",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-kiali",
+        "uid": "6f9fa77d-cf72-45d6-b089-4833e5b31d83",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "17825"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "vmi-system-prometheus.17aefdf5f3dcc9b1",
+        "namespace": "verrazzano-system",
+        "uid": "118d91b1-95e0-461e-8c15-f22e6cdf637c",
+        "resourceVersion": "81572",
+        "creationTimestamp": "2024-01-30T02:09:01Z",
+        "managedFields": [
+          {
+            "manager": "nginx-ingress-controller",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:09:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Ingress",
+        "namespace": "verrazzano-system",
+        "name": "vmi-system-prometheus",
+        "uid": "53f12fa7-7445-48ae-86c7-07032d5dd1b0",
+        "apiVersion": "networking.k8s.io/v1",
+        "resourceVersion": "21327"
+      },
+      "reason": "Sync",
+      "message": "Scheduled for sync",
+      "source": {
+        "component": "nginx-ingress-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:09:01Z",
+      "lastTimestamp": "2024-01-30T02:09:01Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-cwkx6.17aefdf2fb6af5d0",
+        "namespace": "verrazzano-system",
+        "uid": "ff312aab-a22b-43ea-91f2-4bb245b3babe",
+        "resourceVersion": "80848",
+        "creationTimestamp": "2024-01-30T02:08:48Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:48Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-cwkx6",
+        "uid": "2122bb57-76ca-4d15-9d7d-7dc77f279bbb",
+        "apiVersion": "v1",
+        "resourceVersion": "11850",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Killing",
+      "message": "Stopping container weblogic-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:48Z",
+      "lastTimestamp": "2024-01-30T02:08:48Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-cwkx6.17aefdf34938b3d9",
+        "namespace": "verrazzano-system",
+        "uid": "b5984a72-3728-4799-8361-e17cf3e26687",
+        "resourceVersion": "81132",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-cwkx6",
+        "uid": "2122bb57-76ca-4d15-9d7d-7dc77f279bbb",
+        "apiVersion": "v1",
+        "resourceVersion": "11850",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "FailedPreStopHook",
+      "message": "Exec lifecycle hook ([/deployment/stop.sh]) for Container \"weblogic-operator-webhook\" in Pod \"weblogic-operator-webhook-fcc69d87c-cwkx6_verrazzano-system(2122bb57-76ca-4d15-9d7d-7dc77f279bbb)\" failed - error: command '/deployment/stop.sh' exited with 137: , message: \"Setting stop signal\\n\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-bec61fe2d60321c6037471113f665630de6b440a28f2ad5c06055808c1592ec8"
+      },
+      "firstTimestamp": "2024-01-30T02:08:50Z",
+      "lastTimestamp": "2024-01-30T02:08:50Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefdf30ff2225a",
+        "namespace": "verrazzano-system",
+        "uid": "335b6d3b-1e8e-4e09-901f-266f23ff334f",
+        "resourceVersion": "80900",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-scheduler",
+            "operation": "Update",
+            "apiVersion": "events.k8s.io/v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:action": {},
+              "f:eventTime": {},
+              "f:note": {},
+              "f:reason": {},
+              "f:regarding": {},
+              "f:reportingController": {},
+              "f:reportingInstance": {},
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80892"
+      },
+      "reason": "Scheduled",
+      "message": "Successfully assigned verrazzano-system/weblogic-operator-webhook-fcc69d87c-wxq6t to REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956",
+      "source": {},
+      "firstTimestamp": null,
+      "lastTimestamp": null,
+      "type": "Normal",
+      "eventTime": "2024-01-30T02:08:49.206398Z",
+      "action": "Binding",
+      "reportingComponent": "default-scheduler",
+      "reportingInstance": "default-scheduler-control-plane-host-10-64-197-54"
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefdf386ea7782",
+        "namespace": "verrazzano-system",
+        "uid": "03b6c1b0-fc27-4c25-b925-314f5a3d7844",
+        "resourceVersion": "81083",
+        "creationTimestamp": "2024-01-30T02:08:51Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:51Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80897",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Pulling",
+      "message": "Pulling image \"ghcr.io/oracle/weblogic-kubernetes-operator:4.1.4\"",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:08:51Z",
+      "lastTimestamp": "2024-01-30T02:08:51Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefe10c51d88f3",
+        "namespace": "verrazzano-system",
+        "uid": "1277fb76-e73c-4faf-9ff3-d768d9fe498c",
+        "resourceVersion": "83809",
+        "creationTimestamp": "2024-01-30T02:10:56Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:56Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80897",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Pulled",
+      "message": "Successfully pulled image \"ghcr.io/oracle/weblogic-kubernetes-operator:4.1.4\" in 2m5.597552664s (2m5.597570137s including waiting)",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:56Z",
+      "lastTimestamp": "2024-01-30T02:10:56Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefe10da5a1c55",
+        "namespace": "verrazzano-system",
+        "uid": "009ba240-1d56-4e4a-8ce7-717205864a8d",
+        "resourceVersion": "83889",
+        "creationTimestamp": "2024-01-30T02:10:59Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:10:59Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80897",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Created",
+      "message": "Created container weblogic-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:57Z",
+      "lastTimestamp": "2024-01-30T02:10:57Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefe10df21fb4b",
+        "namespace": "verrazzano-system",
+        "uid": "d67e1dca-b2d1-46ce-b073-d88e7355010e",
+        "resourceVersion": "83913",
+        "creationTimestamp": "2024-01-30T02:11:00Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:11:00Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80897",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Started",
+      "message": "Started container weblogic-operator-webhook",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:10:57Z",
+      "lastTimestamp": "2024-01-30T02:10:57Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t.17aefe1186aea9d4",
+        "namespace": "verrazzano-system",
+        "uid": "b64fab3a-37b7-4d83-9046-8614a0e06f4f",
+        "resourceVersion": "84026",
+        "creationTimestamp": "2024-01-30T02:11:05Z",
+        "managedFields": [
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:11:05Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {},
+                "f:host": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "Pod",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c-wxq6t",
+        "uid": "5d08d8b3-1237-4268-96b3-51584477809d",
+        "apiVersion": "v1",
+        "resourceVersion": "80897",
+        "fieldPath": "spec.containers{weblogic-operator-webhook}"
+      },
+      "reason": "Unhealthy",
+      "message": "Readiness probe failed: ",
+      "source": {
+        "component": "kubelet",
+        "host": "REDACTED-a3947847a83c6f345e3fb8e952ccbe163984bdecb6e6868a3ef6ac4ce4490956"
+      },
+      "firstTimestamp": "2024-01-30T02:11:00Z",
+      "lastTimestamp": "2024-01-30T02:11:00Z",
+      "count": 1,
+      "type": "Warning",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    },
+    {
+      "metadata": {
+        "name": "weblogic-operator-webhook-fcc69d87c.17aefdf30cf04d70",
+        "namespace": "verrazzano-system",
+        "uid": "8688de26-f3d5-4d93-be67-70417712c8d8",
+        "resourceVersion": "80905",
+        "creationTimestamp": "2024-01-30T02:08:49Z",
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:08:49Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:count": {},
+              "f:firstTimestamp": {},
+              "f:involvedObject": {},
+              "f:lastTimestamp": {},
+              "f:message": {},
+              "f:reason": {},
+              "f:source": {
+                "f:component": {}
+              },
+              "f:type": {}
+            }
+          }
+        ]
+      },
+      "involvedObject": {
+        "kind": "ReplicaSet",
+        "namespace": "verrazzano-system",
+        "name": "weblogic-operator-webhook-fcc69d87c",
+        "uid": "46a199e5-a239-4eca-9d0f-10705f631e06",
+        "apiVersion": "apps/v1",
+        "resourceVersion": "17248"
+      },
+      "reason": "SuccessfulCreate",
+      "message": "Created pod: weblogic-operator-webhook-fcc69d87c-wxq6t",
+      "source": {
+        "component": "replicaset-controller"
+      },
+      "firstTimestamp": "2024-01-30T02:08:49Z",
+      "lastTimestamp": "2024-01-30T02:08:49Z",
+      "count": 1,
+      "type": "Normal",
+      "eventTime": null,
+      "reportingComponent": "",
+      "reportingInstance": ""
+    }
+  ]
+}

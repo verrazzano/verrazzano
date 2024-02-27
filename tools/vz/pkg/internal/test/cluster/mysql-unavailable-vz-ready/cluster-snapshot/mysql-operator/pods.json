@@ -1,0 +1,775 @@
+{
+  "metadata": {
+    "resourceVersion": "131799"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql-operator-5b7984f478-k6npf",
+        "generateName": "mysql-operator-5b7984f478-",
+        "namespace": "mysql-operator",
+        "uid": "66b57cbc-643b-4311-9d02-c749a83b58e0",
+        "resourceVersion": "131037",
+        "creationTimestamp": "2024-01-30T02:58:16Z",
+        "labels": {
+          "name": "mysql-operator",
+          "pod-template-hash": "5b7984f478",
+          "security.istio.io/tlsMode": "istio",
+          "service.istio.io/canonical-name": "mysql-operator",
+          "service.istio.io/canonical-revision": "latest"
+        },
+        "annotations": {
+          "istio.io/rev": "default",
+          "kubectl.kubernetes.io/default-container": "mysql-operator",
+          "kubectl.kubernetes.io/default-logs-container": "mysql-operator",
+          "sidecar.istio.io/status": "{\"initContainers\":[\"istio-init\"],\"containers\":[\"istio-proxy\"],\"volumes\":[\"workload-socket\",\"credential-socket\",\"workload-certs\",\"istio-envoy\",\"istio-data\",\"istio-podinfo\",\"istio-token\",\"istiod-ca-cert\"],\"imagePullSecrets\":[\"verrazzano-container-registry\"],\"revision\":\"default\"}",
+          "traffic.sidecar.istio.io/excludeOutboundPorts": "443"
+        },
+        "ownerReferences": [
+          {
+            "apiVersion": "apps/v1",
+            "kind": "ReplicaSet",
+            "name": "mysql-operator-5b7984f478",
+            "uid": "7c98cc93-fad9-4fc6-8d1c-962ad0402ef7",
+            "controller": true,
+            "blockOwnerDeletion": true
+          }
+        ],
+        "managedFields": [
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:58:16Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:traffic.sidecar.istio.io/excludeOutboundPorts": {}
+                },
+                "f:generateName": {},
+                "f:labels": {
+                  ".": {},
+                  "f:name": {},
+                  "f:pod-template-hash": {}
+                },
+                "f:ownerReferences": {
+                  ".": {},
+                  "k:{\"uid\":\"7c98cc93-fad9-4fc6-8d1c-962ad0402ef7\"}": {}
+                }
+              },
+              "f:spec": {
+                "f:containers": {
+                  "k:{\"name\":\"mysql-operator\"}": {
+                    ".": {},
+                    "f:args": {},
+                    "f:env": {
+                      ".": {},
+                      "k:{\"name\":\"MYSQLSH_USER_CONFIG_HOME\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:value": {}
+                      },
+                      "k:{\"name\":\"MYSQL_OPERATOR_DEFAULT_REPOSITORY\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:value": {}
+                      },
+                      "k:{\"name\":\"MYSQL_OPERATOR_IMAGE_PULL_POLICY\"}": {
+                        ".": {},
+                        "f:name": {},
+                        "f:value": {}
+                      }
+                    },
+                    "f:image": {},
+                    "f:imagePullPolicy": {},
+                    "f:name": {},
+                    "f:resources": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:allowPrivilegeEscalation": {},
+                      "f:capabilities": {
+                        ".": {},
+                        "f:drop": {}
+                      },
+                      "f:privileged": {},
+                      "f:readOnlyRootFilesystem": {}
+                    },
+                    "f:terminationMessagePath": {},
+                    "f:terminationMessagePolicy": {},
+                    "f:volumeMounts": {
+                      ".": {},
+                      "k:{\"mountPath\":\"/mysqlsh\"}": {
+                        ".": {},
+                        "f:mountPath": {},
+                        "f:name": {}
+                      }
+                    }
+                  }
+                },
+                "f:dnsPolicy": {},
+                "f:enableServiceLinks": {},
+                "f:restartPolicy": {},
+                "f:schedulerName": {},
+                "f:securityContext": {
+                  ".": {},
+                  "f:runAsGroup": {},
+                  "f:runAsNonRoot": {},
+                  "f:runAsUser": {},
+                  "f:seccompProfile": {
+                    ".": {},
+                    "f:type": {}
+                  }
+                },
+                "f:serviceAccount": {},
+                "f:serviceAccountName": {},
+                "f:terminationGracePeriodSeconds": {},
+                "f:volumes": {
+                  ".": {},
+                  "k:{\"name\":\"mysqlsh-home\"}": {
+                    ".": {},
+                    "f:emptyDir": {},
+                    "f:name": {}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kubelet",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T02:58:22Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:status": {
+                "f:conditions": {
+                  "k:{\"type\":\"ContainersReady\"}": {
+                    ".": {},
+                    "f:lastProbeTime": {},
+                    "f:lastTransitionTime": {},
+                    "f:status": {},
+                    "f:type": {}
+                  },
+                  "k:{\"type\":\"Initialized\"}": {
+                    ".": {},
+                    "f:lastProbeTime": {},
+                    "f:lastTransitionTime": {},
+                    "f:status": {},
+                    "f:type": {}
+                  },
+                  "k:{\"type\":\"Ready\"}": {
+                    ".": {},
+                    "f:lastProbeTime": {},
+                    "f:lastTransitionTime": {},
+                    "f:status": {},
+                    "f:type": {}
+                  }
+                },
+                "f:containerStatuses": {},
+                "f:hostIP": {},
+                "f:initContainerStatuses": {},
+                "f:phase": {},
+                "f:podIP": {},
+                "f:podIPs": {
+                  ".": {},
+                  "k:{\"ip\":\"REDACTED-ee9f1be90be9e2b87db2dc75fe5b6f507a6d754939230cd1f43535700a244465\"}": {
+                    ".": {},
+                    "f:ip": {}
+                  }
+                },
+                "f:startTime": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "volumes": [
+          {
+            "name": "workload-socket",
+            "emptyDir": {}
+          },
+          {
+            "name": "credential-socket",
+            "emptyDir": {}
+          },
+          {
+            "name": "workload-certs",
+            "emptyDir": {}
+          },
+          {
+            "name": "istio-envoy",
+            "emptyDir": {
+              "medium": "Memory"
+            }
+          },
+          {
+            "name": "istio-data",
+            "emptyDir": {}
+          },
+          {
+            "name": "istio-podinfo",
+            "downwardAPI": {
+              "items": [
+                {
+                  "path": "labels",
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.labels"
+                  }
+                },
+                {
+                  "path": "annotations",
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.annotations"
+                  }
+                }
+              ],
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "istio-token",
+            "projected": {
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "audience": "istio-ca",
+                    "expirationSeconds": 43200,
+                    "path": "istio-token"
+                  }
+                }
+              ],
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "istiod-ca-cert",
+            "configMap": {
+              "name": "istio-ca-root-cert",
+              "defaultMode": 420
+            }
+          },
+          {
+            "name": "mysqlsh-home",
+            "emptyDir": {}
+          },
+          {
+            "name": "kube-api-access-85sg4",
+            "projected": {
+              "sources": [
+                {
+                  "serviceAccountToken": {
+                    "expirationSeconds": 3607,
+                    "path": "token"
+                  }
+                },
+                {
+                  "configMap": {
+                    "name": "kube-root-ca.crt",
+                    "items": [
+                      {
+                        "key": "ca.crt",
+                        "path": "ca.crt"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "downwardAPI": {
+                    "items": [
+                      {
+                        "path": "namespace",
+                        "fieldRef": {
+                          "apiVersion": "v1",
+                          "fieldPath": "metadata.namespace"
+                        }
+                      }
+                    ]
+                  }
+                }
+              ],
+              "defaultMode": 420
+            }
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "istio-init",
+            "image": "ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47",
+            "args": [
+              "istio-iptables",
+              "-p",
+              "15001",
+              "-z",
+              "15006",
+              "-u",
+              "1337",
+              "-m",
+              "REDIRECT",
+              "-i",
+              "*",
+              "-x",
+              "",
+              "-b",
+              "*",
+              "-d",
+              "15090,15021,15020",
+              "-o",
+              "443",
+              "--log_output_level=default:info"
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "volumeMounts": [
+              {
+                "name": "kube-api-access-85sg4",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent",
+            "securityContext": {
+              "capabilities": {
+                "add": [
+                  "NET_ADMIN",
+                  "NET_RAW"
+                ],
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsUser": 0,
+              "runAsGroup": 0,
+              "runAsNonRoot": false,
+              "readOnlyRootFilesystem": false,
+              "allowPrivilegeEscalation": false
+            }
+          }
+        ],
+        "containers": [
+          {
+            "name": "mysql-operator",
+            "image": "ghcr.io/verrazzano/mysql-operator:8.0.32-2.0.8",
+            "args": [
+              "mysqlsh",
+              "--log-level=@INFO",
+              "--pym",
+              "mysqloperator",
+              "operator"
+            ],
+            "env": [
+              {
+                "name": "MYSQLSH_USER_CONFIG_HOME",
+                "value": "/mysqlsh"
+              },
+              {
+                "name": "MYSQL_OPERATOR_DEFAULT_REPOSITORY",
+                "value": "ghcr.io/verrazzano"
+              },
+              {
+                "name": "MYSQL_OPERATOR_IMAGE_PULL_POLICY",
+                "value": "IfNotPresent"
+              }
+            ],
+            "resources": {},
+            "volumeMounts": [
+              {
+                "name": "mysqlsh-home",
+                "mountPath": "/mysqlsh"
+              },
+              {
+                "name": "kube-api-access-85sg4",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent",
+            "securityContext": {
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "readOnlyRootFilesystem": true,
+              "allowPrivilegeEscalation": false
+            }
+          },
+          {
+            "name": "istio-proxy",
+            "image": "ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47",
+            "args": [
+              "proxy",
+              "sidecar",
+              "--domain",
+              "$(POD_NAMESPACE).svc.cluster.local",
+              "--proxyLogLevel=warning",
+              "--proxyComponentLogLevel=misc:error",
+              "--log_output_level=default:info"
+            ],
+            "ports": [
+              {
+                "name": "http-envoy-prom",
+                "containerPort": 15090,
+                "protocol": "TCP"
+              }
+            ],
+            "env": [
+              {
+                "name": "JWT_POLICY",
+                "value": "third-party-jwt"
+              },
+              {
+                "name": "PILOT_CERT_PROVIDER",
+                "value": "istiod"
+              },
+              {
+                "name": "CA_ADDR",
+                "value": "istiod.istio-system.svc:15012"
+              },
+              {
+                "name": "POD_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.name"
+                  }
+                }
+              },
+              {
+                "name": "POD_NAMESPACE",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "metadata.namespace"
+                  }
+                }
+              },
+              {
+                "name": "INSTANCE_IP",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "status.podIP"
+                  }
+                }
+              },
+              {
+                "name": "SERVICE_ACCOUNT",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "spec.serviceAccountName"
+                  }
+                }
+              },
+              {
+                "name": "HOST_IP",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "status.hostIP"
+                  }
+                }
+              },
+              {
+                "name": "ISTIO_CPU_LIMIT",
+                "valueFrom": {
+                  "resourceFieldRef": {
+                    "resource": "limits.cpu",
+                    "divisor": "0"
+                  }
+                }
+              },
+              {
+                "name": "PROXY_CONFIG",
+                "value": "{\"tracing\":{\"zipkin\":{\"address\":\"jaeger-operator-jaeger-collector.verrazzano-monitoring.svc.cluster.local.:9411\"},\"tlsSettings\":{\"mode\":\"ISTIO_MUTUAL\"}}}\n"
+              },
+              {
+                "name": "ISTIO_META_POD_PORTS",
+                "value": "[\n]"
+              },
+              {
+                "name": "ISTIO_META_APP_CONTAINERS",
+                "value": "mysql-operator"
+              },
+              {
+                "name": "GOMEMLIMIT",
+                "valueFrom": {
+                  "resourceFieldRef": {
+                    "resource": "limits.memory",
+                    "divisor": "0"
+                  }
+                }
+              },
+              {
+                "name": "GOMAXPROCS",
+                "valueFrom": {
+                  "resourceFieldRef": {
+                    "resource": "limits.cpu",
+                    "divisor": "0"
+                  }
+                }
+              },
+              {
+                "name": "ISTIO_META_CLUSTER_ID",
+                "value": "Kubernetes"
+              },
+              {
+                "name": "ISTIO_META_NODE_NAME",
+                "valueFrom": {
+                  "fieldRef": {
+                    "apiVersion": "v1",
+                    "fieldPath": "spec.nodeName"
+                  }
+                }
+              },
+              {
+                "name": "ISTIO_META_INTERCEPTION_MODE",
+                "value": "REDIRECT"
+              },
+              {
+                "name": "ISTIO_META_WORKLOAD_NAME",
+                "value": "mysql-operator"
+              },
+              {
+                "name": "ISTIO_META_OWNER",
+                "value": "kubernetes://apis/apps/v1/namespaces/mysql-operator/deployments/mysql-operator"
+              },
+              {
+                "name": "ISTIO_META_MESH_ID",
+                "value": "cluster.local"
+              },
+              {
+                "name": "TRUST_DOMAIN",
+                "value": "cluster.local"
+              }
+            ],
+            "resources": {
+              "limits": {
+                "cpu": "2",
+                "memory": "1Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "volumeMounts": [
+              {
+                "name": "workload-socket",
+                "mountPath": "/var/run/secrets/workload-spiffe-uds"
+              },
+              {
+                "name": "credential-socket",
+                "mountPath": "/var/run/secrets/credential-uds"
+              },
+              {
+                "name": "workload-certs",
+                "mountPath": "/var/run/secrets/workload-spiffe-credentials"
+              },
+              {
+                "name": "istiod-ca-cert",
+                "mountPath": "/var/run/secrets/istio"
+              },
+              {
+                "name": "istio-data",
+                "mountPath": "/var/lib/istio/data"
+              },
+              {
+                "name": "istio-envoy",
+                "mountPath": "/etc/istio/proxy"
+              },
+              {
+                "name": "istio-token",
+                "mountPath": "/var/run/secrets/tokens"
+              },
+              {
+                "name": "istio-podinfo",
+                "mountPath": "/etc/istio/pod"
+              },
+              {
+                "name": "kube-api-access-85sg4",
+                "readOnly": true,
+                "mountPath": "/var/run/secrets/kubernetes.io/serviceaccount"
+              }
+            ],
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/healthz/ready",
+                "port": 15021,
+                "scheme": "HTTP"
+              },
+              "initialDelaySeconds": 1,
+              "timeoutSeconds": 3,
+              "periodSeconds": 2,
+              "successThreshold": 1,
+              "failureThreshold": 90
+            },
+            "terminationMessagePath": "/dev/termination-log",
+            "terminationMessagePolicy": "File",
+            "imagePullPolicy": "IfNotPresent",
+            "securityContext": {
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "privileged": false,
+              "runAsUser": 1337,
+              "runAsGroup": 1337,
+              "runAsNonRoot": true,
+              "readOnlyRootFilesystem": true,
+              "allowPrivilegeEscalation": false
+            }
+          }
+        ],
+        "restartPolicy": "Always",
+        "terminationGracePeriodSeconds": 30,
+        "dnsPolicy": "ClusterFirst",
+        "serviceAccountName": "mysql-operator-sa",
+        "serviceAccount": "mysql-operator-sa",
+        "nodeName": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0",
+        "securityContext": {
+          "runAsUser": 27,
+          "runAsGroup": 27,
+          "runAsNonRoot": true,
+          "seccompProfile": {
+            "type": "RuntimeDefault"
+          }
+        },
+        "imagePullSecrets": [
+          {
+            "name": "verrazzano-container-registry"
+          }
+        ],
+        "schedulerName": "default-scheduler",
+        "tolerations": [
+          {
+            "key": "node.kubernetes.io/not-ready",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          },
+          {
+            "key": "node.kubernetes.io/unreachable",
+            "operator": "Exists",
+            "effect": "NoExecute",
+            "tolerationSeconds": 300
+          }
+        ],
+        "priority": 0,
+        "enableServiceLinks": true,
+        "preemptionPolicy": "PreemptLowerPriority"
+      },
+      "status": {
+        "phase": "Running",
+        "conditions": [
+          {
+            "type": "Initialized",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:58:17Z"
+          },
+          {
+            "type": "Ready",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:58:22Z"
+          },
+          {
+            "type": "ContainersReady",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:58:22Z"
+          },
+          {
+            "type": "PodScheduled",
+            "status": "True",
+            "lastProbeTime": null,
+            "lastTransitionTime": "2024-01-30T02:58:16Z"
+          }
+        ],
+        "hostIP": "REDACTED-827b655d98740402d6cd3c63f0f9e888a29b2fe8286a8a8470495efd0534cad0",
+        "podIP": "REDACTED-ee9f1be90be9e2b87db2dc75fe5b6f507a6d754939230cd1f43535700a244465",
+        "podIPs": [
+          {
+            "ip": "REDACTED-ee9f1be90be9e2b87db2dc75fe5b6f507a6d754939230cd1f43535700a244465"
+          }
+        ],
+        "startTime": "2024-01-30T02:58:16Z",
+        "initContainerStatuses": [
+          {
+            "name": "istio-init",
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed",
+                "startedAt": "2024-01-30T02:58:16Z",
+                "finishedAt": "2024-01-30T02:58:16Z",
+                "containerID": "cri-o://00353e564a46218d475e0638200188f594fbe12228800cf1bf48da8d455877e6"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47",
+            "imageID": "ghcr.io/verrazzano/proxyv2@sha256:d65fa7363a0303ff0bcbe5e779de3f1d59ee88994a92f33147e003b552b7a087",
+            "containerID": "cri-o://00353e564a46218d475e0638200188f594fbe12228800cf1bf48da8d455877e6"
+          }
+        ],
+        "containerStatuses": [
+          {
+            "name": "istio-proxy",
+            "state": {
+              "running": {
+                "startedAt": "2024-01-30T02:58:17Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/proxyv2:1.19.3-20240104211928-419dfb47",
+            "imageID": "ghcr.io/verrazzano/proxyv2@sha256:d65fa7363a0303ff0bcbe5e779de3f1d59ee88994a92f33147e003b552b7a087",
+            "containerID": "cri-o://2769e92522218f1f8b457ff0afae016ca6ecfcee3b2336e15945ffd27ee3b143",
+            "started": true
+          },
+          {
+            "name": "mysql-operator",
+            "state": {
+              "running": {
+                "startedAt": "2024-01-30T02:58:17Z"
+              }
+            },
+            "lastState": {},
+            "ready": true,
+            "restartCount": 0,
+            "image": "ghcr.io/verrazzano/mysql-operator:8.0.32-2.0.8",
+            "imageID": "ghcr.io/verrazzano/mysql-operator@sha256:20f5eef07f2be4f5ce5bf8e329cdb73f125d66ca5cb02eb4219780e944777c76",
+            "containerID": "cri-o://7b66811c88769c1109ff3c98063b3a4caf0d28e7a23a4ccc2f6206cb26e5b971",
+            "started": true
+          }
+        ],
+        "qosClass": "Burstable"
+      }
+    }
+  ]
+}

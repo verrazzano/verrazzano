@@ -1,0 +1,796 @@
+{
+  "metadata": {
+    "resourceVersion": "131783"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "verrazzano-platform-operator",
+        "namespace": "verrazzano-install",
+        "uid": "2e99b987-cf7a-4f47-83e4-8ac9f00427f8",
+        "resourceVersion": "3353",
+        "generation": 1,
+        "creationTimestamp": "2024-01-30T00:41:35Z",
+        "labels": {
+          "app": "verrazzano-platform-operator",
+          "app.kubernetes.io/version": "2.0.0"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator\",\"app.kubernetes.io/version\":\"2.0.0\"},\"name\":\"verrazzano-platform-operator\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"verrazzano-platform-operator\"}},\"strategy\":{\"type\":\"Recreate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"verrazzano-platform-operator\",\"app.kubernetes.io/version\":\"2.0.0\"}},\"spec\":{\"affinity\":{\"podAntiAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"podAffinityTerm\":{\"labelSelector\":{\"matchExpressions\":[{\"key\":\"app\",\"operator\":\"In\",\"values\":[\"verrazzano-platform-operator\"]}]},\"topologyKey\":\"kubernetes.io/hostname\"},\"weight\":100}]}},\"containers\":[{\"args\":[\"--zap-log-level=info\",\"--health-check-period=60\"],\"env\":[{\"name\":\"VERRAZZANO_KUBECONFIG\",\"value\":\"/home/verrazzano/kubeconfig\"},{\"name\":\"KUBECONFIG\",\"value\":\"/home/verrazzano/kubeconfig\"},{\"name\":\"GOPROXY\",\"value\":\"direct\"},{\"name\":\"GITHUB_TOKEN\",\"valueFrom\":{\"secretKeyRef\":{\"key\":\"GITHUB_TOKEN\",\"name\":\"verrazzano-github-token\",\"optional\":true}}}],\"image\":\"ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"verrazzano-platform-operator\",\"ports\":[{\"containerPort\":9100,\"name\":\"http-metric\",\"protocol\":\"TCP\"}],\"resources\":{\"requests\":{\"memory\":\"72Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"privileged\":false}}],\"initContainers\":[{\"command\":[\"sh\",\"-c\",\"/verrazzano/platform-operator/scripts/wait4webhook.sh\"],\"image\":\"ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"webhookswait\",\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"privileged\":false}}],\"securityContext\":{\"runAsGroup\":999,\"runAsNonRoot\":true,\"runAsUser\":1000,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"verrazzano-platform-operator\",\"terminationGracePeriodSeconds\":0}}}}\n"
+        },
+        "managedFields": [
+          {
+            "manager": "vz",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T00:41:35Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/version": {}
+                }
+              },
+              "f:spec": {
+                "f:progressDeadlineSeconds": {},
+                "f:replicas": {},
+                "f:revisionHistoryLimit": {},
+                "f:selector": {},
+                "f:strategy": {
+                  "f:type": {}
+                },
+                "f:template": {
+                  "f:metadata": {
+                    "f:labels": {
+                      ".": {},
+                      "f:app": {},
+                      "f:app.kubernetes.io/version": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:containers": {
+                      "k:{\"name\":\"verrazzano-platform-operator\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:env": {
+                          ".": {},
+                          "k:{\"name\":\"GITHUB_TOKEN\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:valueFrom": {
+                              ".": {},
+                              "f:secretKeyRef": {}
+                            }
+                          },
+                          "k:{\"name\":\"GOPROXY\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"KUBECONFIG\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          },
+                          "k:{\"name\":\"VERRAZZANO_KUBECONFIG\"}": {
+                            ".": {},
+                            "f:name": {},
+                            "f:value": {}
+                          }
+                        },
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":9100,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {}
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:initContainers": {
+                      ".": {},
+                      "k:{\"name\":\"webhookswait\"}": {
+                        ".": {},
+                        "f:command": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {},
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {}
+                      }
+                    },
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:runAsGroup": {},
+                      "f:runAsNonRoot": {},
+                      "f:runAsUser": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {}
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T00:44:15Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:deployment.kubernetes.io/revision": {}
+                }
+              },
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:conditions": {
+                  ".": {},
+                  "k:{\"type\":\"Available\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  },
+                  "k:{\"type\":\"Progressing\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  }
+                },
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {},
+                "f:updatedReplicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 1,
+        "selector": {
+          "matchLabels": {
+            "app": "verrazzano-platform-operator"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "verrazzano-platform-operator",
+              "app.kubernetes.io/version": "2.0.0"
+            }
+          },
+          "spec": {
+            "initContainers": [
+              {
+                "name": "webhookswait",
+                "image": "ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee",
+                "command": [
+                  "sh",
+                  "-c",
+                  "/verrazzano/platform-operator/scripts/wait4webhook.sh"
+                ],
+                "resources": {},
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "containers": [
+              {
+                "name": "verrazzano-platform-operator",
+                "image": "ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee",
+                "args": [
+                  "--zap-log-level=info",
+                  "--health-check-period=60"
+                ],
+                "ports": [
+                  {
+                    "name": "http-metric",
+                    "containerPort": 9100,
+                    "protocol": "TCP"
+                  }
+                ],
+                "env": [
+                  {
+                    "name": "VERRAZZANO_KUBECONFIG",
+                    "value": "/home/verrazzano/kubeconfig"
+                  },
+                  {
+                    "name": "KUBECONFIG",
+                    "value": "/home/verrazzano/kubeconfig"
+                  },
+                  {
+                    "name": "GOPROXY",
+                    "value": "direct"
+                  },
+                  {
+                    "name": "GITHUB_TOKEN",
+                    "valueFrom": {
+                      "secretKeyRef": {
+                        "name": "verrazzano-github-token",
+                        "key": "GITHUB_TOKEN",
+                        "optional": true
+                      }
+                    }
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "memory": "72Mi"
+                  }
+                },
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 0,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "verrazzano-platform-operator",
+            "serviceAccount": "verrazzano-platform-operator",
+            "securityContext": {
+              "runAsUser": 1000,
+              "runAsGroup": 999,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "weight": 100,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchExpressions": [
+                          {
+                            "key": "app",
+                            "operator": "In",
+                            "values": [
+                              "verrazzano-platform-operator"
+                            ]
+                          }
+                        ]
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    }
+                  }
+                ]
+              }
+            },
+            "schedulerName": "default-scheduler"
+          }
+        },
+        "strategy": {
+          "type": "Recreate"
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 1,
+        "replicas": 1,
+        "updatedReplicas": 1,
+        "readyReplicas": 1,
+        "availableReplicas": 1,
+        "conditions": [
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2024-01-30T00:44:15Z",
+            "lastTransitionTime": "2024-01-30T00:44:15Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          },
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2024-01-30T00:44:15Z",
+            "lastTransitionTime": "2024-01-30T00:41:35Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"verrazzano-platform-operator-557d565c78\" has successfully progressed."
+          }
+        ]
+      }
+    },
+    {
+      "metadata": {
+        "name": "verrazzano-platform-operator-webhook",
+        "namespace": "verrazzano-install",
+        "uid": "efb8e7a4-f9c5-4caa-818a-be55d345296b",
+        "resourceVersion": "83919",
+        "generation": 2,
+        "creationTimestamp": "2024-01-30T00:41:36Z",
+        "labels": {
+          "app": "verrazzano-platform-operator-webhook",
+          "app.kubernetes.io/version": "2.0.0"
+        },
+        "annotations": {
+          "deployment.kubernetes.io/revision": "1",
+          "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps/v1\",\"kind\":\"Deployment\",\"metadata\":{\"annotations\":{},\"labels\":{\"app\":\"verrazzano-platform-operator-webhook\",\"app.kubernetes.io/version\":\"2.0.0\"},\"name\":\"verrazzano-platform-operator-webhook\",\"namespace\":\"verrazzano-install\"},\"spec\":{\"replicas\":1,\"selector\":{\"matchLabels\":{\"app\":\"verrazzano-platform-operator-webhook\"}},\"strategy\":{\"rollingUpdate\":{\"maxSurge\":1,\"maxUnavailable\":0},\"type\":\"RollingUpdate\"},\"template\":{\"metadata\":{\"labels\":{\"app\":\"verrazzano-platform-operator-webhook\",\"app.kubernetes.io/version\":\"2.0.0\"}},\"spec\":{\"affinity\":{\"podAntiAffinity\":{\"preferredDuringSchedulingIgnoredDuringExecution\":[{\"podAffinityTerm\":{\"labelSelector\":{\"matchExpressions\":[{\"key\":\"app\",\"operator\":\"In\",\"values\":[\"verrazzano-platform-operator-webhook\"]}]},\"topologyKey\":\"kubernetes.io/hostname\"},\"weight\":100}]}},\"containers\":[{\"args\":[\"--zap-log-level=info\",\"--run-webhooks=true\",\"--resource-validation=false\"],\"image\":\"ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"webhook-run\",\"ports\":[{\"containerPort\":9100,\"name\":\"http-metric\",\"protocol\":\"TCP\"},{\"containerPort\":9443,\"name\":\"webhook\",\"protocol\":\"TCP\"}],\"resources\":{\"requests\":{\"memory\":\"72Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"privileged\":false},\"volumeMounts\":[{\"mountPath\":\"/etc/webhook/certs\",\"name\":\"webhook-certs\"}]}],\"initContainers\":[{\"args\":[\"--zap-log-level=info\",\"--run-webhook-init=true\"],\"image\":\"ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee\",\"imagePullPolicy\":\"IfNotPresent\",\"name\":\"initwebhooks\",\"resources\":{\"requests\":{\"memory\":\"72Mi\"}},\"securityContext\":{\"allowPrivilegeEscalation\":false,\"capabilities\":{\"drop\":[\"ALL\"]},\"privileged\":false},\"volumeMounts\":[{\"mountPath\":\"/etc/webhook/certs\",\"name\":\"webhook-certs\"}]}],\"securityContext\":{\"runAsGroup\":999,\"runAsNonRoot\":true,\"runAsUser\":1000,\"seccompProfile\":{\"type\":\"RuntimeDefault\"}},\"serviceAccountName\":\"verrazzano-platform-operator\",\"terminationGracePeriodSeconds\":0,\"volumes\":[{\"emptyDir\":{},\"name\":\"webhook-certs\"}]}}}}\n"
+        },
+        "managedFields": [
+          {
+            "manager": "kubectl",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:spec": {
+                "f:replicas": {}
+              }
+            },
+            "subresource": "scale"
+          },
+          {
+            "manager": "vz",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T00:41:36Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app": {},
+                  "f:app.kubernetes.io/version": {}
+                }
+              },
+              "f:spec": {
+                "f:progressDeadlineSeconds": {},
+                "f:revisionHistoryLimit": {},
+                "f:selector": {},
+                "f:strategy": {
+                  "f:rollingUpdate": {
+                    ".": {},
+                    "f:maxSurge": {},
+                    "f:maxUnavailable": {}
+                  },
+                  "f:type": {}
+                },
+                "f:template": {
+                  "f:metadata": {
+                    "f:labels": {
+                      ".": {},
+                      "f:app": {},
+                      "f:app.kubernetes.io/version": {}
+                    }
+                  },
+                  "f:spec": {
+                    "f:affinity": {
+                      ".": {},
+                      "f:podAntiAffinity": {
+                        ".": {},
+                        "f:preferredDuringSchedulingIgnoredDuringExecution": {}
+                      }
+                    },
+                    "f:containers": {
+                      "k:{\"name\":\"webhook-run\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:ports": {
+                          ".": {},
+                          "k:{\"containerPort\":9100,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          },
+                          "k:{\"containerPort\":9443,\"protocol\":\"TCP\"}": {
+                            ".": {},
+                            "f:containerPort": {},
+                            "f:name": {},
+                            "f:protocol": {}
+                          }
+                        },
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/etc/webhook/certs\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:dnsPolicy": {},
+                    "f:initContainers": {
+                      ".": {},
+                      "k:{\"name\":\"initwebhooks\"}": {
+                        ".": {},
+                        "f:args": {},
+                        "f:image": {},
+                        "f:imagePullPolicy": {},
+                        "f:name": {},
+                        "f:resources": {
+                          ".": {},
+                          "f:requests": {
+                            ".": {},
+                            "f:memory": {}
+                          }
+                        },
+                        "f:securityContext": {
+                          ".": {},
+                          "f:allowPrivilegeEscalation": {},
+                          "f:capabilities": {
+                            ".": {},
+                            "f:drop": {}
+                          },
+                          "f:privileged": {}
+                        },
+                        "f:terminationMessagePath": {},
+                        "f:terminationMessagePolicy": {},
+                        "f:volumeMounts": {
+                          ".": {},
+                          "k:{\"mountPath\":\"/etc/webhook/certs\"}": {
+                            ".": {},
+                            "f:mountPath": {},
+                            "f:name": {}
+                          }
+                        }
+                      }
+                    },
+                    "f:restartPolicy": {},
+                    "f:schedulerName": {},
+                    "f:securityContext": {
+                      ".": {},
+                      "f:runAsGroup": {},
+                      "f:runAsNonRoot": {},
+                      "f:runAsUser": {},
+                      "f:seccompProfile": {
+                        ".": {},
+                        "f:type": {}
+                      }
+                    },
+                    "f:serviceAccount": {},
+                    "f:serviceAccountName": {},
+                    "f:terminationGracePeriodSeconds": {},
+                    "f:volumes": {
+                      ".": {},
+                      "k:{\"name\":\"webhook-certs\"}": {
+                        ".": {},
+                        "f:emptyDir": {},
+                        "f:name": {}
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "manager": "kube-controller-manager",
+            "operation": "Update",
+            "apiVersion": "apps/v1",
+            "time": "2024-01-30T02:11:01Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  "f:deployment.kubernetes.io/revision": {}
+                }
+              },
+              "f:status": {
+                "f:availableReplicas": {},
+                "f:conditions": {
+                  ".": {},
+                  "k:{\"type\":\"Available\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  },
+                  "k:{\"type\":\"Progressing\"}": {
+                    ".": {},
+                    "f:lastTransitionTime": {},
+                    "f:lastUpdateTime": {},
+                    "f:message": {},
+                    "f:reason": {},
+                    "f:status": {},
+                    "f:type": {}
+                  }
+                },
+                "f:observedGeneration": {},
+                "f:readyReplicas": {},
+                "f:replicas": {},
+                "f:updatedReplicas": {}
+              }
+            },
+            "subresource": "status"
+          }
+        ]
+      },
+      "spec": {
+        "replicas": 3,
+        "selector": {
+          "matchLabels": {
+            "app": "verrazzano-platform-operator-webhook"
+          }
+        },
+        "template": {
+          "metadata": {
+            "creationTimestamp": null,
+            "labels": {
+              "app": "verrazzano-platform-operator-webhook",
+              "app.kubernetes.io/version": "2.0.0"
+            }
+          },
+          "spec": {
+            "volumes": [
+              {
+                "name": "webhook-certs",
+                "emptyDir": {}
+              }
+            ],
+            "initContainers": [
+              {
+                "name": "initwebhooks",
+                "image": "ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee",
+                "args": [
+                  "--zap-log-level=info",
+                  "--run-webhook-init=true"
+                ],
+                "resources": {
+                  "requests": {
+                    "memory": "72Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "webhook-certs",
+                    "mountPath": "/etc/webhook/certs"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "containers": [
+              {
+                "name": "webhook-run",
+                "image": "ghcr.io/verrazzano/verrazzano-platform-operator:v2.0.0-20240129183412-15451eee",
+                "args": [
+                  "--zap-log-level=info",
+                  "--run-webhooks=true",
+                  "--resource-validation=false"
+                ],
+                "ports": [
+                  {
+                    "name": "http-metric",
+                    "containerPort": 9100,
+                    "protocol": "TCP"
+                  },
+                  {
+                    "name": "webhook",
+                    "containerPort": 9443,
+                    "protocol": "TCP"
+                  }
+                ],
+                "resources": {
+                  "requests": {
+                    "memory": "72Mi"
+                  }
+                },
+                "volumeMounts": [
+                  {
+                    "name": "webhook-certs",
+                    "mountPath": "/etc/webhook/certs"
+                  }
+                ],
+                "terminationMessagePath": "/dev/termination-log",
+                "terminationMessagePolicy": "File",
+                "imagePullPolicy": "IfNotPresent",
+                "securityContext": {
+                  "capabilities": {
+                    "drop": [
+                      "ALL"
+                    ]
+                  },
+                  "privileged": false,
+                  "allowPrivilegeEscalation": false
+                }
+              }
+            ],
+            "restartPolicy": "Always",
+            "terminationGracePeriodSeconds": 0,
+            "dnsPolicy": "ClusterFirst",
+            "serviceAccountName": "verrazzano-platform-operator",
+            "serviceAccount": "verrazzano-platform-operator",
+            "securityContext": {
+              "runAsUser": 1000,
+              "runAsGroup": 999,
+              "runAsNonRoot": true,
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            },
+            "affinity": {
+              "podAntiAffinity": {
+                "preferredDuringSchedulingIgnoredDuringExecution": [
+                  {
+                    "weight": 100,
+                    "podAffinityTerm": {
+                      "labelSelector": {
+                        "matchExpressions": [
+                          {
+                            "key": "app",
+                            "operator": "In",
+                            "values": [
+                              "verrazzano-platform-operator-webhook"
+                            ]
+                          }
+                        ]
+                      },
+                      "topologyKey": "kubernetes.io/hostname"
+                    }
+                  }
+                ]
+              }
+            },
+            "schedulerName": "default-scheduler"
+          }
+        },
+        "strategy": {
+          "type": "RollingUpdate",
+          "rollingUpdate": {
+            "maxUnavailable": 0,
+            "maxSurge": 1
+          }
+        },
+        "revisionHistoryLimit": 10,
+        "progressDeadlineSeconds": 600
+      },
+      "status": {
+        "observedGeneration": 2,
+        "replicas": 3,
+        "updatedReplicas": 3,
+        "readyReplicas": 3,
+        "availableReplicas": 3,
+        "conditions": [
+          {
+            "type": "Progressing",
+            "status": "True",
+            "lastUpdateTime": "2024-01-30T00:43:57Z",
+            "lastTransitionTime": "2024-01-30T00:41:36Z",
+            "reason": "NewReplicaSetAvailable",
+            "message": "ReplicaSet \"verrazzano-platform-operator-webhook-658d47f58c\" has successfully progressed."
+          },
+          {
+            "type": "Available",
+            "status": "True",
+            "lastUpdateTime": "2024-01-30T02:11:01Z",
+            "lastTransitionTime": "2024-01-30T02:11:01Z",
+            "reason": "MinimumReplicasAvailable",
+            "message": "Deployment has minimum availability."
+          }
+        ]
+      }
+    }
+  ]
+}

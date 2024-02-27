@@ -16,10 +16,12 @@ import (
 
 const imagePullCase1 = "../../pkg/internal/test/cluster/image-pull-case1/"
 const ingressIPNotFound = "../../pkg/internal/test/cluster/ingress-ip-not-found"
+const mysqlUnavailable = "../../pkg/internal/test/cluster/mysql-unavailable-vz-ready"
 
 const loadBalancerErr = "Error syncing load balancer: failed to ensure load balancer: awaiting load balancer: context deadline exceeded"
 const noIPFoundErr = "Verrazzano install failed as no IP found for service ingress-controller-ingress-nginx-controller with type LoadBalancer"
 const istioIPErr = "Verrazzano install failed as no IP found for service istio-ingressgateway with type LoadBalancer"
+const unavailableErr = "One or more components reached Ready state, but is unavailable"
 
 // TestAnalyzeDefaultFromReadOnlyDir
 // GIVEN a CLI analyze command
@@ -314,6 +316,33 @@ func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 	cmd.PersistentFlags().Set(constants.TarFileFlagName, "../../pkg/internal/test/cluster/tar-file-in-vz-format.tar.gz")
 	err := cmd.Execute()
 	assert.Nil(t, err)
+}
+
+// TestAnalyzeCommandWithUnavailableComponents
+// GIVEN a CLI analyze command
+// WHEN I call cmd.Execute with a valid capture-dir, report-format set to "summary", and a verrazzano resource that has components that are unavailable
+// THEN expect the command to provide the report containing which components are unavailable
+func TestAnalyzeCommandWithUnavailableComponents(t *testing.T) {
+	stdoutFile, stderrFile := createStdTempFiles(t)
+	defer func() {
+		os.Remove(stdoutFile.Name())
+		os.Remove(stderrFile.Name())
+	}()
+	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	cmd := NewCmdAnalyze(rc)
+	assert.NotNil(t, cmd)
+	cmd.PersistentFlags().Set(constants.DirectoryFlagName, mysqlUnavailable)
+	cmd.PersistentFlags().Set(constants.ReportFormatFlagName, constants.SummaryReport)
+	err := cmd.Execute()
+	assert.Nil(t, err)
+	buf, err := os.ReadFile(stdoutFile.Name())
+	assert.Contains(t, string(buf), unavailableErr)
+
+	// Failures must be reported underreport file details-XXXXXX.out
+	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
+		os.Remove(fileMatched[0])
+		assert.NoFileExists(t, fileMatched[0])
+	}
 }
 
 // createStdTempFiles creates temporary files for stdout and stderr.

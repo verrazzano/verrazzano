@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "resourceVersion": "131808"
+  },
+  "items": [
+    {
+      "metadata": {
+        "name": "mysql-operator",
+        "namespace": "mysql-operator",
+        "uid": "f212e597-82e0-48a4-81b1-880f37e4a58c",
+        "resourceVersion": "11806",
+        "creationTimestamp": "2024-01-30T00:59:42Z",
+        "labels": {
+          "app.kubernetes.io/managed-by": "Helm",
+          "name": "mysql-operator"
+        },
+        "annotations": {
+          "meta.helm.sh/release-name": "mysql-operator",
+          "meta.helm.sh/release-namespace": "mysql-operator"
+        },
+        "managedFields": [
+          {
+            "manager": "verrazzano-platform-operator",
+            "operation": "Update",
+            "apiVersion": "v1",
+            "time": "2024-01-30T00:59:42Z",
+            "fieldsType": "FieldsV1",
+            "fieldsV1": {
+              "f:metadata": {
+                "f:annotations": {
+                  ".": {},
+                  "f:meta.helm.sh/release-name": {},
+                  "f:meta.helm.sh/release-namespace": {}
+                },
+                "f:labels": {
+                  ".": {},
+                  "f:app.kubernetes.io/managed-by": {},
+                  "f:name": {}
+                }
+              },
+              "f:spec": {
+                "f:internalTrafficPolicy": {},
+                "f:ports": {
+                  ".": {},
+                  "k:{\"port\":9443,\"protocol\":\"TCP\"}": {
+                    ".": {},
+                    "f:port": {},
+                    "f:protocol": {},
+                    "f:targetPort": {}
+                  }
+                },
+                "f:selector": {},
+                "f:sessionAffinity": {},
+                "f:type": {}
+              }
+            }
+          }
+        ]
+      },
+      "spec": {
+        "ports": [
+          {
+            "protocol": "TCP",
+            "port": 9443,
+            "targetPort": 9443
+          }
+        ],
+        "selector": {
+          "name": "mysql-operator"
+        },
+        "clusterIP": "REDACTED-26b9fce36c9b0fa12463d8499fe475a4c7afa064a433db05d2eca7b1d9ab063f",
+        "clusterIPs": [
+          "REDACTED-26b9fce36c9b0fa12463d8499fe475a4c7afa064a433db05d2eca7b1d9ab063f"
+        ],
+        "type": "ClusterIP",
+        "sessionAffinity": "None",
+        "ipFamilies": [
+          "IPv4"
+        ],
+        "ipFamilyPolicy": "SingleStack",
+        "internalTrafficPolicy": "Cluster"
+      },
+      "status": {
+        "loadBalancer": {}
+      }
+    }
+  ]
+}

@@ -11,11 +11,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	vzapi "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1alpha1"
-	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/registry"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/helpers"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/templates"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -65,7 +63,7 @@ func TestStatusCmd(t *testing.T) {
 			},
 			Conditions: nil,
 			State:      v1beta1.VzStateReconciling,
-			Components: makeVerrazzanoComponentStatusMap(),
+			Components: helpers.MakeVerrazzanoComponentStatusMap(),
 		},
 	}
 
@@ -126,7 +124,7 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 			},
 			Conditions: nil,
 			State:      v1beta1.VzStateReconciling,
-			Components: makeVerrazzanoComponentStatusMap(),
+			Components: helpers.MakeVerrazzanoComponentStatusMap(),
 		},
 	}
 
@@ -232,7 +230,7 @@ func TestNilInstance(t *testing.T) {
 			Version:    version,
 			Conditions: nil,
 			State:      v1beta1.VzStateReconciling,
-			Components: makeVerrazzanoComponentStatusMap(),
+			Components: helpers.MakeVerrazzanoComponentStatusMap(),
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
@@ -246,23 +244,4 @@ func TestNilInstance(t *testing.T) {
 	// Run the status command, check for the expected status results to be displayed
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
-}
-
-func makeVerrazzanoComponentStatusMap() v1beta1.ComponentStatusMap {
-	statusMap := make(v1beta1.ComponentStatusMap)
-	for _, comp := range registry.GetComponents() {
-		if comp.IsOperatorInstallSupported() {
-			statusMap[comp.Name()] = &v1beta1.ComponentStatusDetails{
-				Name: comp.Name(),
-				Conditions: []v1beta1.Condition{
-					{
-						Type:   v1beta1.CondInstallComplete,
-						Status: corev1.ConditionTrue,
-					},
-				},
-				State: v1beta1.CompStateReady,
-			}
-		}
-	}
-	return statusMap
 }
