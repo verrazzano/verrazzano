@@ -21,6 +21,7 @@ import (
 	appclusterv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/clusters/v1alpha1"
 	appoamv1alpha1 "github.com/verrazzano/verrazzano/application-operator/apis/oam/v1alpha1"
 	clusterv1alpha1 "github.com/verrazzano/verrazzano/cluster-operator/apis/clusters/v1alpha1"
+	vzconstants "github.com/verrazzano/verrazzano/pkg/constants"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/common"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
@@ -286,6 +287,58 @@ func TestCaptureVZResource(t *testing.T) {
 	assert.NotNil(t, GetMultiWriterOut())
 	assert.NotNil(t, GetMultiWriterErr())
 	assert.True(t, GetIsLiveCluster())
+}
+
+// TODO: test captureMultiClusterResources in regportgen.go
+
+// TODO: write description
+func TestCaptureVerrazzanoProjects(t *testing.T) {
+	vzProject := &appclusterv1alpha1.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
+			Name:      "myvzproject",
+		},
+		Spec: appclusterv1alpha1.VerrazzanoProjectSpec{
+			Template: appclusterv1alpha1.ProjectTemplate{
+				Namespaces: []appclusterv1alpha1.NamespaceTemplate{
+					{
+						Metadata: metav1.ObjectMeta{
+							Name: "application-ns",
+						},
+					},
+				},
+			},
+		},
+	}
+	_ = vzProject // FIXME: remove
+
+	scheme := k8scheme.Scheme
+	// FIXME: figure out minimal scheme
+	// _ = v1beta1.AddToScheme(scheme)
+	// _ = clusterv1alpha1.AddToScheme(scheme)
+	_ = appclusterv1alpha1.AddToScheme(scheme)
+	// _ = appv1alpha1.AddToScheme(scheme)
+	// _ = appoamv1alpha1.AddToScheme(scheme)
+	// _ = core.AddToScheme(scheme)
+
+	dynamicClient := fakedynamic.NewSimpleDynamicClient(scheme, vzProject)
+	captureDir, err := os.MkdirTemp("", "testcapture")
+	defer cleanupTempDir(t, captureDir)
+	assert.NoError(t, err)
+	buf := new(bytes.Buffer)
+	errBuf := new(bytes.Buffer)
+	tempFile, _ := os.CreateTemp("", "testfile")
+	defer cleanupFile(t, tempFile)
+	SetMultiWriterOut(buf, tempFile)
+	SetMultiWriterErr(errBuf, tempFile)
+	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	assert.NoError(t, CaptureVerrazzanoProjects(dynamicClient, captureDir, rc))
+}
+
+// TestCaptureVerrazzanoManagedCluster tests the CaptureVerrazzanoManagedCluster function
+// GIVEN TODO: write description
+func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
+	assert.True(t, true) // FIXME: replace with actual testing
 }
 
 // TestDoesNamespaceExist tests the functionality to check if a given namespace exists.
