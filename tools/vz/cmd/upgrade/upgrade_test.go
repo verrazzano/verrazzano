@@ -4,7 +4,6 @@
 package upgrade
 
 import (
-	"bytes"
 	"context"
 	"os"
 	"testing"
@@ -20,7 +19,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -44,10 +42,8 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -62,7 +58,9 @@ func TestUpgradeCmdDefaultNoWait(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify the vz resource is as expected
 	vzResource := v1beta1.Verrazzano{}
@@ -79,10 +77,8 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
@@ -102,8 +98,12 @@ func TestUpgradeCmdDefaultTimeoutBugReport(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	buf, err := os.ReadFile(rc.Out.Name())
+	assert.Nil(t, err)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", string(errBytes))
+	assert.Contains(t, string(buf), "Upgrading Verrazzano to version v1.4.0")
 	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("cannot find bug report file in current directory")
 	}
@@ -118,10 +118,8 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -141,8 +139,12 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", errBuf.String())
-	assert.Contains(t, buf.String(), "Upgrading Verrazzano to version v1.4.0")
+	buf, err := os.ReadFile(rc.Out.Name())
+	assert.Nil(t, err)
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "Error: Timeout 2ms exceeded waiting for upgrade to complete\n", string(errBytes))
+	assert.Contains(t, string(buf), "Upgrading Verrazzano to version v1.4.0")
 	// Bug report must not exist
 	if helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
@@ -157,10 +159,8 @@ func TestUpgradeCmdDefaultTimeoutNoBugReport(t *testing.T) {
 func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
@@ -175,7 +175,9 @@ func TestUpgradeCmdDefaultNoVPO(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator pod in namespace verrazzano-install")
 	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
@@ -190,10 +192,8 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	vpo2 := testhelpers.CreateVPOPod(constants.VerrazzanoPlatformOperator + "-2")
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz, vpo2)...).Build()
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
@@ -213,7 +213,9 @@ func TestUpgradeCmdDefaultMultipleVPO(t *testing.T) {
 	err := cmd.Execute()
 	assert.Error(t, err)
 	assert.ErrorContains(t, err, "Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
-	assert.Contains(t, errBuf.String(), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Contains(t, string(errBytes), "Error: Waiting for verrazzano-platform-operator, more than one verrazzano-platform-operator pod was found in namespace verrazzano-install")
 	if !helpers.CheckAndRemoveBugReportAndRedactionFileExistsInDir("") {
 		t.Fatal("found bug report file in current directory")
 	}
@@ -228,10 +230,8 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	vz := testhelpers.CreateVerrazzanoObjectWithVersion()
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -247,7 +247,9 @@ func TestUpgradeCmdJsonLogFormat(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.Nil(t, err)
+	assert.Equal(t, "", string(errBytes))
 }
 
 // TestUpgradeCmdOperatorFile
@@ -268,10 +270,8 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			vz := testhelpers.CreateVerrazzanoObjectWithVersion().(*v1beta1.Verrazzano)
 			c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-			// Send stdout stderr to a byte buffer
-			buf := new(bytes.Buffer)
-			errBuf := new(bytes.Buffer)
-			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+			defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			rc.SetClient(c)
 			cmd := NewCmdUpgrade(rc)
 			assert.NotNil(t, cmd)
@@ -286,11 +286,15 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 			// Run upgrade command
 			err := cmd.Execute()
 			assert.NoError(t, err)
-			assert.Equal(t, "", errBuf.String())
-			assert.Contains(t, buf.String(), "Applying the file ../../test/testdata/operator-file-fake.yaml")
-			assert.Contains(t, buf.String(), "namespace/verrazzano-install created")
-			assert.Contains(t, buf.String(), "serviceaccount/verrazzano-platform-operator created")
-			assert.Contains(t, buf.String(), "service/verrazzano-platform-operator created")
+			errBytes, err := os.ReadFile(rc.ErrOut.Name())
+			assert.NoError(t, err)
+			buf, err := os.ReadFile(rc.Out.Name())
+			assert.NoError(t, err)
+			assert.Equal(t, "", string(errBytes))
+			assert.Contains(t, string(buf), "Applying the file ../../test/testdata/operator-file-fake.yaml")
+			assert.Contains(t, string(buf), "namespace/verrazzano-install created")
+			assert.Contains(t, string(buf), "serviceaccount/verrazzano-platform-operator created")
+			assert.Contains(t, string(buf), "service/verrazzano-platform-operator created")
 
 			// Verify the objects in the manifests got added
 			sa := corev1.ServiceAccount{}
@@ -327,10 +331,8 @@ func TestUpgradeCmdOperatorFile(t *testing.T) {
 func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
@@ -339,7 +341,9 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: Verrazzano is not installed: Failed to find any Verrazzano resources\n", string(errBytes))
 }
 
 // TestUpgradeCmdLesserStatusVersion
@@ -350,10 +354,8 @@ func TestUpgradeCmdNoVerrazzano(t *testing.T) {
 func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(helpers.GetScheme()))
 	cmd := NewCmdUpgrade(rc)
@@ -363,7 +365,9 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and current Verrazzano version is v1.3.4\n", string(errBytes))
 }
 
 // TestUpgradeCmdEqualStatusVersion
@@ -374,10 +378,8 @@ func TestUpgradeCmdLesserStatusVersion(t *testing.T) {
 func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateVerrazzanoObjectWithVersion()).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -386,7 +388,9 @@ func TestUpgradeCmdEqualStatusVersion(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "Verrazzano is already at the specified upgrade version of v1.3.4\n", buf.String())
+	buf, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Verrazzano is already at the specified upgrade version of v1.3.4\n", string(buf))
 }
 
 // TestUpgradeCmdLesserSpecVersion
@@ -411,10 +415,8 @@ func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(vz).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -423,7 +425,9 @@ func TestUpgradeCmdLesserSpecVersion(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.Error(t, err)
-	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and the upgrade in progress is v1.3.4\n", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "Error: Upgrade to a lesser version of Verrazzano is not allowed. Upgrade version specified was v1.3.3 and the upgrade in progress is v1.3.4\n", string(errBytes))
 }
 
 // TestUpgradeCmdInProgress
@@ -448,10 +452,8 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(append(testhelpers.CreateTestVPOObjects(), vz)...).Build()
 
-	// Send stdout stderr to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdUpgrade(rc)
 	assert.NotNil(t, cmd)
@@ -464,7 +466,9 @@ func TestUpgradeCmdInProgress(t *testing.T) {
 	// Run upgrade command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 }
 
 // TestUpgradeFromPrivateRegistry tests upgrading from a private registry.
@@ -477,8 +481,8 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -497,7 +501,9 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Need to update the VZ status version otherwise upgrade fails
 	vz := &v1beta1.Verrazzano{}
@@ -518,7 +524,9 @@ func TestUpgradeFromPrivateRegistry(t *testing.T) {
 	// Run upgrade command
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
@@ -542,8 +550,8 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// First install using a private registry
 	const proceedQuestionText = "Proceed to upgrade with new settings? [y/N]"
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -562,7 +570,9 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Need to update the VZ status version otherwise upgrade fails
 	vz := &v1beta1.Verrazzano{}
@@ -572,6 +582,7 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
+	testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN Verrazzano is installed from a private registry
 	//
@@ -582,12 +593,15 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 
 	// Create a buffer for Stdin that simulates the user typing an "n" in response to the question on whether the CLI
 	// should continue with the upgrade because the registry settings are different from the settings used during install
-	inBuf := new(bytes.Buffer)
-	inBuf.WriteString("n")
-
-	outBuf := new(bytes.Buffer)
-	errBuf = new(bytes.Buffer)
-	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
+	inputFile, err := os.CreateTemp("", "tmpstdin")
+	assert.Nil(t, err)
+	inputFile.WriteString("n")
+	defer os.Remove(inputFile.Name())
+	if _, err := inputFile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
+	rc.IOStreams.In = inputFile
 	rc.SetClient(c)
 
 	cmd = NewCmdUpgrade(rc)
@@ -600,9 +614,13 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// and we reply with "n"
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), proceedQuestionText)
-	assert.Contains(t, outBuf.String(), "Upgrade canceled")
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBytes, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBytes), proceedQuestionText)
+	assert.Contains(t, string(outBytes), "Upgrade canceled")
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
 	// and that they are the settings from the install, not the upgrade
@@ -625,13 +643,16 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	//
 	//	WHEN I call cmd.Execute for upgrade with different private registry settings and answer "y" when asked to proceed
 	//	THEN the upgrade succeeds and the new registry settings are configured on the VPO
-	inBuf = new(bytes.Buffer)
-	inBuf.WriteString("y")
-
-	outBuf = new(bytes.Buffer)
-	errBuf = new(bytes.Buffer)
-	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: inBuf, Out: outBuf, ErrOut: errBuf})
+	inputFile, err = os.CreateTemp("", "tmpstdin")
+	assert.Nil(t, err)
+	inputFile.WriteString("y")
+	defer os.Remove(inputFile.Name())
+	if _, err := inputFile.Seek(0, 0); err != nil {
+		assert.Error(t, err)
+	}
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
+	rc.In = inputFile
 
 	cmd = NewCmdUpgrade(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -643,9 +664,14 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 	// and we reply with "y"
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), proceedQuestionText)
-	assert.Contains(t, outBuf.String(), "Upgrading Verrazzano")
-	assert.Equal(t, "", errBuf.String())
+	assert.NoError(t, err)
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBytes, err = os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBytes), proceedQuestionText)
+	assert.Contains(t, string(outBytes), "Upgrading Verrazzano")
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment has the expected environment variables to enable pulling images from a private registry
 	// and that they are the new settings from the upgrade
@@ -674,8 +700,8 @@ func TestUpgradeFromDifferentPrivateRegistry(t *testing.T) {
 func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// First install using a private registry
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(testhelpers.CreateTestVPOObjects()...).Build()
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: new(bytes.Buffer), ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := install.NewCmdInstall(rc)
 	cmd.PersistentFlags().Set(constants.WaitFlag, "false")
@@ -694,7 +720,9 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// Run install command
 	err := cmd.Execute()
 	assert.NoError(t, err)
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err := os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	assert.Equal(t, "", string(errBytes))
 
 	// Need to update the VZ status version otherwise upgrade fails
 	vz := &v1beta1.Verrazzano{}
@@ -704,14 +732,13 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	vz.Status.Version = testVZMajorRelease
 	err = c.Status().Update(context.TODO(), vz)
 	assert.NoError(t, err)
+	testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// Now do the upgrade using different private registry settings
 	const imageRegistryForUpgrade = "newreg.io"
 	const imagePrefixForUpgrade = "newrepo"
 
-	outBuf := new(bytes.Buffer)
-	errBuf = new(bytes.Buffer)
-	rc = testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: outBuf, ErrOut: errBuf})
+	rc = testhelpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
 
 	cmd = NewCmdUpgrade(rc)
@@ -726,8 +753,12 @@ func TestUpgradeFromPrivateRegistryWithSkipConfirmation(t *testing.T) {
 	// Run upgrade command
 	err = cmd.Execute()
 	assert.NoError(t, err)
-	assert.Contains(t, outBuf.String(), "Upgrading Verrazzano")
-	assert.Equal(t, "", errBuf.String())
+	errBytes, err = os.ReadFile(rc.ErrOut.Name())
+	assert.NoError(t, err)
+	outBuf, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	assert.Contains(t, string(outBuf), "Upgrading Verrazzano")
+	assert.Equal(t, "", string(errBytes))
 
 	// Verify that the VPO deployment environment variables for private registry have been updated
 	deployment, err := cmdHelpers.GetExistingVPODeployment(c)
