@@ -1,10 +1,9 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package status
 
 import (
-	"bytes"
 	"github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"os"
 	"testing"
@@ -17,7 +16,6 @@ import (
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -71,10 +69,8 @@ func TestStatusCmd(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
@@ -82,7 +78,9 @@ func TestStatusCmd(t *testing.T) {
 	// Run the status command, check for the expected status results to be displayed
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
-	result := buf.String()
+	outBytes, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	result := string(outBytes)
 
 	templateInput := TemplateInput{
 		Endpoints:           getEndpoints(vz.Status.VerrazzanoInstance),
@@ -132,10 +130,8 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
 
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
@@ -143,7 +139,9 @@ func TestStatusCmdDefaultProfile(t *testing.T) {
 	// Run the status command, check for the expected status results to be displayed
 	err := statusCmd.Execute()
 	assert.NoError(t, err)
-	result := buf.String()
+	outBytes, err := os.ReadFile(rc.Out.Name())
+	assert.NoError(t, err)
+	result := string(outBytes)
 	templateInput := TemplateInput{
 		Endpoints:           getEndpoints(vz.Status.VerrazzanoInstance),
 		Components:          getComponents(vz.Status.Components),
@@ -169,10 +167,8 @@ func TestVZNotFound(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects().Build()
 
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
@@ -208,10 +204,8 @@ func TestStatusMultipleVZ(t *testing.T) {
 
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz1, &vz2).Build()
 
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)
@@ -236,10 +230,8 @@ func TestNilInstance(t *testing.T) {
 		},
 	}
 	c := fake.NewClientBuilder().WithScheme(helpers.NewScheme()).WithObjects(&vz).Build()
-	// Send the command output to a byte buffer
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	statusCmd := NewCmdStatus(rc)
 	assert.NotNil(t, statusCmd)

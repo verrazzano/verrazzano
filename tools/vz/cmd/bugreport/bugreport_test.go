@@ -23,7 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	dynfake "k8s.io/client-go/dynamic/fake"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,11 +46,8 @@ const (
 // WHEN I call cmd.Help for bug-report
 // THEN expect the help for the command in the standard output
 func TestBugReportHelp(t *testing.T) {
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := helpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 	err := cmd.Help()
@@ -59,7 +55,7 @@ func TestBugReportHelp(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	buf, err := os.ReadFile(stdoutFile.Name())
+	buf, err := os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 	assert.Contains(t, string(buf), "Verrazzano command line utility to collect data from the cluster, to report an issue")
 }
@@ -69,7 +65,8 @@ func TestBugReportHelp(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingReportFile(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -95,7 +92,8 @@ func TestBugReportExistingReportFile(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportExistingDir(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -118,7 +116,8 @@ func TestBugReportExistingDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportNonExistingFileDir(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -139,7 +138,8 @@ func TestBugReportNonExistingFileDir(t *testing.T) {
 // WHEN I call cmd.Execute for bug-report
 // THEN expect an error
 func TestBugReportFileNoPermission(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -163,7 +163,8 @@ func TestBugReportFileNoPermission(t *testing.T) {
 // WHEN I call cmd.Execute
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccess(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -186,9 +187,10 @@ func TestBugReportSuccess(t *testing.T) {
 // TestBugReportGetPreviousLogs
 // GIVEN a CLI bug-report command with no flags, but failed pods on the cluster
 // WHEN I call cmd.Execute
-// THEN expect the command to try and capture previous pod logs create the file 'previous-logs.txt'
-func TestBugReportGetPreviousLogs(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+// THEN expect the command to try and capture previous pod logs if possible and write them out to 'previous-logs.txt'
+func TestBugReportFailedPods(t *testing.T) {
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -237,11 +239,9 @@ func TestDefaultBugReportSuccess(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
+	assert.Nil(t, err)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -266,11 +266,8 @@ func TestBugReportRedactedValuesFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -305,11 +302,8 @@ func TestDefaultBugReportReadOnlySuccess(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -346,15 +340,8 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 	assert.NoError(t, err)
 
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-	defer os.Remove(stdoutFile.Name())
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-	defer os.Remove(stderrFile.Name())
-
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	err = cmd.PersistentFlags().Set(constants.VerboseFlag, "true")
@@ -364,7 +351,7 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 	err = cmd.Execute()
 	assert.NoError(t, err)
 
-	_, err = os.ReadFile(stdoutFile.Name())
+	_, err = os.ReadFile(rc.Out.Name())
 	assert.NoError(t, err)
 }
 
@@ -374,11 +361,9 @@ func TestBugReportDefaultReportFile(t *testing.T) {
 // THEN expect the command to generate bug report
 func TestBugReportNoVerrazzano(t *testing.T) {
 	c := getClientWithWatch()
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
 
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -397,7 +382,7 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	errBuf, err := os.ReadFile(stderrFile.Name())
+	errBuf, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
 	assert.FileExists(t, bugRepFile)
@@ -409,11 +394,9 @@ func TestBugReportNoVerrazzano(t *testing.T) {
 // THEN expect the command to fail with a message indicating Verrazzano is not installed and no resource captured
 func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 	c := getInvalidClient()
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
 
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	rc.SetClient(c)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
@@ -432,7 +415,7 @@ func TestBugReportFailureUsingInvalidClient(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	errBuf, err := os.ReadFile(stderrFile.Name())
+	errBuf, err := os.ReadFile(rc.ErrOut.Name())
 	assert.NoError(t, err)
 	assert.NotContains(t, string(errBuf), "Verrazzano is not installed")
 	assert.FileExists(t, bugRepFile)
@@ -463,11 +446,9 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			vz := v1beta1.Verrazzano{}
 			err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 			assert.NoError(t, err)
-			stdoutFile, stderrFile := createStdTempFiles(t)
-			defer os.Remove(stdoutFile.Name())
-			defer os.Remove(stderrFile.Name())
 
-			rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+			rc := setupFakeDynamicClient(c, t)
+			defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 			kubeClient = getKubeClient()
 			rc.SetClient(c)
 			rc.SetKubeClient(kubeClient)
@@ -486,7 +467,7 @@ func TestIstioSidecarContainersExist(t *testing.T) {
 			err = cmd.Execute()
 
 			if !tt.success {
-				stderrFileData, _ := os.ReadFile(stderrFile.Name())
+				stderrFileData, _ := os.ReadFile(rc.ErrOut.Name())
 				temp := string(stderrFileData)
 				err := strings.Contains(temp, "was not found for pod:")
 				assert.True(t, err)
@@ -771,23 +752,13 @@ func cleanupFile(t *testing.T, file *os.File) {
 	}
 }
 
-// createStdTempFiles creates temporary files for stdout and stderr.
-func createStdTempFiles(t *testing.T) (*os.File, *os.File) {
-	stdoutFile, err := os.CreateTemp("", "tmpstdout")
-	assert.NoError(t, err)
-
-	stderrFile, err := os.CreateTemp("", "tmpstderr")
-	assert.NoError(t, err)
-
-	return stdoutFile, stderrFile
-}
-
 // TestBugReportSuccess
 // GIVEN a CLI bug-report command
 // WHEN I call cmd.Execute with include logs of  additional namespace and duration
 // THEN expect the command to show the resources captured in the standard output and create the bug report file
 func TestBugReportSuccessWithDuration(t *testing.T) {
-	cmd := setUpAndVerifyResources(t)
+	rc, cmd := setUpAndVerifyResources(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	tmpDir, _ := os.MkdirTemp("", "bug-report")
 	defer cleanupTempDir(t, tmpDir)
@@ -821,7 +792,7 @@ func setUpGlobalFlags(cmd *cobra.Command) {
 	cmd.Flags().String(constants.GlobalFlagContext, testK8sContext, "")
 }
 
-func setUpAndVerifyResources(t *testing.T) *cobra.Command {
+func setUpAndVerifyResources(t *testing.T) (*helpers.FakeRootCmdContextWithFiles, *cobra.Command) {
 	c := getClientWithVZWatch()
 	var kubeClient *k8sfake.Clientset
 
@@ -830,21 +801,18 @@ func setUpAndVerifyResources(t *testing.T) *cobra.Command {
 	err := c.Get(context.TODO(), types.NamespacedName{Namespace: "default", Name: "verrazzano"}, &vz)
 
 	assert.NoError(t, err)
-
-	stdoutFile, stderrFile := createStdTempFiles(t)
-	defer os.Remove(stdoutFile.Name())
-	defer os.Remove(stderrFile.Name())
-	rc := setupFakeDynamicClient(c, genericclioptions.IOStreams{In: os.Stdin, Out: stdoutFile, ErrOut: stderrFile})
+	rc := setupFakeDynamicClient(c, t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	kubeClient = getKubeClient()
 	rc.SetKubeClient(kubeClient)
 	cmd := NewCmdBugReport(rc)
 	assert.NotNil(t, cmd)
 
-	return cmd
+	return rc, cmd
 }
 
-func setupFakeDynamicClient(c client.WithWatch, ioStreams genericclioptions.IOStreams) *helpers.FakeRootCmdContext {
-	rc := helpers.NewFakeRootCmdContext(ioStreams)
+func setupFakeDynamicClient(c client.WithWatch, t *testing.T) *helpers.FakeRootCmdContextWithFiles {
+	rc := helpers.NewFakeRootCmdContextWithFiles(t)
 	rc.SetClient(c)
 	rc.SetDynamicClient(dynfake.NewSimpleDynamicClient(pkghelper.GetScheme()))
 	return rc

@@ -1,12 +1,10 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package helpers
 
 import (
-	"bytes"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -14,7 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/verrazzano/verrazzano/tools/vz/pkg/constants"
 	testhelpers "github.com/verrazzano/verrazzano/tools/vz/test/helpers"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 const (
@@ -26,9 +23,8 @@ const (
 
 // TestNewCommand tests the functionality to create a new command based on the usage, short and log help.
 func TestNewCommand(t *testing.T) {
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	assert.NotNil(t, NewCommand(rc, testUse, testShort, testLong))
 }
 
@@ -100,9 +96,8 @@ func TestGetLogFormat(t *testing.T) {
 // TestGetVersion tests the functionality that returns the right Verrazzano version.
 func TestGetVersion(t *testing.T) {
 	// Create a fake VZ helper
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with no values provided for version flags,
 	// WHEN we get the version value,
@@ -161,9 +156,8 @@ func TestGetVersion(t *testing.T) {
 // TestGetVersionWithManifests tests the GetVersion function when the user supplies the manifests flag.
 func TestGetVersionWithManifests(t *testing.T) {
 	// Create a fake VZ helper
-	buf := new(bytes.Buffer)
-	errBuf := new(bytes.Buffer)
-	rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+	rc := testhelpers.NewFakeRootCmdContextWithFiles(t)
+	defer testhelpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 
 	// GIVEN a command with a specific version and a manifests file with a version that does not match,
 	// WHEN we get the version value,
