@@ -274,6 +274,7 @@ func TestAnalyzeCommandVZTarGZFile(t *testing.T) {
 // THEN expect the command to provide the report containing which components are unavailable
 func TestAnalyzeCommandWithUnavailableComponents(t *testing.T) {
 	rc := helpers.NewFakeRootCmdContextWithFiles(t)
+	defer helpers.CleanUpNewFakeRootCmdContextWithFiles(rc)
 	cmd := NewCmdAnalyze(rc)
 	assert.NotNil(t, cmd)
 	cmd.PersistentFlags().Set(constants.DirectoryFlagName, mysqlUnavailable)
