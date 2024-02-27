@@ -1,3 +1,6 @@
+# Copyright (c) 2024, Oracle and/or its affiliates.
+# Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
+
 ==== START logs for container webhookswait of pod verrazzano-install/verrazzano-platform-operator-557d565c78-mzsmw ====
 *   Trying REDACTED-21536b498218a94a6fc5e70d2ee70511c469fc58da36a3406f1188a5d5e9610d...
 * TCP_NODELAY set
@@ -61,7 +64,7 @@
 > User-Agent: curl/7.61.1
 > Accept: */*
 > Content-Type: application/json
-> 
+>
 { [5 bytes data]
 * TLSv1.3 (IN), TLS handshake, [no content] (0):
 { [1 bytes data]
@@ -79,11 +82,11 @@
 { [1 bytes data]
 * TLSv1.3 (IN), TLS app data, [no content] (0):
 { [1 bytes data]
-< HTTP/2 200 
+< HTTP/2 200
 < content-type: text/plain; charset=utf-8
 < content-length: 135
 < date: Tue, 30 Jan 2024 00:44:14 GMT
-< 
+<
 { [135 bytes data]
 * Connection #0 to host verrazzano-platform-operator-webhook.verrazzano-install.svc.cluster.local left intact
 https://verrazzano-platform-operator-webhook.verrazzano-install.svc.cluster.local:443/validate-install-verrazzano-io-v1beta1-verrazzano returned HTTP 200.
