@@ -736,7 +736,6 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 // CaptureMultiClusterOAMResources captures OAM resources in multi-cluster environment
 func CaptureMultiClusterOAMResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
 	for _, ns := range nsList {
-
 		// Capture multi-cluster components and application configurations
 		if err := captureMCComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
 			return err
