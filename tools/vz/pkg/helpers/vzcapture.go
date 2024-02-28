@@ -909,7 +909,7 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 		componentsList := spec["components"].([]interface{})
 		if ok {
 			if len(componentsList) != len(mcComps.Items) || mcAppConfigs.Items[0].Object["status"].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["status"].(string) == "False" {
-				LogError(fmt.Sprintf("Some components: are not found or ready for the application configuration: %s, in namespace %s\n", mcAppConfigs.Items[0].GetName(), namespace))
+				LogError(fmt.Sprintf("Some components are not found or ready for the application configuration: %s, in namespace %s\n", mcAppConfigs.Items[0].GetName(), namespace))
 			}
 		}
 		LogMessage(fmt.Sprintf("MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace))
