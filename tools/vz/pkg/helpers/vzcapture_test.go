@@ -290,9 +290,9 @@ func TestCaptureVZResource(t *testing.T) {
 }
 
 // TestCaptureVerrazzanoProjects tests the CaptureVerrazzanoProjects function
-// GIVEN a dynamic client possibly containing a VerrazzanoProject resource
+// GIVEN a dynamic client possibly containing VerrazzanoProject resources
 // WHEN I call CaptureVerrazzanoProjects
-// THEN expect it to detect the VerrazzanoProject and appropriately create a JSON file
+// THEN expect it to detect the VerrazzanoProjects and appropriately create a JSON file
 func TestCaptureVerrazzanoProjects(t *testing.T) {
 	scheme := k8scheme.Scheme
 	_ = appclusterv1alpha1.AddToScheme(scheme)
@@ -373,9 +373,9 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 }
 
 // TestCaptureVerrazzanoManagedCluster tests the CaptureVerrazzanoManagedCluster function
-// GIVEN a dynamic client possibly containing a VMC resource
+// GIVEN a dynamic client possibly containing VMC resources
 // WHEN I call CaptureVerrazzanoManagedCluster
-// THEN expect it to detect the VMC and appropriately create a JSON file
+// THEN expect it to detect the VMCs and appropriately create a JSON file
 func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
 	scheme := k8scheme.Scheme
 	_ = clusterv1alpha1.AddToScheme(scheme)
