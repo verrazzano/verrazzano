@@ -736,6 +736,7 @@ func CaptureOAMResources(dynamicClient dynamic.Interface, nsList []string, captu
 // CaptureMultiClusterOAMResources captures OAM resources in multi-cluster environment
 func CaptureMultiClusterOAMResources(dynamicClient dynamic.Interface, nsList []string, captureDir string, vzHelper VZHelper) error {
 	for _, ns := range nsList {
+
 		// Capture multi-cluster components and application configurations
 		if err := captureMCComponents(dynamicClient, ns, captureDir, vzHelper); err != nil {
 			return err
@@ -903,10 +904,10 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 	if len(mcAppConfigs.Items) > 0 {
 		mcComps, err := dynamicClient.Resource(GetMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 		spec, ok := mcAppConfigs.Items[0].Object["spec"].(map[string]interface{})
+		componentsList := spec["components"].([]interface{})
 		if ok {
-			componentsList := spec["components"].([]interface{})
-			if len(componentsList) != len(mcComps.Items) {
-				LogError(fmt.Sprintf("Some components: are not found for application configuration: %s, in namespace %s\n", mcAppConfigs.Items[0].GetName(), namespace))
+			if len(componentsList) != len(mcComps.Items) || mcAppConfigs.Items[0].Object["status"].(map[string]interface{})["conditions"].([]interface{})[0].(map[string]interface{})["status"].(string) == "False" {
+				LogError(fmt.Sprintf("Some components: are not found or ready for the application configuration: %s, in namespace %s\n", mcAppConfigs.Items[0].GetName(), namespace))
 			}
 		}
 		LogMessage(fmt.Sprintf("MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace))
