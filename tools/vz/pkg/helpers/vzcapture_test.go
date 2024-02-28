@@ -367,7 +367,6 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 				bytesToUnmarshall, err := returnBytesFromAFile(expectedFilePath)
 				assert.NoError(t, err)
 				assert.NoError(t, json.Unmarshal(bytesToUnmarshall, vzProjectList))
-				assert.NoError(t, err)
 				assert.Len(t, vzProjectList.Items, len(tt.vzProjects),
 					"the file %s did not have the expected number of VerrazzanoProject resources listed", expectedFilePath)
 			}
@@ -451,7 +450,6 @@ func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
 				bytesToUnmarshall, err := returnBytesFromAFile(expectedFilePath)
 				assert.NoError(t, err)
 				assert.NoError(t, json.Unmarshal(bytesToUnmarshall, vmcList))
-				assert.NoError(t, err)
 				assert.Len(t, vmcList.Items, len(tt.vmcs),
 					"the file %s did not have the expected number of VerrazzanoManagedCluster resources listed", expectedFilePath)
 			}
