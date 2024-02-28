@@ -395,7 +395,7 @@ func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
 	}
 
 	tests := []struct {
-		name       string
+		name string
 		vmcs []runtime.Object
 	}{
 		{
