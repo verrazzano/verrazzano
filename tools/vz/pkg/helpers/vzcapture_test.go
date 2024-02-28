@@ -303,16 +303,11 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
 			Name:      "myvzproject",
 		},
-		Spec: appclusterv1alpha1.VerrazzanoProjectSpec{
-			Template: appclusterv1alpha1.ProjectTemplate{
-				Namespaces: []appclusterv1alpha1.NamespaceTemplate{
-					{
-						Metadata: metav1.ObjectMeta{
-							Name: "application-ns",
-						},
-					},
-				},
-			},
+	}
+	vzProject2 := appclusterv1alpha1.VerrazzanoProject{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
+			Name:      "myvzproject2",
 		},
 	}
 
@@ -321,12 +316,16 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 		vzProjects []runtime.Object
 	}{
 		{
-			"No VerrazzanoProjects exist",
+			"No VerrazzanoProjects exists",
 			nil,
 		},
 		{
 			"A single existing VerrazzanoProject",
 			[]runtime.Object{&vzProject},
+		},
+		{
+			"Two VerrazzanoProjects",
+			[]runtime.Object{&vzProject, &vzProject2},
 		},
 	}
 
@@ -357,12 +356,20 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 			assert.NoError(t, CaptureVerrazzanoProjects(dynamicClient, captureDir, rc))
 
-			// Check if the VerrazzanoProject JSON file exists in the cluster snapshot
-			_, err = os.Stat(filepath.Join(captureDir, vzconstants.VerrazzanoMultiClusterNamespace, constants.VzProjectsJSON))
-			if len(tt.vzProjects) > 0 {
-				assert.NoError(t, err)
-			} else {
+			// Check if the VerrazzanoProject JSON file exists in the cluster snapshot as expected
+			expectedFilePath := filepath.Join(captureDir, vzconstants.VerrazzanoMultiClusterNamespace, constants.VzProjectsJSON)
+			_, err = os.Stat(expectedFilePath)
+			if len(tt.vzProjects) == 0 {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				vzProjectList := &appclusterv1alpha1.VerrazzanoProjectList{}
+				bytesToUnmarshall, err := returnBytesFromAFile(expectedFilePath)
+				assert.NoError(t, err)
+				assert.NoError(t, json.Unmarshal(bytesToUnmarshall, vzProjectList))
+				assert.NoError(t, err)
+				assert.Len(t, vzProjectList.Items, len(tt.vzProjects),
+					"the file %s did not have the expected number of VerrazzanoProject resources listed", expectedFilePath)
 			}
 		})
 	}
@@ -381,18 +388,28 @@ func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
 			Name:      "myverrazzanomanagedcluster",
 		},
 	}
+	vmc2 := clusterv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
+			Name:      "myverrazzanomanagedcluster2",
+		},
+	}
 
 	tests := []struct {
 		name       string
 		vmcs []runtime.Object
 	}{
 		{
-			"No VerrazzanoManagedClusters exist",
+			"No VerrazzanoManagedClusters exists",
 			nil,
 		},
 		{
 			"A single existing VerrazzanoManagedCluster",
 			[]runtime.Object{&vmc},
+		},
+		{
+			"Two VerrazzanoManagedClusters",
+			[]runtime.Object{&vmc, &vmc2},
 		},
 	}
 
@@ -423,12 +440,20 @@ func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
 			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
 			assert.NoError(t, CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, rc))
 
-			// Check if the VMC JSON file exists in the cluster snapshot
-			_, err = os.Stat(filepath.Join(captureDir, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON))
-			if len(tt.vmcs) > 0 {
-				assert.NoError(t, err)
-			} else {
+			// Check if the VMC JSON file exists in the cluster snapshot as expected
+			expectedFilePath := filepath.Join(captureDir, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON)
+			_, err = os.Stat(expectedFilePath)
+			if len(tt.vmcs) == 0 {
 				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				vmcList := &clusterv1alpha1.VerrazzanoManagedClusterList{}
+				bytesToUnmarshall, err := returnBytesFromAFile(expectedFilePath)
+				assert.NoError(t, err)
+				assert.NoError(t, json.Unmarshal(bytesToUnmarshall, vmcList))
+				assert.NoError(t, err)
+				assert.Len(t, vmcList.Items, len(tt.vmcs),
+					"the file %s did not have the expected number of VerrazzanoManagedCluster resources listed", expectedFilePath)
 			}
 		})
 	}
