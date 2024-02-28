@@ -901,6 +901,14 @@ func captureMCAppConfigurations(dynamicClient dynamic.Interface, namespace, capt
 		return nil
 	}
 	if len(mcAppConfigs.Items) > 0 {
+		mcComps, err := dynamicClient.Resource(GetMCComponentScheme()).Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+		spec, ok := mcAppConfigs.Items[0].Object["spec"].(map[string]interface{})
+		if ok {
+			componentsList := spec["components"].([]interface{})
+			if len(componentsList) != len(mcComps.Items) {
+				LogError(fmt.Sprintf("Some components: are not found for application configuration: %s, in namespace %s\n", mcAppConfigs.Items[0].GetName(), namespace))
+			}
+		}
 		LogMessage(fmt.Sprintf("MultiClusterApplicationConfiguration in namespace: %s ...\n", namespace))
 		if err = createFile(mcAppConfigs, namespace, constants.McAppConfigJSON, captureDir, vzHelper); err != nil {
 			return err
