@@ -292,10 +292,12 @@ func TestCaptureVZResource(t *testing.T) {
 // TODO: test captureMultiClusterResources in regportgen.go
 
 // TestCaptureVerrazzanoProjects tests the CaptureVerrazzanoProjects function
-// GIVEN a dynamic client containing a VerrazzanoProject resource
+// GIVEN a dynamic client possibly containing a VerrazzanoProject resource
 // WHEN I call CaptureVerrazzanoProjects
-// THEN expect it to detect the VerrazzanoProject and create a JSON file
+// THEN expect it to detect the VerrazzanoProject and appropriately create a JSON file
 func TestCaptureVerrazzanoProjects(t *testing.T) {
+	scheme := k8scheme.Scheme
+	_ = appclusterv1alpha1.AddToScheme(scheme)
 	vzProject := appclusterv1alpha1.VerrazzanoProject{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
@@ -331,8 +333,6 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// create dynamic client
-			scheme := k8scheme.Scheme
-			_ = appclusterv1alpha1.AddToScheme(scheme)
 			var dynamicClient *fakedynamic.FakeDynamicClient
 			if tt.vzProjects == nil {
 				dynamicClient = fakedynamic.NewSimpleDynamicClient(scheme)
@@ -345,7 +345,7 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 			defer cleanupTempDir(t, captureDir)
 			assert.NoError(t, err)
 
-			// fake stdout and stderr
+			// stdout and stderr
 			buf := new(bytes.Buffer)
 			errBuf := new(bytes.Buffer)
 			tempFile, _ := os.CreateTemp("", "testfile")
@@ -369,9 +369,69 @@ func TestCaptureVerrazzanoProjects(t *testing.T) {
 }
 
 // TestCaptureVerrazzanoManagedCluster tests the CaptureVerrazzanoManagedCluster function
-// GIVEN TODO: write description
+// GIVEN a dynamic client possibly containing a VMC resource
+// WHEN I call CaptureVerrazzanoManagedCluster
+// THEN expect it to detect the VMC and appropriately create a JSON file
 func TestCaptureVerrazzanoManagedCluster(t *testing.T) {
-	assert.True(t, true) // FIXME: replace with actual testing
+	scheme := k8scheme.Scheme
+	_ = clusterv1alpha1.AddToScheme(scheme)
+	vmc := clusterv1alpha1.VerrazzanoManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: vzconstants.VerrazzanoMultiClusterNamespace,
+			Name:      "myverrazzanomanagedcluster",
+		},
+	}
+
+	tests := []struct {
+		name       string
+		vmcs []runtime.Object
+	}{
+		{
+			"No VerrazzanoManagedClusters exist",
+			nil,
+		},
+		{
+			"A single existing VerrazzanoManagedCluster",
+			[]runtime.Object{&vmc},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// create dynamic client
+			var dynamicClient *fakedynamic.FakeDynamicClient
+			if tt.vmcs == nil {
+				dynamicClient = fakedynamic.NewSimpleDynamicClient(scheme)
+			} else {
+				dynamicClient = fakedynamic.NewSimpleDynamicClient(scheme, tt.vmcs...)
+			}
+
+			// create capture directory
+			captureDir, err := os.MkdirTemp("", "testcapture")
+			defer cleanupTempDir(t, captureDir)
+			assert.NoError(t, err)
+
+			// stdout and stderr
+			buf := new(bytes.Buffer)
+			errBuf := new(bytes.Buffer)
+			tempFile, _ := os.CreateTemp("", "testfile")
+			defer cleanupFile(t, tempFile)
+			SetMultiWriterOut(buf, tempFile)
+			SetMultiWriterErr(errBuf, tempFile)
+
+			// Call the function we want to test
+			rc := testhelpers.NewFakeRootCmdContext(genericclioptions.IOStreams{In: os.Stdin, Out: buf, ErrOut: errBuf})
+			assert.NoError(t, CaptureVerrazzanoManagedCluster(dynamicClient, captureDir, rc))
+
+			// Check if the VMC JSON file exists in the cluster snapshot
+			_, err = os.Stat(filepath.Join(captureDir, vzconstants.VerrazzanoMultiClusterNamespace, constants.VmcJSON))
+			if len(tt.vmcs) > 0 {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }
 
 // TestDoesNamespaceExist tests the functionality to check if a given namespace exists.
