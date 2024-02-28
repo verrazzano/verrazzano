@@ -285,7 +285,7 @@ func TestAnalyzeCommandWithUnavailableComponents(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, string(buf), unavailableErr)
 
-	// Failures must be reported underreport file details-XXXXXX.out
+	// Failures must be reported under report file details-XXXXXX.out
 	if fileMatched, _ := filepath.Glob(constants.VzAnalysisReportTmpFile); len(fileMatched) == 1 {
 		os.Remove(fileMatched[0])
 		assert.NoFileExists(t, fileMatched[0])

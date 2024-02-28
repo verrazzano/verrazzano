@@ -370,7 +370,7 @@ func analyzeIstioIngressService(log *zap.SugaredLogger, clusterRoot string, issu
 	analyzeIstioLoadBalancerIssue(log, clusterRoot, issueReporter)
 }
 
-// Read the Verrazzano resource and return the list of components which did not reach Ready state
+// Read the Verrazzano resource and return the two lists, first of components which did not reach Ready state and the second of components that are Ready but Unavailable
 func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string, []string, error) {
 	var compsNotReady = make([]string, 0)
 	compsReadyNotAvailable := compsNotReady
@@ -431,7 +431,7 @@ func getComponentsNotReady(log *zap.SugaredLogger, clusterRoot string) ([]string
 	return compsNotReady, compsReadyNotAvailable, nil
 }
 
-// Read the platform operator log, report the errors found for the list of components which fail to reach Ready state
+// Read the platform operator log, report the errors found for the list of components which either failed to reach Ready state or are Unavailable
 func reportInstallIssue(log *zap.SugaredLogger, clusterRoot string, compsNotReady []string, issueReporter *report.IssueReporter, notReadyComponentsFound bool) error {
 	vpologRegExp := regexp.MustCompile(`verrazzano-install/verrazzano-platform-operator-.*/logs.txt`)
 	allPodFiles, err := files.GetMatchingFileNames(log, clusterRoot, vpologRegExp)
