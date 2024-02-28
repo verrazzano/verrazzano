@@ -289,8 +289,6 @@ func TestCaptureVZResource(t *testing.T) {
 	assert.True(t, GetIsLiveCluster())
 }
 
-// TODO: test captureMultiClusterResources in regportgen.go
-
 // TestCaptureVerrazzanoProjects tests the CaptureVerrazzanoProjects function
 // GIVEN a dynamic client possibly containing a VerrazzanoProject resource
 // WHEN I call CaptureVerrazzanoProjects
