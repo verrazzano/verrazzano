@@ -56,7 +56,7 @@ func main() {
 		}
 		fmt.Println(tagsAfter)
 	case VersionsLT:
-		tagsBefore, err := getTagsLT(releaseTags, excludeReleaseTags[0])
+		tagsBefore, err := getTagsLT(releaseTags, developmentVersion)
 		if err != nil {
 			panic(err)
 		}
