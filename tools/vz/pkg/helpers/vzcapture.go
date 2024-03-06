@@ -287,7 +287,6 @@ func CaptureK8SResources(client clipkg.Client, kubeClient kubernetes.Interface, 
 func CaptureMetadata(captureDir string) error {
 	timetoCaptureString := time.Now().UTC().Format(time.RFC3339)
 	metadataFilename := filepath.Join(captureDir, constants.MetadataJSON)
-	LogMessage("Capturing Time In RFC 3339 Format  ...\n")
 	timeStructToWrite := Metadata{Time: timetoCaptureString}
 	metadataJSON, err := json.MarshalIndent(timeStructToWrite, constants.JSONPrefix, constants.JSONIndent)
 	if err != nil {
