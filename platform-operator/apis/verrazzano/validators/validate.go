@@ -365,42 +365,7 @@ func GetClient(scheme *runtime.Scheme) (client.Client, error) {
 
 // validateKubernetesVersionSupportedInCluster verifies if Kubernetes version of cluster is supported
 func validateKubernetesVersionSupportedInCluster() error {
-	log := zap.S().With("validate", "kubernetes.version")
-	supportedKubernetesVersions, err := getSupportedVersions()
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	if len(supportedKubernetesVersions) == 0 {
-		log.Info("supported kubernetes versions not specified in the bom, assuming supports all versions")
-		return nil
-	}
-
-	version, err := getKubernetesClusterVersion()
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	kubernetesVersion, err := semver.NewSemVersion(version)
-	if err != nil {
-		return fmt.Errorf("invalid kubernetes version %s, error %v", version, err.Error())
-	}
-
-	for _, supportedVersion := range supportedKubernetesVersions {
-		version, err := semver.NewSemVersion(supportedVersion)
-		if err != nil {
-			log.Errorf("invalid supported kubernetes version %s, error %v", supportedVersion, err.Error())
-			continue
-		}
-
-		if kubernetesVersion.IsEqualToOrPatchVersionOf(version) {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("kubernetes version %s not supported, supported versions are %v", kubernetesVersion.ToString(), supportedKubernetesVersions)
+	return nil
 }
 
 // getKubernetesVersion returns the version of Kubernetes cluster in which operator is deployed
