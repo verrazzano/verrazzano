@@ -241,7 +241,6 @@ pipeline {
         TF_VAR_api_private_key_path = credentials('oci-api-key')
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -560,7 +559,6 @@ def setUpEnvVarsForOCNEClusterCreation() {
     env.OCI_TENANCY_ID="${env.TF_VAR_tenancy_id}"
     env.OCI_CREDENTIALS_FINGERPRINT="${env.TF_VAR_api_fingerprint}"
     env.OCI_PRIVATE_KEY_PATH="${TF_VAR_api_private_key_path}"
-    env.NODE_PUBLIC_KEY_PATH="${TF_VAR_ssh_public_key_path}"
     env.OCI_COMPARTMENT_ID="${env.TF_VAR_compartment_id}"
     env.WORKER_NODE_SUBNET="${env.SUBNET_ID}"
     env.CONTROL_PLANE_SUBNET="${env.SUBNET_ID}"

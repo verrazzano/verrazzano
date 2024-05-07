@@ -92,7 +92,6 @@ pipeline {
         TF_VAR_api_private_key_path = credentials('oci-api-key')
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
         TEST_CONFIG_FILE = "${HOME}/testConfigOke.yaml"
         OCI_CLI_TENANCY = credentials('oci-tenancy')
