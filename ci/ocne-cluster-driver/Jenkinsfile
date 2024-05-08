@@ -241,7 +241,7 @@ pipeline {
         TF_VAR_api_private_key_path = credentials('oci-api-key')
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
-        TF_VAR_ssh_public_key_path = ""
+        TF_VAR_ssh_public_key_path = "${WORKSPACE}/ephemeral-key.pub"
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
         OCI_CLI_USER = credentials('oci-user-ocid')
@@ -384,7 +384,7 @@ pipeline {
                     ssh-keygen -y -e -f ${WORKSPACE}/ephemeral-key > ${WORKSPACE}/ephemeral-key.pub-1
                     ssh-keygen -i -f ${WORKSPACE}/ephemeral-key.pub-1 > ${WORKSPACE}/ephemeral-key.pub
                 """
-                sh "TF_VAR_ssh_public_key_path=${WORKSPACE}/ephemeral-key.pub TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=ocne-driver-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
+                sh "TF_VAR_label_prefix=${OKE_CLUSTER_PREFIX} TF_VAR_state_name=ocne-driver-${env.BUILD_NUMBER}-${env.BRANCH_NAME}/${env.TIMESTAMP} ${GO_REPO_PATH}/verrazzano/tests/e2e/config/scripts/create_oke_cluster.sh"
             }
         }
 
@@ -566,6 +566,7 @@ def setUpEnvVarsForOCNEClusterCreation() {
     env.OCI_TENANCY_ID="${env.TF_VAR_tenancy_id}"
     env.OCI_CREDENTIALS_FINGERPRINT="${env.TF_VAR_api_fingerprint}"
     env.OCI_PRIVATE_KEY_PATH="${TF_VAR_api_private_key_path}"
+    env.NODE_PUBLIC_KEY_PATH="${TF_VAR_ssh_public_key_path}"
     env.OCI_COMPARTMENT_ID="${env.TF_VAR_compartment_id}"
     env.WORKER_NODE_SUBNET="${env.SUBNET_ID}"
     env.CONTROL_PLANE_SUBNET="${env.SUBNET_ID}"
