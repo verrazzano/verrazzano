@@ -282,7 +282,7 @@ pipeline {
 
                     // Install terraform and generate ssh keys
                     sh """
-                        sudo yum-config-manager --add-repo http://yum.oracle.com/repo/OracleLinux/OL7/developer/x86_64
+                        sudo yum-config-manager --add-repo https://yum.oracle.com/repo/OracleLinux/OL7/developer/archive/x86_64/
                         sudo yum install -y terraform
                         mkdir -p $OCNE_DUMP_DIR
                         ssh-keygen -t rsa -b 4096 -q -N "" -f $TF_VAR_ssh_private_key_path
