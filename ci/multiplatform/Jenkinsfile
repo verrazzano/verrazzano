@@ -91,7 +91,6 @@ pipeline {
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path = credentials('oci-api-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
 
         OCI_CLI_TENANCY = credentials('oci-tenancy')
