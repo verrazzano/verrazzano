@@ -169,7 +169,6 @@ pipeline {
         TF_VAR_api_private_key_path = credentials('oci-api-key')
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
-        TF_VAR_ssh_public_key_path = credentials('oci-tf-pub-ssh-key')
 
         // CAPI variables
         OCI_USER_ID = credentials('oci-user-ocid')
@@ -186,7 +185,6 @@ pipeline {
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAMESPACE = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CLUSTER_NAME = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
-        CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
         ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}"
         OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}"
