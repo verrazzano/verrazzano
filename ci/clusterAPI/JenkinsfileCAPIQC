@@ -130,7 +130,6 @@ pipeline {
         OCI_TENANCY_ID = credentials('oci-tenancy')
         OCI_REGION = "${params.CAPI_CLUSTER_REGION}"
         OCI_COMPARTMENT_ID = credentials('oci-tiburon-dev-compartment-ocid')
-        CAPI_NODE_SSH_KEY_PATH = credentials('oci-tf-pub-ssh-key')
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
         CNI_TYPE = "${params.OKE_CNI_TYPE}"
     }
