@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	intR3PEM  = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem"
-	intE1PEM  = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem"
+	intR10PEM = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r10.pem"
+	intE5PEM  = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e5.pem"
 	rootX1PEM = "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem"
 )
 
@@ -48,10 +48,10 @@ func (c *certBuilder) appendCertWithHTTP(uri string) error {
 // Verrazzano uses the LetsEncrypt staging certificate chain for Rancher ingress on ACME staging environments.
 // See https://letsencrypt.org/docs/staging-environment/ for more information.
 func (c *certBuilder) buildLetsEncryptStagingChain() error {
-	if err := c.appendCertWithHTTP(intR3PEM); err != nil {
+	if err := c.appendCertWithHTTP(intR10PEM); err != nil {
 		return err
 	}
-	if err := c.appendCertWithHTTP(intE1PEM); err != nil {
+	if err := c.appendCertWithHTTP(intE5PEM); err != nil {
 		return err
 	}
 	if err := c.appendCertWithHTTP(rootX1PEM); err != nil {

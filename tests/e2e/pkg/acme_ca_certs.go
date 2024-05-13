@@ -7,13 +7,13 @@ import (
 	"net/http"
 )
 
-const letsEncryptStagingIntR3 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem"
-const letsEncryptStagingIntE1 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem"
+const letsEncryptStagingIntR10 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r10.pem"
+const letsEncryptStagingIntE5 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e5.pem"
 
 func getACMEStagingCAs() [][]byte {
-	letsEncryptStagingIntE1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1")
-	letsEncryptStagingIntR3CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3")
-	return [][]byte{letsEncryptStagingIntE1CA, letsEncryptStagingIntR3CA}
+	letsEncryptStagingIntE5CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE5, "E5")
+	letsEncryptStagingIntR10CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR10, "R10")
+	return [][]byte{letsEncryptStagingIntE5CA, letsEncryptStagingIntR10CA}
 }
 
 func newSimpleHTTPClient() *http.Client {

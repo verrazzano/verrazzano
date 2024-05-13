@@ -104,10 +104,10 @@ func TestCreateLetsEncryptStagingBundle(t *testing.T) {
 			func(hc *http.Client, req *http.Request) (*http.Response, error) {
 				bundleData := ""
 				switch req.URL.Path[len(req.URL.Path)-15:] {
-				case "-stg-int-r3.pem":
-					bundleData = "intR3PEM\n"
-				case "-stg-int-e1.pem":
-					bundleData = "intE1PEM\n"
+				case "-stg-int-r10.pem":
+					bundleData = "intR10PEM\n"
+				case "-stg-int-e5.pem":
+					bundleData = "intE5PEM\n"
 				case "stg-root-x1.pem":
 					bundleData = "rootX1PEM\n"
 				}
@@ -116,7 +116,7 @@ func TestCreateLetsEncryptStagingBundle(t *testing.T) {
 					StatusCode: http.StatusOK,
 				}, nil
 			},
-			[]byte("intR3PEM\nintE1PEM\nrootX1PEM"),
+			[]byte("intR10PEM\nintE5PEM\nrootX1PEM"),
 			false,
 		},
 		{
