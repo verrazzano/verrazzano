@@ -87,7 +87,8 @@ function scan_images_in_bom() {
     # Check if any Results section was included or not, only convert to CSV if there are Results there
     results_size=$(cat ${RESULT_FILE_PREFIX}-trivy-details.json |  jq '.Results' | wc -l)
     if [[ results_size -gt 1 ]]; then
-      cat ${RESULT_FILE_PREFIX}-trivy-details.json | jq -r '.Results[]' | sed 's/null//g' | jq -r '.Vulnerabilities' | sed 's/null//g' | jq -r ' .[] | { sev: .Severity, cve: ."VulnerabilityID", description: .Description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-trivy-details.csv || exit 1
+      # need to clean out javascript escape issue to avoid parse issues
+      cat ${RESULT_FILE_PREFIX}-trivy-details.json | sed 's/Not all valid JavaScript whitespace characters.*execution/Not all valid JavaScript whitespace characters are considered to be whitespace. Templates containing whitespace characters outside of the character set REMOVED-ESCAPES in JavaScript contexts that also contain actions may not be properly sanitized during execution/g' | jq -r '.Results[]' | sed 's/null//g' | jq -r '.Vulnerabilities' | sed 's/null//g' | jq -r ' .[] | { sev: .Severity, cve: ."VulnerabilityID", description: .Description } ' | sed 's/\\[nt]/ /g' | jq -r '[.[]] | @csv' | sort -u > ${RESULT_FILE_PREFIX}-trivy-details.csv || exit 1
     else
       echo "No Results section found in ${RESULT_FILE_PREFIX}-trivy-details.json, so no need to generate CSV for it"
     fi
