@@ -104,7 +104,7 @@ func TestCreateLetsEncryptStagingBundle(t *testing.T) {
 			func(hc *http.Client, req *http.Request) (*http.Response, error) {
 				bundleData := ""
 				switch req.URL.Path[len(req.URL.Path)-15:] {
-				case "-stg-int-r10.pem":
+				case "stg-int-r10.pem":
 					bundleData = "intR10PEM\n"
 				case "-stg-int-e5.pem":
 					bundleData = "intE5PEM\n"
