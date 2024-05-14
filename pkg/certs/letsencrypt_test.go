@@ -103,19 +103,20 @@ func TestCreateLetsEncryptStagingBundle(t *testing.T) {
 			"should be able to download staging bundles",
 			func(hc *http.Client, req *http.Request) (*http.Response, error) {
 				bundleData := ""
-				if strings.Contains(req.URL.Path, "stg-root-x1.pem") {
+				switch req.URL.Path[len(req.URL.Path)-15:] {
+				case "-stg-int-r3.pem":
+					bundleData = "intR3PEM\n"
+				case "-stg-int-e1.pem":
+					bundleData = "intE1PEM\n"
+				case "stg-root-x1.pem":
 					bundleData = "rootX1PEM\n"
-				} else if strings.Contains(req.URL.Path, "r10.pem") {
-					bundleData = "intR10PEM\n"
-				} else if strings.Contains(req.URL.Path, "e5-cross.pem") {
-					bundleData = "intE5PEM\n"
 				}
 				return &http.Response{
 					Body:       io.NopCloser(strings.NewReader(bundleData)),
 					StatusCode: http.StatusOK,
 				}, nil
 			},
-			[]byte("intR10PEM\nintE5PEM\nrootX1PEM"),
+			[]byte("intR3PEM\nintE1PEM\nrootX1PEM"),
 			false,
 		},
 		{
