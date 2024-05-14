@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	intR10PEM = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r10.pem"
-	intE5PEM  = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e5.pem"
+	intR10PEM = "https://letsencrypt.org/certs/2024/r10.pem"
+	intE5PEM  = "https://letsencrypt.org/certs/2024/e5-cross.pem"
 	rootX1PEM = "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem"
 )
 
