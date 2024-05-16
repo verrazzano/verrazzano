@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package alacarte
@@ -111,7 +111,7 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if certificateType == letsEncryptType {
 		clusterIssuer.LetsEncrypt = &vzapi.LetsEncryptACMEIssuer{
 			EmailAddress: "jane.doe@mycompany.com",
-			Environment:  "staging",
+			Environment:  "production",
 		}
 	}
 	cr.Spec.Components.ClusterIssuer = clusterIssuer
