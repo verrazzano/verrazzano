@@ -245,6 +245,8 @@ pipeline {
                         mkdir -p ${GO_REPO_PATH}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
                         ${GO_REPO_PATH}/vz version
+                        echo "update CA certs"
+                        sudo update-ca-trust
                     """
                 }
             }
