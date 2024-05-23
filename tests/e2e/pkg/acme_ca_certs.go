@@ -12,7 +12,7 @@ const letsEncryptStagingIntE1 = "https://letsencrypt.org/certs/staging/letsencry
 const letsEncryptStagingRootX1 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem"
 
 func getACMEStagingCAs() [][]byte {
-	letsEncryptStagingRootX1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingRootX1, "E1")
+	letsEncryptStagingRootX1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingRootX1, "X1")
 	return [][]byte{letsEncryptStagingRootX1CA}
 }
 
