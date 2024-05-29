@@ -111,7 +111,7 @@ func (m appStackModifier) ModifyCR(cr *vzapi.Verrazzano) {
 	if certificateType == letsEncryptType {
 		clusterIssuer.LetsEncrypt = &vzapi.LetsEncryptACMEIssuer{
 			EmailAddress: "jane.doe@mycompany.com",
-			Environment:  "production",
+			Environment:  "staging",
 		}
 	}
 	cr.Spec.Components.ClusterIssuer = clusterIssuer

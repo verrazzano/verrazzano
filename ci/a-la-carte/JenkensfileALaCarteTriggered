@@ -135,7 +135,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, LetsEncrypt Production, Cert-Manager default clusterResourceNamespace') {
+                stage('OCIDNS, LetsEncrypt Staging, Cert-Manager default clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
@@ -189,7 +189,7 @@ pipeline {
                         }
                     }
                 }
-                stage('OCIDNS, LetsEncrypt Production, Cert-Manager custom clusterResourceNamespace') {
+                stage('OCIDNS, LetsEncrypt Staging, Cert-Manager custom clusterResourceNamespace') {
                     steps {
                         retry(count: JOB_PROMOTION_RETRIES) {
                             script {
