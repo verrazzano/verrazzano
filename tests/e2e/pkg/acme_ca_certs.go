@@ -9,11 +9,11 @@ import (
 
 const letsEncryptStagingIntR3 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-r3.pem"
 const letsEncryptStagingIntE1 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-int-e1.pem"
+const letsEncryptStagingRootX1 = "https://letsencrypt.org/certs/staging/letsencrypt-stg-root-x1.pem"
 
 func getACMEStagingCAs() [][]byte {
-	letsEncryptStagingIntE1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntE1, "E1")
-	letsEncryptStagingIntR3CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingIntR3, "R3")
-	return [][]byte{letsEncryptStagingIntE1CA, letsEncryptStagingIntR3CA}
+	letsEncryptStagingRootX1CA := loadStagingCA(newSimpleHTTPClient(), letsEncryptStagingRootX1, "X1")
+	return [][]byte{letsEncryptStagingRootX1CA}
 }
 
 func newSimpleHTTPClient() *http.Client {
