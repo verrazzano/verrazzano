@@ -167,6 +167,7 @@ pipeline {
         TF_VAR_nodepool_config = "${params.OKE_NODE_POOL}"
         TF_VAR_api_fingerprint = credentials('oci-api-key-fingerprint')
         TF_VAR_api_private_key_path = credentials('oci-api-key')
+        TF_VAR_ssh_public_key_path = "${WORKSPACE}/ephemeral-key.pub"
         TF_VAR_s3_bucket_access_key = credentials('oci-s3-bucket-access-key')
         TF_VAR_s3_bucket_secret_key = credentials('oci-s3-bucket-secret-key')
 
@@ -185,6 +186,7 @@ pipeline {
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAMESPACE = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CLUSTER_NAME = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
+        CAPI_NODE_SSH_KEY_PATH = "${WORKSPACE}/ephemeral-key.pub"
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
         ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}"
         OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}"
@@ -271,6 +273,12 @@ pipeline {
                         oci --region us-phoenix-1 os object get --namespace ${OCI_OS_NAMESPACE} -bn ${OCI_OS_COMMIT_BUCKET} --name ephemeral/${env.BRANCH_NAME}/${SHORT_COMMIT_HASH}/${VZ_CLI_TARGZ} --file ${VZ_CLI_TARGZ}
                         tar xzf ${VZ_CLI_TARGZ} -C ${GO_REPO_PATH}
                         ${GO_REPO_PATH}/vz version
+
+                        echo "Generate ephemeral ssh keys for test"
+                        ssh-keygen -t rsa -b 4096 -q -N "" -f ${WORKSPACE}/ephemeral-key
+                        chmod 600 ${WORKSPACE}/ephemeral-key
+                        ssh-keygen -y -e -f ${WORKSPACE}/ephemeral-key > ${WORKSPACE}/ephemeral-key.pub-1
+                        ssh-keygen -i -f ${WORKSPACE}/ephemeral-key.pub-1 > ${WORKSPACE}/ephemeral-key.pub
                     """
                 }
             }
