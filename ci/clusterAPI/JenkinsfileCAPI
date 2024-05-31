@@ -186,7 +186,7 @@ pipeline {
         CLUSTER_SUFFIX_ID = "${clusterSuffix}"
         CLUSTER_NAMESPACE = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
         CLUSTER_NAME = "ocnecapikluster-${CLUSTER_SUFFIX_ID}"
-        CAPI_NODE_SSH_KEY_PATH = "${WORKSPACE}/ephemeral-key"
+        CAPI_NODE_SSH_KEY_PATH = "${WORKSPACE}/ephemeral-key.pub"
         CAPI_OCI_PRIVATE_KEY_PATH = credentials('oci-api-key')
         ORACLE_LINUX_NAME = "${params.ORACLE_LINUX_NAME}"
         OPERATING_SYSTEM = "${params.OPERATING_SYSTEM}"
