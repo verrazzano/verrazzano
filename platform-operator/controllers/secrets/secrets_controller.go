@@ -176,7 +176,7 @@ func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates(req ctrl.Re
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
 			// Only renew the cert if the renewal time is in the past
-			if time.Now().Before(cert.Status.RenewalTime.Time) {
+			if cert.Status.RenewalTime == nil || time.Now().Before(cert.Status.RenewalTime.Time) {
 				continue
 			}
 

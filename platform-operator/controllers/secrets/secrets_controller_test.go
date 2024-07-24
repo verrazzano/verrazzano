@@ -596,6 +596,12 @@ func newCertificateWithSecret(issuerName string, commonName string, certName str
 			},
 			SecretName: secret.Name,
 		},
+		Status: certv1.CertificateStatus{
+			RenewalTime: &metav1.Time{
+				// yesterday
+				Time: time.Now().AddDate(0, 0, -1),
+			},
+		},
 	}
 
 	return secret, certificate, nil
