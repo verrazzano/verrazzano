@@ -153,7 +153,7 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 		return controllerutil.OperationResultNone, err
 	}
 
-	r.log.Infof("Created or updated secret %s/%s (result: %v)", name, namespace, result)
+	r.log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
 	return result, nil
 }
 
