@@ -202,7 +202,7 @@
     },
     {
       "name": "capi-cluster-api",
-      "version": "v1.5.3-6",
+      "version": "v1.5.3",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -957,7 +957,7 @@
     },
     {
       "name": "argocd",
-      "version": "2.8.3-3",
+      "version": "2.8.3-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -965,7 +965,7 @@
           "images": [
             {
               "image": "argocd",
-              "tag": "v2.8.3-20240110063556-01439f10",
+              "tag": "v2.8.3-20240725113729-01439f10",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -1024,7 +1024,7 @@
     },
     {
       "name": "opensearch-operator",
-      "version": "2.4.0-4",
+      "version": "2.4.0-5",
       "subcomponents": [
         {
           "repository": "verrazzano",
@@ -1032,7 +1032,7 @@
           "images": [
             {
               "image": "opensearch-operator",
-              "tag": "v2.4.0-20231215095828-4db3183",
+              "tag": "v2.4.0-20240722162940-4db3183",
               "helmFullImageKey": "manager.image.repository",
               "helmTagKey": "manager.image.tag"
             }

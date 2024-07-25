@@ -142,7 +142,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/rancher-backup-override-static-values.yaml
   - name: argocd
-    version: 2.8.3-3
+    version: 2.8.3-4
     chart: platform-operator/thirdparty/charts/argo-cd
     valuesFiles:
       - platform-operator/helm_config/overrides/argocd-values.yaml
@@ -155,7 +155,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-network-policies
   - name: opensearch-operator
-    version: 2.4.0-4
+    version: 2.4.0-5
     chart: platform-operator/thirdparty/charts/opensearch-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/opensearch-operator-values.yaml
