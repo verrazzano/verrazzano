@@ -324,7 +324,7 @@
           "images": [
             {
               "image": "console",
-              "tag": "v2.0.0-20231116162144-dddf493",
+              "tag": "v2.0.0-20240725120553-60c4b57",
               "helmFullImageKey": "imageName",
               "helmTagKey": "imageTag"
             }
