@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -175,6 +175,11 @@ func (r *VerrazzanoSecretsReconciler) renewClusterIssuerCertificates(req ctrl.Re
 	// Renew each certificate that was issued by the Verrazzano ClusterIssuer
 	for i, cert := range certList.Items {
 		if cert.Spec.IssuerRef.Name == vzconst.VerrazzanoClusterIssuerName {
+			// Only renew the cert if the renewal time is in the past
+			if cert.Status.RenewalTime == nil || time.Now().Before(cert.Status.RenewalTime.Time) {
+				continue
+			}
+
 			r.log.Infof("Renewing certificate %s/%s", cert.Namespace, cert.Name)
 			if err := issuer.RenewCertificate(context.TODO(), cmClient, r.log, &certList.Items[i]); err != nil {
 				return newRequeueWithDelay(), err

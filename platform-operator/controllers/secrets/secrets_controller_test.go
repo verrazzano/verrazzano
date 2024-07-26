@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -595,6 +595,12 @@ func newCertificateWithSecret(issuerName string, commonName string, certName str
 				Name: issuerName,
 			},
 			SecretName: secret.Name,
+		},
+		Status: certv1.CertificateStatus{
+			RenewalTime: &metav1.Time{
+				// yesterday
+				Time: time.Now().AddDate(0, 0, -1),
+			},
 		},
 	}
 
