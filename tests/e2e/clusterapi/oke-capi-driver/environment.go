@@ -1,4 +1,4 @@
-// Copyright (c) 2023, Oracle and/or its affiliates.
+// Copyright (c) 2023, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package okecapidriver
@@ -101,7 +101,7 @@ func ensureOKEDriverVarsInitialized(log *zap.SugaredLogger) error {
 // Initializes variables from OKE metadata ConfigMap. Values are optionally overridden.
 func fillOKEMetadata(log *zap.SugaredLogger) error {
 	// Initialize values
-	kubernetesVersion = pkg.GetEnvFallback("KUBERNETES_VERSION", "v1.26.2")
+	kubernetesVersion = pkg.GetEnvFallback("KUBERNETES_VERSION", "v1.27.2")
 	okeSupportedVersions = strings.Split(pkg.GetEnvFallback("OKE_VERSIONS", "v1.27.2, v1.26.7, v1.26.2, v1.25.12, v1.25.4"), ",")
 
 	for _, k8sVersion := range okeSupportedVersions {
