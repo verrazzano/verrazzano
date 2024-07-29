@@ -1,3 +1,9 @@
+### 1.7.2
+Fixes:
+
+- Fixed an issue where console certificates were being recreated approximately every 10-18 hours.
+  Now they only get recreated shortly after certificate.Status.renewalTime.
+- 
 ### v1.7.1
 
 Component version updates:
