@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package secrets
@@ -153,7 +153,7 @@ func (r *VerrazzanoSecretsReconciler) updateSecret(namespace string, name string
 		return controllerutil.OperationResultNone, err
 	}
 
-	r.log.Infof("Created or updated secret %s/%s (result: %v)", name, namespace, result)
+	r.log.Debugf("Created or updated secret %s/%s (result: %v)", name, namespace, result)
 	return result, nil
 }
 
