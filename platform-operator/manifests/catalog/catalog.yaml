@@ -63,7 +63,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-application-operator
   - name: weblogic-operator
-    version: 4.1.4
+    version: 4.2.5
     chart: platform-operator/thirdparty/charts/weblogic-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/weblogic-values.yaml
