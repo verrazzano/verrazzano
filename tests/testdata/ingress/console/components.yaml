@@ -18,7 +18,7 @@ spec:
         spec:
           domainUID: cidomain
           domainHome: /u01/domains/tododomain
-          image: ghcr.io/verrazzano/example-todo-jenkins:latest
+          image: container-registry.oracle.com/verrazzano/example-todo:1.0.0-1-20240802000000-eb1e622
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"
