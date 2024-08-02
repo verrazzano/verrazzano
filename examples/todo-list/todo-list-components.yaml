@@ -32,7 +32,7 @@ spec:
             introspectorJobActiveDeadlineSeconds: 900
             model:
               auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
+                - image: ghcr.io/verrazzano/example-todo-jenkins:latest
               configMap: tododomain-jdbc-config
               domainType: WLS
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
