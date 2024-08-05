@@ -145,7 +145,7 @@ func deployWebLogicApp(namespace string) {
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
 	regServAlt := pkg.GetRequiredEnvVarOrFail("GCR_REPO")
 	regUserAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_USR")
-	regPassAl;t := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_PSW")
+	regPassAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_PSW")
 
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
