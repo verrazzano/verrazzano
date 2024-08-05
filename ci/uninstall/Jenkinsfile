@@ -81,6 +81,9 @@ pipeline {
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'
 
+        GCR_CREDS = credentials('github-packages-credentials-rw')
+        GCR_REPO = 'ghcr.io'
+
         TF_VAR_compartment_id = credentials('oci-tiburon-dev-compartment-ocid')
         TF_VAR_tenancy_id = credentials('oci-tenancy')
         TF_VAR_tenancy_name = credentials('oci-tenancy-name')

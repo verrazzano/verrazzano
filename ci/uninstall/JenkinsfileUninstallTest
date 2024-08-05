@@ -113,6 +113,8 @@ pipeline {
         KUBECONFIG = "${WORKSPACE}/test_kubeconfig"
         ADMIN_KUBECONFIG = "${KUBECONFIG}"
         VERRAZZANO_KUBECONFIG = "${KUBECONFIG}"
+        GCR_CREDS = credentials('github-packages-credentials-rw')
+        GCR_REPO = 'ghcr.io'
         OCR_CREDS = credentials('ocr-pull-and-push-account')
         OCR_REPO = 'container-registry.oracle.com'
         IMAGE_PULL_SECRET = 'verrazzano-container-registry'

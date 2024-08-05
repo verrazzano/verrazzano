@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package weblogic
@@ -39,6 +39,7 @@ const (
 	trait          = "hello-domain-trait"
 
 	helloDomainRepoCreds     = "hellodomain-repo-credentials"
+	helloDomainRepoCredsAlt  = "hellodomain-repo-credentials-alternate"
 	helloDomainWeblogicCreds = "hellodomain-weblogic-credentials"
 )
 
@@ -142,6 +143,9 @@ func deployWebLogicApp(namespace string) {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
+	regServAlt := pkg.GetRequiredEnvVarOrFail("GCR_REPO")
+	regUserAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_USR")
+	regPassAl;t := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_PSW")
 
 	t.Logs.Info("Create namespace")
 	Eventually(func() (*v1.Namespace, error) {
@@ -154,6 +158,11 @@ func deployWebLogicApp(namespace string) {
 	t.Logs.Info("Create docker-registry secret to enable pulling image from the registry")
 	Eventually(func() (*v1.Secret, error) {
 		return pkg.CreateDockerSecret(namespace, helloDomainRepoCreds, regServ, regUser, regPass)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
+	t.Logs.Info("Create docker-registry-alt secret to enable pulling image from the registry")
+	Eventually(func() (*v1.Secret, error) {
+		return pkg.CreateDockerSecret(namespace, helloDomainRepoCredsAlt, regServAlt, regUserAlt, regPassAlt)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	t.Logs.Info("Create secret for the WebLogic domain")

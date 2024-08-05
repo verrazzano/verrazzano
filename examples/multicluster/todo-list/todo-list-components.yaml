@@ -25,6 +25,7 @@ spec:
           imagePullPolicy: Always
           imagePullSecrets:
             - name: tododomain-repo-credentials
+            - name: tododomain-repo-credentials-alternate
           domainHomeSourceType: "FromModel"
           includeServerOutInPodLog: true
           replicas: 1
@@ -34,7 +35,7 @@ spec:
             introspectorJobActiveDeadlineSeconds: 900
             model:
               auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-todo:20240804000000-ae4e89e
+                - image: ghcr.io/verrazzano/example-todo:latest
               configMap: tododomain-jdbc-config
               domainType: WLS
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret

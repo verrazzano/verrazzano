@@ -1,4 +1,4 @@
-// Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package todo_list
@@ -56,6 +56,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
+	regServAlt := pkg.GetRequiredEnvVarOrFail("GCR_REPO")
+	regUserAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_USR")
+	regPassAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_PSW")
 
 	// deploy the VerrazzanoProject
 	start := time.Now()
@@ -71,6 +74,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// create Docker repository secret
 	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateDockerSecretInCluster(testNamespace, "tododomain-repo-credentials", regServ, regUser, regPass, adminKubeconfig)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() (*m1.Secret, error) {
+		return pkg.CreateDockerSecretInCluster(testNamespace, "tododomain-repo-credentials-alternate", regServAlt, regUserAlt, regPassAlt, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create WebLogic credentials secret

@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package mcweblogic
@@ -47,8 +47,9 @@ const (
 	wlServer       = "weblogic-server"
 
 	// kubernetes secrets
-	dockerSecret = "hellodomain-repo-credentials"
-	domainSecret = "hellodomain-weblogic-credentials"
+	dockerSecret    = "hellodomain-repo-credentials"
+	dockerSecretAlt = "hellodomain-repo-credentials-alternate"
+	domainSecret    = "hellodomain-weblogic-credentials"
 
 	// metrics
 	scrapeDuration   = "scrape_duration_seconds"
@@ -66,11 +67,12 @@ const (
 	labelPodName          = "pod_name"
 
 	// application resources
-	appConfiguration                  = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-mc-app.yaml"
-	compConfiguration                 = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
-	projectConfiguration              = "tests/testdata/test-applications/weblogic/hello-weblogic/verrazzano-project.yaml"
-	wlDomainSecretConfiguration       = "tests/testdata/test-applications/weblogic/hello-weblogic/weblogic-domain-secret.yaml"
-	dockerRegistrySecretConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/docker-registry-secret.yaml"
+	appConfiguration                           = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-mc-app.yaml"
+	compConfiguration                          = "tests/testdata/test-applications/weblogic/hello-weblogic/hello-wls-comp.yaml"
+	projectConfiguration                       = "tests/testdata/test-applications/weblogic/hello-weblogic/verrazzano-project.yaml"
+	wlDomainSecretConfiguration                = "tests/testdata/test-applications/weblogic/hello-weblogic/weblogic-domain-secret.yaml"
+	dockerRegistrySecretConfiguration          = "tests/testdata/test-applications/weblogic/hello-weblogic/docker-registry-secret.yaml"
+	dockerRegistrySecretAlternateConfiguration = "tests/testdata/test-applications/weblogic/hello-weblogic/docker-registry-secret-alternate.yaml"
 )
 
 var (
@@ -98,6 +100,9 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	regServ := pkg.GetRequiredEnvVarOrFail("OCR_REPO")
 	regUser := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_USR")
 	regPass := pkg.GetRequiredEnvVarOrFail("OCR_CREDS_PSW")
+	regServAlt := pkg.GetRequiredEnvVarOrFail("GCR_REPO")
+	regUserAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_USR")
+	regPassAlt := pkg.GetRequiredEnvVarOrFail("GCR_CREDS_PSW")
 
 	// deploy the VerrazzanoProject
 	Eventually(func() error {
@@ -112,6 +117,10 @@ var beforeSuite = t.BeforeSuiteFunc(func() {
 	// create Docker repository secret
 	Eventually(func() (*m1.Secret, error) {
 		return pkg.CreateDockerSecretInCluster(appNamespace, dockerSecret, regServ, regUser, regPass, adminKubeconfig)
+	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
+
+	Eventually(func() (*m1.Secret, error) {
+		return pkg.CreateDockerSecretInCluster(appNamespace, dockerSecretAlt, regServAlt, regUserAlt, regPassAlt, adminKubeconfig)
 	}, shortWaitTimeout, shortPollingInterval).ShouldNot(BeNil())
 
 	// create WebLogic credentials secret
@@ -425,6 +434,14 @@ func cleanUp(kubeconfigPath string) error {
 	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete docker registry secret: %v", err)
 	}
+	file, err = pkg.FindTestDataFile(dockerRegistrySecretAlternateConfiguration)
+	if err != nil {
+		return err
+	}
+	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
+		return fmt.Errorf("failed to delete docker registry alternate secret: %v", err)
+	}
+
 
 	file, err = pkg.FindTestDataFile(projectConfiguration)
 	if err != nil {
