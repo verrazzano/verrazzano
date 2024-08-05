@@ -1,4 +1,9 @@
 ### 1.6.12
+Component version updates:
+
+- WebLogic Kubernetes Operator v4.2.5
+- WebLogic Monitoring Exporter v2.2.0
+
 Fixes:
 
 - Fixed an issue where console certificates were being recreated approximately every 10-18 hours. 
