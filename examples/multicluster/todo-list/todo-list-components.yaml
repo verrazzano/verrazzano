@@ -1,4 +1,4 @@
-# Copyright (c) 2020, 2022, Oracle and/or its affiliates.
+# Copyright (c) 2020, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 apiVersion: core.oam.dev/v1alpha2
@@ -22,6 +22,7 @@ spec:
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
+          imagePullPolicy: Always
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -33,7 +34,7 @@ spec:
             introspectorJobActiveDeadlineSeconds: 900
             model:
               auxiliaryImages:
-                - image: container-registry.oracle.com/verrazzano/example-todo:20211129200415-ae4e89e
+                - image: container-registry.oracle.com/verrazzano/example-todo:20240804000000-ae4e89e
               configMap: tododomain-jdbc-config
               domainType: WLS
               runtimeEncryptionSecret: tododomain-runtime-encrypt-secret
