@@ -441,8 +441,6 @@ func cleanUp(kubeconfigPath string) error {
 	if err := resource.DeleteResourceFromFileInClusterInGeneratedNamespace(file, kubeconfigPath, appNamespace); err != nil {
 		return fmt.Errorf("failed to delete docker registry alternate secret: %v", err)
 	}
-
-
 	file, err = pkg.FindTestDataFile(projectConfiguration)
 	if err != nil {
 		return err
