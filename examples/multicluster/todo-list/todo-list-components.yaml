@@ -22,7 +22,6 @@ spec:
           domainUID: tododomain
           domainHome: /u01/domains/tododomain
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
-          imagePullPolicy: Always
           imagePullSecrets:
             - name: tododomain-repo-credentials
           domainHomeSourceType: "FromModel"

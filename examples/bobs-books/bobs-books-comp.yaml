@@ -189,7 +189,6 @@ spec:
           domainUID: bobbys-front-end
           domainHome: /u01/oracle/user_projects/domains/bobbys-front-end
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
-          imagePullPolicy: Always
           imagePullSecrets:
             - name: bobs-books-repo-credentials
           domainHomeSourceType: "FromModel"
@@ -454,7 +453,6 @@ spec:
           domainHome: /u01/oracle/user_projects/domains/bobs-bookstore
           domainHomeSourceType: FromModel
           image: container-registry.oracle.com/middleware/weblogic:12.2.1.4
-          imagePullPolicy: Always
           includeServerOutInPodLog: true
           replicas: 1
           webLogicCredentialsSecret:
