@@ -40,7 +40,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano
   - name: fluentd
-    version: 1.14.5-1
+    version: 1.14.5-2
     chart: platform-operator/helm_config/charts/verrazzano-fluentd
   - name: verrazzano-console
     version: VERRAZZANO_VERSION

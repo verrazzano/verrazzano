@@ -299,15 +299,15 @@
     },
     {
       "name": "fluentd",
-      "version": "1.14.5-1",
+      "version": "1.14.5-2",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "fluentd",
           "images": [
             {
-              "image": "fluentd-kubernetes-daemonset",
-              "tag": "v1.14.5-20230922100900-8777b84",
+              "image": "fluentd-kubernetes-daemonset-jenkins",
+              "tag": "20240719102151-e134485",
               "helmFullImageKey": "logging.fluentdImage"
             }
           ]
