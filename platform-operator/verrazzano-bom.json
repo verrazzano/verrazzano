@@ -203,7 +203,7 @@
           "images": [
             {
               "image": "cluster-api-controller",
-              "tag": "v1.5.3-20240722122206-71d748944"
+              "tag": "v1.4.6-20240807175915-54657bc14"
             }
           ]
         }
@@ -277,7 +277,7 @@
             },
             {
               "image": "nginx-prometheus-exporter",
-              "tag": "v0.11.0-20240725110955-0b419280",
+              "tag": "v0.10.0-20240807181544-2f605a9b",
               "helmFullImageKey": "api.metricsImageName",
               "helmTagKey": "api.metricsImageVersion"
             }
