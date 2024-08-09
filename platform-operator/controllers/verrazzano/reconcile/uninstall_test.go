@@ -708,9 +708,9 @@ func TestReconcileUninstall2(t *testing.T) {
 	getDeletionMock := func() client.Client {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
-		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		mockClient.EXPECT().Get(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Get(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
 	tests := []struct {
