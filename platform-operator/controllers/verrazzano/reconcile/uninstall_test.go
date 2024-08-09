@@ -1,4 +1,4 @@
-// Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+// Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 // Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 package reconcile
@@ -708,9 +708,9 @@ func TestReconcileUninstall2(t *testing.T) {
 	getDeletionMock := func() client.Client {
 		mocker := gomock.NewController(t)
 		mockClient := mocks.NewMockClient(mocker)
-		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Delete(context.TODO(), gomock.Not(nil), gomock.Any()).Return(nil)
-		mockClient.EXPECT().Get(context.TODO(), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
+		mockClient.EXPECT().Get(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Delete(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Get(gomock.Not(nil), gomock.Not(nil), gomock.Any()).Return(fmt.Errorf(unExpectedError))
 		return mockClient
 	}
 	tests := []struct {
