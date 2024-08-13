@@ -44,38 +44,38 @@
     },
     {
       "name": "cert-manager",
-      "version": "1.9.1-4",
+      "version": "1.9.1-5",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "cert-manager",
           "images": [
             {
-              "image": "cert-manager-controller",
-              "tag": "v1.9.1-20231219115213-4c06aea1",
+              "image": "cert-manager-controller-jenkins",
+              "tag": "v1.9.1-20240813172856-9094090e",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             },
             {
-              "image": "cert-manager-acmesolver",
-              "tag": "v1.9.1-20240724165802-4c06aea1",
+              "image": "cert-manager-acmesolver-jenkins",
+              "tag": "v1.9.1-20240813172856-9094090e",
               "helmFullImageKey": "extraArgs[0]"
             },
             {
-              "image": "cert-manager-cainjector",
-              "tag": "v1.9.1-20240724165802-4c06aea1",
+              "image": "cert-manager-cainjector-jenkins",
+              "tag": "v1.9.1-20240813172856-9094090e",
               "helmFullImageKey": "cainjector.image.repository",
               "helmTagKey": "cainjector.image.tag"
             },
             {
-              "image": "cert-manager-webhook",
-              "tag": "v1.9.1-20240724165802-4c06aea1",
+              "image": "cert-manager-webhook-jenkins",
+              "tag": "v1.9.1-20240813172856-9094090e",
               "helmFullImageKey": "webhook.image.repository",
               "helmTagKey": "webhook.image.tag"
             },
             {
-              "image": "cert-manager-ctl",
-              "tag": "v1.9.1-20240724165802-4c06aea1",
+              "image": "cert-manager-ctl-jenkins",
+              "tag": "v1.9.1-20240813172856-9094090e",
               "helmFullImageKey": "startupapicheck.image.repository",
               "helmTagKey": "startupapicheck.image.tag"
             }
@@ -85,15 +85,15 @@
     },
     {
       "name": "cert-manager-webhook-oci",
-      "version": "0.1.0-3",
+      "version": "0.1.0-4",
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "cert-manager-webhook-oci",
+          "name": "cert-manager-webhook-oci-jenkins",
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20240725112643-ade29ad",
+              "tag": "v0.1.0-20240813175112-e8dbb62",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -705,8 +705,8 @@
           "name": "alertmanager",
           "images": [
             {
-              "image": "alertmanager",
-              "tag": "v0.26.0-1-20240724164513-ad417e73",
+              "image": "alertmanager-jenkins",
+              "tag": "v0.26.0-1-20240809173422-1a5b876b",
               "helmRegKey": "alertmanager.alertmanagerSpec.image.registry",
               "helmFullImageKey": "alertmanager.alertmanagerSpec.image.repository",
               "helmTagKey": "alertmanager.alertmanagerSpec.image.tag"

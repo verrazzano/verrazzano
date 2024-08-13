@@ -8,12 +8,12 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/ingress-nginx-values.yaml
   - name: cert-manager
-    version: 1.9.1-4
+    version: 1.9.1-5
     chart: platform-operator/thirdparty/charts/cert-manager
     valuesFiles:
       - platform-operator/helm_config/overrides/cert-manager-values.yaml
   - name: cert-manager-webhook-oci
-    version: 0.1.0-3
+    version: 0.1.0-4
     chart: platform-operator/thirdparty/charts/cert-manager-webhook-oci
   - name: cluster-issuer
     version: VERRAZZANO_VERSION
@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-4
+    version: 0.12.2-3
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
@@ -49,7 +49,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-monitoring-operator
   - name: oam-kubernetes-runtime
-    version: 0.3.3-4
+    version: 0.3.3-3
     chart: platform-operator/thirdparty/charts/oam-kubernetes-runtime
     valuesFiles:
       - platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
@@ -86,7 +86,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/kiali-server-values.yaml
   - name: mysql
-    version: 8.0.32-1
+    version: 8.0.32
     chart: platform-operator/thirdparty/charts/mysql
     valuesFiles:
       - platform-operator/helm_config/overrides/mysql-values.yaml
