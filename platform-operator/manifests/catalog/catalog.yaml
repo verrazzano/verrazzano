@@ -23,7 +23,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/dex-values.yaml
   - name: external-dns
-    version: 0.12.2-3
+    version: 0.12.2-4
     chart: platform-operator/thirdparty/charts/external-dns
     valuesFiles:
       - platform-operator/helm_config/overrides/external-dns-values.yaml
@@ -49,7 +49,7 @@ modules:
     version: VERRAZZANO_VERSION
     chart: platform-operator/helm_config/charts/verrazzano-monitoring-operator
   - name: oam-kubernetes-runtime
-    version: 0.3.3-3
+    version: 0.3.3-4
     chart: platform-operator/thirdparty/charts/oam-kubernetes-runtime
     valuesFiles:
       - platform-operator/helm_config/overrides/oam-kubernetes-runtime-values.yaml
@@ -86,7 +86,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/kiali-server-values.yaml
   - name: mysql
-    version: 8.0.32
+    version: 8.0.32-1
     chart: platform-operator/thirdparty/charts/mysql
     valuesFiles:
       - platform-operator/helm_config/overrides/mysql-values.yaml
@@ -101,7 +101,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/keycloak-values.yaml
   - name: prometheus-operator
-    version: 0.64.1-8
+    version: 0.64.1-9
     chart: platform-operator/thirdparty/charts/prometheus-community/kube-prometheus-stack
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-operator-values.yaml
