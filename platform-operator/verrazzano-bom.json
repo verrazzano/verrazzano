@@ -89,10 +89,10 @@
       "subcomponents": [
         {
           "repository": "verrazzano",
-          "name": "cert-manager-webhook-oci-jenkins",
+          "name": "cert-manager-webhook-oci",
           "images": [
             {
-              "image": "cert-manager-webhook-oci",
+              "image": "cert-manager-webhook-oci-jenkins",
               "tag": "v0.1.0-20240813175112-e8dbb62",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
