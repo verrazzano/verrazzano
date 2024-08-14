@@ -804,15 +804,15 @@
     },
     {
       "name": "jaeger-operator",
-      "version": "1.42.0-4",
+      "version": "1.42.0-5",
       "subcomponents": [
         {
           "repository": "verrazzano",
           "name": "jaeger-operator",
           "images": [
             {
-              "image": "jaeger-operator",
-              "tag": "1.42.0-20240724191005-2c0a703c",
+              "image": "jaeger-operator-jenkins",
+              "tag": "1.42.0-20240814163138-b3ec296f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -823,8 +823,8 @@
           "name": "jaeger-agent",
           "images": [
             {
-              "image": "jaeger-agent",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-agent-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerAgentImage"
             }
           ]
@@ -834,8 +834,8 @@
           "name": "jaeger-collector",
           "images": [
             {
-              "image": "jaeger-collector",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-collector-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerCollectorImage"
             }
           ]
@@ -845,8 +845,8 @@
           "name": "jaeger-query",
           "images": [
             {
-              "image": "jaeger-query",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-query-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerQueryImage"
             }
           ]
@@ -856,8 +856,8 @@
           "name": "jaeger-ingester",
           "images": [
             {
-              "image": "jaeger-ingester",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-ingester-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerIngesterImage"
             }
           ]
@@ -867,8 +867,8 @@
           "name": "jaeger-es-index-cleaner",
           "images": [
             {
-              "image": "jaeger-es-index-cleaner",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-es-index-cleaner-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerESIndexCleanerImage"
             }
           ]
@@ -878,8 +878,8 @@
           "name": "jaeger-es-rollover",
           "images": [
             {
-              "image": "jaeger-es-rollover",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-es-rollover-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerESRolloverImage"
             }
           ]
@@ -889,8 +889,8 @@
           "name": "jaeger-all-in-one",
           "images": [
             {
-              "image": "jaeger-all-in-one",
-              "tag": "1.42.0-20240724194117-1a09f940",
+              "image": "jaeger-all-in-one-jenkins",
+              "tag": "1.42.0-20240814154351-6e8049d4",
               "helmFullImageKey": "jaegerAllInOneImage"
             }
           ]

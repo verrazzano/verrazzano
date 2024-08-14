@@ -126,7 +126,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/prometheus-node-exporter-values.yaml
   - name: jaeger-operator
-    version: 1.42.0-4
+    version: 1.42.0-5
     chart: platform-operator/thirdparty/charts/jaegertracing/jaeger-operator
     valuesFiles:
       - platform-operator/helm_config/overrides/jaeger-operator-values.yaml
