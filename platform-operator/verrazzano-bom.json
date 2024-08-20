@@ -668,19 +668,20 @@
       "version": "0.64.1-8",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-operator",
           "images": [
             {
               "image": "prometheus-operator",
-              "tag": "v0.64.1-20231215094947-fed24abf",
+              "tag": "v0.64.1-20240809041620-1681290b",
               "helmRegKey": "prometheusOperator.image.registry",
               "helmFullImageKey": "prometheusOperator.image.repository",
               "helmTagKey": "prometheusOperator.image.tag"
             },
             {
               "image": "kube-webhook-certgen",
-              "tag": "v1.7.1-20240723181019-33c273be0",
+              "tag": "v1.9.6-20240530131612-a79cfcf9",
               "helmRegKey": "prometheusOperator.admissionWebhooks.patch.image.registry",
               "helmFullImageKey": "prometheusOperator.admissionWebhooks.patch.image.repository",
               "helmTagKey": "prometheusOperator.admissionWebhooks.patch.image.tag"
@@ -688,12 +689,13 @@
           ]
         },
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-config-reloader",
           "images": [
             {
               "image": "prometheus-config-reloader",
-              "tag": "v0.64.1-20231215094947-fed24abf",
+              "tag": "v0.64.1-20240809041620",
               "helmRegKey": "prometheusOperator.prometheusConfigReloader.image.registry",
               "helmFullImageKey": "prometheusOperator.prometheusConfigReloader.image.repository",
               "helmTagKey": "prometheusOperator.prometheusConfigReloader.image.tag"
@@ -714,12 +716,13 @@
           ]
         },
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus",
           "images": [
             {
               "image": "prometheus",
-              "tag": "v2.44.0-20240105075642-2d4a3348",
+              "tag": "v2.44.0-20240809041552-ca6c68ad",
               "helmRegKey": "prometheus.prometheusSpec.image.registry",
               "helmFullImageKey": "prometheus.prometheusSpec.image.repository",
               "helmTagKey": "prometheus.prometheusSpec.image.tag"
@@ -733,12 +736,13 @@
       "version": "0.10.0-3",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-adapter",
           "images": [
             {
-              "image": "prometheus-adapter",
-              "tag": "v0.10.0-20240725110154-af669795",
+              "image": "prometheus-adapter-dev",
+              "tag": "v0.10.0-20240814100808-86b973fd",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }
@@ -990,12 +994,13 @@
       "version": "0.32.2-3",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "thanos",
           "images": [
             {
               "image": "thanos",
-              "tag": "v0.32.2-20240725110911-60b9043c",
+              "tag": "v0.32.2-20240819040319-b0257a43",
               "helmRegKey": "image.registry",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
