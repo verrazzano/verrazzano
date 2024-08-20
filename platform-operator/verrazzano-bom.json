@@ -665,7 +665,7 @@
     },
     {
       "name": "prometheus-operator",
-      "version": "0.64.1-8",
+      "version": "0.64.1-9",
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
@@ -733,7 +733,7 @@
     },
     {
       "name": "prometheus-adapter",
-      "version": "0.10.0-3",
+      "version": "0.10.0-4",
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
@@ -991,7 +991,7 @@
     },
     {
       "name": "thanos",
-      "version": "0.32.2-3",
+      "version": "0.32.2-4",
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
