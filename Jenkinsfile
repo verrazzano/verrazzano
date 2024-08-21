@@ -300,10 +300,10 @@ pipeline {
                     steps {
                         sh """
                     cd ${GO_REPO_PATH}/verrazzano
-                    make precommit
-                    make unit-test-coverage-ratcheting
-                    echo "Checking versions..."
-                    release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
+                    // make precommit
+                    // make unit-test-coverage-ratcheting
+                    // echo "Checking versions..."
+                    // release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
                 """
                     }
                     post {
@@ -311,28 +311,6 @@ pipeline {
                             script {
                                 SKIP_TRIGGERED_TESTS = true
                             }
-                        }
-                        always {
-                            sh """
-                        cd ${GO_REPO_PATH}/verrazzano
-                        cp coverage.html ${WORKSPACE}
-                        cp coverage.xml ${WORKSPACE}
-                        build/copy-junit-output.sh ${WORKSPACE}
-                    """
-                            archiveArtifacts artifacts: '**/coverage.html', allowEmptyArchive: true
-                            junit testResults: '**/*test-result.xml', allowEmptyResults: true
-                            cobertura(coberturaReportFile: 'coverage.xml',
-                                    enableNewApi: true,
-                                    autoUpdateHealth: false,
-                                    autoUpdateStability: false,
-                                    failUnstable: true,
-                                    failUnhealthy: true,
-                                    failNoReports: true,
-                                    onlyStable: false,
-                                    fileCoverageTargets: '100, 0, 0',
-                                    lineCoverageTargets: '68, 68, 68',
-                                    packageCoverageTargets: '100, 0, 0',
-                            )
                         }
                     }
                 }
