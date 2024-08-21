@@ -669,7 +669,7 @@
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
-          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-operator",
           "images": [
             {
@@ -690,7 +690,7 @@
         },
         {
           "registry": "iad.ocir.io",
-          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-config-reloader",
           "images": [
             {
@@ -717,7 +717,7 @@
         },
         {
           "registry": "iad.ocir.io",
-          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus",
           "images": [
             {
@@ -737,7 +737,7 @@
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
-          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "prometheus-adapter",
           "images": [
             {
@@ -995,7 +995,7 @@
       "subcomponents": [
         {
           "registry": "iad.ocir.io",
-          "repository": "iad.ocir.io/odsbuilddev/sandboxes/padmanabha.bhat",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "thanos",
           "images": [
             {
