@@ -295,25 +295,6 @@ pipeline {
                     }
                 }
 
-                stage('Quality, Compliance Checks, and Unit Tests') {
-                    when { not { buildingTag() } }
-                    steps {
-                        sh """
-                    cd ${GO_REPO_PATH}/verrazzano
-                    // make precommit
-                    // make unit-test-coverage-ratcheting
-                    // echo "Checking versions..."
-                    // release/scripts/check_versions.sh ${VERRAZZANO_DEV_VERSION}
-                """
-                    }
-                    post {
-                        failure {
-                            script {
-                                SKIP_TRIGGERED_TESTS = true
-                            }
-                        }
-                    }
-                }
 
         }
     }
