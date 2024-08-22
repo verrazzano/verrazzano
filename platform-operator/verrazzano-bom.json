@@ -85,15 +85,16 @@
     },
     {
       "name": "cert-manager-webhook-oci",
-      "version": "0.1.0-3",
+      "version": "0.1.0-4",
       "subcomponents": [
         {
-          "repository": "verrazzano",
+          "registry": "iad.ocir.io",
+          "repository": "odsbuilddev/sandboxes/padmanabha.bhat",
           "name": "cert-manager-webhook-oci",
           "images": [
             {
               "image": "cert-manager-webhook-oci",
-              "tag": "v0.1.0-20240725112643-ade29ad",
+              "tag": "v0.1.0-20240822030348-87ea586f",
               "helmFullImageKey": "image.repository",
               "helmTagKey": "image.tag"
             }

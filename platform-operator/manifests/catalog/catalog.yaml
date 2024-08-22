@@ -13,7 +13,7 @@ modules:
     valuesFiles:
       - platform-operator/helm_config/overrides/cert-manager-values.yaml
   - name: cert-manager-webhook-oci
-    version: 0.1.0-3
+    version: 0.1.0-4
     chart: platform-operator/thirdparty/charts/cert-manager-webhook-oci
   - name: cluster-issuer
     version: VERRAZZANO_VERSION
