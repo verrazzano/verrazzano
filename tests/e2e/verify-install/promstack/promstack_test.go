@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Jeffail/gabs/v2"
 	"github.com/verrazzano/verrazzano/pkg/vzcr"
 	vzbeta1 "github.com/verrazzano/verrazzano/platform-operator/apis/verrazzano/v1beta1"
 	"github.com/verrazzano/verrazzano/platform-operator/controllers/verrazzano/component/appoper"
@@ -35,15 +36,15 @@ import (
 )
 
 const (
-	waitTimeout         = 15 * time.Minute
-	pollingInterval     = 10 * time.Second
-	prometheusTLSSecret = "prometheus-operator-kube-p-admission"
-	//prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
-	//prometheusOperatorContainerName = "kube-prometheus-stack"
-	thanosSidecarContainerName  = "thanos-sidecar"
-	overrideConfigMapSecretName = "test-overrides"
-	overrideKey                 = "override"
-	overrideValue               = "true"
+	waitTimeout                     = 15 * time.Minute
+	pollingInterval                 = 10 * time.Second
+	prometheusTLSSecret             = "prometheus-operator-kube-p-admission"
+	prometheusOperatorDeployment    = "prometheus-operator-kube-p-operator"
+	prometheusOperatorContainerName = "kube-prometheus-stack"
+	thanosSidecarContainerName      = "thanos-sidecar"
+	overrideConfigMapSecretName     = "test-overrides"
+	overrideKey                     = "override"
+	overrideValue                   = "true"
 )
 
 type enabledComponents struct {
@@ -336,16 +337,15 @@ var _ = t.Describe("Prometheus Stack", Label("f:platform-lcm.install"), func() {
 		// GIVEN the Prometheus stack is installed
 		// WHEN we check to make sure the default images are from Verrazzano
 		// THEN we see that the arguments are correctly populated
-		// This test is expected to fail, as the base images are not from ghcr.io/verrazzano
-		//WhenPromStackInstalledIt(fmt.Sprintf("should have the correct default image arguments: %s, %s", expectedPromOperatorArgs[0], expectedPromOperatorArgs[1]), func() {
-		//	promStackPodsRunning := func() (bool, error) {
-		//		if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
-		//			return pkg.ContainerHasExpectedArgs(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
-		//		}
-		//		return true, nil
-		//	}
-		//	Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
-		//})
+		WhenPromStackInstalledIt(fmt.Sprintf("should have the correct default image arguments: %s, %s", expectedPromOperatorArgs[0], expectedPromOperatorArgs[1]), func() {
+			promStackPodsRunning := func() (bool, error) {
+				if vzcr.IsComponentStatusEnabled(vz, prometheusOperator.ComponentName) {
+					return pkg.ContainerHasExpectedArgs(constants.VerrazzanoMonitoringNamespace, prometheusOperatorDeployment, prometheusOperatorContainerName, expectedPromOperatorArgs)
+				}
+				return true, nil
+			}
+			Eventually(promStackPodsRunning, waitTimeout, pollingInterval).Should(BeTrue())
+		})
 
 		WhenPromStackInstalledIt("should have the correct Prometheus Operator CRDs", func() {
 			verifyCRDList := func() (bool, error) {
